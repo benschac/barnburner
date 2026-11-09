@@ -1,26 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import { getConfig, getVariableValue, Text, useTheme, View } from 'tamagui'
+import contract from '../design/contract.json'
 import { fontsReady } from './fonts'
-import { margins, playoffMargins, venues } from './stats'
+import { completedGames, describePlayoffComparison, gameDateTime, latestPlayoffCushion, playoffGap, seasonGames, seasonSummary } from './stats'
 
-const plotWidth = 1058
-const chartWidth = 1100
-const seasonGames = 84
-const step = plotWidth / seasonGames
+const { chartPlot: plotWidth, chartAxis: axisWidth } = contract.size
+const step = plotWidth / seasonGames.length
 const x = (i: number) => 6 + i * step
+const monthName = new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: 'UTC' })
+const playoffPoints = seasonGames.flatMap(({ result }, index) =>
+  result ? [{ index, playoffMargin: playoffGap(result.comparison) }] : [])
 type ChartColors = Record<'win' | 'loss' | 'grid' | 'muted' | 'gold' | 'pending' | 'positive' | 'negative' | 'line', string>
 
 type ChartKind = 'season' | 'playoff'
 
-function drawChart(ctx: CanvasRenderingContext2D, kind: ChartKind, colors: ChartColors, font: string, activeGame: number | null) {
-  const height = kind === 'season' ? 255 : 126
-  ctx.clearRect(0, 0, chartWidth, height)
-  ctx.font = `16px ${font}`
+function drawChart(ctx: CanvasRenderingContext2D, axis: CanvasRenderingContext2D, kind: ChartKind, colors: ChartColors, font: string, activeGame: number | null) {
+  const height = kind === 'season' ? contract.size.seasonChart : contract.size.playoffChart
+  ctx.clearRect(0, 0, plotWidth, height)
+  axis.clearRect(0, 0, axisWidth, height)
   ctx.textBaseline = 'middle'
-  const zero = kind === 'season' ? 102 : 64
-  const unit = kind === 'season' ? 20 : 5.6
-  const ticks = kind === 'season' ? [3, 2, 1, -1, -2, -3] : [10, 5, 0, -5, -10]
+  axis.textBaseline = 'middle'
+  axis.font = `14px ${font}`
+  const zero = kind === 'season' ? 105 : 64
+  const unit = kind === 'season' ? 16 : 5.6
+  const ticks = kind === 'season' ? [6, 4, 2, -2, -4, -6] : [10, 5, 0, -5, -10]
   for (const tick of ticks) {
     const y = zero - tick * unit
     ctx.beginPath()
@@ -30,17 +34,16 @@ function drawChart(ctx: CanvasRenderingContext2D, kind: ChartKind, colors: Chart
     ctx.moveTo(0, y)
     ctx.lineTo(plotWidth, y)
     ctx.stroke()
-    ctx.fillStyle = tick === 0 ? colors.gold : colors.muted
-    ctx.font = `14px ${font}`
-    ctx.fillText(tick > 0 ? `+${tick}` : `${tick}`.replace('-', '−'), plotWidth + 8, y)
+    axis.fillStyle = tick === 0 ? colors.gold : colors.muted
+    axis.fillText(tick > 0 ? `+${tick}` : `${tick}`.replace('-', '−'), 8, y)
   }
   ctx.setLineDash([])
   if (kind === 'season') {
     ctx.fillStyle = colors.grid
     ctx.fillRect(0, zero - 1, plotWidth, 2)
-    for (let i = 0; i < seasonGames; i++) {
-      const margin = margins[i]
-      ctx.fillStyle = margin === undefined ? colors.pending : margin > 0 ? colors.win : colors.loss
+    for (const [i, { result, venue }] of seasonGames.entries()) {
+      const margin = result ? result.goalsFor - result.goalsAgainst : undefined
+      ctx.fillStyle = margin === undefined ? colors.pending : margin > 0 ? colors.win : result?.decision === 'REG' ? colors.loss : colors.gold
       const barHeight = margin === undefined ? 6 : Math.abs(margin) * unit
       ctx.fillRect(x(i) - 4.3, margin === undefined ? zero - 3 : margin > 0 ? zero - barHeight : zero, 8.6, barHeight)
       ctx.beginPath()
@@ -48,40 +51,43 @@ function drawChart(ctx: CanvasRenderingContext2D, kind: ChartKind, colors: Chart
       ctx.fillStyle = colors.muted
       ctx.strokeStyle = colors.muted
       ctx.lineWidth = 1.3
-      if (venues[i] === 'H') ctx.fill()
+      if (venue === 'home') ctx.fill()
       else ctx.stroke()
     }
     ctx.font = `17px ${font}`
     ctx.fillStyle = colors.muted
-    for (const [label, position] of [['Oct', 0], ['Nov', 178], ['Dec', 340], ['Jan', 518], ['Feb', 717], ['Mar', 830], ['Apr', 996]] as const) {
-      ctx.fillText(label, position, 240)
-    }
+    seasonGames.forEach(({ date }, index) => {
+      if (date.slice(0, 7) !== seasonGames[index - 1]?.date.slice(0, 7)) {
+        ctx.fillText(monthName.format(new Date(date)), x(index) - 6, 240)
+      }
+    })
   } else {
+    const first = playoffPoints[0]
+    const last = playoffPoints.at(-1)
+    if (!first || !last) return
     for (const positive of [false, true]) {
       ctx.save()
       ctx.beginPath()
       ctx.rect(0, positive ? 0 : zero, plotWidth, positive ? zero : height - zero)
       ctx.clip()
       ctx.beginPath()
-      ctx.moveTo(x(0), zero)
-      playoffMargins.forEach((value, i) => ctx.lineTo(x(i), zero - value * unit))
-      ctx.lineTo(x(playoffMargins.length - 1), zero)
+      ctx.moveTo(x(first.index), zero)
+      playoffPoints.forEach(({ index, playoffMargin }) => ctx.lineTo(x(index), zero - playoffMargin * unit))
+      ctx.lineTo(x(last.index), zero)
       ctx.closePath()
       ctx.fillStyle = positive ? colors.positive : colors.negative
       ctx.fill()
       ctx.restore()
     }
     ctx.beginPath()
-    playoffMargins.forEach((value, i) => {
-      if (i === 0) ctx.moveTo(x(i), zero - value * unit)
-      else ctx.lineTo(x(i), zero - value * unit)
-    })
+    ctx.moveTo(x(first.index), zero - first.playoffMargin * unit)
+    playoffPoints.slice(1).forEach(({ index, playoffMargin }) => ctx.lineTo(x(index), zero - playoffMargin * unit))
     ctx.lineWidth = 3
     ctx.lineJoin = 'round'
     ctx.strokeStyle = colors.line
     ctx.stroke()
     ctx.beginPath()
-    ctx.arc(x(16), zero - 5 * unit, 6.5, 0, Math.PI * 2)
+    ctx.arc(x(last.index), zero - last.playoffMargin * unit, 6.5, 0, Math.PI * 2)
     ctx.fillStyle = colors.line
     ctx.fill()
   }
@@ -95,14 +101,24 @@ function drawChart(ctx: CanvasRenderingContext2D, kind: ChartKind, colors: Chart
     ctx.lineTo(position, kind === 'season' ? 208 : height)
     ctx.stroke()
     ctx.setLineDash([])
-    const value = playoffMargins[activeGame]
-    if (kind === 'playoff' && value !== undefined) {
+    const comparison = seasonGames[activeGame]?.result?.comparison
+    if (kind === 'playoff' && comparison) {
       ctx.beginPath()
-      ctx.arc(position, zero - value * unit, 4, 0, Math.PI * 2)
+      ctx.arc(position, zero - playoffGap(comparison) * unit, 4, 0, Math.PI * 2)
       ctx.fillStyle = colors.gold
       ctx.fill()
     }
   }
+}
+
+function scaleCanvas(canvas: HTMLCanvasElement, width: number, height: number, ratio: number) {
+  const pixelWidth = Math.round(width * ratio)
+  const pixelHeight = Math.round(height * ratio)
+  if (canvas.width !== pixelWidth) canvas.width = pixelWidth
+  if (canvas.height !== pixelHeight) canvas.height = pixelHeight
+  const context = canvas.getContext('2d')
+  context?.setTransform(pixelWidth / width, 0, 0, pixelHeight / height, 0, 0)
+  return context
 }
 
 export function Chart({ kind, activeGame, onActiveGameChange }: {
@@ -111,6 +127,7 @@ export function Chart({ kind, activeGame, onActiveGameChange }: {
   onActiveGameChange: (game: number | null) => void
 }) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const axisRef = useRef<HTMLCanvasElement>(null)
   const regionRef = useRef<HTMLElement>(null)
   const [isFocused, setIsFocused] = useState(false)
   const theme = useTheme()
@@ -126,28 +143,24 @@ export function Chart({ kind, activeGame, onActiveGameChange }: {
   const colors = useMemo(() => ({ win, loss, grid, muted, gold, pending, positive, negative, line }),
     [win, loss, grid, muted, gold, pending, positive, negative, line])
   const font = String(getVariableValue(getConfig().fonts.body.family))
-  const height = kind === 'season' ? 255 : 126
+  const heightToken = kind === 'season' ? 'seasonChart' : 'playoffChart'
+  const height = contract.size[heightToken]
   useEffect(() => {
     let cancelled = false
     let context: CanvasRenderingContext2D | null = null
+    let axis: CanvasRenderingContext2D | null = null
     const clearHighlight = () => {
-      if (context && activeGame !== null) drawChart(context, kind, colors, font, null)
+      if (context && axis && activeGame !== null) drawChart(context, axis, kind, colors, font, null)
     }
     const restoreHighlight = () => {
-      if (context && activeGame !== null) drawChart(context, kind, colors, font, activeGame)
+      if (context && axis && activeGame !== null) drawChart(context, axis, kind, colors, font, activeGame)
     }
     fontsReady.then(() => {
-      if (cancelled || !ref.current) return
-      const canvas = ref.current
+      if (cancelled || !ref.current || !axisRef.current) return
       const ratio = Math.max(2, window.devicePixelRatio || 1)
-      const width = Math.round(chartWidth * ratio)
-      const pixelHeight = Math.round(height * ratio)
-      if (canvas.width !== width) canvas.width = width
-      if (canvas.height !== pixelHeight) canvas.height = pixelHeight
-      context = canvas.getContext('2d')
-      if (!context) return
-      context.setTransform(width / chartWidth, 0, 0, pixelHeight / height, 0, 0)
-      drawChart(context, kind, colors, font, activeGame)
+      context = scaleCanvas(ref.current, plotWidth, height, ratio)
+      axis = scaleCanvas(axisRef.current, axisWidth, height, ratio)
+      if (context && axis) drawChart(context, axis, kind, colors, font, activeGame)
     })
     window.addEventListener('beforeprint', clearHighlight)
     window.addEventListener('afterprint', restoreHighlight)
@@ -162,8 +175,8 @@ export function Chart({ kind, activeGame, onActiveGameChange }: {
     const canvas = ref.current
     const region = regionRef.current
     if (activeGame === null || !canvas || !region) return
-    const position = x(activeGame) * canvas.offsetWidth / chartWidth
-    if (position < region.scrollLeft || position >= region.scrollLeft + region.clientWidth) {
+    const position = x(activeGame) * canvas.offsetWidth / plotWidth
+    if (position + step / 2 < region.scrollLeft || position - step / 2 >= region.scrollLeft + region.clientWidth) {
       region.scrollLeft = position - region.clientWidth / 2
     }
   }, [activeGame])
@@ -171,9 +184,9 @@ export function Chart({ kind, activeGame, onActiveGameChange }: {
   function inspectGame(event: MouseEvent) {
     const bounds = ref.current?.getBoundingClientRect()
     if (!bounds?.width) return
-    const position = (event.clientX - bounds.left) * chartWidth / bounds.width
+    const position = (event.clientX - bounds.left) * plotWidth / bounds.width
     const game = Math.round((position - x(0)) / step)
-    onActiveGameChange(position >= 0 && position < plotWidth && game >= 0 && game < seasonGames ? game : null)
+    onActiveGameChange(position >= 0 && position < plotWidth && game >= 0 && game < seasonGames.length ? game : null)
   }
 
   function navigateGames(event: KeyboardEvent) {
@@ -185,50 +198,61 @@ export function Chart({ kind, activeGame, onActiveGameChange }: {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
     const offset = event.key === 'ArrowRight' ? 1 : -1
     const nextGame = activeGame === null
-      ? (offset > 0 ? 0 : seasonGames - 1)
-      : Math.max(0, Math.min(seasonGames - 1, activeGame + offset))
+      ? (offset > 0 ? 0 : seasonGames.length - 1)
+      : Math.max(0, Math.min(seasonGames.length - 1, activeGame + offset))
     if (nextGame === activeGame) return
     event.preventDefault()
     onActiveGameChange(nextGame)
   }
 
-  let detail = 'Hover or tap a game, or use the left and right arrow keys.'
-  if (activeGame !== null) {
+  let detail: string | undefined
+  const game = activeGame === null ? undefined : seasonGames[activeGame]
+  if (activeGame !== null && game) {
+    const time = `Game ${activeGame + 1} · ${gameDateTime(game)}`
     if (kind === 'season') {
-      const margin = margins[activeGame]
-      const venue = venues[activeGame] === 'H' ? 'Home' : 'Away'
-      const result = margin === undefined ? 'Still to play' : `${margin > 0 ? '+' : ''}${margin} goal margin`
-      detail = `Game ${activeGame + 1} · ${venue} · ${result}`
+      const result = game.result
+      const margin = result ? result.goalsFor - result.goalsAgainst : undefined
+      const score = result && margin !== undefined
+        ? `${result.goalsFor}–${result.goalsAgainst}${result.decision === 'REG' ? '' : ` ${result.decision}`} (${margin > 0 ? '+' : ''}${margin})`
+        : 'Still to play'
+      detail = `${time} · ${game.venue === 'home' ? 'vs' : '@'} ${game.team} · ${score}`
     } else {
-      const margin = playoffMargins[activeGame]
-      const position = margin === undefined
-        ? 'No playoff data yet'
-        : margin === 0 ? 'On the playoff line' : `${Math.abs(margin)} ${Math.abs(margin) === 1 ? 'point' : 'points'} ${margin > 0 ? 'above' : 'below'} the playoff line`
-      detail = `Game ${activeGame + 1} · ${position}`
+      const comparison = game.result?.comparison
+      detail = `${time} · ${comparison ? describePlayoffComparison(comparison).equation : 'No playoff data yet'}`
     }
   }
 
   return (
     <View>
-      <View ref={(node) => { regionRef.current = node instanceof HTMLElement ? node : null }}
-        overflow="auto print:visible" w="100%" tabIndex={0} role="region"
-        aria-label={kind === 'season' ? 'Season chart. Use arrow keys to inspect games.' : 'Playoff chart. Use arrow keys to inspect games.'}
-        onKeyDown={navigateGames} onFocus={() => setIsFocused(true)}
-        onBlur={() => {
-          setIsFocused(false)
-          onActiveGameChange(null)
-        }}
-      >
-        <View render="canvas" ref={(node) => { ref.current = node instanceof HTMLCanvasElement ? node : null }}
-          w="chart" h={kind === 'season' ? 'seasonChart' : 'playoffChart'} display="block" role="img"
-          onMouseMove={inspectGame} onMouseLeave={() => onActiveGameChange(null)} onClick={inspectGame}
-          aria-label={kind === 'season'
-            ? `Season goal margins for 17 of 84 games: ${margins.join(', ')}. 12 wins and 5 losses.`
-            : 'Playoff position over 17 games, ending 5 points above the playoff line.'}
+      <View flexDirection="row" items="flex-start" w="100%" maxW="chart">
+        <View ref={(node) => { regionRef.current = node instanceof HTMLElement ? node : null }}
+          overflow="auto print:visible" flex={1} minW="0" tabIndex={0} role="region"
+          aria-label={kind === 'season' ? 'Season chart. Use arrow keys to inspect games.' : 'Playoff cushion chart. Use arrow keys to inspect games.'}
+          onKeyDown={navigateGames} onFocus={() => setIsFocused(true)}
+          onBlur={() => {
+            setIsFocused(false)
+            onActiveGameChange(null)
+          }}
+        >
+          <View render="canvas" ref={(node) => { ref.current = node instanceof HTMLCanvasElement ? node : null }}
+            w="chartPlot" h={heightToken} display="block" role="img"
+            onMouseMove={inspectGame} onMouseLeave={() => { if (!isFocused) onActiveGameChange(null) }} onClick={inspectGame}
+            aria-label={kind === 'season'
+              ? `Season goal margins for ${completedGames.length} of ${seasonGames.length} games. Record: ${seasonSummary.record}.`
+              : `Playoff cushion over ${playoffPoints.length} games. ${latestPlayoffCushion?.equation ?? 'No playoff data yet'}.`}
+          />
+        </View>
+        <View render="canvas" ref={(node) => { axisRef.current = node instanceof HTMLCanvasElement ? node : null }}
+          w="chartAxis" h={heightToken} display="block" shrink={0} aria-hidden
         />
       </View>
-      <Text display="print:none" fontFamily="body" fontSize="caption" lineHeight="caption" color="muted" aria-live={isFocused ? 'polite' : 'off'}>
-        {detail}
+      <Text h="16 poster:6" overflow="hidden" display="print:none" fontFamily="body" fontSize="caption" lineHeight="caption" color="muted" aria-live={isFocused ? 'polite' : 'off'}>
+        {detail ?? (
+          <>
+            <Text display="inline poster:none">Scroll sideways if needed. </Text>
+            Select a game or use the arrow keys.
+          </>
+        )}
       </Text>
     </View>
   )

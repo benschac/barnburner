@@ -28,6 +28,8 @@
     "poster": 1206,
     "posterHeight": 1518,
     "chart": 1100,
+    "chartPlot": 1058,
+    "chartAxis": 42,
     "seasonChart": 255,
     "playoffChart": 126,
     "bannerOutline": 268,
@@ -85,7 +87,10 @@
     "gridTemplateColumns": [
       "1fr 1fr",
       "minmax(0, 1fr) md:repeat(2, minmax(0, 1fr)) poster:1.5fr 1fr 1fr print:1.5fr 1fr 1fr",
-      "minmax(0, 1fr) sm:repeat(2, minmax(0, 1fr)) md:minmax(0, 1fr) poster:repeat(2, minmax(0, 1fr)) print:repeat(2, minmax(0, 1fr))"
+      "minmax(0, 1fr) sm:repeat(2, minmax(0, 1fr)) print:repeat(2, minmax(0, 1fr))"
+    ],
+    "gridColumn": [
+      "md:1 / -1 poster:auto print:auto"
     ],
     "clipPath": [
       "polygon(0 0, 100% 0, 88% 100%, 0 100%)"

@@ -63,3 +63,48 @@ No remaining actionable P0/P1/P2 findings. P3 limitations: body-font rasterizati
 - [x] Desktop, tablet, and phone browser checks.
 - [x] Independent code review and responsive finding fixed.
 - [x] Build, lint, and Tamagui checks passed.
+
+## November 9 responsive polish pass
+
+The current implementation includes an updated 18-game snapshot and responsive interactive layouts. The original 17-game poster remains the composition reference. Data, chart scales, additional interaction instructions, responsive reflow, and the light theme are intentional differences.
+
+### Evidence and normalization
+
+Source visual truth remains .audit/graphic/reference.png, 1206 × 1518 pixels, cropped from the supplied screenshot. Implementation evidence is .audit/design-polish/final-dark.png and final-light.png, captured at 1206 × 1518 CSS pixels with devicePixelRatio 1, including a 64px appearance toolbar. The cropped final-poster.png is 1206 × 1518 pixels. comparison-final.png places source and implementation together at equal scale. final-detail.png shows the standings, matchup and schedule regions in light mode. before-desktop.png and compare-before.png preserve the initial comparison.
+
+Phone evidence is final-phone.png at 320 × 812 CSS pixels, density 1. after-phone.png records the 375px chart layout. after-tablet-light.png records the 768 × 1024 light layout. Captures returned JPEG bytes despite the .png filenames; image tools decoded those bytes before generating PNG comparison artifacts.
+
+### Findings and iteration history
+
+- P2 fixed. The 320px legend expanded document width to 355px. Constraining its wrapping list now gives document width 320px.
+- P2 fixed. Narrow charts hid their value labels at the far end of the scroll area. Separate axis canvases keep both scales visible. At 375px both axes stayed at x=317 while plot scroll moved from 0 to 757 and keyboard selection reached Game 84.
+- P2 fixed. Tablet matchups stacked into four rows beside standings. The division grid now spans the tablet layout above adjacent standings and schedule sections.
+- P2 fixed. Upcoming matchup selection gave no local feedback. Date, venue, opponent, and pending/result details now appear locally.
+- P2 fixed after independent review. Details below a division could be outside the phone viewport. A bottom-sticky strip now keeps feedback visible. The BOS selection was observed at y=610–634 inside an 812px viewport.
+- P2 fixed. Appearance controls used a missing size/font recipe, producing warnings and undersized buttons. Native buttons now use the existing contract's sizing and type tokens.
+- User-directed asset correction. Toronto's existing SVG has a locally inverted RGB copy for light mode. All three currently rendered Toronto marks use it in light mode and the original in dark mode. The upcoming schedule callsite also selects the inverted asset when Toronto appears.
+- P3 fixed. Centered the header logo vertically, reduced mobile summary text size, tightened matchup spacing, removed redundant rank punctuation, and clarified the chart scroll hint.
+
+### Required fidelity surfaces
+
+Typography retains Graduate numerals and Roboto Condensed text. Header wrapping and control labels were inspected. Layout retains the desktop composition and uses the existing approved spacing scale. Colors use semantic themes and selected appearance controls have a gold border. Toronto inversion is explicitly user-directed and preserves every SVG path. Other logos and portraits retain their supplied assets. Content reflects the current snapshot with clearer interaction guidance.
+
+The full-view comparison preserves the reference's hierarchy and major regions. Focused inspection of final-detail.png confirms the revised labels, portraits, standings and Toronto contrast. Minor source rasterization and portrait differences remain accepted P3 limitations.
+
+### Validation and remaining scope
+
+Lint passed with 60 design-rule cases. Strict Tamagui validation passed. Production build including TypeScript passed. git diff --check passed. Browser checks covered light/dark switching, preference persistence, 320px containment, tablet layout, game selection, arrow navigation and Escape clearing. The final browser console had zero warnings or errors. Print CSS was reviewed, but actual print preview was not exercised.
+
+Changed UI files are App.tsx, Charts.tsx, ThemePreference.tsx and design/contract.json. TOR-inverted.svg and its SOURCES.md attribution record the requested asset edit.
+
+final result: passed
+
+## Hover stability follow-up
+
+Reproduced the shared hover/focus detail state moving the lower division row down 16px when selecting BOS. Division height grew from 326px to 342px because the detail wrapped.
+
+App.tsx now reserves a fixed 64px detail area. Charts.tsx reserves 64px below narrow charts and 24px on desktop. Chart auto-scroll tolerates half a game step at visible edges, matching pointer rounding, and mouse leave preserves focused chart selection.
+
+Browser selection sweeps covered all 84 matchup buttons and all 84 chart games at 320, 768 and 1206px widths. All 504 selections produced zero measured section movement and zero clipped detail areas. These sweeps exercised keyboard selection through the same shared detail state; continuous physical pointer motion was not automated. Independent review found no actionable regression. Screenshot evidence is .audit/design-polish/hover-stable.png.
+
+Lint, strict Tamagui validation and production build passed after the changes.

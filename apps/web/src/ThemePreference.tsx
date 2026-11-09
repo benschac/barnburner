@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { Button, TamaguiProvider, Text, View } from 'tamagui'
+import { TamaguiProvider, Text, View } from 'tamagui'
 import { config } from '../tamagui.config'
 
 type ThemePreference = 'system' | 'light' | 'dark'
@@ -57,12 +57,15 @@ export function ThemeControls() {
     <View render="nav" aria-label="Appearance" w="100%" maxW="poster" px="4" py="3" gap="2" flexDirection="row" flexWrap="wrap" items="center" display="flex print:none">
       <Text fontFamily="body" color="muted" mr="auto">Appearance</Text>
       {preferences.map((preference) => (
-        <Button key={preference} size="sm" aria-pressed={context.preference === preference}
+        <View render="button" key={preference} aria-pressed={context.preference === preference}
+          minH="badge" px="3" items="center" justify="center" rounded="sm" cursor="pointer"
           bg={context.preference === preference ? 'highlight' : 'surface hover:background-hover'}
-          color="color" borderColor="rule focus-visible:gold" borderWidth={2}
-          onPress={() => context.setPreference(preference)}>
-          {preference === 'system' ? 'System' : preference === 'light' ? 'Light' : 'Dark'}
-        </Button>
+          borderColor={context.preference === preference ? 'gold' : 'rule focus-visible:gold'} borderWidth={2}
+          onClick={() => context.setPreference(preference)}>
+          <Text fontFamily="body" fontSize="caption" lineHeight="caption" color="color">
+            {preference === 'system' ? 'System' : preference === 'light' ? 'Light' : 'Dark'}
+          </Text>
+        </View>
       ))}
     </View>
   )
