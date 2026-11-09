@@ -14,6 +14,7 @@ dist-ssr
 .audit/
 **/src/tamagui.generated.css
 .turbo/
+.vercel/
 *.local
 
 # Editor directories and files

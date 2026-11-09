@@ -3,11 +3,18 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "exports": {
+    "./web-handler": {
+      "types": "./src/web-handler.ts",
+      "default": "./dist/web-handler.js"
+    }
+  },
   "scripts": {
+    "build": "bun build src/web-handler.ts --target=node --format=esm --outfile=dist/web-handler.js",
     "start": "node src/main.ts",
     "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.json",
     "lint": "oxlint src tests",
-    "test": "node --test tests/*.test.ts"
+    "test": "bun run build && node --test tests/*.test.ts"
   },
   "dependencies": {
     "@effect/platform-node": "4.1.2",

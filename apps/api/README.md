@@ -25,6 +25,27 @@ and [responsibility-boundary](https://ratstack.sh/skills/uncomplect) patterns wi
 adding its generic capability framework or changing the React/Tamagui client.
 The API serves local snapshots and makes no upstream NHL requests or writes.
 
+## Vercel
+
+The existing Vercel project uses `apps/web` as its root. The API entrypoints in
+`apps/web/api` export the same Effect router as a Web handler for each public route.
+The web build first bundles `src/web-handler.ts` into `dist/web-handler.js`,
+including the snapshot JSON and shared contracts. This gives Vercel executable
+JavaScript without depending on source TypeScript exports at runtime.
+
+The function serves `/api/rpc` and the existing GET routes. Its runtime is reused
+across requests; each request retains Effect's scoped lifetime and body limit.
+`apps/web/vercel.json` enables request cancellation. Snapshot refreshes become
+visible in production after a new deployment, with no local API process required.
+
+Before publishing, run a local `vercel build --prod --standalone` with the
+project's settings, inspect the generated function and routes, and exercise that
+packaged handler. From the repository root, run
+`node apps/web/scripts/check-vercel-output.mjs .vercel/output` with the build's
+output path. This copies each function outside the checkout and verifies typed
+RPC and all three GET endpoints. Source tests alone do not verify Vercel's package
+layout.
+
 Run `bun run test:api` for real Node RPC success, declared and transport failures,
 and client/server interruption checks. `bun run test:data` covers retained GET
 behavior and data validation. `bun run typecheck` checks the shared handler/client

@@ -25,7 +25,7 @@ The task and workspace setup follows [the Turborepo migration guide](https://tur
 
 ## Content and assets
 
-The league-wide game snapshot and read-only team API are documented in [data/README.md](data/README.md). `bun run data:serve` starts the [Effect Node server](apps/api/README.md) at `http://127.0.0.1:3001`. The app calls `GetTeamData` through `/api/rpc`, using the shared contract in `packages/season`; the GET endpoints remain available for direct consumers. Vite proxies `/api` in development and preview. Production hosting must route `/api` to the API server; the static build alone does not serve it.
+The league-wide game snapshot and read-only team API are documented in [data/README.md](data/README.md). `bun run data:serve` starts the [Effect Node server](apps/api/README.md) at `http://127.0.0.1:3001`. The app calls `GetTeamData` through `/api/rpc`, using the shared contract in `packages/season`; the GET endpoints remain available for direct consumers. Vite proxies `/api` in development and preview. The Vercel entrypoint in `apps/web/api` hosts the same router alongside the static frontend, using bundled snapshots.
 
 - `apps/web/src/App.tsx`: semantic page sections, standings, schedules, and leaders.
 - `apps/web/src/stats.ts`: selected-team poster formatting from validated backend snapshots.
@@ -33,7 +33,7 @@ The league-wide game snapshot and read-only team API are documented in [data/REA
 - `apps/web/src/Charts.tsx`: high-resolution canvas charts with accessible text descriptions.
 - `apps/web/public/assets`: local NHL logos, player portraits, Graduate and Roboto Condensed fonts, and Material venue icons. Source URLs and licenses are documented in `apps/web/public/assets/SOURCES.md`.
 
-The reference screenshot is used for comparison only and is not embedded in the page. Team data comes from the local API, while player portraits use the NHL image URLs recorded in the snapshot. Refreshes are explicit; no background NHL polling or deployment is configured.
+The reference screenshot is used for comparison only and is not embedded in the page. Team data comes from the API, while player portraits use the NHL image URLs recorded in the snapshot. Refreshes are explicit; no background NHL polling is configured. Production snapshot updates require a new deployment.
 
 ## Credits
 

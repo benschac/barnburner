@@ -26,6 +26,7 @@
       "name": "@nhl-reddit-stats/web",
       "version": "0.0.0",
       "dependencies": {
+        "@nhl-reddit-stats/api": "0.0.0",
         "@nhl-reddit-stats/season": "0.0.0",
         "@tamagui/config": "3.3.1",
         "@vercel/analytics": "^2.0.1",

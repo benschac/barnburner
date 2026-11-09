@@ -12,6 +12,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
+    "allowJs": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
@@ -22,5 +23,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "tamagui.build.ts", "tamagui.config.ts"]
+  "include": ["vite.config.ts", "tamagui.build.ts", "tamagui.config.ts", "api"]
 }

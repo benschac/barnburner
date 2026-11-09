@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "trailingSlash": false,
+  "functions": {
+    "api/**/*.ts": {
+      "supportsCancellation": true
+    }
+  }
+}

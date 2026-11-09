@@ -47,7 +47,7 @@ bun run data:refresh:poster
 
 Restart `bun run data:serve` after refreshing. The server serves saved data without requesting NHL feeds. The supplement refresh checks coverage and consistency with the game snapshot before replacing its output. A failed refresh preserves the previous supplement. The two files are replaced separately, so complete both refreshes before restarting the API.
 
-Vite proxies `/api` to `http://127.0.0.1:3001` in development and preview. Production requires equivalent routing to the API. No database, scheduled refresh, or production deployment is configured.
+Vite proxies `/api` to `http://127.0.0.1:3001` in development and preview. On Vercel, the web project's API function hosts the same router with bundled snapshots. Publishing refreshed production data requires redeploying. No database or scheduled refresh is configured.
 
 Run `bun run test:data` to verify normalization, coverage, filtering, failed-write preservation, and HTTP behavior.
 
