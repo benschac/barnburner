@@ -1,6 +1,6 @@
 # NHL Reddit Stats
 
-A static, editable recreation of the New Jersey Devils “Season at a Glance — November 8” graphic. Built with Vite, React, TypeScript, and Tamagui in an npm workspace managed by Turborepo.
+A static, editable recreation of the New Jersey Devils “Season at a Glance” graphic, with NHL data through November 8, 2026. Built with Vite, React, TypeScript, and Tamagui in an npm workspace managed by Turborepo.
 
 ## Preview
 
@@ -22,12 +22,16 @@ The task and workspace setup follows [the Turborepo migration guide](https://tur
 ## Content and assets
 
 - `apps/web/src/App.tsx`: semantic page sections, standings, schedules, and leaders.
-- `apps/web/src/stats.ts`: hardcoded values transcribed from the supplied screenshot; these are not current/live NHL statistics.
+- `apps/web/src/stats.ts` contains a point-in-time snapshot from the NHL's [regular-season schedule](https://api-web.nhle.com/v1/club-schedule-season/NJD/20262027), [standings](https://api-web.nhle.com/v1/standings/2026-11-09), [club stats](https://api-web.nhle.com/v1/club-stats/NJD/20262027/2), and [team summary](https://api.nhle.com/stats/rest/en/team/summary?limit=-1&cayenneExp=seasonId%3D20262027%20and%20gameTypeId%3D2). The playoff chart compares points in the same-day standings with the first team out when the Devils hold a playoff spot, or with the last wild card when they are outside.
 - `apps/web/src/Charts.tsx`: high-resolution canvas charts with accessible text descriptions.
 - `apps/web/src/index.css`: poster layout, typography, and responsive scaling containment.
 - `apps/web/public/assets`: local NHL logos, player portraits, Graduate and Roboto Condensed fonts, and Material venue icons. Source URLs and licenses are documented in `apps/web/public/assets/SOURCES.md`.
 
 The reference screenshot is used for comparison only and is not embedded in the page. There are no API calls or runtime asset CDN requests.
+
+## Credits
+
+Reference and inspiration: [the original r/devils Reddit post](https://www.reddit.com/r/devils/s/jmn4emEiez).
 
 ## Validation
 
@@ -43,3 +47,4 @@ npm run check:tamagui
 ## Tamagui configuration
 
 The existing provider and configuration are retained. `apps/web/tamagui.config.ts` uses `@tamagui/config/v6`; `apps/web/tamagui.build.ts` owns compiler options. Vite generates `apps/web/src/tamagui.generated.css` (ignored) before resolving its import. After configuration changes, run `npm run generate:tamagui` to refresh `apps/web/tamagui-prompt.md`.
+# barnburner
