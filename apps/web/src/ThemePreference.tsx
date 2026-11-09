@@ -54,8 +54,9 @@ export function ThemeControls() {
   const context = useContext(ThemePreferenceContext)
   if (!context) throw new Error('ThemeControls requires AppTheme')
   return (
-    <View render="nav" aria-label="Appearance" w="100%" maxW="poster" px="4" py="3" gap="2" flexDirection="row" flexWrap="wrap" items="center" display="flex print:none">
-      <Text fontFamily="body" color="muted" mr="auto">Appearance</Text>
+    <View render="nav" aria-label="Appearance" w="100%" maxW="poster" px="4" py="3" gap="2" items="center" display="flex print:none">
+      <Text fontFamily="body" color="muted">Appearance</Text>
+      <View flexDirection="row" justify="center" flexWrap="wrap" gap="2">
       {preferences.map((preference) => (
         <View render="button" key={preference} aria-pressed={context.preference === preference}
           minH="badge" px="3" items="center" justify="center" rounded="sm" cursor="pointer"
@@ -67,6 +68,7 @@ export function ThemeControls() {
           </Text>
         </View>
       ))}
+      </View>
     </View>
   )
 }
