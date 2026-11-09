@@ -53,7 +53,7 @@ Add its official reference under a named directory, add source and version metad
 
 ## Effect, XState, and general patterns
 
-Use the named directory's generated index to select a section before reading its cached document. Ratstack's full corpus includes general guidelines, Effect patterns, and related systems such as Alchemy, Cloudflare, and Foldkit. Its rules describe its own project. They are reference material here.
+Use the named directory's generated index to select a section before reading its cached document. Ratstack's full corpus includes general guidelines, Effect patterns, and related systems such as Alchemy, Cloudflare, and Foldkit. Follow [our Ratstack workflow](ratstack/README.md) to apply those references within this project's stack and authority boundaries.
 
 | Reference | When to consult it | Upstream |
 | --- | --- | --- |
