@@ -2,6 +2,9 @@
 
 A shared “Season at a Glance” poster for all 32 NHL teams, using saved NHL schedules, results, standings, special teams, and player leaders. Built with Vite, React, TypeScript, and Tamagui in a Bun workspace managed by Turborepo.
 
+> [!NOTE]
+> I coded this for fun. It's still early and a bit messy, so expect rough edges and bugs.
+
 ## Preview
 
 ```sh
