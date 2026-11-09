@@ -17,6 +17,7 @@
   "dependencies": {
     "@nhl-reddit-stats/season": "0.0.0",
     "@tamagui/config": "3.3.1",
+    "@vercel/analytics": "^2.0.1",
     "@xstate/effect": "1.0.0-alpha.12",
     "effect": "4.1.2",
     "react": "^19.3.1",

@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Analytics } from '@vercel/analytics/react'
 import '@tamagui/core/reset.css'
 import './fonts'
 import { AppTheme } from './ThemePreference'
@@ -15,5 +16,6 @@ createRoot(root).render(
     <AppTheme>
       <App />
     </AppTheme>
+    <Analytics />
   </StrictMode>,
 )
