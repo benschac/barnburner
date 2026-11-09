@@ -1,5 +1,5 @@
 import { teamBannerThemeName } from '../design/themes'
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { Image, Text, Theme, View, styled, useThemeName } from 'tamagui'
 import { Chart } from './Charts'
 import { createTeamPosterCache, gameDateTime } from './stats'
@@ -106,7 +106,7 @@ function Division({ name, record, teams, selectedTeam, activeGame, onActiveGameC
   )
 }
 
-function PlayoffPicture({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetchTeam: (team: string) => void }) {
+const PlayoffPicture = memo(function PlayoffPicture({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetchTeam: (team: string) => void }) {
   const { standings, specialTeams, leaders } = data
   const theme = useThemeName()
   return (
@@ -179,9 +179,9 @@ function PlayoffPicture({ data, onPrefetchTeam }: { data: TeamPosterData; onPref
       </View>
     </View>
   )
-}
+})
 
-function Schedule({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetchTeam: (team: string) => void }) {
+const Schedule = memo(function Schedule({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetchTeam: (team: string) => void }) {
   const { upcoming, recent } = data
   const theme = useThemeName()
   return (
@@ -228,10 +228,15 @@ function Schedule({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetchTe
       </View>
     </View>
   )
-}
+})
 
-function TeamPoster({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetchTeam: (team: string) => void }) {
+const TeamPoster = memo(function TeamPoster({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetchTeam: (team: string) => void }) {
   const [activeGame, setActiveGame] = useState<number | null>(null)
+  const [activeTeam, setActiveTeam] = useState(data.team.abbrev)
+  if (activeTeam !== data.team.abbrev) {
+    setActiveTeam(data.team.abbrev)
+    setActiveGame(null)
+  }
   const { seasonGames, completedGames, divisions, seasonSummary, snapshotDate, latestPlayoffCushion } = data
   return (
       <View w="100%" maxW="poster" data-poster-shell="">
@@ -305,7 +310,7 @@ function TeamPoster({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetch
         </View>
       </View>
   )
-}
+})
 
 export default function App() {
   const { snapshot, retry } = useTeamNavigation()
@@ -315,7 +320,7 @@ export default function App() {
   const source = snapshot?.matches('ready') ? snapshot.context.snapshot : null
   const posters = useMemo(() => source ? createTeamPosterCache(source) : null, [source])
   const data = posters?.(displayedTeam) ?? null
-  const prefetchTeam = (team: string) => { posters?.(team) }
+  const prefetchTeam = useCallback((team: string) => { posters?.(team) }, [posters])
   useEffect(() => {
     if (data) document.title = `${data.team.name} | Glanceboard`
   }, [data])
@@ -323,7 +328,7 @@ export default function App() {
     <View render="main" minH="100vh" bg="background" items="center" printColorAdjust="exact">
       <ThemeControls />
       <TeamSelector selected={selected} onPrefetchTeam={prefetchTeam} onPreviewTeam={setPreviewTeam} />
-      {data ? <TeamPoster key={displayedTeam} data={data} onPrefetchTeam={prefetchTeam} /> : <TeamLoading failed={snapshot?.matches('error') ?? false} retry={retry} />}
+      {data ? <TeamPoster data={data} onPrefetchTeam={prefetchTeam} /> : <TeamLoading failed={snapshot?.matches('error') ?? false} retry={retry} />}
     </View>
   )
 }
