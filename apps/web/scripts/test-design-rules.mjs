@@ -35,6 +35,13 @@ const cases = [
   ['table adapter', '<View style={{ display: "table-cell" }} />', true],
   ['css import', 'import "./bad.css";', false],
   ['generated import', 'import "./tamagui.generated.css";', true],
+  ['dynamic JSON', 'import("../../../data/season.json", { with: { type: "json" } });', true],
+  ['dynamic CSS', 'import("./bad.css");', false],
+  ['dynamic code', 'import("./module.js");', false],
+  ['dynamic variable', 'import(path);', false],
+  ['JSON query escape', 'import("./season.json?inline");', false],
+  ['CSS query suffix escape', 'import("./bad.css?name.json");', false],
+  ['code fragment suffix escape', 'import("./code.js#data.json");', false],
   ['unknown styled recipe', 'import { styled as recipe } from "tamagui"; recipe(View, styles);', false],
 ]
 for (const prop of ['textShadowColor', 'caretColor', 'borderBlockColor', 'borderBlockStartColor', 'borderBlockEndColor', 'borderInlineColor', 'borderInlineStartColor', 'borderInlineEndColor', 'borderStartColor', 'borderEndColor']) cases.push([prop, `<View ${prop}="#fff" />`, false])

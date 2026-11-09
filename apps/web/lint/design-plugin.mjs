@@ -117,7 +117,8 @@ function rule(kind) {
           if (kind === 'no-css-imports' && /\.(css|scss|sass|less)(?:[?#]|$)/.test(node.source.value) && !['@tamagui/core/reset.css', './tamagui.generated.css'].includes(node.source.value)) context.report({ node, message: 'Only the Tamagui reset and generated CSS may be imported.' })
         },
         ImportExpression(node) {
-          if (kind === 'no-css-imports') context.report({ node, message: 'Dynamic imports in UI source require review; use static imports so stylesheet policy is enforceable.' })
+          const isJson = node.source.type === 'Literal' && typeof node.source.value === 'string' && /^[^?#]+\.json$/.test(node.source.value)
+          if (kind === 'no-css-imports' && !isJson) context.report({ node, message: 'Dynamic imports in UI source must name a literal JSON file; use static imports for code so stylesheet policy is enforceable.' })
         },
         CallExpression(node) {
           if (kind === 'no-style-escape' && node.callee.type === 'Identifier') {

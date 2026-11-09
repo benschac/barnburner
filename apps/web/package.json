@@ -9,17 +9,22 @@
     "typecheck": "tsc -b",
     "check:tamagui": "tamagui check --strict",
     "generate:tamagui": "tamagui generate-prompt",
-    "lint": "oxlint && node scripts/check-design-files.mjs && node scripts/test-design-rules.mjs",
+    "lint": "oxlint && node scripts/check-design-files.mjs && node scripts/test-design-rules.mjs && node scripts/test-pattern-rules.mjs",
     "preview": "vite preview",
-    "test:design": "node scripts/test-design-rules.mjs"
+    "test:design": "node scripts/test-design-rules.mjs",
+    "test:teams": "node --test tests/team-season.test.ts tests/team-machine.test.ts"
   },
   "dependencies": {
     "@tamagui/config": "3.3.1",
+    "@xstate/effect": "1.0.0-alpha.12",
+    "effect": "4.1.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "tamagui": "3.3.1"
+    "tamagui": "3.3.1",
+    "xstate": "6.0.0-alpha.73"
   },
   "devDependencies": {
+    "@oxlint/plugins": "1.90.0",
     "@tamagui/cli": "3.3.1",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",

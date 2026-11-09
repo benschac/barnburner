@@ -10,4 +10,6 @@ Unknown dynamic token expressions fail closed. Literal conditionals and local im
 
 Run `npm run lint` from the repository root. It runs Oxlint, checks for handwritten stylesheets, and exercises positive/negative cases through the real Oxlint executable. CI runs lint, strict Tamagui validation, and the production build. Visual/contrast checks remain separate.
 
+The app also applies the cached Ratstack guidance on actor ownership and shared constants. The official `xstate-effect/no-inline-effect` rule requires declared Effect actions and actors. The local `patterns/no-module-mutable-state` rule rejects module-level `let` and `var` bindings in UI source; it does not prove deep immutability. Actor context owns navigation state, the team registry owns team metadata, and this design contract owns style constants. Positive and negative fixtures run through Oxlint with `scripts/test-pattern-rules.mjs`.
+
 To extend the design system, change the contract and its consuming components together, add a regression case when changing enforcement, and run all checks. Do not add a token merely to preserve an arbitrary pixel measurement or suppress a rule for a whole existing component.

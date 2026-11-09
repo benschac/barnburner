@@ -15,7 +15,9 @@
     ]
   },
   "jsPlugins": [
-    "./lint/design-plugin.mjs"
+    "./lint/design-plugin.mjs",
+    "./lint/patterns-plugin.mjs",
+    "@xstate/effect/oxlint"
   ],
   "overrides": [
     {
@@ -23,6 +25,8 @@
         "src/**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"
       ],
       "rules": {
+        "patterns/no-module-mutable-state": "error",
+        "xstate-effect/no-inline-effect": "error",
         "design/semantic-colors": "error",
         "design/token-values": "error",
         "design/no-style-escape": "error",

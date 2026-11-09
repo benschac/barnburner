@@ -4,6 +4,9 @@ import { Chart } from './Charts'
 import { completedGames, divisions, gameDateTime, latestPlayoffCushion, leaders, recent, seasonGames, seasonSummary, snapshotDate, specialTeams, standings, upcoming } from './stats'
 import type { Matchup } from './stats'
 import { ThemeControls } from './ThemePreference'
+import { TeamLoading, TeamSeasonView, TeamSelector } from './TeamViews'
+import { teamHref } from './team-season.ts'
+import { useTeamNavigation } from './use-team-navigation'
 
 const Copy = styled(Text, {
   fontFamily: 'body', fontSize: 'body', lineHeight: 'caption', fontWeight: '400',
@@ -52,9 +55,11 @@ function Division({ name, record, teams, activeGame, onActiveGameChange }: {
       <List pt="1.5">
         {teams.map(({ team, games }) => {
           return (
-            <Row render="li" h="8" gap="4" key={team}
+            <Row render="li" h="8" gap="4" key={team} cursor="pointer" onClick={() => { window.location.hash = teamHref(team) }}
               bg={selectedGame?.team === team ? 'highlight print:transparent' : 'transparent'}>
-              <Logo src={`/assets/teams/${team === 'TOR' && theme === 'light' ? 'TOR-inverted' : team === 'WSH' ? 'WSH-alt' : team}.svg`} alt={team} w="8" h="icon" scale={1.18} />
+              <View render={<a href={teamHref(team)} />} aria-label={`View ${team} wins and losses`} onClick={(event) => event.stopPropagation()}>
+                <Logo src={`/assets/teams/${team === 'TOR' && theme === 'light' ? 'TOR-inverted' : team === 'WSH' ? 'WSH-alt' : team}.svg`} alt={team} w="8" h="icon" scale={1.18} />
+              </View>
               <Row gap="1">
                 {games.map(({ game, index, outcome }) => {
                   const { result, venue } = game
@@ -62,7 +67,7 @@ function Division({ name, record, teams, activeGame, onActiveGameChange }: {
                     ? `${outcome === 'overtime' ? 'OT/SO loss' : outcome}, NJD ${result.goalsFor}–${result.goalsAgainst} ${team}${result.decision === 'REG' ? '' : ` ${result.decision}`}`
                     : 'still to play'
                   return (
-                    <View render="button" key={game.id} w="icon" h="icon" p="0" items="center" justify="center"
+                    <View render={<a href={teamHref(team)} />} key={game.id} w="icon" h="icon" p="0" items="center" justify="center"
                       bg="transparent hover:surface" rounded="sm" borderWidth={1} cursor="pointer"
                       borderColor={index === activeGame ? 'gold print:transparent' : 'transparent focus-visible:gold'}
                       aria-label={`${venue === 'home' ? 'vs' : 'at'} ${team}, ${gameDateTime(game)}, ${label}`}
@@ -71,7 +76,7 @@ function Division({ name, record, teams, activeGame, onActiveGameChange }: {
                         if (event.currentTarget !== document.activeElement) onActiveGameChange(null)
                       }}
                       onFocus={() => onActiveGameChange(index)} onBlur={() => onActiveGameChange(null)}
-                      onClick={() => onActiveGameChange(index)}
+                      onClick={(event) => event.stopPropagation()}
                     >
                       <View w="6" h="6" bg={outcomeColors[outcome]} maskRepeat="no-repeat" maskSize="contain" maskPosition="center"
                         maskImage={`url('/assets/icons/${venue === 'home' ? 'home' : 'flight'}.svg')`}
@@ -122,10 +127,11 @@ function PlayoffPicture() {
                 </View>
               )}
               <View render="tr" style={{ display: "table-row" }} h="8" bg={team === 'NJD' ? 'highlight' : 'transparent'}
+                cursor="pointer" onClick={() => { window.location.hash = teamHref(team) }}
                 borderTopWidth={index === 5 ? 2 : 0} borderTopColor="gold" borderTopStyle="dashed">
                 <TableCell render="td" pl="1.5" color="gold" fontSize="body" borderTopLeftRadius="sm" borderBottomLeftRadius="sm">{seed}</TableCell>
                 <View render="th" {...{ scope: 'row' }} style={{ display: "table-cell" }} text="left" fontWeight="500">
-                  <Row h="8" gap="4">
+                  <Row render={<a href={teamHref(team)} />} h="8" gap="4" textDecorationLine="none" onClick={(event) => event.stopPropagation()}>
                     <Logo src={`/assets/teams/${team === 'TOR' && theme === 'light' ? 'TOR-inverted' : team}.svg`} alt={team} w="8" h="8" scale={1.4} />
                     <Copy fontSize="label" lineHeight="detail" fontWeight="500">{team}</Copy>
                   </Row>
@@ -178,6 +184,7 @@ function Schedule() {
         <List render="ol" gap="2">
           {upcoming.map((game) => (
             <Row render="li" key={game.id} h="card" bg="surface" rounded="md">
+              <Row render={<a href={teamHref(game.team)} />} w="100%" h="card" textDecorationLine="none">
               <Row h="card" w="24" borderWidth={2} borderColor="gold" borderRightStyle="dashed" borderTopLeftRadius="md" borderBottomLeftRadius="md">
                 <Copy fontSize="caption" lineHeight="caption" fontWeight="600" color="gold" writingMode="vertical-rl" rotate="180deg" w="icon" text="center">{game.day}</Copy>
                 <Score fontSize="score" lineHeight="score" flex={1} text="center">{game.date}</Score>
@@ -185,6 +192,7 @@ function Schedule() {
               <Copy fontSize="detail" lineHeight="detail" color="muted" w="12" text="center">{game.venue}</Copy>
               <Logo src={`/assets/teams/${game.team === 'TOR' && theme === 'light' ? 'TOR-inverted' : game.team === 'WSH' ? 'WSH-alt' : game.team}.svg`} alt={game.team} w="12" h="12" scale={1.4} />
               <Copy flex={1} text="center" fontSize="label" lineHeight="label" fontWeight="500">{game.time}</Copy>
+              </Row>
             </Row>
           ))}
         </List>
@@ -193,12 +201,14 @@ function Schedule() {
         <RuledHeading id="last-heading" mb="2">Last 5</RuledHeading>
         <List render="ol">
           {recent.map((game) => (
-            <Row render="li" h="12" gap="3" key={game.id}>
+            <Row render="li" h="12" key={game.id}>
+              <Row render={<a href={teamHref(game.team)} />} w="100%" h="12" gap="3" textDecorationLine="none">
               <Logo src={`/assets/teams/${game.team === 'TOR' && theme === 'light' ? 'TOR-inverted' : game.team}.svg`} alt={game.team} w="16" h="10" mr="px" scale={1.07} />
               <Copy w="10" h="10" display="flex" items="center" justify="center" rounded="sm" fontFamily="result" fontSize="title" lineHeight="label"
                 bg={outcomeColors[game.outcome]} color={game.outcome === 'win' ? 'result-ink' : 'loss-ink'}>{game.outcome === 'win' ? 'W' : 'L'}</Copy>
               <Copy fontSize="title" lineHeight="title" fontWeight="500">{game.score}</Copy>
               <Copy fontSize="body" lineHeight="caption" color="gold" ml="px">{game.extra}</Copy>
+              </Row>
             </Row>
           ))}
         </List>
@@ -209,11 +219,17 @@ function Schedule() {
 
 export default function App() {
   const [activeGame, setActiveGame] = useState<number | null>(null)
+  const { snapshot, retry } = useTeamNavigation()
+  const showPoster = !snapshot || snapshot.matches('poster')
 
   return (
     <View render="main" minH="100vh" bg="background" items="center" printColorAdjust="exact">
       <ThemeControls />
-      <View w="100%" maxW="poster" data-poster-shell="">
+      <TeamSelector selected={showPoster ? null : snapshot.context.team} />
+      {!showPoster && (snapshot.matches('ready') && snapshot.context.snapshot
+        ? <TeamSeasonView team={snapshot.context.team} snapshot={snapshot.context.snapshot} />
+        : <TeamLoading failed={snapshot.matches('error')} retry={retry} />)}
+      <View display={showPoster ? 'flex' : 'none'} w="100%" maxW="poster" data-poster-shell="">
         <View render="article" w="100% print:poster" minH="poster:posterHeight print:posterHeight" bg="background"
           zoom="print:calc(100vw / 1206px)" aria-label={`New Jersey Devils season at a glance through ${snapshotDate}`}>
           <View render="header" minH="36" pb="6 poster:0 print:0" gap="4" shrink={0} position="relative">

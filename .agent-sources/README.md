@@ -64,7 +64,7 @@ Use the named directory's generated index to select a section before reading its
 
 The Effect README and Stately index are entry points, not complete API caches. Resolve relative Stately links against `https://stately.ai` and Effect README links against its GitHub source directory. Follow relevant links when the cached material does not answer the question.
 
-Before applying a pattern, inspect the owning package manifest, lockfile, and installed types. These packages are not currently dependencies of this app. The integration quick start calls `@xstate/effect` experimental and targets XState v6 alpha and Effect 4, while the Stately index labels v6 beta. Do not infer compatibility from these unversioned snapshots or apply v6 examples to v5. Verify exact package versions and peer dependencies before an implementation change.
+Before applying a pattern, inspect the owning package manifest, lockfile, and installed types. The web app pins XState, Effect, and `@xstate/effect` for team-view navigation. The integration quick start calls `@xstate/effect` experimental and targets XState v6 alpha and Effect 4, while the Stately index labels v6 beta. Do not infer compatibility from these unversioned snapshots or apply v6 examples to v5. Verify exact package versions and peer dependencies before an implementation change.
 
 For integration work, check who owns actor startup, shutdown, interruption, dependencies, and failures. Use the official integration documentation to verify those contracts. The cache does not authorize a runtime migration or package installation.
 

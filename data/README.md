@@ -32,6 +32,6 @@ curl 'http://127.0.0.1:3001/api/teams'
 
 Consumers can also import `selectTeamGames(snapshot, team)` from `lib/nhl-games.mjs` and use the same filter without running a server. The records keep canonical home and away scores; a client can derive goals for and against from its selected team.
 
-This adds the game-data foundation. The existing Devils poster remains on its original snapshot. Player leaders, special teams, standings, and historical playoff comparisons require additional feeds before the complete poster can switch teams. No database, refresh scheduler, or production deployment is configured.
+The web app loads this snapshot on demand for each team's wins-and-losses view. The 32-team selector and poster team rows open shareable `#team/TEAM` links; `#poster` returns to the original Devils poster. Refresh the snapshot and rebuild the app to publish newer results. The existing Devils poster remains on its original snapshot. Player leaders, special teams, standings, and historical playoff comparisons require additional feeds before the complete poster can switch teams. No database, refresh scheduler, or production deployment is configured.
 
 Run `npm run test:data` to verify normalization, coverage, filtering, failed-write preservation, and HTTP behavior.
