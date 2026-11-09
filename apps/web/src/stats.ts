@@ -121,3 +121,14 @@ export function teamPoster(data: TeamData, selectedTeam: string) {
   }
 }
 export type TeamPosterData = ReturnType<typeof teamPoster>
+
+export function createTeamPosterCache(source: TeamData) {
+  const posters = new Map<string, TeamPosterData>()
+  return (team: string) => {
+    const cached = posters.get(team)
+    if (cached) return cached
+    const poster = teamPoster(source, team)
+    posters.set(team, poster)
+    return poster
+  }
+}

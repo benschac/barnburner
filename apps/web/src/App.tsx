@@ -2,7 +2,7 @@ import { teamBannerThemeName } from '../design/themes'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Image, Text, Theme, View, styled, useThemeName } from 'tamagui'
 import { Chart } from './Charts'
-import { gameDateTime, teamPoster } from './stats'
+import { createTeamPosterCache, gameDateTime } from './stats'
 import type { Matchup, TeamPosterData } from './stats'
 import { ThemeControls } from './ThemePreference'
 import { TeamLoading, TeamSelector } from './TeamViews'
@@ -37,13 +37,14 @@ const BannerLayer = styled(View, {
 const outcomeColors = { win: 'win', loss: 'loss', overtime: 'gold', pending: 'pending' } as const
 
 
-function Division({ name, record, teams, selectedTeam, activeGame, onActiveGameChange }: {
+function Division({ name, record, teams, selectedTeam, activeGame, onActiveGameChange, onPrefetchTeam }: {
   name: string
   record: string
   teams: Matchup[]
   selectedTeam: string
   activeGame: number | null
   onActiveGameChange: (index: number | null) => void
+  onPrefetchTeam: (team: string) => void
 }) {
   const theme = useThemeName()
   const selectedGame = teams.flatMap(({ games }) => games).find(({ index }) => index === activeGame)?.game
@@ -58,6 +59,7 @@ function Division({ name, record, teams, selectedTeam, activeGame, onActiveGameC
         {teams.map(({ team, games }) => {
           return (
             <Row render="li" h="8" gap="4" key={team} cursor="pointer" onClick={() => { window.location.hash = teamHref(team) }}
+              onMouseEnter={() => onPrefetchTeam(team)} onFocus={() => onPrefetchTeam(team)}
               bg={selectedGame?.team === team ? 'highlight print:transparent' : 'transparent'}>
               <View render={<a href={teamHref(team)} />} aria-label={`View ${team} wins and losses`} onClick={(event) => event.stopPropagation()}>
                 <Logo src={`/assets/teams/${team === 'TOR' && theme === 'light' ? 'TOR-inverted' : team === 'WSH' ? 'WSH-alt' : team}.svg`} alt={team} w="8" h="icon" scale={1.18} />
@@ -104,7 +106,7 @@ function Division({ name, record, teams, selectedTeam, activeGame, onActiveGameC
   )
 }
 
-function PlayoffPicture({ data }: { data: TeamPosterData }) {
+function PlayoffPicture({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetchTeam: (team: string) => void }) {
   const { standings, specialTeams, leaders } = data
   const theme = useThemeName()
   return (
@@ -131,6 +133,7 @@ function PlayoffPicture({ data }: { data: TeamPosterData }) {
               )}
               <View render="tr" style={{ display: "table-row" }} h="8" bg={team === data.team.abbrev ? 'highlight' : 'transparent'}
                 cursor="pointer" onClick={() => { window.location.hash = teamHref(team) }}
+                onMouseEnter={() => onPrefetchTeam(team)} onFocus={() => onPrefetchTeam(team)}
                 borderTopWidth={index === 5 ? 2 : 0} borderTopColor="gold" borderTopStyle="dashed">
                 <TableCell render="td" pl="1.5" color="gold" fontSize="body" borderTopLeftRadius="sm" borderBottomLeftRadius="sm">{seed}</TableCell>
                 <View render="th" {...{ scope: 'row' }} style={{ display: "table-cell" }} text="left" fontWeight="500">
@@ -178,7 +181,7 @@ function PlayoffPicture({ data }: { data: TeamPosterData }) {
   )
 }
 
-function Schedule({ data }: { data: TeamPosterData }) {
+function Schedule({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetchTeam: (team: string) => void }) {
   const { upcoming, recent } = data
   const theme = useThemeName()
   return (
@@ -191,7 +194,8 @@ function Schedule({ data }: { data: TeamPosterData }) {
         <List render="ol" gap="2">
           {upcoming.map((game) => (
             <Row render="li" key={game.id} h="card" bg="surface" rounded="md">
-              <Row render={<a href={teamHref(game.team)} />} w="100%" h="card" textDecorationLine="none">
+              <Row render={<a href={teamHref(game.team)} />} w="100%" h="card" textDecorationLine="none"
+                onMouseEnter={() => onPrefetchTeam(game.team)} onFocus={() => onPrefetchTeam(game.team)}>
               <Row h="card" w="24" borderWidth={2} borderColor="gold" borderRightStyle="dashed" borderTopLeftRadius="md" borderBottomLeftRadius="md">
                 <Copy fontSize="caption" lineHeight="caption" fontWeight="600" color="gold" writingMode="vertical-rl" rotate="180deg" w="icon" text="center">{game.day}</Copy>
                 <Score fontSize="score" lineHeight="score" flex={1} text="center">{game.date}</Score>
@@ -210,7 +214,8 @@ function Schedule({ data }: { data: TeamPosterData }) {
         <List render="ol">
           {recent.map((game) => (
             <Row render="li" h="12" key={game.id}>
-              <Row render={<a href={teamHref(game.team)} />} w="100%" h="12" gap="3" textDecorationLine="none">
+              <Row render={<a href={teamHref(game.team)} />} w="100%" h="12" gap="3" textDecorationLine="none"
+                onMouseEnter={() => onPrefetchTeam(game.team)} onFocus={() => onPrefetchTeam(game.team)}>
               <Logo src={`/assets/teams/${game.team === 'TOR' && theme === 'light' ? 'TOR-inverted' : game.team}.svg`} alt={game.team} w="16" h="10" mr="px" scale={1.07} />
               <Copy w="10" h="10" display="flex" items="center" justify="center" rounded="sm" fontFamily="result" fontSize="title" lineHeight="label"
                 bg={outcomeColors[game.outcome]} color={game.outcome === 'win' ? 'result-ink' : 'loss-ink'}>{game.outcome === 'win' ? 'W' : 'L'}</Copy>
@@ -225,7 +230,7 @@ function Schedule({ data }: { data: TeamPosterData }) {
   )
 }
 
-function TeamPoster({ data }: { data: TeamPosterData }) {
+function TeamPoster({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetchTeam: (team: string) => void }) {
   const [activeGame, setActiveGame] = useState<number | null>(null)
   const { seasonGames, completedGames, divisions, seasonSummary, snapshotDate, latestPlayoffCushion } = data
   return (
@@ -272,12 +277,12 @@ function TeamPoster({ data }: { data: TeamPosterData }) {
               <View display="grid" gridTemplateColumns="minmax(0, 1fr) sm:repeat(2, minmax(0, 1fr)) print:repeat(2, minmax(0, 1fr))"
                 gridColumn="md:1 / -1 poster:auto print:auto" content="flex-start" gap="4 print:6">
                 {divisions.map(({ name, record, teams }) => (
-                  <Division selectedTeam={data.team.abbrev} name={name} record={record} teams={teams} key={name}
+                  <Division selectedTeam={data.team.abbrev} name={name} record={record} teams={teams} key={name} onPrefetchTeam={onPrefetchTeam}
                     activeGame={activeGame} onActiveGameChange={setActiveGame} />
                 ))}
               </View>
-              <PlayoffPicture data={data} />
-              <Schedule data={data} />
+              <PlayoffPicture data={data} onPrefetchTeam={onPrefetchTeam} />
+              <Schedule data={data} onPrefetchTeam={onPrefetchTeam} />
             </View>
           </View>
           <Row render="footer" flexWrap="wrap" mx="4 sm:6 poster:12 print:12" mt="10" mb="8" minH="6" gap="6">
@@ -304,17 +309,21 @@ function TeamPoster({ data }: { data: TeamPosterData }) {
 
 export default function App() {
   const { snapshot, retry } = useTeamNavigation()
+  const [previewTeam, setPreviewTeam] = useState<string | null>(null)
   const selected = snapshot?.context.team ?? 'NJD'
+  const displayedTeam = previewTeam ?? selected
   const source = snapshot?.matches('ready') ? snapshot.context.snapshot : null
-  const data = useMemo(() => source ? teamPoster(source, selected) : null, [source, selected])
+  const posters = useMemo(() => source ? createTeamPosterCache(source) : null, [source])
+  const data = posters?.(displayedTeam) ?? null
+  const prefetchTeam = (team: string) => { posters?.(team) }
   useEffect(() => {
     if (data) document.title = `${data.team.name} | Glanceboard`
   }, [data])
   return (
     <View render="main" minH="100vh" bg="background" items="center" printColorAdjust="exact">
       <ThemeControls />
-      <TeamSelector selected={selected} />
-      {data ? <TeamPoster key={selected} data={data} /> : <TeamLoading failed={snapshot?.matches('error') ?? false} retry={retry} />}
+      <TeamSelector selected={selected} onPrefetchTeam={prefetchTeam} onPreviewTeam={setPreviewTeam} />
+      {data ? <TeamPoster key={displayedTeam} data={data} onPrefetchTeam={prefetchTeam} /> : <TeamLoading failed={snapshot?.matches('error') ?? false} retry={retry} />}
     </View>
   )
 }

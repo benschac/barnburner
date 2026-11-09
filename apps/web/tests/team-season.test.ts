@@ -1,4 +1,4 @@
-import { teamPoster, playoffComparison, describePlayoffComparison } from '../src/stats.ts'
+import { createTeamPosterCache, teamPoster, playoffComparison, describePlayoffComparison } from '../src/stats.ts'
 import { posterFixture } from './team-fixture.ts'
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
@@ -8,6 +8,21 @@ import { SeasonSnapshot, TeamData, teams, teamSeason } from '@nhl-reddit-stats/s
 import { teamFromHash, teamHref } from '../src/team-season.ts'
 
 const snapshot = Schema.decodeUnknownSync(SeasonSnapshot)(snapshotData)
+
+test('prefetched team posters are reused and a new snapshot gets a fresh cache', () => {
+  const source = { season: snapshot, poster: posterFixture } satisfies TeamData
+  const getPoster = createTeamPosterCache(source)
+  const boston = getPoster('BOS')
+  assert.equal(boston.team.abbrev, 'BOS')
+  assert.equal(getPoster('NJD').team.abbrev, 'NJD')
+  assert.equal(getPoster('BOS'), boston)
+
+  const updated = { ...source, season: { ...snapshot, games: [] } }
+  const freshBoston = createTeamPosterCache(updated)('BOS')
+  assert.notEqual(freshBoston, boston)
+  assert.equal(freshBoston.seasonGames.length, 0)
+  assert.ok(boston.seasonGames.length > 0)
+})
 
 test('all 32 teams have their own schedule and paired game perspectives', () => {
   assert.equal(teams.length, 32)

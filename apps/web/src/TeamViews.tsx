@@ -7,7 +7,11 @@ const Link = styled(View, {
   render: 'a', minH: 'badge', p: '2', rounded: 'sm', bg: 'surface hover:highlight',
   borderWidth: 1, borderColor: 'rule focus-visible:gold', cursor: 'pointer', textDecorationLine: 'none',
 })
-export function TeamSelector({ selected }: { selected: string }) {
+export function TeamSelector({ selected, onPrefetchTeam, onPreviewTeam }: {
+  selected: string
+  onPrefetchTeam: (team: string) => void
+  onPreviewTeam: (team: string | null) => void
+}) {
   const theme = useThemeName()
   return (
     <View render="nav" aria-label="Choose a team" w="100%" maxW="poster" px="4" pb="4" gap="2" display="flex print:none">
@@ -17,6 +21,13 @@ export function TeamSelector({ selected }: { selected: string }) {
       <Row flexWrap="wrap" gap="1">
         {teams.map((team) => (
           <Link key={team.abbrev} render={<a href={teamHref(team.abbrev)} title={team.name} />} aria-label={`${team.name} season at a glance`}
+            onMouseEnter={() => {
+              onPrefetchTeam(team.abbrev)
+              onPreviewTeam(team.abbrev)
+            }}
+            onMouseLeave={() => onPreviewTeam(null)}
+            onClick={() => onPreviewTeam(null)}
+            onFocus={() => onPrefetchTeam(team.abbrev)}
             aria-current={selected === team.abbrev ? 'page' : undefined}
             bg={selected === team.abbrev ? 'highlight' : 'surface hover:highlight'}
             borderColor={selected === team.abbrev ? 'gold' : 'rule focus-visible:gold'}
