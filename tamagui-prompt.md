@@ -571,6 +571,8 @@ Available font families:
 
 - body
 - heading
+- result
+- score
 
 ## Animations
 

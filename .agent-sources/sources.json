@@ -1,0 +1,16 @@
+{
+  "tamagui": {
+    "url": "https://tamagui.dev/llms.txt",
+    "fetchedAt": "2026-11-09T15:42:32.718Z",
+    "retrieval": "imported-download; timestamp supplied by caller",
+    "sha256": "853e404ae281b4c2a7605ce9520d6b4b37d8d96a4b99bf2326ffb68cda939c1c",
+    "bytes": 1344614,
+    "package": "tamagui",
+    "targetPackageVersion": "3.3.1",
+    "upstreamVersion": null,
+    "upstreamRevision": null,
+    "compatibility": "Unversioned website snapshot; compatibility with the target package version is not established.",
+    "document": "tamagui/docs.txt",
+    "index": "tamagui/index.md"
+  }
+}
