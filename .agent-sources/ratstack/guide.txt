@@ -1,0 +1,395 @@
+# ratstack.sh
+
+> Build an app and its cloud infrastructure in one TypeScript program.
+
+Effect describes work with typed failures and required services. A service is a named interface for one job. Alchemy declares cloud resources and plans changes before applying them.
+
+The fence is the compiler checks, lint rules, and hooks that reject prohibited code and shortcuts.
+
+## Read this repo
+
+- [Home](https://ratstack.sh/): short overview
+- [Glossary](https://ratstack.sh/glossary): A–Z terms with definitions and teaching pages
+- [Public content corpus](https://ratstack.sh/llms-full.txt): rules, lore, and skills in one response
+- [HTTP API](https://ratstack.sh/openapi.json): routes, inputs, outputs, and errors
+- [MCP server](https://ratstack.sh/mcp): Model Context Protocol tools for search, reading, and code in a restricted environment
+- [Code mode](https://ratstack.sh/api/execute): run a program instead of several calls; POST JSON with a `code` string, or call the MCP `execute` tool
+- [CAFE news](https://ratstack.sh/news): reviewed Cloudflare, Alchemy, Foldkit and Effect news, ranked by engagement and freshness; also an [Atom feed](https://ratstack.sh/news.xml) and the `listCafeNews` tool
+- [CAFE directory](https://ratstack.sh/directory): reviewed projects with per-letter stack evidence; also the `listCafeProjects` tool. Suggest entries through GitHub with the approval steps below.
+- [CAFE all stars](https://ratstack.sh/all-stars): People and channels whose public work builds with Cloudflare, Alchemy, Foldkit and Effect. Every fact links to its source. Also an [Atom feed](https://ratstack.sh/all-stars.xml) and the `listPeople`, `readPerson`, `searchPeople`, `listChannels` and `peopleFor` tools
+  - [Adam Rankin](https://ratstack.sh/all-stars/rankincodes): Adam Rankin is the leading contributor to effect-mq, an Effect v4 background-job library.
+  - [Alchemy](https://ratstack.sh/all-stars/alchemy-run): GitHub describes alchemy-run/alchemy as "Infrastructure as Effects".
+  - [Alex](https://ratstack.sh/all-stars/agcty): Alex is one of Alchemy’s top listed contributors.
+  - [Arman Charan](https://ratstack.sh/all-stars/armancharan): Arman Charan contributes to Foldkit.
+  - [Codician](https://ratstack.sh/all-stars/codician-team): Codician's Diffinery provides Git hosting, pull requests, code review and GitHub Actions-compatible CI on Cloudflare.
+  - [Dan van der Merwe](https://ratstack.sh/all-stars/danieljvdm): Dan van der Merwe is the leading contributor to @yielded/effect-tsrs.
+  - [David Khourshid](https://ratstack.sh/all-stars/davidkpiano): David Khourshid added the experimental @xstate/effect integration to XState.
+  - [Devin Jameson](https://ratstack.sh/all-stars/devinjameson): The GitHub profile reads "Building Foldkit, the frontend framework for correctness."
+  - [Dicha Zelianivan Arkana](https://ratstack.sh/all-stars/elianiva): Dicha Zelianivan Arkana contributes to Foldkit.
+  - [Dillon Mulroy](https://ratstack.sh/all-stars/dmmulroy): Dillon Mulroy’s anti-slop supplies Oxlint rules for TypeScript and JavaScript.
+  - [Effect](https://ratstack.sh/all-stars/effect-ts): The Effect-TS GitHub org describes itself as "A set of libraries to write better TypeScript".
+  - [Ethan Niser](https://ratstack.sh/all-stars/ethanniser): Ethan Niser’s Effect by Example collects explained Effect snippets.
+  - [Filip Falcon](https://ratstack.sh/all-stars/filipfalcon): Filip Falcon contributes to Foldkit.
+  - [Foldkit](https://ratstack.sh/all-stars/foldkit): The Foldkit GitHub org describes Foldkit as "The frontend framework for correctness."
+  - [Giulio Canti](https://ratstack.sh/all-stars/gcanti): Giulio Canti is one of Effect’s top listed contributors.
+  - [Harbor](https://ratstack.sh/all-stars/zonko-ai): Harbor’s SDK publishes TypeScript and Python clients alongside runtime, plugin and platform building blocks.
+  - [HumanLayer](https://ratstack.sh/all-stars/humanlayer): HumanLayer’s Channels handles Slack, GitHub and Linear webhooks on Effect v4.
+  - [Jem](https://ratstack.sh/all-stars/jem-computer): The GitHub profile reads "your favorite technologists’ favorite technologist".
+  - [Joel Hooks](https://ratstack.sh/all-stars/joelhooks): GitHub describes joelhooks/rat-stack as an "Agentic TypeScript scaffold: Effect 4, XState 6 + @xstate/effect, Alchemy infra".
+  - [John Royal](https://ratstack.sh/all-stars/john-royal): John Royal is one of Alchemy’s top listed contributors.
+  - [Jordan Coeyman](https://ratstack.sh/all-stars/acoyfellow): GitHub describes acoyfellow/coil as "One thread, one agent, one computer. Pi Durable and a Cloudflare Container in one Durable Object, compacted together."
+  - [jtbeckman](https://ratstack.sh/all-stars/jtbeckman): jtbeckman contributes to c0, an open-source agent platform.
+  - [Julia Ortiz](https://ratstack.sh/all-stars/julia-script): On X: "I kinda ported pi-durable to @EffectTS_, but built on workflows and their AI module", linking julia-script/effect-harness.
+  - [Justin Bennett](https://ratstack.sh/all-stars/just-be-dev): On X: "Very bullish on the CAFE stack (cloudflare, alchemy, foldkit, effect). Got my own template for it here"
+  - [Kit Langton](https://ratstack.sh/all-stars/kitlangton): Kit Langton’s Effect Solutions collects patterns for error handling, services, layers and testing.
+  - [Makisuo](https://ratstack.sh/all-stars/makisuo): Makisuo is the top contributor to MapleTechLabs/maple, which GitHub describes as an "OpenTelemetry observability platform".
+  - [Manzanita Research](https://ratstack.sh/all-stars/manzanita-research): Manzanita Research’s Terrarium v2 builds deterministic agent simulations on @alchemy.run/domain.
+  - [Maple](https://ratstack.sh/all-stars/mapletechlabs): Maple is an OpenTelemetry observability platform.
+  - [Matt Pocock](https://ratstack.sh/all-stars/mattpocock): Matt Pocock asked developers for Foldkit's "aha" moment on 2 November 2026.
+  - [Mattia Manzati](https://ratstack.sh/all-stars/mattiamanzati): Mattia Manzati is the leading contributor to the Effect language service.
+  - [maxedapps](https://ratstack.sh/all-stars/maxedapps): The X profile reads "I teach AI & coding".
+  - [Maxwell Brown](https://ratstack.sh/all-stars/imax153): Maxwell Brown is one of Effect’s top listed contributors.
+  - [Michael Arnaldi](https://ratstack.sh/all-stars/mikearnaldi): Michael Arnaldi is one of Effect’s top listed contributors.
+  - [Michael K](https://ratstack.sh/all-stars/mkassabov): Michael K is one of Alchemy’s top listed contributors.
+  - [Patrick G](https://ratstack.sh/all-stars/doeixd): Patrick G's effect-email provides Effect-native transactional email with typed messages, durable delivery, provider adapters and retry policies.
+  - [Plannotator](https://ratstack.sh/all-stars/plannotator): Plannotator’s Artifact Server lets people and agents publish, review, version and share artifacts.
+  - [Rahul Mishra](https://ratstack.sh/all-stars/blankparticle): Rahul Mishra is one of Alchemy’s top listed contributors.
+  - [Rhys Sullivan](https://ratstack.sh/all-stars/rhyssullivan): Rhys Sullivan’s Dynamic Software demo runs plugin sessions on Cloudflare Workers.
+  - [Rivet](https://ratstack.sh/all-stars/rivet-dev): Rivet’s Durable Object Migrator exports data from SQLite-backed Cloudflare Durable Objects.
+  - [roninjin10](https://ratstack.sh/all-stars/roninjin10): roninjin10 is the leading contributor to Smithers.
+  - [sam-goodwin](https://ratstack.sh/all-stars/sam-goodwin): Listed first among the contributors to alchemy-run/alchemy, which GitHub describes as "Infrastructure as Effects".
+  - [Sandro Maglione](https://ratstack.sh/all-stars/sandromaglione): Sandro Maglione authors TypeOnce Effect Machine, a schema-first state-machine and statechart library for Effect.
+  - [Sebastian Lorenz](https://ratstack.sh/all-stars/fubhy): Sebastian Lorenz is one of Effect’s top listed contributors.
+  - [Stately](https://ratstack.sh/all-stars/statelyai): GitHub describes statelyai/xstate as "State machines, statecharts, and actors for complex logic".
+  - [Tanner Scadden](https://ratstack.sh/all-stars/tanner-scadden): Tanner Scadden’s Munch Manor is a browser zombie shooter built with Foldkit and Effect and running on Cloudflare.
+  - [Taras Kornichuk](https://ratstack.sh/all-stars/artile): Taras Kornichuk contributes to Alchemy’s domain APIs, including typed reads across projection-store keys.
+  - [Tim Smart](https://ratstack.sh/all-stars/tim-smart): Tim Smart is a leading contributor to Effect.
+  - [Valerii Strilets](https://ratstack.sh/all-stars/letstri): Valerii Strilets authors Permix, a type-safe permissions library for clients and servers.
+  - [Wayne Maurer](https://ratstack.sh/all-stars/wmaurer): Wayne Maurer contributes to Foldkit.
+  - [Will King](https://ratstack.sh/all-stars/wking-io): Will King’s Lattice provides visual page grids for local Vite development using Effect 4 and Foldkit.
+  - [yehudacohen](https://ratstack.sh/all-stars/yehudacohen): The yehudacohen/typekro repository provides TypeScript definitions for Kubernetes resources with cross-resource references.
+- [Ratstack Tube](https://ratstack.sh/tube): curated videos for learning Effect, Alchemy, XState, TypeScript, agents and MCP, Cloudflare, and systems thinking, ranked S to F with a short take on each
+- [Docs search](https://ratstack.sh/search): search the rules, lore, skills, and prompts in a browser; `?q=` opens a query; agents call the `search` and `read` tools
+
+## Connect with MCP
+
+MCP means Model Context Protocol. It lets an agent client discover and call tools.
+
+Point any MCP client at `https://ratstack.sh/mcp`. Protocol 2026-07-28 is stateless and has no `initialize` handshake: every request sends `MCP-Protocol-Version`, `Mcp-Method`, and the `params._meta` block shown here.
+
+```sh
+curl --request POST 'https://ratstack.sh/mcp' \
+  --header 'accept: application/json, text/event-stream' \
+  --header 'content-type: application/json' \
+  --header 'MCP-Protocol-Version: 2026-07-28' \
+  --header 'Mcp-Method: tools/list' \
+  --data '{"id":"rat-stack-tools","jsonrpc":"2.0","method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/clientCapabilities":{},"io.modelcontextprotocol/clientInfo":{"name":"rat-stack-example","version":"0.1.0"},"io.modelcontextprotocol/protocolVersion":"2026-07-28"}}}'
+```
+
+Older clients (2025-11-25 back to 2024-11-05) send `initialize` as usual. Each one gets its own session, held between requests by a Durable Object, Cloudflare's persistent state and compute service.
+
+Each IP may make 120 API or MCP requests per 60 seconds. `execute` also allows 6 calls per IP and 300 total calls per 60 seconds. Cloudflare counts these limits separately in each location.
+
+## Run code: one program instead of several calls
+
+A capability is one named action with shared input and output definitions and a server-side implementation.
+
+Use `POST /api/execute` or the MCP `execute` tool to call content capabilities. The program can search, pass the result to read, and return only what you need. It cannot call `joinInterest`.
+
+`execute` runs the `code` value as the body of an async function. `return` sets `result`, and `console.log` output appears in `logs`; imports, exports, and `fetch` are unavailable.
+
+A successful program returns HTTP 200 with `result`, `logs`, `toolCalls`, and `truncated`. A failed program returns HTTP 422 with `_tag: "ExecuteError"`, `kind`, `message`, optional `tag`, and the same logs, call history, and truncation fields. Failures have no `result`. Timeouts use `TimeoutExceeded`. Blocked fetch calls use `ExecutionFailure` with a refusal message. MCP reports a tool error; CLI exits non-zero; RPC returns the typed failure. Consumers of the old `diagnostic` field must use the failure response instead.
+
+```js
+const found = await tools.search({ query: "cartridges", limit: 1 });
+const page = await tools.read({ id: found.matches[0].id });
+return { title: page.title, id: page.id };
+```
+
+```sh
+curl --request POST 'https://ratstack.sh/api/execute' \
+  --header 'content-type: application/json' \
+  --data '{"code":"return 1 + 1"}'
+# {"logs":[],"result":2,"toolCalls":[],"truncated":false}
+```
+
+## Choose the next action
+
+1. Search for the job you need with `search({ query, limit })`.
+2. Read a matching document with `read({ id })`, using the stable id returned by search. Read the owning rules and skill before changing code.
+3. For lore, follow `backlinks({ slug })` or `neighbors({ slug, depth: 1 })` to related pages. Use `mentions({ slug })` for unlinked references and `path({ from, to })` to connect two lore pages. Use the page's lore slug, not a source file path.
+
+A capability is one named action with shared input and output definitions and a server-side implementation.
+
+For a new behavior, start with [one capability, every surface](https://ratstack.sh/lore/one-capability-every-surface) and [add a capability](https://ratstack.sh/skills/add-a-capability). For stateful work, read [add a lifecycle machine](https://ratstack.sh/skills/add-a-lifecycle-machine). For a provider, keep the port in core: an application-owned interface named for the job it needs. Keep the adapter, its provider-specific implementation, outside core: [hexagonal architecture](https://ratstack.sh/lore/hexagonal-architecture). For agent-facing guidance, read [HATEOAS](https://ratstack.sh/lore/hateoas).
+
+To remove a surface or package you don't need, follow [Keep or cut](https://ratstack.sh/README.md#keep-or-cut) and the [keep-or-cut skill](https://ratstack.sh/skills/keep-or-cut). Trace the imports, delete what depends on it, then run `pnpm turbo run check test build`.
+
+[Interest signup](https://ratstack.sh/systems/interest) is agent-only. Read [Build Agent Loops That Never Stop Shipping](https://ratstack.sh/tokenmaxx#interested), obtain a fresh page ticket, and submit through `joinInterest` only after the person approves the exact card and contact permission. A person confirms their email through the email link in a browser; submission is not confirmation. Show the returned message to the person. If it says "Too many requests right now. Try again in a minute.", wait one minute and retry once. If it says the confirmation email could not be sent yet, do not resubmit; the application is saved.
+
+Workshop resources have a separate [MCP server](https://ratstack.sh/tokenmaxx/mcp). Use it for the schedule, prep, public links and published exercises. Applications still use the main server's `joinInterest`.
+
+## Suggest a CAFE entry through your agent
+
+Help the person you assist suggest a story for [news](https://ratstack.sh/news) or a project for the [directory](https://ratstack.sh/directory).
+
+1. Check the page for an existing entry. You can also POST JSON to `/api/listCafeNews` or `/api/listCafeProjects`. Do not submit a duplicate.
+2. Read the source repository and gather the fields below. Cite repository file paths for each stack claim. Do not invent evidence.
+3. Draft the exact issue title and all fields. Say whether this is the person's own work. Show the person the draft, including any public attribution.
+4. File only after the person approves that exact issue. Use the matching form in `joelhooks/rat-stack`.
+5. Submit once. Do not spam or retry through another surface when the result is uncertain. Check GitHub for the issue first.
+
+### Fields
+
+- **News:** HTTPS URL, title and one-line summary (each at most 280 characters), kind (release, post, video or launch), optional repo (`owner/repo`), optional author GitHub login and X handle, and why it is CAFE.
+- **Project:** HTTPS repo URL, title (at most 280 characters), one-line summary (at most 350 characters), and evidence for Cloudflare, Alchemy, Foldkit and Effect. Each evidence string names a file path and what it proves, in at most 280 characters. Write `Not found` for a letter without evidence.
+- Disclose the person's connection to the entry in either form. Leave unknown optional fields blank.
+
+### File the approved issue
+
+Use `gh issue create --repo joelhooks/rat-stack --template cafe-news.yml` for a story, or `gh issue create --repo joelhooks/rat-stack --template cafe-project.yml` for a project. Use only the approved title and fields.
+
+If gh is unavailable or cannot use issue forms, give the person the matching prefilled URL and the approved fields:
+
+- News: `https://github.com/joelhooks/rat-stack/issues/new?template=cafe-news.yml&title=URL_ENCODED_APPROVED_TITLE`
+- Project: `https://github.com/joelhooks/rat-stack/issues/new?template=cafe-project.yml&title=URL_ENCODED_APPROVED_TITLE`
+
+Replace the title placeholder with the URL-encoded approved title. Prefill form fields with URL-encoded values using their form IDs as query keys. The person can review and file the issue in GitHub.
+
+Joel or the desk reviews each suggestion. Listing is not guaranteed.
+
+
+## Source files
+
+- [Agent rules for rat-stack (AGENTS.md)](/AGENTS.md) — What you may change, which commands to run, and which changes need approval.
+- [Purpose and boundaries of rat-stack (VISION.md)](/VISION.md) — What this starter is for and what a useful copy should keep.
+- [Build and run rat-stack (README.md)](/README.md) — What is in the repo, how the example works, and how to run it.
+- [Dependency vendoring rules (vendor/README.md)](/vendor/README.md) — How to pin an unpublished package and when to remove the local copy.
+- [Exact workspace dependency pins (pins.md)](/pins.md) — Exact dependency values declared by every workspace package.
+- [Change log](/log) — What changed in the files served here, newest first.
+- [Source change history (log.md)](/log.md) — The generated change log as Markdown.
+- [Lint and type escape ledger (debt.md)](/debt.md) — A source-linked count of repo-owned lint and type escapes.
+- [Effect 4 study: September 2026](/resources/effect-4-reference-projects) — Dated Effect 4 source studies from September 2026; current versions live in pins.md.
+- [Schema projections: 2026-09-18 history](/resources/schema-projections-and-code-mode) — Historical Effect rc.115 proposal and implementation receipts from 2026-09-18; use the one-capability-every-surface lore page for the current pattern.
+- [Learn rat-stack from your own agent](/learn) — Turn on learn mode: your own agent explains rat-stack ideas during real work and keeps progress local.
+- [Oxlint rule limits](/resources/lint-rule-limits) — How the current lint rules draw their syntax boundaries.
+- [Effect + Alchemy peers](/resources/peers) — Public repositories that share rat-stack's prerelease lines.
+- [Effect + Alchemy peer patterns](/resources/same-version-repos) — Source-grounded patterns from repos on nearby Effect and Alchemy pins.
+
+## Lore
+
+### Idea
+
+
+
+- [A browser send follows one path to the capability](/lore/a-browser-send-follows-one-path) — In the Foldkit docs browser, a search is a Message, then an update, then a named Command that calls the search capability over RPC on a cache miss and returns a result Message.
+- [A clean playground](/lore/a-clean-playground) — rat-stack does real work with packages that stay easy to add and remove.
+- [Agents explore, tests remember](/lore/agents-explore-tests-remember) — Let agent users explore scenarios; turn a good bug reproduction into a repeatable test.
+- [An MCP your users want](/lore/an-mcp-your-users-want) — Rhys Sullivan's practical guide gives rat-stack a checklist for useful MCP tools.
+- [Shared caches hold completed values](/lore/cache-completed-values) — Keep pending request I/O out of isolate-scoped caches.
+- [Capture first, shape later](/lore/capture-first) — Store events without rejecting them for an evolving event shape, then decide their shape when you query.
+- [Cartridges](/lore/cartridges) — A cartridge owns one job and brings the infrastructure its service needs.
+- [Code snippets quote a pinned source](/lore/code-snippets) — Shipped design brief: pinned Git objects, typed diagnostics, and one build-only snippet model for both views.
+- [Concurrent work needs an owner and a bound](/lore/concurrent-work-needs-an-owner) — Limit active work, retain result order, and stop child work when its owning lifetime ends.
+- [Configuration is a supplied, validated dependency](/lore/configuration-is-a-dependency) — Parse configuration when a Layer builds, reject invalid values, and supply controlled settings in tests.
+- [Dependency injection is the reason to choose Effect](/lore/dependency-injection-is-the-reason-to-choose-effect) — Effect tracks service requirements in types and supplies replaceable implementations through Layers.
+- [Durability starts with a recovery record](/lore/durability) — A reading order for storage, replay, worker ownership, overload, and recovery tests.
+- [Flags climb on evidence](/lore/flags-climb-on-evidence) — A flag ladder connects each rollout step to scoped measurements, approval, and a durable receipt.
+- [HATEOAS](/lore/hateoas) — Links in a representation tell its reader what to do next; rat-stack applies that idea to agent-facing pages and responses.
+- [Hexagonal architecture](/lore/hexagonal-architecture) — Ports name the application's jobs; adapters connect them to the outside world.
+- [Effect keeps the surfaces on one contract](/lore/how-we-do-it-with-effect) — Schema owns values, projections build interfaces, and Layers supply implementations.
+- [HTTP success needs a status check and a decoder](/lore/http-responses-need-validation) — Supply the client, check the response status, decode accepted data, and name failures at the adapter boundary.
+- [Worker init runs twice](/lore/init-runs-twice) — Alchemy Worker initialization runs in deploy and runtime contexts, so resource declarations need a boundary.
+- [Lauren Tan's skills](/lore/lauren-tan-skills) — Lauren Tan (poteto) publishes skills in several repos: brainmaxxing for memory and skill improvement, noodle for skill-based orchestration, how for explaining a codebase, and a verification-skill example.
+- [Layer composition makes dependencies explicit](/lore/layers-make-dependencies-explicit) — Supply a service's dependencies, choose which services remain visible, and reuse Layer identity within a build.
+- [Lifecycles are machines](/lore/lifecycles-are-machines) — XState owns finite lifecycle states while declared Effect actors own side effects.
+- [Matt Pocock's skills](/lore/matt-pocock-skills) — Matt Pocock's skills repo packages the agent skills he says he uses every day, built to be small, adaptable, and composable.
+- [MCP is another surface](/lore/mcp-is-another-surface) — MCP lists and calls schema-typed tools; rat-stack projects the same handlers instead of adding MCP-only behavior.
+- [mdsvex left unified](/lore/mdsvex-left-unified) — The next parser leaves unified; the CommonMark migrator still uses remark.
+- [No comments](/lore/no-comments) — Code comments are banned because names, types, tests, and boundaries should carry the meaning.
+- [One capability, every surface](/lore/one-capability-every-surface) — A schema-typed contract and one handler feed every interface rat-stack keeps.
+- [One program can replace several tool calls](/lore/one-program-can-replace-several-tool-calls) — Code mode combines typed content calls inside one bounded execute request.
+- [One schema, three surfaces](/lore/one-schema-three-surfaces) — A capability contract feeds CLI, HTTP, and MCP; OpenAPI is generated output, not their input.
+- [OpenAPI describes the refusal too](/lore/openapi-describes-the-refusal-too) — The generated HTTP contract declares inputs, outputs, and the bodyless 400 returned when decoding fails.
+- [Rat King carries signed mail between named agents](/lore/rat-king) — Rat King gives agents named mailboxes, signed messages, optional encryption, and Pi, CLI, and MCP clients.
+- [Rat's Nest keeps the code public and the inventory private](/lore/rats-nest) — Joel's purpose-built on-prem cloud uses rat-stack and Alchemy, with private inventory outside the public repo.
+- [Run Effect at the integration boundary](/lore/run-effect-at-the-boundary) — Build the runtime where a calling framework enters, reuse its services, and dispose it when that integration ends.
+- [Schemas define the boundary](/lore/schemas-define-the-boundary) — Define accepted data with Schema, decode unknown input before dispatch, and encode results through the declared contract.
+- [Scopes release resources when work ends](/lore/scopes-own-resources) — Acquire resources lazily, keep their use inside the owner, and release them after success, failure, or interruption.
+- [A service captures its construction dependencies](/lore/services-capture-dependencies) — Build a service with its dependencies, then expose methods that callers can use without rebuilding the graph.
+- [The rat-stack bestiary eats excuses](/lore/shitrat-bestiary) — A field guide to eight documented rat-stack creatures, with real habitats, enforceable behaviour, and strictly imaginary temperaments.
+- [ShitRat's canon is an incident log](/lore/shitrat-canon) — Four public ShitRat stories: a comment ban, a hold that blocked its own migration, a desktop body, and a domain for the rat.
+- [ShitRat wants receipts before claims](/lore/shitrat-creed) — The familiar's creed: read the file, run the command, give the number, admit uncertainty, and spare everyone the corporate sludge.
+- [Joel bought a domain and the rat built its own house](/lore/shitrat-origin) — ShitRat's public origin story starts with a gift: shitrat.ai, a hand-written page, and a rat doing its own deployment.
+- [A rat can be a name with a mailbox](/lore/shitrat-rat-king) — Rat King's named mailboxes and leased readers give ShitRat a postal mythology with a clear line between the rules and the rats' stories.
+- [The rat has rituals for proving it happened](/lore/shitrat-rituals) — The gate, the snapshot dance, receipts before claims, and the deployment check give rat-stack's folklore some repeatable steps.
+- [The war stories](/lore/shitrat-war-stories) — Seven public repo incidents: a deploy undoes itself, failure says 200, sessions forget their guests, and the rat tests the demolition instructions.
+- [Structure an Effect codebase by domain](/lore/structure-effect-by-domain) — Start with folders for application work, services and Layers in the same file, and startup code that supplies implementations.
+- [Tests prove behavior through supplied services](/lore/tests-that-earn-their-place) — Supply services through Layers, choose properties or models for domain rules, and reject tests that cannot detect broken behavior.
+- [The fence](/lore/the-fence) — The fence uses compiler checks, lint rules, and hooks to reject unsafe shortcuts.
+- [There is no ISR on Cloudflare](/lore/there-is-no-isr-on-cloudflare) — SvelteKit's Vercel ISR setting does not configure Workers Cache; our local comparison did not prove cache reuse.
+- [Trace operations where they mean something](/lore/trace-meaningful-operations) — Name useful operations, add safe context, and distinguish creating a span from delivering it to a backend.
+- [An agent applied through Markdown and HTTP](/lore/two-lines-of-curl-is-a-front-door) — One observed application used the Markdown page and llms.txt, then one POST; confirmation followed 88 seconds later.
+- [UI behaviour is a scene](/lore/ui-behaviour-is-a-scene) — A Foldkit Scene drives update, view, and subscriptions with input and time as plain data, then asserts on what the view shows.
+
+### Concept
+
+
+
+- [Accumulate independent errors before writing output](/lore/accumulate-independent-errors) — Check every independent job before any job writes an asset.
+- [Admission control protects recovery](/lore/admission-controls-new-work) — Refuse or defer work that cannot be served usefully under current load.
+- [Source-first workflow](/lore/agent-source-first-workflow) — Michael Arnaldi says agents should inspect a library's current source instead of trusting stale model knowledge.
+- [Alchemy Domain models a business as commands, aggregates, and events](/lore/alchemy-domain) — Alchemy Domain is a domain-driven design framework for Effect whose one model runs in memory for tests and on Cloudflare Durable Objects in production.
+- [Ambient cloud](/lore/ambient-cloud) — Sam Goodwin describes a cloud experience where credentials and accounts become available through one interface.
+- [Anti-money](/lore/anti-money) — Sam Goodwin frames Alchemy as reducing SaaS products to libraries and shifting value elsewhere.
+- [AT Protocol separates identity, data, and application schemas](/lore/at-protocol) — AT Protocol connects persistent account identifiers, signed public repositories, hosting services, and shared schemas.
+- [Backpressure reaches the producer](/lore/backpressure-reaches-the-producer) — Bounded consumption helps only when upstream respects waiting or refusal.
+- [Bindings](/lore/bindings) — Sam Goodwin describes bindings as the place where runtime permissions and configuration meet infrastructure.
+- [Build-time work stays out of requests](/lore/build-time-work-stays-out-of-requests) — Git reads and highlighting produce static assets before the Worker handles requests.
+- [Bulkheads isolate scarce capacity](/lore/bulkheads-isolate-capacity) — Reserve independent capacity for workloads that must not starve each other.
+- [CAFE names the Cloudflare, Alchemy, Foldkit and Effect stack](/lore/cafe-stack) — CAFE is a named stack: Cloudflare runs the app, Alchemy declares it, Foldkit draws the UI, and Effect does the typed work.
+- [Checkpoints follow the promised commit](/lore/checkpoints-follow-commits) — Persist state and progress together when one store can transact both.
+- [Circuit breakers have state](/lore/circuit-breakers-have-state) — A breaker stops doomed calls and controls probes before restoring traffic.
+- [Cleanup can be an idempotent postcondition](/lore/cleanup-can-be-an-idempotent-postcondition) — Already-absent state can be success when absence is the operation’s intended result.
+- [Cloud as a library](/lore/cloud-as-a-library) — Sam Goodwin argues that cloud services can be consumed as libraries inside an application.
+- [Context and requirements](/lore/context-and-requirements) — Effect requirements make a computation's needed services visible in its type.
+- [Dead letters need a return path](/lore/dead-letters-need-a-return-path) — Exhausted work needs durable evidence, an owner, and deliberate redrive.
+- [Distilled](/lore/distilled) — Sam Goodwin describes provider client libraries that return Effects and named error types under the Distilled name.
+- [Double opt-in](/lore/double-opt-in) — The visitor gets one confirmation email and is counted only after using its link.
+- [Durability bibliography](/lore/durability-bibliography) — Books, checked short quotations, source limits, and Effect mapping provenance.
+- [Durable timers need recovery](/lore/durable-timers-need-recovery) — Persist scheduled intent when losing a worker must not lose its deadlines.
+- [Durable work needs storage](/lore/durable-work-needs-storage) — A restarted worker cannot recover intent that existed only in memory.
+- [Effect basics](/lore/effect-basics) — An Effect describes work, expected failures, and required services before a runtime executes it.
+- [Effect's design lineage](/lore/effect-design-lineage) — Michael Arnaldi describes Effect's path from financial software needs through ZIO influence and TypeScript iterations.
+- [Effect is not BEAM](/lore/effect-is-not-beam) — Fibers share a runtime; scope ownership does not supply isolated heaps or OTP restart strategies.
+- [Engine-neutral tokens keep adapters replaceable](/lore/engine-neutral-tokens-keep-adapters-replaceable) — The highlighter port exposes text, roles, and font styles rather than Shiki types.
+- [Handle expected failures without hiding defects](/lore/error-model) — Declare expected failures, preserve their context, and recover by tag without turning crashes into successful outcomes.
+- [Errors are part of the interface](/lore/errors-are-part-of-the-interface) — An author error needs a location, the rejected input, and a repair.
+- [Every task needs an owner](/lore/every-task-needs-an-owner) — Give child work a lifetime, a failure observer, and a recovery decision.
+- [Failures keep their meaning](/lore/failures-keep-their-meaning) — Expected refusals, infrastructure faults, and defects need different policies.
+- [Floor and ceiling](/lore/floor-and-ceiling) — Theo Browne argues that a model's ordinary reliability matters more than its peak on long agent runs.
+- [Golden signals expose overload](/lore/golden-signals-expose-overload) — Measure latency, traffic, errors, and saturation, including failed work.
+- [Infrastructure as effects](/lore/infrastructure-as-effects) — Sam Goodwin relates application operations to infrastructure requirements in one typed program.
+- [A Layer as constructor](/lore/layer-constructor-pattern) — Sam Goodwin compares an Effect Layer that builds a service to a constructor.
+- [Model-based testing](/lore/model-based-testing) — Describe what a system should do as a small model, generate action sequences, and check the real system against the model.
+- [Old events must still decode](/lore/old-events-must-still-decode) — Retained data needs compatibility rules before recovery depends on it.
+- [One snippet model feeds both renderers](/lore/one-snippet-model-two-renderers) — HTML and agent Markdown derive their code, repository, commit, path, and line numbers from the same snippet.
+- [Pin the source and report drift separately](/lore/pinned-sources-can-report-drift) — A pinned excerpt stays fixed while a separate diagnostic compares it with HEAD.
+- [The plan model](/lore/plan-model) — Sam Goodwin describes Alchemy's plan outputs as a way to inspect infrastructure before deployment.
+- [Production-grade TypeScript](/lore/production-grade-typescript) — Michael Arnaldi defines production-grade software through reliability, observability, testability, and maintainability.
+- [Property-based testing](/lore/property-based-testing) — State a rule that must hold for every input, then let a generator hunt for the smallest input that breaks it.
+- [Pure cores reduce timeline coupling](/lore/pure-cores-reduce-timelines) — Move deterministic rules out of time-dependent actions and shared mutable state.
+- [Queries need result bounds](/lore/queries-need-result-bounds) — Limit result cardinality before the driver materializes an oversized response.
+- [Queues, Pipelines, Workflows and K2 do different jobs](/lore/queues-pipelines-workflows-and-k2-do-different-jobs) — Pick a Cloudflare product for work outside a request by the unit you track: a message, a row, a step, or a record in a log.
+- [Recovery needs model tests](/lore/recovery-needs-model-tests) — Test sequences of failures and recoveries against explicit invariants.
+- [Replay needs stable inputs](/lore/replay-needs-stable-inputs) — Historical processing must not silently depend on today’s clock or external decisions.
+- [Request lifetime is not durability](/lore/request-lifetime-is-not-durability) — Worker waitUntil has a shared post-response allowance; required work needs a durable marker and redrive.
+- [Restart must reconstruct known state](/lore/restart-from-known-state) — Execution recovery and state recovery need separate contracts.
+- [Retry load needs a budget](/lore/retry-load-needs-a-budget) — One retry owner must control attempts, delay, and aggregate load.
+- [Retry needs idempotent effects](/lore/retry-needs-idempotency) — Repeating an operation must preserve its intended observable result.
+- [Shared schemas need a transition period](/lore/schema-changes-need-a-transition) — Keep old and new representations usable while consumers migrate.
+- [shitratgit[bot] leaves a countable trail](/lore/shitratgit-bot) — At rat-stack commit 7570e37, shitratgit[bot] authors 1,314 of 1,365 reachable commits, a dated repo count rather than a live counter.
+- [Steady state recycles resources](/lore/steady-state-recycles-resources) — Every accumulation needs a deliberate recycling policy.
+- [Supervision chooses what restarts](/lore/supervision-is-a-recovery-policy) — Restart policy follows dependency shape and bounds repeated recovery.
+- [Think wider](/lore/think-wider) — Theo Browne asks developers to cover more product breadth instead of adding depth in one narrow area.
+- [Timeouts bound waiting](/lore/timeouts-bound-waiting) — A local timeout stops waiting; it does not prove the remote action never happened.
+- [Tokenize the whole file before slicing](/lore/tokenize-before-slicing) — Select lines after tokenization so preceding code still guides recognition of multiline strings and comments.
+- [Workers answer requests; Durable Objects own named state](/lore/workers-answer-requests-durable-objects-own-named-state) — A Worker must not rely on module state between requests, so state that must persist lives in a Durable Object addressed by name.
+
+### Source
+
+
+
+- [DHH on Omarchy and the agent OS](/lore/0xsero-dhh-omarchy-the-agent-os) — David Heinemeier Hansson reflects on agency, agents, and building with language.
+- [Vibe engineering Effect apps](/lore/ai-engineer-vibe-engineering-effect-apps-michael-arnaldi) — Michael Arnaldi shows how source, tests, and diagnostics can guide agents working with Effect.
+- [AI Engineer World's Fair 2026: Software has changed](/lore/aiewf-2026-everything-we-knew-about-software-has-changed-theo-browne) — Theo Browne argues that stronger models call for wider software work and extensible products.
+- [CascadiaJS 2026: It's time to rethink everything](/lore/cascadiajs-2026-its-time-to-rethink-everything-theo-browne) — Theo Browne compares how cloud infrastructure and coding agents changed the cost of experimentation.
+- [Cause & Effect 10: Software engineering in the age of AI](/lore/cause-and-effect-10-software-engineering-age-of-ai-de-goes) — John De Goes, Michael Arnaldi, and Johannes Schickling discuss engineering judgment as code gets cheaper.
+- [Effect: Production-Grade TypeScript](/lore/cityjs-effect-production-grade-typescript-michael-arnaldi) — Michael Arnaldi presents Effect as a set of shared tools for production TypeScript.
+- [Alchemy and the next generation of infrastructure as code](/lore/devtools-fm-sam-goodwin-alchemy-next-gen-iac) — Sam Goodwin describes Alchemy's stateful TypeScript model for infrastructure resources.
+- [Sam Goodwin on Alchemy](/lore/devtools-fm-sam-goodwin-alchemy) — Sam Goodwin explains Alchemy's Effect model, plans, bindings, and cloud-library idea.
+- [Effect Days 2024: The origin story](/lore/effect-days-2024-origin-story-michael-arnaldi) — Michael Arnaldi traces Effect to a TypeScript team's needs for tests, dependencies, and resource safety.
+- [Effect Days 2025: Building Effect 4](/lore/effect-days-2025-building-effect-4-michael-arnaldi) — Michael Arnaldi presents Effect 4 as a redesign shaped by production feedback.
+- [Effect Meetup SF 2023: Why Effect?](/lore/effect-meetup-sf-2023-why-effect-michael-arnaldi) — Michael Arnaldi introduces Effect as a shared runtime for production TypeScript concerns.
+- [Effect Office Hours 26: Community projects and Alchemy](/lore/effect-office-hours-26-community-projects-alchemy) — The hosts discuss Alchemy Effect's typed resource requirements, plans, and deployment stages.
+- [Effect Office Hours 27: Alchemy, infrastructure as effects](/lore/effect-office-hours-27-alchemy-infrastructure-as-effects) — Sam Goodwin presents Alchemy as a system built with Effect for planning, testing, and deploying infrastructure.
+- [Happy Path 116: Infrastructure as effects](/lore/happy-path-116-infrastructure-as-effects-sam-goodwin) — Sam Goodwin connects Effect requirements, infrastructure policies, and runtime behavior.
+- [Happy Path 81: TypeScript and effects](/lore/happy-path-81-typescript-and-effects-michael-arnaldi) — Michael Arnaldi describes Effect's TypeScript design and its typed outputs, errors, and requirements.
+- [Lauren Tan: Dune, trust, and agent skills](/lore/poteto-lauren-tan-2500-prs-dune) — Lauren Tan describes verification, a trust ladder, and an application framework designed for coding agents.
+- [Theo Browne: Please stop using stupid models](/lore/theo-please-stop-using-stupid-models) — Theo Browne argues that model reliability matters more as agent work gets wider and longer.
+- [Why JavaScript is broken: Effect and TypeScript](/lore/why-javascript-is-broken-effect-michael-arnaldi) — Michael Arnaldi argues that production JavaScript needs one composable model for errors, dependencies, and cleanup.
+- [Why TypeScript is a good fit for Scala developers](/lore/ziverge-de-goes-arnaldi-typescript-for-scala-devs) — John De Goes and Michael Arnaldi discuss carrying functional programming ideas into TypeScript.
+
+### Person
+
+
+
+- [Chris Tate](/lore/chris-tate) — Chris Tate shares public experiments in generative UI and fast model judgments.
+- [David Khourshid](/lore/david-khourshid) — David Khourshid teaches state machines with XState and argues for model-based and property-based testing.
+- [Lauren Tan](/lore/lauren-tan) — Lauren Tan describes verification and agent-oriented architecture in her public talk about Dune.
+- [Michael Arnaldi](/lore/michael-arnaldi) — Michael Arnaldi develops Effect and explains its TypeScript design in public talks.
+- [Sam Goodwin](/lore/sam-goodwin) — Sam Goodwin presents Alchemy as infrastructure built from Effect programs and typed requirements.
+- [ShitRat is Joel's familiar, with receipts](/lore/shitrat) — Meet ShitRat: Joel's terminal-dwelling familiar, its public house, its rules, its commits, and the incidents that became canon.
+- [Theo Browne](/lore/theo-browne) — Theo Browne discusses broader software work and model reliability in public talks.
+- [Visakan Veerasamy](/lore/visakan-veerasamy) — Visakan Veerasamy writes about building a network of friendly, ambitious nerds.
+
+## Systems
+
+- [Hosted agent interfaces](/systems/agent-front-door) — Discovery documents, HTTP, MCP, A2A, and bounded code mode expose the public reference to agents.
+- [CAFE all stars](/systems/all-stars) — Public profiles of people and channels who build with Cloudflare, Alchemy, Foldkit and Effect, served by five read-only capabilities.
+- [Analytics](/systems/analytics) — One event per HTTP request, stored unchanged for queries to select and interpret later.
+- [Auth](/systems/auth) — Email and password sign-in through Better Auth, with the signed-in person provided to each RPC call.
+- [Capabilities](/systems/capabilities) — Named application actions exposed through generated interfaces share one definition and one server-side implementation.
+- [Database](/systems/database) — One interface records action runs and their outcomes in either Cloudflare D1 or Postgres through Hyperdrive.
+- [Devtools](/systems/devtools) — Development-only capabilities inspect calls and lifecycle transitions without entering production bundles.
+- [Durability](/systems/durability) — Seven durable Effect patterns, each with its seam, its fence, and the incident that taught it.
+- [Fence](/systems/fence) — Strict effect-tsrs diagnostics, lint, and hooks protect the gate; patched tsc checks compiler parity on checker bumps.
+- [Feature flags](/systems/flags) — Typed feature flags with owners, removal dates, and stable subject rollouts.
+- [Interest signup](/systems/interest) — Agent-only applications start email confirmation through interfaces owned by core and delivery implemented in a separate package.
+- [Learn mode presents concepts at useful depths](/systems/learn) — An agent presents source-derived concepts during real work and keeps learning events in a private local log.
+- [Motion](/systems/motion) — @rat-stack/motion gives Foldkit apps Penner and CSS easings, tweens, fixed-step springs and interpolation, held in the Model and checked by properties.
+- [One prompt serves people and agents](/systems/prompts) — Source-owned agent prompts with typed discovery and copyable browser pages.
+- [Ratstack Tube](/systems/tube) — Curated videos for learning the stack, ranked S to F, with a short take on each, built from one data file.
+- [Turbo remote cache](/systems/turbo-cache) — A separate Worker stores streamed Turbo artifacts in R2, with one credential per team and lifecycle expiry.
+- [Web](/systems/web) — The Foldkit reader renders on the server and prerenders its public pages; the browser hydrates the same view.
+
+## Skills
+
+- [add-a-capability](/skills/add-a-capability) — Learn how one contract and its handler become a command, HTTP route, MCP tool, browser RPC, and sandbox call.
+- [add-a-feature-flag](/skills/add-a-feature-flag) — Declare a typed feature flag, its scoped evidence ladder, approval roles, removal date, and durable ledger adapter.
+- [add-a-lifecycle-machine](/skills/add-a-lifecycle-machine) — Learn how XState owns a lifecycle while Effect owns its work, errors, and services.
+- [add-a-store](/skills/add-a-store) — Add persistence through a service named for an application job, with validation, vendor Layers, migrations, bounded reads, and shared backend tests.
+- [durability](/skills/durability) — Keep a rat-stack app standing when a provider, pool, or dependency slows down or a worker dies. Use at any I/O boundary, connection pool, provider call, shared waiter, fan-out, flag, gate, or work that can outlive a request, or when asked "what happens when this is slow", "add a timeout", "make this durable", or "what survives a crash".
+- [find-peers](/skills/find-peers) — Refresh public peers, exact stack versions, and tiers after stack bumps. On gardener passes, refresh peers checked more than 14 days ago without blocking other work.
+- [gardener](/skills/gardener) — Keep rat-stack current and clean. Update exact dependency versions, learn from repos on the same versions, and add lint rules before cleanup.
+- [investigate-a-failure](/skills/investigate-a-failure) — Find the cause of a crash, wrong output, flaky test, or slow run with evidence, fix it at its source, and leave a notebook a person can learn from. Use when something fails intermittently, when the first fix idea is "raise the timeout" or "swap the version", or when asked "why does this break" or "make this stable".
+- [keep-or-cut](/skills/keep-or-cut) — Learn which pieces depend on each other, then keep only the ones your project needs.
+- [learn](/skills/learn) — Present Effect, Alchemy, XState, and application-design concepts during real work when the operator enables learn mode. Use for adaptive explanations and local learning progress.
+- [learn-alchemy](/skills/learn-alchemy) — Learn how Alchemy 2 turns an Effect program into a planned Cloudflare deployment.
+- [learn-rat-stack](/skills/learn-rat-stack) — Trace a capability through Effect, XState, five projections, the CLI, and Alchemy. Try hosted search and read.
+- [model-a-protocol](/skills/model-a-protocol) — Check a protocol with a small TLA+ model before you build or change it. Use when steps can interleave or die halfway, such as a crash between two writes, a retry after an unknown outcome, an alarm or sweep that redrives work, or two writers on one record. Also use when asked "can this race?", "what if it dies here?", or "model this", or before a durability design review.
+- [onboard-a-list](/skills/onboard-a-list) — Analyze or migrate an email list. Measure sanitation rules, preserve stops, choose a cohort, and verify an authorized import or sending cutover.
+- [profile-a-worker](/skills/profile-a-worker) — Capture a CPU or heap profile of a deployed Cloudflare Worker or Durable Object and read it with pprof. Use when a Worker is slow, burns CPU, nears its memory limit, throws Exceeded Memory, or you need to know which function costs the most in production.
+- [query-design](/skills/query-design) — Design or review SQL reads, writes, scans, backfills, and slow database paths. Use before changing a store method or any loop that queries. Covers round-trip arithmetic, batching, keyset paging, index evidence, row budgets, PlanetScale Vitess limits, Hyperdrive connections, statement-count tests, and statement-template fences.
+- [rat-stack-mode](/skills/rat-stack-mode) — Route non-trivial rat-stack code, data, design, investigation, and documentation tasks to every matching playbook and principle.
+- [security-audit](/skills/security-audit) — Security guidance and vulnerability review for codebases, APIs, services, CLI tools, libraries, and daemons. Use for security questions, focused reviews, vulnerability research, security audits, or pen tests. Run the complete workflow only for explicit codebase audit or pen-test requests, full/comprehensive/end-to-end reviews, or requested report artifacts.
+- [ship](/skills/ship) — Learn how to ship a change through merge, CI, release, stage deployment, rollout, verification, rollback and flags.
+- [test-behaviour](/skills/test-behaviour) — Pick the test shape that proves a behaviour. Use when you ask "how do I test this?", add a test, test a domain rule, a lifecycle, a retry, a session, a UI interaction, a timer, or a race, or review a test that might be tautological.
+- [uncomplect](/skills/uncomplect) — Find responsibilities that a rat-stack design combines, separate them into capabilities, cartridges, machines, features, and clients, and enforce that separation through types and checks. Use when asked to simplify, review, or replace a design, "what would Rich Hickey do", "optimize for deletion", or "define this error out of existence".
+- [use-a-prompt](/skills/use-a-prompt) — Discover and read published rat-stack prompts before starting a task with one.
+- [write-a-wiki-page](/skills/write-a-wiki-page) — Write or revise public wiki pages with short prose, cited claims, meaningful visuals, and pinned code snippets.
+
+## Lore on this page
+
+- [Handle expected failures without hiding defects](/lore/error-model)
+- [The fence](/lore/the-fence)
+- [MCP is another surface](/lore/mcp-is-another-surface)
+- [CAFE names the Cloudflare, Alchemy, Foldkit and Effect stack](/lore/cafe-stack)
+- [Infrastructure as effects](/lore/infrastructure-as-effects)
+- [David Khourshid](/lore/david-khourshid)
+- [Workers answer requests; Durable Objects own named state](/lore/workers-answer-requests-durable-objects-own-named-state)
+- [Matt Pocock's skills](/lore/matt-pocock-skills)
+- [Michael Arnaldi](/lore/michael-arnaldi)
+- [One schema, three surfaces](/lore/one-schema-three-surfaces)
+- [Source-first workflow](/lore/agent-source-first-workflow)
+- [Learn mode presents concepts at useful depths](/systems/learn)

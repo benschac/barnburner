@@ -1,0 +1,340 @@
+# docs
+
+- XState v6 beta
+  - [Quick start](/docs/xstate/v6/quick-start): Create and run your first XState state machine.
+  - [Agent guide](/docs/xstate/v6/agents): Author, inspect and test XState with the installed version's contracts.
+  - [Choose XState](/docs/xstate/v6/choose-xstate): Decide whether to use XState, XState Store, or ordinary application code.
+  - [Use with your framework](/docs/xstate/v6/frameworks): Connect XState actors to React, Vue, Svelte, and Solid components.
+  - [Examples](/docs/xstate/v6/examples): Runnable XState projects, grouped by what they demonstrate.
+  - [Why state machines?](/docs/xstate/v6/why-state-machines): Learn how explicit states make application behavior easier to understand.
+  - [Your first machine](/docs/xstate/v6/your-first-machine): Build a media player state machine and run it as an actor.
+  - [Tutorial: build a media player](/docs/xstate/v6/tutorial): Grow one machine from three states into a full media player with context, guards, async loading, statecharts, timers, emitted events and a UI.
+  - [States, events and transitions](/docs/xstate/v6/states-events-transitions): Learn the three parts of a state machine.
+  - [Data and effects](/docs/xstate/v6/data-and-effects): Store data in context and run effects from transitions.
+  - [Async logic](/docs/xstate/v6/async-logic): Why async work belongs in states and invoked actors.
+  - [Actors](/docs/xstate/v6/actors): Learn how XState actors run logic and communicate with events.
+  - [Statecharts](/docs/xstate/v6/statecharts): Model nested, parallel and historical state.
+  - [How XState runs your machine](/docs/xstate/v6/how-xstate-runs-machines): What happens between sending an event and observing the next snapshot.
+  - [Model application behavior](/docs/xstate/v6/modeling): Turn requirements into states, events and transitions.
+  - [Handle async requests](/docs/xstate/v6/async-requests): Build a search feature with debounce, cancellation, errors and retry.
+  - [Add retries and timeouts](/docs/xstate/v6/retries-and-timeouts): Retry failed work and handle work that takes too long.
+  - [Cancel async work](/docs/xstate/v6/cancellation): Stop invoked async logic when the machine leaves its state.
+  - [Build forms and wizards](/docs/xstate/v6/forms-and-wizards): Model form steps and store submitted values in context.
+  - [Run backend workflows](/docs/xstate/v6/backend-workflows): Restore a workflow, process an event and persist the next snapshot.
+  - [Durable execution](/docs/xstate/v6/durable-execution): Run pure XState transitions on a durable host.
+  - [Persist and restore actors](/docs/xstate/v6/persist-and-restore-actors): Save an actor's state as it changes and restore it on the next visit.
+  - [Test XState logic](/docs/xstate/v6/testing): Test state transitions, actor behavior and async outcomes.
+  - [Model-based testing](/docs/xstate/v6/model-based-testing): Generate event sequences from a machine and check an implementation against it with @xstate/test.
+  - [Inspect actor systems](/docs/xstate/v6/inspect-actor-systems): Log transitions in development and attach them to error reports.
+  - [Troubleshooting](/docs/xstate/v6/troubleshooting): Fix common problems when building with XState.
+  - [Error codes](/docs/xstate/v6/errors): Look up the XState E-codes that production builds report, with the development message, cause, and fix for each.
+  - [Machine configuration](/docs/xstate/v6/configuration): Reference for the top-level state machine configuration.
+  - [Compact finite state machines](/docs/xstate/v6/fsm): Build tiny, typed, flat state machines with xstate/fsm.
+  - [Setup and provide](/docs/xstate/v6/setup-and-provide): Declare typed sources with setup(...) and swap implementations with provide(...).
+  - [States](/docs/xstate/v6/states): Define state nodes and read machine snapshots.
+  - [Transitions](/docs/xstate/v6/transitions): Configure event, delayed, eventless and completion transitions.
+  - [Transition functions and graph analysis](/docs/xstate/v6/transition-functions): Keep typed decisions together while making possible destinations visible.
+  - [Context](/docs/xstate/v6/context): Store and update data used by a machine actor.
+  - [Input and output](/docs/xstate/v6/input-output): Pass input to actors and read output when they complete.
+  - [State input](/docs/xstate/v6/state-input): Pass typed data to a state when it is entered.
+  - [Actions](/docs/xstate/v6/actions): Enqueue effects during a transition.
+  - [Guards](/docs/xstate/v6/guards): Allow a transition only when a condition passes.
+  - [Delays](/docs/xstate/v6/delays): Configure delayed transitions and delayed events.
+  - [Timeouts](/docs/xstate/v6/timeouts): Limit how long a state, an invocation, or async logic may run.
+  - [Internal events](/docs/xstate/v6/internal-events): Declare events that the machine may raise but no one may send in.
+  - [Choice states](/docs/xstate/v6/choice-states): Branch to one of several targets with a single choice function.
+  - [Route states](/docs/xstate/v6/route-states): Mark states as directly navigable and jump to them with xstate.route.
+  - [Final states](/docs/xstate/v6/final-states): Mark a state as complete and produce output.
+  - [History states](/docs/xstate/v6/history-states): Return a parent state to the child that was active when it was left.
+  - [Parallel states](/docs/xstate/v6/parallel-states): Keep independent regions of a state active at the same time.
+  - [Create actors](/docs/xstate/v6/create-actor): Create and start an actor from actor logic.
+  - [Actor snapshots](/docs/xstate/v6/snapshots): Read and observe actor state.
+  - [Selectors](/docs/xstate/v6/selectors): Observe a derived part of an actor's snapshot.
+  - [Invoke actors](/docs/xstate/v6/invoke): Run a child actor for the lifetime of a state.
+  - [Spawn actors](/docs/xstate/v6/spawn): Create child actors during a transition.
+  - [Actor logic](/docs/xstate/v6/actor-logic): Choose the actor logic creator for a task.
+  - [Emitted events](/docs/xstate/v6/emitted-events): Emit events from an actor and handle them outside the machine.
+  - [Listen and subscribe to actors](/docs/xstate/v6/listen-and-subscribe): Turn another actor's events and snapshots into events for this machine.
+  - [Actor systems](/docs/xstate/v6/systems): Address actors within the same actor system.
+  - [Pure system transitions](/docs/xstate/v6/system-transitions): Branch, replay and advance an actor system using immutable snapshots.
+  - [Lifecycle and errors](/docs/xstate/v6/lifecycle-and-errors): Start, stop and observe actors safely.
+  - [TypeScript](/docs/xstate/v6/typescript): Define schemas and derive XState types.
+  - [Typestates](/docs/xstate/v6/typestates): Narrow context according to the active state.
+  - [Persistence](/docs/xstate/v6/persistence): Save and restore actor state.
+  - [Serialization](/docs/xstate/v6/serialization): Treat machine definitions as data.
+  - [SCXML](/docs/xstate/v6/scxml): Create XState machines from SCXML documents.
+  - [Inspection](/docs/xstate/v6/inspection): Observe actor systems and transitions.
+  - [Utilities](/docs/xstate/v6/utilities): Work with actors, snapshots and state values.
+  - [Cheatsheet](/docs/xstate/v6/cheatsheet): Copy-paste reference for every XState v6 API.
+  - [Frequently asked questions](/docs/xstate/v6/faq): Short answers to the questions most often asked about XState v6.
+  - [Glossary](/docs/xstate/v6/glossary): Terms used throughout the XState documentation.
+  - [Migrate from XState v5 to v6](/docs/xstate/v6/xstate-v5-to-v6): Every API change from v5 to v6, organized by area, with before-and-after examples.
+- Get Started
+  - [Quick start](/docs/quick-start)
+  - [Install XState](/docs/installation)
+  - [Migrate to XState v5](/docs/migration)
+  - [Examples](/docs/examples)
+  - [Templates](/docs/templates)
+  - [Cheatsheet](/docs/cheatsheet)
+  - [Typescript](/docs/typescript)
+  - [API](https://www.jsdocs.io/package/xstate)
+- Core Concepts
+  - [State machines and statecharts](/docs/state-machines-and-statecharts)
+  - [Statecharts](/docs/statecharts)
+  - [Harel's statecharts paper](/docs/harel-statecharts)
+  - [Actor model](/docs/actor-model)
+  - [What is XState?](/docs/xstate)
+- State Machines
+  - [State machines](/docs/machines)
+  - [Setup](/docs/setup)
+  - [States](/docs/states)
+  - [Context](/docs/context)
+  - [Input](/docs/input)
+  - [Output](/docs/output)
+  - [Events and transitions](/docs/transitions)
+  - [Routes](/docs/routes)
+  - [Pure transition functions](/docs/pure-transitions)
+  - [Eventless transitions](/docs/eventless-transitions)
+  - [Delayed transitions](/docs/delayed-transitions)
+  - [Actions](/docs/actions)
+  - [Guards](/docs/guards)
+  - [Initial states](/docs/initial-states)
+  - [Finite states](/docs/finite-states)
+  - [Parent states](/docs/parent-states)
+  - [Parallel states](/docs/parallel-states)
+  - [Final states](/docs/final-states)
+  - [History states](/docs/history-states)
+  - [Persistence](/docs/persistence)
+  - [Tags](/docs/tags)
+  - [Event emitter](/docs/event-emitter)
+- Actors
+  - [Actors](/docs/actors)
+  - [State machine actors](/docs/state-machine-actors)
+  - [Promise actors](/docs/promise-actors)
+  - [Transition actors](/docs/transition-actors)
+  - [Callback actors](/docs/callback-actors)
+  - [Observable actors](/docs/observable-actors)
+  - [Invoke](/docs/invoke)
+  - [Spawn](/docs/spawn)
+  - [System](/docs/system)
+  - [Inspection](/docs/inspection)
+- Agents
+  - [AI agents](/docs/agents/agents): Author AI agents as typed XState state machines with @statelyai/agent.
+- Guides
+  - [Graph utilities](/docs/graph)
+  - [Testing](/docs/testing)
+  - [Immer](/docs/immer)
+- XState Store
+  - [Overview](/docs/xstate-store)
+  - [React](/docs/xstate-store/react)
+  - [Vue](/docs/xstate-store/vue)
+  - [Svelte](/docs/xstate-store/svelte)
+  - [Solid](/docs/xstate-store/solid)
+  - [Angular](/docs/xstate-store/angular)
+  - [Preact](/docs/xstate-store/preact)
+  - [Undo/Redo extension](/docs/xstate-store/undo-redo)
+  - [Persist extension](/docs/xstate-store/persist)
+  - [Reset extension](/docs/xstate-store/reset)
+  - [Validation extension](/docs/xstate-store/validate-schemas)
+  - [Compare to Zustand](/docs/xstate-store/compare-zustand)
+  - [Compare to Jotai](/docs/xstate-store/compare-jotai)
+  - [Compare to Recoil](/docs/xstate-store/compare-recoil)
+  - [Compare to Redux](/docs/xstate-store/compare-redux)
+  - [Compare to Pinia](/docs/xstate-store/compare-pinia)
+  - [Migration](/docs/xstate-store/migration)
+- Packages
+  - [Packages](/docs/packages)
+  - [XState React](/docs/xstate-react)
+  - [XState Vue](/docs/xstate-vue)
+  - [XState Svelte](/docs/xstate-svelte)
+  - [XState Graph](/docs/graph)
+  - [XState Test](/docs/xstate-test)
+  - Agent
+
+    - **Get started**
+    - [Stately Agent](/docs/packages/agent)
+    - [Quickstart](/docs/packages/agent/quickstart)
+    - [Thinking in state machines](/docs/packages/agent/thinking-in-state-machines): A design tutorial. Take one hand-rolled agent loop, name the states hiding inside it, and turn them into a machine you can test, resume, and inspect.
+    - [Migrating from a hand-rolled loop](/docs/packages/agent/from-a-loop): Convert a while-loop agent into an agent machine one step at a time, then improve a factory loop's triage from its traces.
+    - [Strangler-fig retrofit](/docs/packages/agent/strangler-fig): Wrap an existing async workflow as a machine with no rewrite, record a baseline, then move one phase at a time into states with a parity check after each.
+    - [Scope and ecosystem boundaries](/docs/packages/agent/scope): What Stately Agent owns, what the host owns, and where specialized libraries fit.
+
+    - **Core concepts**
+    - [Agent machines](/docs/packages/agent/machines): Author an agent machine as a typed XState state machine that decides what your agent can do, while the host executes model calls.
+    - [Decisions](/docs/packages/agent/decisions): Let the model choose one currently-legal machine event, validated and retried by the machine before it is taken.
+    - [Acting on events](/docs/packages/agent/act): Let the model send any number of the current state's accepted events in one tool loop, each answered with what it changed.
+    - [Environment and policy](/docs/packages/agent/environment-and-policy): Split an agent into a fixed environment that people author and verify, and a policy that a model can write and improve inside it.
+    - [Text requests](/docs/packages/agent/text-requests): Declare typed model calls on an agent machine and invoke them from a state, parsing structured or streamed output.
+    - [Tools](/docs/packages/agent/tools): Define tools, attach them to a text request, and let the host run the tool loop while the machine stays in one state.
+    - [Judgments with the AI SDK](/docs/packages/agent/judgments): Ask classification, grading, relevance, and yes/no questions with the AI SDK's experimental_decide and Jev, and branch on the typed answers in a machine.
+    - [Messages](/docs/packages/agent/messages)
+    - [Preset machines](/docs/packages/agent/machines-presets): Factories for proven agent shapes (tool loop, sequential, router, parallel, loop, supervisor, handoff, approval batch) that return ordinary, inspectable agent machines.
+
+    - **Running agents**
+    - [Choosing a run mode](/docs/packages/agent/choosing-a-run-mode)
+    - [Hosts and executors](/docs/packages/agent/hosts)
+    - [Use in any stack](/docs/packages/agent/any-stack)
+    - [Use in an XState 4 or 5 app](/docs/packages/agent/xstate-4-and-5-apps): Isolate @statelyai/agent behind a workspace package so an app on XState 4 or 5 can call an agent without upgrading.
+    - [Upgrading between alphas](/docs/packages/agent/upgrading): The breaking changes you are most likely to hit when you move an app from an earlier 2.0 alpha to the current one, and where to find the rest.
+    - [The runtime loop](/docs/packages/agent/steps)
+    - [Advanced: bare XState actors and hand-written executors](/docs/packages/agent/advanced)
+
+    - **State & durability**
+    - [The event log](/docs/packages/agent/event-log)
+    - [Persistence](/docs/packages/agent/persistence)
+    - [Human in the loop](/docs/packages/agent/human-in-the-loop)
+
+    - **Production**
+    - [Models and providers](/docs/packages/agent/models-and-providers): Reuse models and executors from other AI frameworks via AI SDK LanguageModel objects, TanStack AI text adapters, and OpenAI-compatible endpoints.
+    - [Observability](/docs/packages/agent/observability)
+    - [Usage and budgets](/docs/packages/agent/usage-and-budgets): Read token usage off a run, cap runaway loops with maxModelCalls, and enforce turn and token budgets as ordinary machine guards.
+    - [Debugging](/docs/packages/agent/debugging)
+    - [Multi-agent composition](/docs/packages/agent/multi-agent)
+
+    - **Machines as data**
+    - [Machines as data](/docs/packages/agent/machines-as-data): Author an agent machine as a JSON or YAML config and lower it into the same runnable XState machine that setupAgent builds in TypeScript.
+    - [Generating machines with an LLM](/docs/packages/agent/generate-machines): Have a model author the agent workflow itself, then run the generated config through every pre-run gate before a single model call runs inside it.
+
+    - **Testing**
+    - [Testing and verification](/docs/packages/agent/verify): Statically lint, simulate, and explore agent machines without any API keys or model calls.
+    - [Evals](/docs/packages/agent/evals)
+
+    - **Resources**
+    - [Agent patterns](/docs/packages/agent/patterns)
+    - [Statechart policy examples](/docs/packages/agent/statechart-policy-examples)
+    - [Validate and repair model output with a loop](/docs/packages/agent/validate-and-repair): Check model output with your own host code, feed the rejection back as a repair prompt, and cap the loop in the machine.
+    - [Coming from LangGraph](/docs/packages/agent/langgraph-comparison): A construct-by-construct map from a LangGraph StateGraph to an agent machine, with one worked node.
+    - [Roadmap](/docs/packages/agent/roadmap)
+  - Graph
+    - [@statelyai/graph](/docs/packages/graph)
+    - [Algorithms reference](/docs/packages/graph/algorithms)
+    - [Layout](/docs/packages/graph/layout)
+    - [React Flow + ELK: automatic layout cookbook](/docs/packages/graph/react-flow-elk-pipeline)
+    - [Layout transitions](/docs/packages/graph/layout-transitions)
+    - [Migrating from @dagrejs/graphlib](/docs/packages/graph/migrating-from-graphlib)
+    - [Benchmarks](/docs/packages/graph/benchmarks)
+    - [Scaling & Plugin Architecture](/docs/packages/graph/scaling-and-plugins)
+  - SDK
+    - [@statelyai/sdk](/docs/packages/sdk): The public alpha SDK for embedding the Stately visual editor, inspecting live actor systems, and using the Stately Studio API.
+  - CLI
+    - [statelyai](/docs/packages/cli): statelyai discovers local machine source files and can connect them to Stately Studio. Use it locally to inventory machines, or connect a project to open, compare, push, and pull machines.
+  - MCP
+    - [Stately MCP](/docs/packages/mcp): Validate, execute, explore, compare, convert, and visualize state machines from an MCP compatible agent.
+- Developer Tools
+  - [XState VS Code extension](/docs/xstate-vscode-extension)
+  - [Visualizer](/docs/visualizer)
+  - [Inspector](/docs/inspector)
+  - [Other tools](/docs/developer-tools)
+- Stately Studio
+  - [Introducing Stately Studio](/docs/studio)
+  - [Stately Studio Pro](/docs/studio-pro-plan)
+  - [Stately Studio Team](/docs/studio-team-plan)
+  - [Stately Studio Enterprise](/docs/studio-enterprise-plan)
+  - [Stately Studio Free](/docs/studio-community-plan)
+  - [States and transitions](/docs/editor-states-and-transitions)
+  - [Actions and actors](/docs/editor-actions-and-actors)
+  - Design mode
+    - [Design mode](/docs/design-mode)
+    - [Generate with AI](/docs/generate-flow)
+    - [Generate React app](/docs/generate-react)
+    - [Colors](/docs/colors)
+    - [Notes](/docs/annotations)
+    - [Descriptions](/docs/descriptions)
+    - [Embed Figma](/docs/figma)
+    - [Assets](/docs/assets)
+    - [Tags](/docs/editor-tags)
+    - [Machine restore](/docs/machine-restore)
+    - [Autolayout](/docs/autolayout)
+  - Simulate mode
+    - [Simulate mode](/docs/simulate-mode)
+    - [Live simulation](/docs/live-simulation)
+  - Code
+    - [Import from code](/docs/import-from-code)
+    - [Connect GitHub repo](/docs/import-from-github)
+    - [Generate test paths](/docs/generate-test-paths)
+    - [Sources](/docs/sources)
+    - [Export as code](/docs/export-as-code)
+  - [Projects](/docs/projects)
+  - [Teams](/docs/teams)
+  - [Discover](/docs/discover)
+  - Share
+    - [Embed URL](/docs/embed)
+    - [Image URL](/docs/image)
+    - [Share URL](/docs/url)
+  - Accounts
+    - [Sign up](/docs/sign-up)
+    - [Upgrade](/docs/upgrade)
+  - [Version history](/docs/versions)
+  - [Lock machines](/docs/lock-machines)
+  - [Keyboard shortcuts](/docs/keyboard-shortcuts)
+  - [Canvas view controls](/docs/canvas-view-controls)
+  - [User preferences](/docs/user-preferences)
+  - [Stately MCP support](/docs/stately-studio/mcp-support): Get help connecting Stately in ChatGPT, Codex, and other MCP hosts, opening models, and saving behavior proposals.
+  - [Studio API](/docs/studio-api)
+- [Glossary](/docs/glossary)
+- [Self-hosting](/docs/self-hosting)
+
+## Complete page index
+- [Context and meta in Stately’s editor](/docs/editor-context-and-meta.mdx)
+- [Function Actors](/docs/function-actors.mdx)
+- [Stately & XState docs](/docs.mdx)
+- [State done events](/docs/state-done-events.mdx)
+- [Stately Sky](/docs/stately-sky-getting-started.mdx)
+- [Typegen](/docs/typegen.mdx)
+- [@xstate/fsm](/docs/xstate-fsm.mdx)
+- [@xstate/graph](/docs/xstate-graph.mdx)
+- [@xstate/immer](/docs/xstate-immer.mdx)
+- [@xstate/store](/docs/xstate-store-v2.mdx)
+- [@xstate/store v3](/docs/xstate-store-v3.mdx)
+- [@xstate/store-angular](/docs/xstate-store-v3/angular.mdx)
+- [@xstate/store-preact](/docs/xstate-store-v3/preact.mdx)
+- [@xstate/store-react](/docs/xstate-store-v3/react.mdx)
+- [@xstate/store-solid](/docs/xstate-store-v3/solid.mdx)
+- [@xstate/store-svelte](/docs/xstate-store-v3/svelte.mdx)
+- [@xstate/store-vue](/docs/xstate-store-v3/vue.mdx)
+- [XState Effect: Actors](/docs/xstate/v6/effect/actors.mdx)
+- [XState Effect: Atoms and React](/docs/xstate/v6/effect/atoms-and-react.mdx)
+- [XState Effect: Actor logic](/docs/xstate/v6/effect/effect-logic.mdx)
+- [XState Effect: Matching states](/docs/xstate/v6/effect/matching-states.mdx)
+- [XState Effect: Observing actors](/docs/xstate/v6/effect/observing-actors.mdx)
+- [XState Effect: Quick start](/docs/xstate/v6/effect/quick-start.mdx)
+- [XState Effect: Schemas and actions](/docs/xstate/v6/effect/schemas-and-actions.mdx)
+- [XState Effect: Testing and errors](/docs/xstate/v6/effect/testing-and-errors.mdx)
+- [Global state](/docs/xstate/v6/react/global-state.mdx)
+- [Input and restored snapshots](/docs/xstate/v6/react/input-and-snapshots.mdx)
+- [Select actor data](/docs/xstate/v6/react/selectors.mdx)
+- [Server rendering](/docs/xstate/v6/react/server-rendering.mdx)
+- [Share actors](/docs/xstate/v6/react/shared-actors.mdx)
+- [Test React components](/docs/xstate/v6/react/testing.mdx)
+- [Use a machine in React](/docs/xstate/v6/react/use-machine.mdx)
+- [Input and restored snapshots](/docs/xstate/v6/solid/input-and-snapshots.mdx)
+- [Select actor data](/docs/xstate/v6/solid/selectors.mdx)
+- [Server rendering](/docs/xstate/v6/solid/server-rendering.mdx)
+- [Share actors](/docs/xstate/v6/solid/shared-actors.mdx)
+- [Test Solid components with actors](/docs/xstate/v6/solid/testing.mdx)
+- [Use a machine in Solid](/docs/xstate/v6/solid/use-machine.mdx)
+- [Effects and emitted events](/docs/xstate/v6/store/effects-and-emitted-events.mdx)
+- [Events and context](/docs/xstate/v6/store/events-and-context.mdx)
+- [Framework bindings](/docs/xstate/v6/store/frameworks.mdx)
+- [Migration](/docs/xstate/v6/store/migration.mdx)
+- [Persistence](/docs/xstate/v6/store/persistence.mdx)
+- [Quick start](/docs/xstate/v6/store/quick-start.mdx)
+- [Selectors](/docs/xstate/v6/store/selectors.mdx)
+- [Source atoms](/docs/xstate/v6/store/source-atoms.mdx)
+- [TypeScript](/docs/xstate/v6/store/typescript.mdx)
+- [Undo and redo](/docs/xstate/v6/store/undo-redo.mdx)
+- [Input and restored snapshots](/docs/xstate/v6/svelte/input-and-snapshots.mdx)
+- [Select actor data](/docs/xstate/v6/svelte/selectors.mdx)
+- [Server rendering](/docs/xstate/v6/svelte/server-rendering.mdx)
+- [Share actors](/docs/xstate/v6/svelte/shared-actors.mdx)
+- [Test Svelte components with actors](/docs/xstate/v6/svelte/testing.mdx)
+- [Use a machine in Svelte](/docs/xstate/v6/svelte/use-machine.mdx)
+- [Input and restored snapshots](/docs/xstate/v6/vue/input-and-snapshots.mdx)
+- [Select actor data](/docs/xstate/v6/vue/selectors.mdx)
+- [Server rendering](/docs/xstate/v6/vue/server-rendering.mdx)
+- [Share actors](/docs/xstate/v6/vue/shared-actors.mdx)
+- [Test Vue components with actors](/docs/xstate/v6/vue/testing.mdx)
+- [Use a machine in Vue](/docs/xstate/v6/vue/use-machine.mdx)
+
+## Optional
+- [Full documentation](/llms-full.txt): Complete docs in one file
