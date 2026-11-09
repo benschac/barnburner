@@ -1,48 +1,36 @@
 # NHL Reddit Stats
 
-Vite, React, and TypeScript with Tamagui 3.3.1. The screen is a setup demo with an interactive counter.
+A static, editable recreation of the New Jersey Devils “Season at a Glance — November 8” graphic. Built in the existing Vite, React, TypeScript, and Tamagui app.
 
-## Run the app
-
-Use Node.js 20.19+ or 22.12+.
+## Preview
 
 ```sh
 npm ci
-npm run dev
+npm run dev -- --host 127.0.0.1 --port 4173
 ```
 
-Open the local URL printed by Vite. The page shows a styled card and a button that increments the counter.
+Open http://127.0.0.1:4173. The 1206 × 1518 poster scales proportionally to the viewport. Small screens preserve the original dense graphic rather than rearranging the sections. Browser/pinch zoom remains enabled.
 
-## Check the setup
+## Content and assets
+
+- `src/App.tsx`: semantic page sections, standings, schedules, and leaders.
+- `src/stats.ts`: hardcoded values transcribed from the supplied screenshot; these are not current/live NHL statistics.
+- `src/Charts.tsx`: high-resolution canvas charts with accessible text descriptions.
+- `src/index.css`: poster layout, typography, and responsive scaling containment.
+- `public/assets`: local NHL logos, player portraits, Graduate and Roboto Condensed fonts, and Material venue icons. Source URLs and licenses are documented in `public/assets/SOURCES.md`.
+
+The reference screenshot is used for comparison only and is not embedded in the page. There are no API calls or runtime asset CDN requests. No new dependencies were added.
+
+## Validation
 
 ```sh
-npm run typecheck
-npm run check:tamagui
-npm run lint
 npm run build
-npm run preview
+npm run lint
+npm run check:tamagui
 ```
 
-`check:tamagui` runs the strict Tamagui dependency and style checker. `build` typechecks and produces the app in `dist/`.
+`build` includes TypeScript validation. Visual comparison evidence is saved locally under `.audit/graphic/`; `design-qa.md` records the comparison passes and remaining fidelity limits.
 
-## Change the design system
+## Tamagui configuration
 
-Edit `tamagui.config.ts`. It uses `@tamagui/config/v6` and the CSS animation driver. `src/main.tsx` mounts one provider with the light theme. Components use v3 style props with bare tokens and flat conditional values, such as `p="4 md:8"`.
-
-The v6 preset enables shorthand-only props. Use its names such as `w`, `p`, `rounded`, `items`, and `justify`. Plain components from `tamagui` use style props. Tailwind `className` authoring requires the separate `@tamagui/tailwind` frontend and its bundler integration.
-
-`tamagui.build.ts` owns compiler options, and `vite.config.ts` loads them through `@tamagui/cli/vite`. Development keeps runtime styling; production extracts static component styles. The plugin generates `src/tamagui.generated.css` before Vite resolves its import. The provider disables duplicate config CSS injection. Generated CSS and `.tamagui/` are ignored.
-
-After changing the config, regenerate the project vocabulary:
-
-```sh
-npm run generate:tamagui
-```
-
-This updates `tamagui-prompt.md`. Keep all direct Tamagui dependencies pinned to the same version.
-
-## Setup references
-
-The setup follows Tamagui's [introduction](https://tamagui.dev/docs/intro/introduction), [installation](https://tamagui.dev/docs/intro/installation), [Vite guide](https://tamagui.dev/docs/guides/vite), [style syntax](https://tamagui.dev/docs/intro/styles), [Tailwind frontend](https://tamagui.dev/docs/core/tailwind), and [compiler guide](https://tamagui.dev/docs/intro/compiler-install).
-
-The supplied [agents guide](https://tamagui.dev/docs/intro/agents) redirects to installation. Its current setup brief is available through `npx tamagui setup`. That brief still mentions a beta dist-tag; this app uses the stable 3.3.1 release verified in npm.
+The existing provider and configuration are retained. `tamagui.config.ts` uses `@tamagui/config/v6`; `tamagui.build.ts` owns compiler options. Vite generates `src/tamagui.generated.css` (ignored) before resolving its import. After configuration changes, run `npm run generate:tamagui` to refresh `tamagui-prompt.md`.
