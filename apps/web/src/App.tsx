@@ -293,7 +293,7 @@ function TeamPoster({ data }: { data: TeamPosterData }) {
             <Copy color="muted">Original graphic by <a href="https://www.reddit.com/user/cloverrmatt/">u/cloverrmatt</a> · <a href="https://www.reddit.com/r/devils/s/jmn4emEiez">Original post</a></Copy>
             <Copy color="muted">Scores updated {data.fetchedAt} ET · Team stats updated {data.posterFetchedAt} ET</Copy>
             <Row ml="auto" flexWrap="wrap" columnGap="2" rowGap="1" justify="flex-end" maxW="100%">
-              <Copy color="muted" letterSpacing={1} fontWeight="600">GLANCEBOARD</Copy>
+              <Copy color="muted" letterSpacing={1} fontWeight="600">RinkSide</Copy>
               <Copy color="muted">by <a href="https://x.com/benschac">benschac</a> · <a href="https://github.com/benschac/barnburner">Open source</a></Copy>
             </Row>
           </Row>
