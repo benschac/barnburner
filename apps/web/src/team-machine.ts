@@ -22,8 +22,8 @@ export const teamMachine = setupEffect({
   context: { team: 'NJD', snapshot: null },
   initial: 'loading',
   on: {
-    SELECT_TEAM: ({ event }) => ({ target: '.loading', reenter: true, context: { team: event.team, snapshot: null } }),
-    SHOW_POSTER: { target: '.loading', reenter: true, context: { team: 'NJD', snapshot: null } },
+    SELECT_TEAM: ({ event }) => ({ context: { team: event.team } }),
+    SHOW_POSTER: { context: { team: 'NJD' } },
   },
   states: {
     loading: {
@@ -34,6 +34,12 @@ export const teamMachine = setupEffect({
       },
     },
     ready: {},
-    error: { on: { RETRY: { target: 'loading' } } },
+    error: {
+      on: {
+        RETRY: { target: 'loading' },
+        SELECT_TEAM: ({ event }) => ({ target: 'loading', context: { team: event.team } }),
+        SHOW_POSTER: { target: 'loading', context: { team: 'NJD' } },
+      },
+    },
   },
 })

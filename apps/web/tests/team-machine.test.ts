@@ -13,7 +13,8 @@ import { SnapshotLoadError } from '@nhl-reddit-stats/season/rpc'
 const season = Schema.decodeUnknownSync(SeasonSnapshot)(snapshotData)
 const snapshot = { season, poster: posterFixture } satisfies TeamData
 
-test('selection, rapid switching and returning to poster cancel obsolete loads', async () => {
+test('rapid switching shares the initial load and ready navigation reuses its snapshot', async () => {
+  let attempts = 0
   let cancelled = 0
   await Effect.runPromise(Effect.gen(function* () {
     const actor = yield* createEffectActor(teamMachine)
@@ -21,16 +22,27 @@ test('selection, rapid switching and returning to poster cancel obsolete loads',
     yield* sendAndAwait(actor, { type: 'SELECT_TEAM', team: 'BOS' })
     const ready = yield* waitFor(actor, (state) => state.matches('ready'), { timeout: '2 seconds' })
     assert.equal(ready.context.team, 'BOS')
-    assert.equal(ready.context.snapshot?.season.games.length, snapshot.season.games.length)
+    assert.equal(ready.context.snapshot, snapshot)
+    const loadingStates: boolean[] = []
+    const subscription = actor.subscribe((state) => loadingStates.push(state.matches('loading')))
     yield* sendAndAwait(actor, { type: 'SELECT_TEAM', team: 'TOR' })
+    const toronto = yield* waitFor(actor, (state) => state.matches('ready'), { timeout: '2 seconds' })
+    assert.equal(toronto.context.team, 'TOR')
+    assert.equal(toronto.context.snapshot, snapshot)
     yield* sendAndAwait(actor, { type: 'SHOW_POSTER' })
     const devils = yield* waitFor(actor, (state) => state.matches('ready'), { timeout: '2 seconds' })
     assert.equal(devils.context.team, 'NJD')
-    assert.equal(devils.context.snapshot?.season.games.length, snapshot.season.games.length)
+    assert.equal(devils.context.snapshot, snapshot)
+    subscription.unsubscribe()
+    assert.ok(loadingStates.every((loading) => !loading))
   }).pipe(Effect.scoped, Effect.provideService(SeasonSource, {
-    load: Effect.sleep('10 millis').pipe(Effect.as(snapshot), Effect.onInterrupt(() => Effect.sync(() => { cancelled += 1 }))),
+    load: Effect.sync(() => { attempts += 1 }).pipe(
+      Effect.andThen(Effect.sleep('10 millis')), Effect.as(snapshot),
+      Effect.onInterrupt(() => Effect.sync(() => { cancelled += 1 })),
+    ),
   })))
-  assert.ok(cancelled >= 2)
+  assert.equal(attempts, 1)
+  assert.equal(cancelled, 0)
 })
 
 test('failed snapshot loading has an explicit retry path', async () => {
