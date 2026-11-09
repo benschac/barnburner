@@ -7,8 +7,9 @@
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "data:refresh": "node scripts/refresh-nhl-games.mjs",
+    "data:refresh:poster": "node scripts/refresh-nhl-poster.mjs",
     "data:serve": "node scripts/serve-nhl-games.mjs",
-    "test:data": "node --test tests/nhl-games.test.mjs",
+    "test:data": "node --test tests/nhl-games.test.mjs tests/nhl-poster.test.mjs",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",

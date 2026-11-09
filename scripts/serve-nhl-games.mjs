@@ -4,9 +4,14 @@ import { resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 import { selectTeamGames, validateSnapshot, GAMES_PER_TEAM } from '../lib/nhl-games.mjs'
+import { completedDates, validatePosterSnapshot, validateStandingsAgainstGames } from '../lib/nhl-poster.mjs'
 
-export function createGamesServer(snapshot, expectedGamesPerTeam = GAMES_PER_TEAM) {
+export function createGamesServer(snapshot, expectedGamesPerTeam = GAMES_PER_TEAM, posterSnapshot = null) {
   validateSnapshot(snapshot, expectedGamesPerTeam)
+  if (posterSnapshot !== null) {
+    validatePosterSnapshot(posterSnapshot, snapshot.teams, completedDates(snapshot))
+    validateStandingsAgainstGames(posterSnapshot.standings, snapshot)
+  }
   return createServer((request, response) => {
     const send = (status, body) => {
       response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' })
@@ -22,7 +27,7 @@ export function createGamesServer(snapshot, expectedGamesPerTeam = GAMES_PER_TEA
       send(400, { error: 'Invalid URL' })
       return
     }
-    if (!['/api/teams', '/api/games'].includes(url.pathname)) {
+    if (!['/api/teams', '/api/games', '/api/poster'].includes(url.pathname)) {
       send(404, { error: 'Not found' })
       return
     }
@@ -31,6 +36,10 @@ export function createGamesServer(snapshot, expectedGamesPerTeam = GAMES_PER_TEA
       return
     }
     const metadata = { schemaVersion: snapshot.schemaVersion, season: snapshot.season, fetchedAt: snapshot.fetchedAt }
+    if (url.pathname === '/api/poster') {
+      send(posterSnapshot === null ? 503 : 200, posterSnapshot ?? { error: 'Poster snapshot is unavailable. Refresh the poster data and restart the server.' })
+      return
+    }
     if (url.pathname === '/api/teams') {
       send(200, { ...metadata, teams: snapshot.teams })
       return
@@ -48,6 +57,7 @@ export function createGamesServer(snapshot, expectedGamesPerTeam = GAMES_PER_TEA
 async function main() {
   const { values } = parseArgs({ options: {
     snapshot: { type: 'string', default: fileURLToPath(new URL('../data/nhl-20262027.json', import.meta.url)) },
+    'poster-snapshot': { type: 'string', default: fileURLToPath(new URL('../data/nhl-poster-20262027.json', import.meta.url)) },
     host: { type: 'string', default: '127.0.0.1' },
     port: { type: 'string', default: '3001' },
   } })
@@ -55,7 +65,11 @@ async function main() {
   if (!/^\d+$/.test(values.port) || !Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Invalid port')
   const snapshot = JSON.parse(await readFile(values.snapshot, 'utf8'))
   if (snapshot.teams?.length !== 32) throw new Error('Expected all 32 NHL teams')
-  const server = createGamesServer(snapshot)
+  let posterSnapshot = null
+  try { posterSnapshot = JSON.parse(await readFile(values['poster-snapshot'], 'utf8')) } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+  }
+  const server = createGamesServer(snapshot, GAMES_PER_TEAM, posterSnapshot)
   server.on('error', (error) => { console.error(error.message); process.exitCode = 1 })
   server.listen(port, values.host, () => console.log(`NHL snapshot API at http://${values.host}:${server.address().port}`))
 }
