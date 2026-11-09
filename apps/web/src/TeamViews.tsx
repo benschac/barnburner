@@ -18,14 +18,13 @@ export function TeamSelector({ selected, onPrefetchTeam, onPreviewTeam }: {
       <Row justify="space-between" flexWrap="wrap" gap="2">
         <Copy fontWeight="600">Season at a glance</Copy>
       </Row>
-      <Row flexWrap="wrap" gap="1">
+      <Row flexWrap="wrap" gap="1" onMouseLeave={() => onPreviewTeam(null)}>
         {teams.map((team) => (
           <Link key={team.abbrev} render={<a href={teamHref(team.abbrev)} title={team.name} />} aria-label={`${team.name} season at a glance`}
             onMouseEnter={() => {
               onPrefetchTeam(team.abbrev)
               onPreviewTeam(team.abbrev)
             }}
-            onMouseLeave={() => onPreviewTeam(null)}
             onClick={() => onPreviewTeam(null)}
             onFocus={() => onPrefetchTeam(team.abbrev)}
             aria-current={selected === team.abbrev ? 'page' : undefined}
