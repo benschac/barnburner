@@ -3,29 +3,18 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "npm@10.9.8",
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "typecheck": "tsc -b",
-    "check:tamagui": "tamagui check --strict",
-    "generate:tamagui": "tamagui generate-prompt",
-    "lint": "oxlint",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@tamagui/config": "3.3.1",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "tamagui": "3.3.1"
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "check:tamagui": "turbo run check:tamagui",
+    "generate:tamagui": "turbo run generate:tamagui",
+    "lint": "turbo run lint",
+    "preview": "turbo run preview"
   },
   "devDependencies": {
-    "@tamagui/cli": "3.3.1",
-    "@types/node": "^24.19.2",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.2",
-    "oxlint": "^1.90.0",
-    "typescript": "~7.0.2",
-    "vite": "^8.3.6"
+    "turbo": "2.11.10"
   }
 }

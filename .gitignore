@@ -12,7 +12,8 @@ dist
 dist-ssr
 .tamagui/
 .audit/
-src/tamagui.generated.css
+**/src/tamagui.generated.css
+.turbo/
 *.local
 
 # Editor directories and files

@@ -34,7 +34,7 @@ for (let i = 0; i < lines.length; i++) {
 if (!document.startsWith('# Tamagui Complete Documentation\n') || topics.length < 10) {
   throw new Error('Unexpected documentation format; existing cache was not changed')
 }
-const packageJson = JSON.parse(await readFile(new URL('package.json', root), 'utf8'))
+const packageJson = JSON.parse(await readFile(new URL('apps/web/package.json', root), 'utf8'))
 let sources = {}
 try {
   sources = JSON.parse(await readFile(new URL('.agent-sources/sources.json', root), 'utf8'))
