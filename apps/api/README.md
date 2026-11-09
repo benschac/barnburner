@@ -12,6 +12,8 @@ The server follows the Layer composition used by the local `meeeeed` project's
 - `src/snapshots.ts` reads and validates saved JSON once at startup. Invalid files
   fail startup. A missing poster file is allowed, with a typed load failure.
 - `src/routes.ts` binds the RPC handler and retains the read-only GET endpoints.
+  RPC request bodies are limited to 8 KiB, including chunked requests; larger
+  bodies receive HTTP 413. The current zero-field call measured 159 bytes.
 - `src/main.ts` composes the routes, snapshots, and official `NodeHttpServer`
   adapter. `NodeRuntime` owns process signals and scoped shutdown.
 - The browser's `SeasonSource` adapter owns a scoped HTTP RPC client, JSON

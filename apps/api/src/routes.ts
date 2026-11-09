@@ -1,5 +1,5 @@
-import { Effect, Layer } from 'effect'
-import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http'
+import { ByteSize, Effect, Layer } from 'effect'
+import { HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http'
 import { RpcSerialization, RpcServer } from 'effect/rpc'
 import { TeamRpcs } from '@nhl-reddit-stats/season/rpc'
 import { Snapshots } from './snapshots.ts'
@@ -8,6 +8,10 @@ const handlers = TeamRpcs.toLayer(Effect.gen(function* () {
   const snapshots = yield* Snapshots
   return { GetTeamData: () => snapshots.load }
 }))
+
+const rpcBodyLimit = HttpRouter.middleware((httpEffect) => httpEffect.pipe(
+  Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.kibibytes(8)),
+)).layer
 
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) => HttpServerResponse.jsonUnsafe(body, {
   status, headers: { 'cache-control': 'no-cache', ...headers },
@@ -38,7 +42,7 @@ const snapshotRoutes = HttpRouter.use((router) => Effect.gen(function* () {
 
 export const ApiRoutes = Layer.mergeAll(
   RpcServer.layerHttp({ group: TeamRpcs, path: '/api/rpc', protocol: 'http' }).pipe(
-    Layer.provide([handlers, RpcSerialization.layerJson]),
+    Layer.provide([handlers, RpcSerialization.layerJson, rpcBodyLimit]),
   ),
   snapshotRoutes,
 )

@@ -58,6 +58,22 @@ test('RPC transport failures are translated into the SeasonSource error type', a
   assert.match(error.message, /could not be loaded/)
 })
 
+test('oversized chunked RPC bodies are rejected before invoking the handler', async () => {
+  const snapshots = await Effect.runPromise(makeSnapshots({ season, poster }))
+  let calls = 0
+  await Effect.runPromise(Effect.gen(function* () {
+    const server = yield* HttpServer.HttpServer
+    const body = JSON.stringify({ _tag: 'Request', id: 0, tag: 'GetTeamData', payload: { padding: 'x'.repeat(16384) }, headers: [] })
+    const init = { method: 'POST', headers: { 'content-type': 'application/json' }, body: new Blob([body]).stream(), duplex: 'half' }
+    const response = yield* Effect.promise(() => fetch(`${HttpServer.formatAddress(server.address)}/api/rpc`, init))
+    assert.equal(response.status, 413)
+    yield* Effect.promise(() => response.arrayBuffer())
+    assert.equal(calls, 0)
+    yield* sourceLoad()
+    assert.equal(calls, 1)
+  }).pipe(Effect.provide(apiLayer({ ...snapshots, load: Effect.sync(() => { calls += 1 }).pipe(Effect.andThen(snapshots.load)) }))))
+})
+
 test('interrupting a browser load aborts the HTTP request and server handler', { timeout: 10000 }, async () => {
   await Effect.runPromise(Effect.gen(function* () {
     const started = yield* Deferred.make<void>()
