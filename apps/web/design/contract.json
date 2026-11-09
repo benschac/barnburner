@@ -1,0 +1,141 @@
+{
+  "space": {
+    "0": 0,
+    "px": 1,
+    "0.5": 2,
+    "1": 4,
+    "1.5": 6,
+    "2": 8,
+    "3": 12,
+    "4": 16,
+    "6": 24,
+    "8": 32,
+    "10": 40,
+    "12": 48,
+    "16": 64,
+    "20": 80,
+    "24": 96,
+    "36": 144
+  },
+  "size": {
+    "icon": 28,
+    "logo": 32,
+    "badge": 40,
+    "avatar": 64,
+    "card": 72,
+    "banner": 128,
+    "hero": 160,
+    "poster": 1206,
+    "posterHeight": 1518,
+    "chart": 1100,
+    "seasonChart": 255,
+    "playoffChart": 126,
+    "bannerOutline": 268,
+    "bannerInset": 260,
+    "bannerFill": 250
+  },
+  "radius": {
+    "sm": 4,
+    "md": 8,
+    "full": 9999,
+    "0": 0
+  },
+  "fontSize": {
+    "caption": 14,
+    "body": 16,
+    "detail": 18,
+    "label": 22,
+    "title": 28,
+    "stat": 32,
+    "score": 40,
+    "hero": 64
+  },
+  "lineHeight": {
+    "caption": 18,
+    "body": 20,
+    "detail": 24,
+    "label": 28,
+    "title": 36,
+    "stat": 40,
+    "score": 48,
+    "hero": 72
+  },
+  "fontFamily": [
+    "body",
+    "heading",
+    "score",
+    "result"
+  ],
+  "fontWeight": [
+    "400",
+    "500",
+    "600",
+    "700"
+  ],
+  "letterSpacing": [
+    0,
+    1
+  ],
+  "borderWidth": [
+    0,
+    1,
+    2
+  ],
+  "geometry": {
+    "gridTemplateColumns": [
+      "1fr 1fr",
+      "minmax(0, 1fr) md:repeat(2, minmax(0, 1fr)) poster:1.5fr 1fr 1fr print:1.5fr 1fr 1fr",
+      "minmax(0, 1fr) sm:repeat(2, minmax(0, 1fr)) md:minmax(0, 1fr) poster:repeat(2, minmax(0, 1fr)) print:repeat(2, minmax(0, 1fr))"
+    ],
+    "clipPath": [
+      "polygon(0 0, 100% 0, 88% 100%, 0 100%)"
+    ],
+    "zoom": [
+      "print:calc(100vw / 1206px)"
+    ]
+  },
+  "themes": {
+    "dark": {
+      "background": "#000000",
+      "color": "#d5d5d5",
+      "muted": "#858585",
+      "gold": "#a08d5c",
+      "win": "color(display-p3 0.316 0.625 0.258)",
+      "loss": "color(display-p3 0.66 0.12 0.19)",
+      "pending": "#303030",
+      "rule": "#292929",
+      "surface": "#151515",
+      "highlight": "#4e1016",
+      "brand": "color(display-p3 0.739 0.175 0.184)",
+      "bright": "#eeeeee",
+      "result-ink": "#070707",
+      "loss-ink": "#cecece",
+      "chart-win": "color(display-p3 0.374 0.737 0.306)",
+      "chart-loss": "color(display-p3 0.718 0.168 0.206)",
+      "chart-positive": "#294c20",
+      "chart-negative": "#4e1820",
+      "chart-line": "#eeeeee"
+    },
+    "light": {
+      "background": "#ffffff",
+      "color": "#252525",
+      "muted": "#626262",
+      "gold": "#756331",
+      "win": "#408638",
+      "loss": "#b32238",
+      "pending": "#d2d2d2",
+      "rule": "#d6d6d6",
+      "surface": "#f1f1f1",
+      "highlight": "#f8dce0",
+      "brand": "#b52c35",
+      "bright": "#161616",
+      "result-ink": "#ffffff",
+      "loss-ink": "#ffffff",
+      "chart-win": "#408638",
+      "chart-loss": "#b32238",
+      "chart-positive": "#d5e8cf",
+      "chart-negative": "#f4d2d8",
+      "chart-line": "#252525"
+    }
+  }
+}

@@ -1,8 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { TamaguiProvider } from 'tamagui'
-import { config } from '../tamagui.config'
-import './global.css'
+import '@tamagui/core/reset.css'
+import './fonts'
+import { AppTheme } from './ThemePreference'
 import './tamagui.generated.css'
 import App from './App.tsx'
 
@@ -12,8 +12,8 @@ if (!root) throw new Error('Missing app root')
 
 createRoot(root).render(
   <StrictMode>
-    <TamaguiProvider config={config} defaultTheme="dark" disableInjectCSS>
+    <AppTheme>
       <App />
-    </TamaguiProvider>
+    </AppTheme>
   </StrictMode>,
 )

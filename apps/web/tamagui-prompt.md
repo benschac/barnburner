@@ -462,7 +462,22 @@ Tokens are design system values referenced by their bare names.
 - `72`: 288
 - `80`: 320
 - `96`: 384
+- `avatar`: 64
+- `badge`: 40
+- `banner`: 128
+- `bannerFill`: 250
+- `bannerInset`: 260
+- `bannerOutline`: 268
+- `card`: 72
+- `chart`: 1100
+- `hero`: 160
+- `icon`: 28
+- `logo`: 32
+- `playoffChart`: 126
+- `poster`: 1206
+- `posterHeight`: 1518
 - `px`: 1
+- `seasonChart`: 255
 
 ### Radius Tokens
 
@@ -484,7 +499,7 @@ Tokens are design system values referenced by their bare names.
 - `12`: 50
 - `full`: 9999
 - `lg`: 8
-- `md`: 6
+- `md`: 8
 - `sm`: 4
 - `xl`: 12
 - `xs`: 2
@@ -541,6 +556,8 @@ Available responsive breakpoints:
 - **max-xxs**: max-width: 339.98px (screens <= 339.98px wide)
 - **max-xxxs**: max-width: 259.98px (screens <= 259.98px wide)
 - **md**: min-width: 768px (screens >= 768px wide)
+- **poster**: min-width: 1206px (screens >= 1206px wide)
+- **print**: print
 - **sm**: min-width: 640px (screens >= 640px wide)
 - **touchable**: pointer: coarse
 - **xl**: min-width: 1280px (screens >= 1280px wide)
