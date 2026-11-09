@@ -3,7 +3,7 @@ import { Effect, Fiber } from 'effect'
 import { createEffectActor } from '@xstate/effect'
 import type { EffectActor } from '@xstate/effect'
 import type { SnapshotFrom } from 'xstate'
-import { bundledSeasonSource, SeasonSource, teamMachine } from './team-machine.ts'
+import { httpSeasonSource, SeasonSource, teamMachine } from './team-machine.ts'
 import { teamFromHash } from './team-season.ts'
 
 export function useTeamNavigation() {
@@ -31,7 +31,7 @@ export function useTeamNavigation() {
         }),
       )
       yield* Effect.never
-    }).pipe(Effect.scoped, Effect.provideService(SeasonSource, bundledSeasonSource)))
+    }).pipe(Effect.scoped, Effect.provideService(SeasonSource, httpSeasonSource)))
     return () => { Effect.runFork(Fiber.interrupt(lifetime)) }
   }, [])
   return { snapshot, retry: () => actorRef.current?.send({ type: 'RETRY' }) }

@@ -32,6 +32,21 @@ curl 'http://127.0.0.1:3001/api/teams'
 
 Consumers can also import `selectTeamGames(snapshot, team)` from `lib/nhl-games.mjs` and use the same filter without running a server. The records keep canonical home and away scores; a client can derive goals for and against from its selected team.
 
-The web app loads this snapshot on demand for each team's wins-and-losses view. The 32-team selector and poster team rows open shareable `#team/TEAM` links; `#poster` returns to the original Devils poster. Refresh the snapshot and rebuild the app to publish newer results. The existing Devils poster remains on its original snapshot. Player leaders, special teams, standings, and historical playoff comparisons require additional feeds before the complete poster can switch teams. No database, refresh scheduler, or production deployment is configured.
+The web app loads `/api/games` and `/api/poster` on team selection. All teams share the same poster, including New Jersey. The 32-team selector and poster team rows open shareable `#team/TEAM` links; `#poster` selects New Jersey. Failed requests show a retry action instead of displaying another team's data.
+
+## Poster supplement
+
+`nhl-poster-20262027.json` contains current standings, standings for completed game dates, special-team percentages and league ranks, and player leaders for all 32 clubs. Its sources are the NHL [standings](https://api-web.nhle.com/v1/standings/2026-11-08), [club stats](https://api-web.nhle.com/v1/club-stats/NJD/20262027/2), and [team summary](https://api.nhle.com/stats/rest/en/team/summary?limit=-1&cayenneExp=seasonId%3D20262027%20and%20gameTypeId%3D2) feeds. Player portraits remain NHL-hosted URLs.
+
+Refresh games first, then the poster supplement:
+
+```sh
+npm run data:refresh
+npm run data:refresh:poster
+```
+
+Restart `npm run data:serve` after refreshing. The server serves saved data without requesting NHL feeds. The supplement refresh checks coverage and consistency with the game snapshot before replacing its output. A failed refresh preserves the previous supplement. The two files are replaced separately, so complete both refreshes before restarting the API.
+
+Vite proxies `/api` to `http://127.0.0.1:3001` in development and preview. Production requires equivalent routing to the API. No database, scheduled refresh, or production deployment is configured.
 
 Run `npm run test:data` to verify normalization, coverage, filtering, failed-write preservation, and HTTP behavior.

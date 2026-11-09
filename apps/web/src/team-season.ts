@@ -7,6 +7,10 @@ export const posterHref = '#poster'
 export const teamFromHash = (hash: string) => teams.find((team) => teamHref(team.abbrev) === hash)?.abbrev ?? null
 export const teamLogo = (team: string, theme: string) => `/assets/teams/${team === 'TOR' && theme === 'light' ? 'TOR-inverted' : team === 'WSH' ? 'WSH-alt' : team}.svg`
 
+const TeamCode = Schema.String.check(Schema.makeFilter((value) => teams.some((team) => team.abbrev === value)))
+const DateText = Schema.String.check(Schema.makeFilter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value))
+const Timestamp = Schema.String.check(Schema.makeFilter((value) => /^\d{4}-\d{2}-\d{2}T/.test(value) && Number.isFinite(Date.parse(value))))
+
 const GameResult = Schema.Struct({
   homeScore: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
   awayScore: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
@@ -14,18 +18,18 @@ const GameResult = Schema.Struct({
 })
 export const SeasonGame = Schema.Struct({
   id: Schema.Int,
-  date: Schema.String,
-  startTimeUTC: Schema.String,
+  date: DateText,
+  startTimeUTC: Timestamp,
   state: Schema.String,
   scheduleState: Schema.String,
-  homeTeam: Schema.String,
-  awayTeam: Schema.String,
+  homeTeam: TeamCode,
+  awayTeam: TeamCode,
   result: Schema.NullOr(GameResult),
 })
 export const SeasonSnapshot = Schema.Struct({
   schemaVersion: Schema.Literal(1),
   season: Schema.Int,
-  fetchedAt: Schema.String,
+  fetchedAt: Timestamp,
   games: Schema.Array(SeasonGame),
 })
 export type SeasonSnapshot = typeof SeasonSnapshot.Type
@@ -63,3 +67,43 @@ export function teamSeason(snapshot: SeasonSnapshot, team: string) {
   const overtime = games.filter((game) => game.outcome === 'overtime').length
   return { games, wins, losses, overtime, played: wins + losses + overtime, points: wins * 2 + overtime }
 }
+
+const NonnegativeInt = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
+const Standing = Schema.Struct({
+  team: TeamCode,
+  date: DateText,
+  divisionSequence: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 8 })),
+  wildcardSequence: NonnegativeInt,
+  points: NonnegativeInt,
+  played: NonnegativeInt,
+})
+export const PosterSnapshot = Schema.Struct({
+  schemaVersion: Schema.Literal(1),
+  season: Schema.Int,
+  fetchedAt: Timestamp,
+  standings: Schema.Array(Standing),
+  history: Schema.Array(Schema.Struct({ date: DateText, standings: Schema.Array(Standing) })),
+  clubs: Schema.Array(Schema.Struct({
+    team: TeamCode,
+    specialTeams: Schema.Array(Schema.Struct({
+      label: Schema.String,
+      rank: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 32 })),
+      value: Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 100 })),
+    })),
+    leaders: Schema.Array(Schema.Struct({
+      label: Schema.String, name: Schema.String, portrait: Schema.String, detail: Schema.String, value: Schema.String,
+    })),
+  })),
+})
+export type PosterSnapshot = typeof PosterSnapshot.Type
+export type Standing = typeof Standing.Type
+export const TeamData = Schema.Struct({ season: SeasonSnapshot, poster: PosterSnapshot }).check(
+  Schema.makeFilter((data) => data.season.season === data.poster.season &&
+    teams.every(({ abbrev }) => {
+      const rows = data.poster.standings.filter((row) => row.team === abbrev)
+      const season = teamSeason(data.season, abbrev)
+      return data.poster.clubs.filter((club) => club.team === abbrev).length === 1 && rows.length === 1 &&
+        rows[0].played === season.played && rows[0].points === season.points
+    })),
+)
+export type TeamData = typeof TeamData.Type

@@ -1,15 +1,19 @@
 # NHL Reddit Stats
 
-A static, editable recreation of the New Jersey Devils “Season at a Glance” graphic, with NHL data through November 8, 2026. Built with Vite, React, TypeScript, and Tamagui in an npm workspace managed by Turborepo.
+A shared “Season at a Glance” poster for all 32 NHL teams, using saved NHL schedules, results, standings, special teams, and player leaders. Built with Vite, React, TypeScript, and Tamagui in an npm workspace managed by Turborepo.
 
 ## Preview
 
 ```sh
 npm ci
+# Terminal 1: serve the saved NHL data
+npm run data:serve
+
+# Terminal 2: serve the web app
 npm run dev -- -- --host 127.0.0.1 --port 4173
 ```
 
-Open http://127.0.0.1:4173. The 1206 × 1518 poster scales proportionally to the viewport. Small screens preserve the original dense graphic rather than rearranging the sections. Browser/pinch zoom remains enabled.
+Open http://127.0.0.1:4173. Select a team to load its poster in place. Links such as `#team/BOS` open a team directly; the default route and `#poster` open New Jersey. The layout rearranges sections on small screens, and charts scroll horizontally when needed. Browser zoom remains enabled.
 
 ## Workspace
 
@@ -21,15 +25,15 @@ The task and workspace setup follows [the Turborepo migration guide](https://tur
 
 ## Content and assets
 
-The league-wide game snapshot and read-only team API are documented in [data/README.md](data/README.md). `npm run data:serve` serves the local snapshot at `http://127.0.0.1:3001/api/games?team=NJD`. The current poster still uses its separate Devils snapshot below. Its standings, player leaders, special teams, and historical playoff comparisons require additional datasets before the whole poster can switch teams.
+The league-wide game snapshot and read-only team API are documented in [data/README.md](data/README.md). `npm run data:serve` serves the local snapshot at `http://127.0.0.1:3001/api/games?team=NJD`. The app loads `/api/games` and `/api/poster` through the Vite development and preview proxy. Production hosting must route those paths to the read-only API; the static build alone does not serve them.
 
 - `apps/web/src/App.tsx`: semantic page sections, standings, schedules, and leaders.
-- `apps/web/src/stats.ts` contains a point-in-time snapshot from the NHL's [regular-season schedule](https://api-web.nhle.com/v1/club-schedule-season/NJD/20262027), [standings](https://api-web.nhle.com/v1/standings/2026-11-09), [club stats](https://api-web.nhle.com/v1/club-stats/NJD/20262027/2), and [team summary](https://api.nhle.com/stats/rest/en/team/summary?limit=-1&cayenneExp=seasonId%3D20262027%20and%20gameTypeId%3D2). The playoff chart compares points in the same-day standings with the first team out when the Devils hold a playoff spot, or with the last wild card when they are outside.
+- `apps/web/src/stats.ts`: selected-team poster formatting from validated backend snapshots.
+- `lib/nhl-poster.mjs` and `scripts/refresh-nhl-poster.mjs`: normalization and explicit refresh of the supplemental NHL feeds. The playoff chart compares same-day points with the first team out when the selected team holds a playoff spot, or with the last wild card when it is outside.
 - `apps/web/src/Charts.tsx`: high-resolution canvas charts with accessible text descriptions.
-- `apps/web/src/index.css`: poster layout, typography, and responsive scaling containment.
 - `apps/web/public/assets`: local NHL logos, player portraits, Graduate and Roboto Condensed fonts, and Material venue icons. Source URLs and licenses are documented in `apps/web/public/assets/SOURCES.md`.
 
-The reference screenshot is used for comparison only and is not embedded in the page. There are no API calls or runtime asset CDN requests.
+The reference screenshot is used for comparison only and is not embedded in the page. Team data comes from the local API, while player portraits use the NHL image URLs recorded in the snapshot. Refreshes are explicit; no background NHL polling or deployment is configured.
 
 ## Credits
 

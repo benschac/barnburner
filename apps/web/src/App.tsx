@@ -1,11 +1,12 @@
-import { Fragment, useState } from 'react'
-import { Image, Text, View, styled, useThemeName } from 'tamagui'
+import { teamBannerThemeName } from '../design/themes'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Image, Text, Theme, View, styled, useThemeName } from 'tamagui'
 import { Chart } from './Charts'
-import { completedGames, divisions, gameDateTime, latestPlayoffCushion, leaders, recent, seasonGames, seasonSummary, snapshotDate, specialTeams, standings, upcoming } from './stats'
-import type { Matchup } from './stats'
+import { gameDateTime, teamPoster } from './stats'
+import type { Matchup, TeamPosterData } from './stats'
 import { ThemeControls } from './ThemePreference'
-import { TeamLoading, TeamSeasonView, TeamSelector } from './TeamViews'
-import { teamHref } from './team-season.ts'
+import { TeamLoading, TeamSelector } from './TeamViews'
+import { teamHref, teamLogo } from './team-season.ts'
 import { useTeamNavigation } from './use-team-navigation'
 
 const Copy = styled(Text, {
@@ -36,10 +37,11 @@ const BannerLayer = styled(View, {
 const outcomeColors = { win: 'win', loss: 'loss', overtime: 'gold', pending: 'pending' } as const
 
 
-function Division({ name, record, teams, activeGame, onActiveGameChange }: {
+function Division({ name, record, teams, selectedTeam, activeGame, onActiveGameChange }: {
   name: string
   record: string
   teams: Matchup[]
+  selectedTeam: string
   activeGame: number | null
   onActiveGameChange: (index: number | null) => void
 }) {
@@ -64,7 +66,7 @@ function Division({ name, record, teams, activeGame, onActiveGameChange }: {
                 {games.map(({ game, index, outcome }) => {
                   const { result, venue } = game
                   const label = result
-                    ? `${outcome === 'overtime' ? 'OT/SO loss' : outcome}, NJD ${result.goalsFor}–${result.goalsAgainst} ${team}${result.decision === 'REG' ? '' : ` ${result.decision}`}`
+                    ? `${outcome === 'overtime' ? 'OT/SO loss' : outcome}, ${selectedTeam} ${result.goalsFor}–${result.goalsAgainst} ${team}${result.decision === 'REG' ? '' : ` ${result.decision}`}`
                     : 'still to play'
                   return (
                     <View render={<a href={teamHref(team)} />} key={game.id} w="icon" h="icon" p="0" items="center" justify="center"
@@ -102,7 +104,8 @@ function Division({ name, record, teams, activeGame, onActiveGameChange }: {
   )
 }
 
-function PlayoffPicture() {
+function PlayoffPicture({ data }: { data: TeamPosterData }) {
+  const { standings, specialTeams, leaders } = data
   const theme = useThemeName()
   return (
     <View render="section" aria-labelledby="playoff-heading">
@@ -113,7 +116,7 @@ function PlayoffPicture() {
         </View>
         <View render="thead" style={{ display: "table-header-group" }} h="icon">
           <View render="tr" style={{ display: "table-row" }}>
-            <ColumnHeading {...{ colSpan: 2, scope: 'colgroup' }} text="left" pl="1.5" letterSpacing={1}>METROPOLITAN</ColumnHeading>
+            <ColumnHeading {...{ colSpan: 2, scope: 'colgroup' }} text="left" pl="1.5" letterSpacing={1}>{data.team.division.toUpperCase()}</ColumnHeading>
             <ColumnHeading {...{ scope: 'col' }}>GP</ColumnHeading>
             <ColumnHeading {...{ scope: 'col' }}>PTS</ColumnHeading>
           </View>
@@ -126,7 +129,7 @@ function PlayoffPicture() {
                   <ColumnHeading {...{ colSpan: 4, scope: 'colgroup' }} text="left" pl="1.5" pt="1.5" letterSpacing={1}>WILD CARD</ColumnHeading>
                 </View>
               )}
-              <View render="tr" style={{ display: "table-row" }} h="8" bg={team === 'NJD' ? 'highlight' : 'transparent'}
+              <View render="tr" style={{ display: "table-row" }} h="8" bg={team === data.team.abbrev ? 'highlight' : 'transparent'}
                 cursor="pointer" onClick={() => { window.location.hash = teamHref(team) }}
                 borderTopWidth={index === 5 ? 2 : 0} borderTopColor="gold" borderTopStyle="dashed">
                 <TableCell render="td" pl="1.5" color="gold" fontSize="body" borderTopLeftRadius="sm" borderBottomLeftRadius="sm">{seed}</TableCell>
@@ -143,6 +146,7 @@ function PlayoffPicture() {
           ))}
         </View>
       </View>
+      {specialTeams.length === 0 && <Copy color="muted">Special teams data is not available yet.</Copy>}
       <View display="grid" gridTemplateColumns="1fr 1fr" gap="3" mt="2">
         {specialTeams.map(({ label, rank, value }) => (
           <View key={label} bg="surface" rounded="md" h="card" py="1.5" px="3">
@@ -154,11 +158,12 @@ function PlayoffPicture() {
       </View>
       <View render="section" mt="4" aria-labelledby="leaders-heading">
         <RuledHeading id="leaders-heading">Team leaders</RuledHeading>
+        {leaders.length === 0 && <Copy color="muted">Player leaders are not available yet.</Copy>}
         <List>
           {leaders.map((leader) => (
             <Row render="li" h="card" gap="3" key={leader.label}>
               <Image w="16" h="16" rounded="full" borderWidth={2} borderColor="brand" bg="surface" objectFit="cover" shrink={0}
-                src={`/assets/players/${leader.portrait}.png`} alt="" />
+                src={leader.portrait} alt="" />
               <View flex={1} minW="0">
                 <Label whiteSpace="nowrap">{leader.label}</Label>
                 <Copy render="p" fontSize="label" lineHeight="detail" fontWeight="600">{leader.name}</Copy>
@@ -173,7 +178,8 @@ function PlayoffPicture() {
   )
 }
 
-function Schedule() {
+function Schedule({ data }: { data: TeamPosterData }) {
+  const { upcoming, recent } = data
   const theme = useThemeName()
   return (
     <View>
@@ -181,6 +187,7 @@ function Schedule() {
         <RuledHeading id="next-heading" display="flex" flexDirection="row" justify="space-between" items="baseline">
           Next 5<Copy fontSize="caption" lineHeight="caption" letterSpacing={1} color="muted" fontWeight="500">EASTERN TIME</Copy>
         </RuledHeading>
+        {upcoming.length === 0 && <Copy color="muted">No remaining games.</Copy>}
         <List render="ol" gap="2">
           {upcoming.map((game) => (
             <Row render="li" key={game.id} h="card" bg="surface" rounded="md">
@@ -199,6 +206,7 @@ function Schedule() {
       </View>
       <View render="section" mt="4" aria-labelledby="last-heading">
         <RuledHeading id="last-heading" mb="2">Last 5</RuledHeading>
+        {recent.length === 0 && <Copy color="muted">No final games yet.</Copy>}
         <List render="ol">
           {recent.map((game) => (
             <Row render="li" h="12" key={game.id}>
@@ -217,30 +225,24 @@ function Schedule() {
   )
 }
 
-export default function App() {
+function TeamPoster({ data }: { data: TeamPosterData }) {
   const [activeGame, setActiveGame] = useState<number | null>(null)
-  const { snapshot, retry } = useTeamNavigation()
-  const showPoster = !snapshot || snapshot.matches('poster')
-
+  const { seasonGames, completedGames, divisions, seasonSummary, snapshotDate, latestPlayoffCushion } = data
   return (
-    <View render="main" minH="100vh" bg="background" items="center" printColorAdjust="exact">
-      <ThemeControls />
-      <TeamSelector selected={showPoster ? null : snapshot.context.team} />
-      {!showPoster && (snapshot.matches('ready') && snapshot.context.snapshot
-        ? <TeamSeasonView team={snapshot.context.team} snapshot={snapshot.context.snapshot} />
-        : <TeamLoading failed={snapshot.matches('error')} retry={retry} />)}
-      <View display={showPoster ? 'flex' : 'none'} w="100%" maxW="poster" data-poster-shell="">
+      <View w="100%" maxW="poster" data-poster-shell="">
         <View render="article" w="100% print:poster" minH="poster:posterHeight print:posterHeight" bg="background"
-          zoom="print:calc(100vw / 1206px)" aria-label={`New Jersey Devils season at a glance through ${snapshotDate}`}>
+          zoom="print:calc(100vw / 1206px)" aria-label={`${data.team.name} season at a glance through ${snapshotDate}`}>
           <View render="header" minH="36" pb="6 poster:0 print:0" gap="4" shrink={0} position="relative">
-            <BannerLayer w="bannerOutline" bg="bright" />
-            <BannerLayer w="bannerInset" bg="background" />
-            <BannerLayer w="bannerFill" bg="brand" />
-            <Logo src="/assets/teams/NJD.svg" alt="" position="absolute" w="hero" h="banner" l="10" t="0" z={1} />
+            <Theme name={teamBannerThemeName(data.team.abbrev)}>
+              <BannerLayer w="bannerOutline" bg="team-secondary" />
+              <BannerLayer w="bannerInset" bg="background" />
+              <BannerLayer w="bannerFill" bg="team-primary" />
+            </Theme>
+            <Logo src={teamLogo(data.team.abbrev, 'dark')} alt={data.team.name} position="absolute" w="hero" h="banner" l="10" t="0" z={1} />
             <View position="relative poster:absolute print:absolute" pt="36 poster:0 print:0" px="4 poster:0 print:0" t="poster:4 print:4" l="poster:25% print:25%">
               <Score render="h1" fontSize="hero" lineHeight="hero" letterSpacing={1} color="bright">{seasonSummary.record}</Score>
               <Copy render="p" fontSize="detail poster:label print:label" lineHeight="detail poster:label print:label" mt="0.5">
-                <Copy render="strong" fontSize="detail poster:label print:label" lineHeight="detail poster:label print:label" fontWeight="700">{seasonSummary.points} points,</Copy> {seasonSummary.divisionPlace} in the Metropolitan, {seasonSummary.streak}
+                <Copy render="strong" fontSize="detail poster:label print:label" lineHeight="detail poster:label print:label" fontWeight="700">{seasonSummary.points} points,</Copy> {seasonSummary.divisionPlace} in the {data.team.division}, {seasonSummary.streak}
               </Copy>
             </View>
             <View position="relative poster:absolute print:absolute" px="4 poster:0 print:0" t="poster:6 print:6" r="poster:12 print:12">
@@ -255,7 +257,7 @@ export default function App() {
                 <Heading id="season-heading">The season, game by game</Heading>
                 <Copy render="p" color="muted" fontSize="detail" lineHeight="detail">{completedGames.length} of {seasonGames.length} played, bar height = goal margin</Copy>
               </Row>
-              <Chart kind="season" activeGame={activeGame} onActiveGameChange={setActiveGame} />
+              <Chart data={data} kind="season" activeGame={activeGame} onActiveGameChange={setActiveGame} />
             </View>
             <View render="section" minH="hero" aria-labelledby="line-heading">
               <Row minH="12" flexWrap="wrap" columnGap="2" rowGap="1" justify="space-between" items="baseline" pr="0 poster:10 print:10" pb="3">
@@ -264,18 +266,18 @@ export default function App() {
                 )}</Heading>
                 <Copy render="p" color="muted" fontSize="detail" lineHeight="detail">{latestPlayoffCushion?.equation ?? 'No playoff data yet'}</Copy>
               </Row>
-              <Chart kind="playoff" activeGame={activeGame} onActiveGameChange={setActiveGame} />
+              <Chart data={data} kind="playoff" activeGame={activeGame} onActiveGameChange={setActiveGame} />
             </View>
             <View display="grid" gridTemplateColumns="minmax(0, 1fr) md:repeat(2, minmax(0, 1fr)) poster:1.5fr 1fr 1fr print:1.5fr 1fr 1fr" gap="8 poster:6 print:6" mt="4 poster:0 print:0">
               <View display="grid" gridTemplateColumns="minmax(0, 1fr) sm:repeat(2, minmax(0, 1fr)) print:repeat(2, minmax(0, 1fr))"
                 gridColumn="md:1 / -1 poster:auto print:auto" content="flex-start" gap="4 print:6">
                 {divisions.map(({ name, record, teams }) => (
-                  <Division name={name} record={record} teams={teams} key={name}
+                  <Division selectedTeam={data.team.abbrev} name={name} record={record} teams={teams} key={name}
                     activeGame={activeGame} onActiveGameChange={setActiveGame} />
                 ))}
               </View>
-              <PlayoffPicture />
-              <Schedule />
+              <PlayoffPicture data={data} />
+              <Schedule data={data} />
             </View>
           </View>
           <Row render="footer" flexWrap="wrap" mx="4 sm:6 poster:12 print:12" mt="10" mb="8" minH="6" gap="6">
@@ -289,10 +291,27 @@ export default function App() {
             </List>
             <Copy render="p" color="muted">Filled dot or house = home, ring or plane = away</Copy>
             <Copy color="muted">Original graphic by <a href="https://www.reddit.com/user/cloverrmatt/">u/cloverrmatt</a> · <a href="https://www.reddit.com/r/devils/s/jmn4emEiez">Original post</a></Copy>
+            <Copy color="muted">Scores updated {data.fetchedAt} ET · Team stats updated {data.posterFetchedAt} ET</Copy>
             <Copy color="muted" ml="auto" letterSpacing={1} fontWeight="600">GLANCEBOARD</Copy>
           </Row>
         </View>
       </View>
+  )
+}
+
+export default function App() {
+  const { snapshot, retry } = useTeamNavigation()
+  const selected = snapshot?.context.team ?? 'NJD'
+  const source = snapshot?.matches('ready') ? snapshot.context.snapshot : null
+  const data = useMemo(() => source ? teamPoster(source, selected) : null, [source, selected])
+  useEffect(() => {
+    if (data) document.title = `${data.team.name} | Glanceboard`
+  }, [data])
+  return (
+    <View render="main" minH="100vh" bg="background" items="center" printColorAdjust="exact">
+      <ThemeControls />
+      <TeamSelector selected={selected} />
+      {data ? <TeamPoster key={selected} data={data} /> : <TeamLoading failed={snapshot?.matches('error') ?? false} retry={retry} />}
     </View>
   )
 }
