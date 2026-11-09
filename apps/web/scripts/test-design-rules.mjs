@@ -1,10 +1,23 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, writeFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 const root = fileURLToPath(new URL('../', import.meta.url))
+const contract = JSON.parse(await readFile(new URL('../design/contract.json', import.meta.url), 'utf8'))
+const teams = JSON.parse(await readFile(new URL('../../../data/teams.json', import.meta.url), 'utf8'))
+assert.deepEqual(Object.keys(contract.teamPalettes).sort(), teams.map((team) => team.abbrev).sort())
+for (const { abbrev } of teams) {
+  const logo = await readFile(new URL(`../public/assets/teams/${abbrev}.svg`, import.meta.url), 'utf8')
+  for (const [role, color] of Object.entries(contract.teamPalettes[abbrev])) {
+    assert.ok(['team-primary', 'team-secondary'].includes(role))
+    assert.match(color, /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/)
+    assert.ok(logo.includes(color) || (abbrev === 'TBL' && role === 'team-primary' && color === '#00205b'), `${abbrev} ${role} must come from its documented NHL logo`)
+  }
+  assert.deepEqual(Object.keys(contract.teamPalettes[abbrev]).sort(), ['team-primary', 'team-secondary'])
+}
 const dir = await mkdtemp(`${root}src/design-rule-test-`)
 const cases = [
+  ['team banner colors', '<View bg="team-primary" borderColor="team-secondary" />', true],
   ['theme token', '<View bg="surface hover:highlight" p="4 sm:6" />', true],
   ['conditional', '<View color={active ? "win" : "loss"} />', true],
   ['const token', 'const color = "win"; <View color={color} />', true],

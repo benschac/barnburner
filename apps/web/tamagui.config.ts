@@ -3,7 +3,7 @@ import { defaultConfig } from '@tamagui/config/v6'
 import { createFont, createTamagui } from 'tamagui'
 
 import contract from './design/contract.json'
-import { dark, light } from './design/themes'
+import { dark, light, teamBannerThemes } from './design/themes'
 
 const bodyFont = createFont({
   ...defaultConfig.fonts.body,
@@ -15,7 +15,7 @@ const bodyFont = createFont({
 export const config = createTamagui({
   ...defaultConfig,
   tokens: { ...defaultConfig.tokens, width: { ...defaultConfig.tokens.width, ...contract.size }, minWidth: { ...defaultConfig.tokens.minWidth, ...contract.size }, maxWidth: { ...defaultConfig.tokens.maxWidth, ...contract.size }, space: { ...defaultConfig.tokens.space, ...contract.space }, size: { ...defaultConfig.tokens.size, ...contract.size }, radius: { ...defaultConfig.tokens.radius, ...contract.radius } },
-  themes: { ...defaultConfig.themes, dark, light },
+  themes: { ...defaultConfig.themes, dark, light, ...teamBannerThemes },
   // Tamagui's mediaObjectToString supports raw queries; its public config type omits them.
   media: { ...defaultConfig.media, poster: { minWidth: 1206 }, print: 'print' as unknown as Record<string, string> },
   fonts: {

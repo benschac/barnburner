@@ -186,6 +186,38 @@ These shorthand properties are available for styling:
 - `dark_red_level2_level4`
 - `dark_red_level3`
 - `dark_red_level4`
+- `dark_team-ANA`
+- `dark_team-BOS`
+- `dark_team-BUF`
+- `dark_team-CAR`
+- `dark_team-CBJ`
+- `dark_team-CGY`
+- `dark_team-CHI`
+- `dark_team-COL`
+- `dark_team-DAL`
+- `dark_team-DET`
+- `dark_team-EDM`
+- `dark_team-FLA`
+- `dark_team-LAK`
+- `dark_team-MIN`
+- `dark_team-MTL`
+- `dark_team-NJD`
+- `dark_team-NSH`
+- `dark_team-NYI`
+- `dark_team-NYR`
+- `dark_team-OTT`
+- `dark_team-PHI`
+- `dark_team-PIT`
+- `dark_team-SEA`
+- `dark_team-SJS`
+- `dark_team-STL`
+- `dark_team-TBL`
+- `dark_team-TOR`
+- `dark_team-UTA`
+- `dark_team-VAN`
+- `dark_team-VGK`
+- `dark_team-WPG`
+- `dark_team-WSH`
 - `dark_white`
 - `dark_white_level2`
 - `dark_white_level2_level2`
@@ -292,6 +324,38 @@ These shorthand properties are available for styling:
 - `light_red_level2_level4`
 - `light_red_level3`
 - `light_red_level4`
+- `light_team-ANA`
+- `light_team-BOS`
+- `light_team-BUF`
+- `light_team-CAR`
+- `light_team-CBJ`
+- `light_team-CGY`
+- `light_team-CHI`
+- `light_team-COL`
+- `light_team-DAL`
+- `light_team-DET`
+- `light_team-EDM`
+- `light_team-FLA`
+- `light_team-LAK`
+- `light_team-MIN`
+- `light_team-MTL`
+- `light_team-NJD`
+- `light_team-NSH`
+- `light_team-NYI`
+- `light_team-NYR`
+- `light_team-OTT`
+- `light_team-PHI`
+- `light_team-PIT`
+- `light_team-SEA`
+- `light_team-SJS`
+- `light_team-STL`
+- `light_team-TBL`
+- `light_team-TOR`
+- `light_team-UTA`
+- `light_team-VAN`
+- `light_team-VGK`
+- `light_team-WPG`
+- `light_team-WSH`
 - `light_white`
 - `light_white_level2`
 - `light_white_level2_level2`
@@ -470,6 +534,8 @@ Tokens are design system values referenced by their bare names.
 - `bannerOutline`: 268
 - `card`: 72
 - `chart`: 1100
+- `chartAxis`: 42
+- `chartPlot`: 1058
 - `hero`: 160
 - `icon`: 28
 - `logo`: 32

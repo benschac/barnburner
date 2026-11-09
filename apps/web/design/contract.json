@@ -119,7 +119,9 @@
       "chart-loss": "color(display-p3 0.718 0.168 0.206)",
       "chart-positive": "#294c20",
       "chart-negative": "#4e1820",
-      "chart-line": "#eeeeee"
+      "chart-line": "#eeeeee",
+      "team-primary": "#cd001a",
+      "team-secondary": "#010101"
     },
     "light": {
       "background": "#ffffff",
@@ -140,7 +142,140 @@
       "chart-loss": "#b32238",
       "chart-positive": "#d5e8cf",
       "chart-negative": "#f4d2d8",
-      "chart-line": "#252525"
+      "chart-line": "#252525",
+      "team-primary": "#cd001a",
+      "team-secondary": "#010101"
+    }
+  },
+  "teamPaletteSource": "Primary and secondary banner colors sampled from public/assets/teams/{TEAM}.svg, the saved official NHL dark-background logos. TBL primary sampled from https://assets.nhle.com/logos/nhl/svg/TBL_light.svg on 2026-11-09 because its saved dark logo is white-only.",
+  "teamPalettes": {
+    "ANA": {
+      "team-primary": "#cf4520",
+      "team-secondary": "#89734c"
+    },
+    "BOS": {
+      "team-primary": "#010101",
+      "team-secondary": "#ffb81c"
+    },
+    "BUF": {
+      "team-primary": "#003087",
+      "team-secondary": "#ffb81c"
+    },
+    "CAR": {
+      "team-primary": "#cd001a",
+      "team-secondary": "#010101"
+    },
+    "CBJ": {
+      "team-primary": "#041e42",
+      "team-secondary": "#c8102e"
+    },
+    "CGY": {
+      "team-primary": "#c8102e",
+      "team-secondary": "#f1be48"
+    },
+    "CHI": {
+      "team-primary": "#c8102e",
+      "team-secondary": "#010101"
+    },
+    "COL": {
+      "team-primary": "#862633",
+      "team-secondary": "#236192"
+    },
+    "DAL": {
+      "team-primary": "#00843d",
+      "team-secondary": "#a2aaad"
+    },
+    "DET": {
+      "team-primary": "#c8102e",
+      "team-secondary": "#fff"
+    },
+    "EDM": {
+      "team-primary": "#00205b",
+      "team-secondary": "#cf4520"
+    },
+    "FLA": {
+      "team-primary": "#c8102e",
+      "team-secondary": "#b9975b"
+    },
+    "LAK": {
+      "team-primary": "#010101",
+      "team-secondary": "#a2aaad"
+    },
+    "MIN": {
+      "team-primary": "#154734",
+      "team-secondary": "#ddcba4"
+    },
+    "MTL": {
+      "team-primary": "#a6192e",
+      "team-secondary": "#001e62"
+    },
+    "NJD": {
+      "team-primary": "#cd001a",
+      "team-secondary": "#010101"
+    },
+    "NSH": {
+      "team-primary": "#ffb81c",
+      "team-secondary": "#041e42"
+    },
+    "NYI": {
+      "team-primary": "#003087",
+      "team-secondary": "#fc4c02"
+    },
+    "NYR": {
+      "team-primary": "#0033a0",
+      "team-secondary": "#c8102e"
+    },
+    "OTT": {
+      "team-primary": "#c8102e",
+      "team-secondary": "#b9975b"
+    },
+    "PHI": {
+      "team-primary": "#dc4405",
+      "team-secondary": "#010101"
+    },
+    "PIT": {
+      "team-primary": "#010101",
+      "team-secondary": "#ffb81c"
+    },
+    "SEA": {
+      "team-primary": "#041c2c",
+      "team-secondary": "#9cdbd9"
+    },
+    "SJS": {
+      "team-primary": "#00778b",
+      "team-secondary": "#e57200"
+    },
+    "STL": {
+      "team-primary": "#006ac6",
+      "team-secondary": "#ffb81c"
+    },
+    "TBL": {
+      "team-primary": "#00205b",
+      "team-secondary": "#fff"
+    },
+    "TOR": {
+      "team-primary": "#00205b",
+      "team-secondary": "#fff"
+    },
+    "UTA": {
+      "team-primary": "#6cace4",
+      "team-secondary": "#010101"
+    },
+    "VAN": {
+      "team-primary": "#00205b",
+      "team-secondary": "#97999b"
+    },
+    "VGK": {
+      "team-primary": "#333f48",
+      "team-secondary": "#b9975b"
+    },
+    "WPG": {
+      "team-primary": "#041e42",
+      "team-secondary": "#a2aaad"
+    },
+    "WSH": {
+      "team-primary": "#c8102e",
+      "team-secondary": "#041e42"
     }
   }
 }
