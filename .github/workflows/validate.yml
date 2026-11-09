@@ -10,8 +10,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run check:tamagui
-      - run: npm run build
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run check:tamagui
+      - run: bun run typecheck
+      - run: bun run test:data
+      - run: bun run --cwd apps/api test
+      - run: bun run --cwd apps/web test:teams
+      - run: bun run build

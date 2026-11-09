@@ -7,7 +7,7 @@ The source is the NHL's public [club season schedule feed](https://api-web.nhle.
 From the repository root, refresh explicitly with Node.js 22 or newer:
 
 ```sh
-npm run data:refresh
+bun run data:refresh
 ```
 
 The refresh validates all 32 schedules, requires 84 unique regular-season games per team, checks both clubs report each game identically, and replaces the JSON file atomically. A failed or inconsistent fetch leaves the previous snapshot intact. A live game can change between club requests, which makes conflicting copies fail validation. Rerun after the source settles. Only `OFF` and `FINAL` games have a `result`; live and future scores do not become final results.
@@ -15,7 +15,7 @@ The refresh validates all 32 schedules, requires 84 unique regular-season games 
 To import an existing download, place each club response in `DIR/TEAM.json`, such as `DIR/NJD.json`. Supply the actual retrieval timestamp:
 
 ```sh
-npm run data:refresh -- --from-dir DIR --fetched-at 2026-11-09T12:00:00.000Z
+bun run data:refresh --from-dir DIR --fetched-at 2026-11-09T12:00:00.000Z
 ```
 
 The importer targets 2026–27 explicitly. A different season requires reviewing its team registry, game count, and schema assumptions.
@@ -23,7 +23,7 @@ The importer targets 2026–27 explicitly. A different season requires reviewing
 Start the local read-only API:
 
 ```sh
-npm run data:serve
+bun run data:serve
 curl 'http://127.0.0.1:3001/api/games?team=NJD'
 curl 'http://127.0.0.1:3001/api/teams'
 ```
@@ -41,14 +41,14 @@ The web app calls the shared `GetTeamData` RPC at `/api/rpc` on team selection. 
 Refresh games first, then the poster supplement:
 
 ```sh
-npm run data:refresh
-npm run data:refresh:poster
+bun run data:refresh
+bun run data:refresh:poster
 ```
 
-Restart `npm run data:serve` after refreshing. The server serves saved data without requesting NHL feeds. The supplement refresh checks coverage and consistency with the game snapshot before replacing its output. A failed refresh preserves the previous supplement. The two files are replaced separately, so complete both refreshes before restarting the API.
+Restart `bun run data:serve` after refreshing. The server serves saved data without requesting NHL feeds. The supplement refresh checks coverage and consistency with the game snapshot before replacing its output. A failed refresh preserves the previous supplement. The two files are replaced separately, so complete both refreshes before restarting the API.
 
 Vite proxies `/api` to `http://127.0.0.1:3001` in development and preview. Production requires equivalent routing to the API. No database, scheduled refresh, or production deployment is configured.
 
-Run `npm run test:data` to verify normalization, coverage, filtering, failed-write preservation, and HTTP behavior.
+Run `bun run test:data` to verify normalization, coverage, filtering, failed-write preservation, and HTTP behavior.
 
-Run `npm run test:api` to verify real Node HTTP RPC calls, typed failures, and cancellation. See [the server architecture](../apps/api/README.md) for the shared contract and Layer composition.
+Run `bun run test:api` to verify real Node HTTP RPC calls, typed failures, and cancellation. See [the server architecture](../apps/api/README.md) for the shared contract and Layer composition.

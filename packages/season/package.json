@@ -8,7 +8,7 @@
     "./rpc": "./src/contracts.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.json",
     "lint": "oxlint src"
   },
   "dependencies": {

@@ -3,14 +3,14 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "packageManager": "npm@10.9.8",
+  "packageManager": "bun@1.4.3",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "data:refresh": "node scripts/refresh-nhl-games.mjs",
     "data:refresh:poster": "node scripts/refresh-nhl-poster.mjs",
     "data:serve": "node apps/api/src/main.ts",
     "test:data": "node --test tests/nhl-games.test.mjs tests/nhl-poster.test.mjs",
-    "test:api": "npm run test --workspace @nhl-reddit-stats/api",
+    "test:api": "bun run --cwd apps/api test",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
@@ -20,6 +20,7 @@
     "preview": "turbo run preview"
   },
   "devDependencies": {
-    "turbo": "2.11.10"
+    "turbo": "2.11.10",
+    "@effect/tsgo": "0.67.1"
   }
 }

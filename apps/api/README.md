@@ -1,6 +1,6 @@
 # Snapshot API
 
-Run `npm run data:serve` from the repository root. Node.js 24 is used in CI.
+Run `bun run data:serve` from the repository root. Node.js 24 is used in CI.
 The listener defaults to `127.0.0.1:3001`. Pass `--host`, `--port`, `--snapshot`,
 and `--poster-snapshot` after `--` to override defaults.
 
@@ -23,7 +23,7 @@ and [responsibility-boundary](https://ratstack.sh/skills/uncomplect) patterns wi
 adding its generic capability framework or changing the React/Tamagui client.
 The API serves local snapshots and makes no upstream NHL requests or writes.
 
-Run `npm run test:api` for real Node RPC success, declared and transport failures,
-and client/server interruption checks. `npm run test:data` covers retained GET
-behavior and data validation. `npm run typecheck` checks the shared handler/client
-contract; `npm run lint` also rejects browser imports of API implementations.
+Run `bun run test:api` for real Node RPC success, declared and transport failures,
+and client/server interruption checks. `bun run test:data` covers retained GET
+behavior and data validation. `bun run typecheck` checks the shared handler/client
+contract; `bun run lint` also rejects browser imports of API implementations.

@@ -8,7 +8,7 @@ The only inline-style exception is an object containing exactly a table `display
 
 Unknown dynamic token expressions fail closed. Literal conditionals and local immutable const values can be checked. Expand prop/object spreads and keep `styled()` options inline. This intentionally favors reviewable UI recipes over arbitrary runtime styling. Rules cover source JS/TS variants; they are policy checks, not a JavaScript security sandbox. Canvas imperative drawing and direct DOM APIs still require code review.
 
-Run `npm run lint` from the repository root. It runs Oxlint, checks for handwritten stylesheets, and exercises positive/negative cases through the real Oxlint executable. CI runs lint, strict Tamagui validation, and the production build. Visual/contrast checks remain separate.
+Run `bun run lint` from the repository root. It runs Oxlint, checks for handwritten stylesheets, and exercises positive/negative cases through the real Oxlint executable. CI runs lint, strict Tamagui validation, and the production build. Visual/contrast checks remain separate.
 
 The app also applies the cached Ratstack guidance on actor ownership and shared constants. The official `xstate-effect/no-inline-effect` rule requires declared Effect actions and actors. The local `patterns/no-module-mutable-state` rule rejects module-level `let` and `var` bindings in UI source; it does not prove deep immutability. Actor context owns navigation state, the team registry owns team metadata, and this design contract owns style constants. Positive and negative fixtures run through Oxlint with `scripts/test-pattern-rules.mjs`.
 

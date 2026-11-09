@@ -31,7 +31,7 @@ export function useTeamNavigation() {
           if (actorRef.current === actor) actorRef.current = null
         }),
       )
-      yield* Effect.never
+      return yield* Effect.never
     }).pipe(Effect.scoped, Effect.provide(rpcSeasonSourceLayer('/api/rpc'))))
     return () => { Effect.runFork(Fiber.interrupt(lifetime)) }
   }, [])

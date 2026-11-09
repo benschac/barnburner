@@ -22,7 +22,7 @@ For actions, use `add-a-capability`. For persistence, also use `add-a-store`. Fo
 
 ## Keep the project contract
 
-Use npm and the scripts in the current manifests. Do not copy upstream pnpm commands without mapping them to an equivalent project check. Keep React/Tamagui and the [design contract](../../apps/web/design/README.md) for web UI work. Alchemy, Cloudflare, Foldkit, and upstream packages are references until explicitly adopted for a feature.
+Use Bun and the scripts in the current manifests. Do not copy upstream pnpm commands without mapping them to an equivalent project check. Keep React/Tamagui and the [design contract](../../apps/web/design/README.md) for web UI work. Alchemy, Cloudflare, Foldkit, and upstream packages are references until explicitly adopted for a feature.
 
 Check current manifests and installed APIs before using Effect or XState examples. Import-time dependency metadata is historical. The website cache and source snapshot have separate provenance; neither establishes compatibility with our dependency versions.
 

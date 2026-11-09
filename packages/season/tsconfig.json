@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "plugins": [{ "name": "@effect/language-service", "ignoreEffectWarningsInTscExitCode": true }],
     "target": "es2023",
     "module": "esnext",
     "moduleResolution": "bundler",
