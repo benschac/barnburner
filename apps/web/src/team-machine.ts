@@ -1,32 +1,7 @@
-import { Context, Effect, Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { createEffectLogic, setupEffect } from '@xstate/effect'
-import { TeamData } from './team-season.ts'
-
-export class SnapshotLoadError extends Schema.TaggedError<SnapshotLoadError>()('SnapshotLoadError', {
-  message: Schema.String,
-}) {}
-
-export class SeasonSource extends Context.Service<SeasonSource, {
-  readonly load: Effect.Effect<TeamData, SnapshotLoadError>
-}>()('glanceboard/SeasonSource') {}
-
-const fetchJson = (url: string) => Effect.tryPromise({
-  try: async (signal) => {
-    const response = await fetch(url, { signal })
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    return response.json() as Promise<unknown>
-  },
-  catch: () => new SnapshotLoadError({ message: 'Team data could not be loaded. Try again.' }),
-})
-
-export const httpSeasonSource = SeasonSource.of({
-  load: Effect.gen(function* () {
-    const [season, poster] = yield* Effect.all([fetchJson('/api/games'), fetchJson('/api/poster')], { concurrency: 2 })
-    return yield* Schema.decodeUnknownEffect(TeamData)({ season, poster }).pipe(
-      Effect.mapError(() => new SnapshotLoadError({ message: 'The team data is incomplete or invalid. Refresh the data and try again.' })),
-    )
-  }),
-})
+import { TeamData } from '@nhl-reddit-stats/season'
+import { SeasonSource } from './season-source.ts'
 
 const loadSeason = createEffectLogic({ effect: () => Effect.gen(function* () {
   const source = yield* SeasonSource

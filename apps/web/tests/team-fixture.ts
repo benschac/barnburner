@@ -1,8 +1,8 @@
-import { teams, teamSeason } from '../src/team-season.ts'
-import type { PosterSnapshot } from '../src/team-season.ts'
+import { teams, teamSeason } from '@nhl-reddit-stats/season'
+import type { PosterSnapshot } from '@nhl-reddit-stats/season'
 import snapshot from '../../../data/nhl-20262027.json' with { type: 'json' }
 import { Schema } from 'effect'
-import { SeasonSnapshot } from '../src/team-season.ts'
+import { SeasonSnapshot } from '@nhl-reddit-stats/season'
 
 const season = Schema.decodeUnknownSync(SeasonSnapshot)(snapshot)
 

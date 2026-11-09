@@ -25,7 +25,7 @@ The task and workspace setup follows [the Turborepo migration guide](https://tur
 
 ## Content and assets
 
-The league-wide game snapshot and read-only team API are documented in [data/README.md](data/README.md). `npm run data:serve` serves the local snapshot at `http://127.0.0.1:3001/api/games?team=NJD`. The app loads `/api/games` and `/api/poster` through the Vite development and preview proxy. Production hosting must route those paths to the read-only API; the static build alone does not serve them.
+The league-wide game snapshot and read-only team API are documented in [data/README.md](data/README.md). `npm run data:serve` starts the [Effect Node server](apps/api/README.md) at `http://127.0.0.1:3001`. The app calls `GetTeamData` through `/api/rpc`, using the shared contract in `packages/season`; the GET endpoints remain available for direct consumers. Vite proxies `/api` in development and preview. Production hosting must route `/api` to the API server; the static build alone does not serve it.
 
 - `apps/web/src/App.tsx`: semantic page sections, standings, schedules, and leaders.
 - `apps/web/src/stats.ts`: selected-team poster formatting from validated backend snapshots.

@@ -1,5 +1,5 @@
-import { teams, teamSeason } from './team-season.ts'
-import type { Standing, TeamData, TeamGame } from './team-season.ts'
+import { teams, teamSeason } from '@nhl-reddit-stats/season'
+import type { Standing, TeamData, TeamGame } from '@nhl-reddit-stats/season'
 
 export type Outcome = TeamGame['outcome']
 export type PlayoffComparison = {

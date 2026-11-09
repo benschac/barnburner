@@ -25,6 +25,12 @@
         "src/**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"
       ],
       "rules": {
+        "no-restricted-imports": ["error", {
+          "patterns": [{
+            "group": ["**/api/**", "@nhl-reddit-stats/api", "@nhl-reddit-stats/api/*"],
+            "message": "Browser code imports shared season contracts, never API implementations."
+          }]
+        }],
         "patterns/no-module-mutable-state": "error",
         "xstate-effect/no-inline-effect": "error",
         "design/semantic-colors": "error",

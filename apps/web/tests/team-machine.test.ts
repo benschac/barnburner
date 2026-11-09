@@ -5,8 +5,10 @@ import { createEffectActor, send, waitFor } from '@xstate/effect'
 import { sendAndAwait } from '@xstate/effect/test'
 import { posterFixture } from './team-fixture.ts'
 import snapshotData from '../../../data/nhl-20262027.json' with { type: 'json' }
-import { SeasonSnapshot, TeamData } from '../src/team-season.ts'
-import { SeasonSource, SnapshotLoadError, teamMachine, httpSeasonSource } from '../src/team-machine.ts'
+import { SeasonSnapshot, TeamData } from '@nhl-reddit-stats/season'
+import { teamMachine } from '../src/team-machine.ts'
+import { SeasonSource } from '../src/season-source.ts'
+import { SnapshotLoadError } from '@nhl-reddit-stats/season/rpc'
 
 const season = Schema.decodeUnknownSync(SeasonSnapshot)(snapshotData)
 const snapshot = { season, poster: posterFixture } satisfies TeamData
@@ -55,17 +57,4 @@ test('the default route loads NJD from the same source', async () => {
     assert.equal(ready.context.team, 'NJD')
     assert.equal(ready.context.snapshot, snapshot)
   }).pipe(Effect.scoped, Effect.provideService(SeasonSource, { load: Effect.succeed(snapshot) })))
-})
-
-test('HTTP source requests both backend datasets and rejects incomplete data', async (t) => {
-  const urls: string[] = []
-  t.mock.method(globalThis, 'fetch', async (url: string) => {
-    urls.push(url)
-    return new Response(JSON.stringify(url === '/api/games' ? season : posterFixture))
-  })
-  const result = await Effect.runPromise(httpSeasonSource.load)
-  assert.deepEqual(urls.sort(), ['/api/games', '/api/poster'])
-  assert.equal(result.poster.clubs.length, 32)
-  t.mock.method(globalThis, 'fetch', async () => new Response('{}'))
-  await assert.rejects(Effect.runPromise(httpSeasonSource.load))
 })

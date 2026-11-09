@@ -32,7 +32,7 @@ curl 'http://127.0.0.1:3001/api/teams'
 
 Consumers can also import `selectTeamGames(snapshot, team)` from `lib/nhl-games.mjs` and use the same filter without running a server. The records keep canonical home and away scores; a client can derive goals for and against from its selected team.
 
-The web app loads `/api/games` and `/api/poster` on team selection. All teams share the same poster, including New Jersey. The 32-team selector and poster team rows open shareable `#team/TEAM` links; `#poster` selects New Jersey. Failed requests show a retry action instead of displaying another team's data.
+The web app calls the shared `GetTeamData` RPC at `/api/rpc` on team selection. It returns the validated season and poster together. All teams share the same poster, including New Jersey. The 32-team selector and poster team rows open shareable `#team/TEAM` links; `#poster` selects New Jersey. Failed requests show a retry action instead of displaying another team's data.
 
 ## Poster supplement
 
@@ -50,3 +50,5 @@ Restart `npm run data:serve` after refreshing. The server serves saved data with
 Vite proxies `/api` to `http://127.0.0.1:3001` in development and preview. Production requires equivalent routing to the API. No database, scheduled refresh, or production deployment is configured.
 
 Run `npm run test:data` to verify normalization, coverage, filtering, failed-write preservation, and HTTP behavior.
+
+Run `npm run test:api` to verify real Node HTTP RPC calls, typed failures, and cancellation. See [the server architecture](../apps/api/README.md) for the shared contract and Layer composition.

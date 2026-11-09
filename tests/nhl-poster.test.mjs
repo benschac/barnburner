@@ -1,13 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { once } from 'node:events'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { buildSnapshot } from '../lib/nhl-games.mjs'
 import { buildPosterSnapshot, normalizeLeaders, normalizeStandings, validatePosterSnapshot } from '../lib/nhl-poster.mjs'
 import { refreshPosterSnapshot, writePosterSnapshot } from '../scripts/refresh-nhl-poster.mjs'
-import { createGamesServer } from '../scripts/serve-nhl-games.mjs'
+import { makeTestApi } from '../apps/api/tests/test-api.ts'
 
 const teams = [
   { abbrev: 'NJD', name: 'New Jersey Devils', conference: 'Eastern', division: 'Metropolitan' },
@@ -115,26 +114,22 @@ test('refresh reads every dated standing and club then publishes the validated c
 test('HTTP poster endpoint serves the validated contract, rejects parameters, and reports missing data', async () => {
   const poster = buildPosterSnapshot(input())
   for (const supplement of [poster, null]) {
-    const server = createGamesServer(games, 1, supplement)
-    server.listen(0, '127.0.0.1')
-    await once(server, 'listening')
+    const api = await makeTestApi(games, 1, supplement)
     try {
-      const base = `http://127.0.0.1:${server.address().port}`
-      const response = await fetch(`${base}/api/poster`)
+      const response = await api.request('/api/poster')
       assert.equal(response.status, supplement ? 200 : 503)
       if (supplement) assert.deepEqual(await response.json(), poster)
-      assert.equal((await fetch(`${base}/api/poster?team=NJD`)).status, 400)
-      assert.equal((await fetch(`${base}/api/poster`, { method: 'POST' })).status, 405)
-      assert.equal((await fetch(`${base}/api/games?team=NJD`)).status, 200)
+      assert.equal((await api.request('/api/poster?team=NJD')).status, 400)
+      assert.equal((await api.request('/api/poster', { method: 'POST' })).status, 405)
+      assert.equal((await api.request('/api/games?team=NJD')).status, 200)
     } finally {
-      server.closeAllConnections()
-      await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))
+      await api.dispose()
     }
   }
   const invalid = structuredClone(poster)
   invalid.clubs.pop()
-  assert.throws(() => createGamesServer(games, 1, invalid), /coverage/)
+  await assert.rejects(makeTestApi(games, 1, invalid), /coverage/)
   const mixed = structuredClone(poster)
   mixed.standings[0].points = 1
-  assert.throws(() => createGamesServer(games, 1, mixed), /disagree/)
+  await assert.rejects(makeTestApi(games, 1, mixed), /disagree/)
 })

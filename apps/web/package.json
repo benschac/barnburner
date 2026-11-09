@@ -15,6 +15,7 @@
     "test:teams": "node --test tests/team-season.test.ts tests/team-machine.test.ts"
   },
   "dependencies": {
+    "@nhl-reddit-stats/season": "0.0.0",
     "@tamagui/config": "3.3.1",
     "@xstate/effect": "1.0.0-alpha.12",
     "effect": "4.1.2",

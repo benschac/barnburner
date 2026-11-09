@@ -4,7 +4,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { Schema } from 'effect'
 import snapshotData from '../../../data/nhl-20262027.json' with { type: 'json' }
-import { SeasonSnapshot, TeamData, teams, teamFromHash, teamHref, teamSeason } from '../src/team-season.ts'
+import { SeasonSnapshot, TeamData, teams, teamSeason } from '@nhl-reddit-stats/season'
+import { teamFromHash, teamHref } from '../src/team-season.ts'
 
 const snapshot = Schema.decodeUnknownSync(SeasonSnapshot)(snapshotData)
 

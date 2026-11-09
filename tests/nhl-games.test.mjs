@@ -3,10 +3,9 @@ import assert from 'node:assert/strict'
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { once } from 'node:events'
 import { buildSnapshot, normalizeGame, selectTeamGames, validateSnapshot } from '../lib/nhl-games.mjs'
 import { refreshSnapshot, writeSnapshot } from '../scripts/refresh-nhl-games.mjs'
-import { createGamesServer } from '../scripts/serve-nhl-games.mjs'
+import { makeTestApi } from '../apps/api/tests/test-api.ts'
 
 const teams = [
   { abbrev: 'NJD', name: 'New Jersey Devils', conference: 'Eastern', division: 'Metropolitan' },
@@ -95,13 +94,13 @@ test('rejects malformed source data and final results', () => {
   assert.throws(() => buildSnapshot(schedules(), teams, 'bad', 1), /retrieval timestamp/)
 })
 
-test('validates loaded snapshots before serving them', () => {
+test('validates loaded snapshots before serving them', async () => {
   const bad = snapshot()
   bad.games.push(bad.games[0])
   assert.throws(() => validateSnapshot(bad, 1), /Duplicate game/)
   const nonfinal = snapshot()
   nonfinal.games[0].state = 'LIVE'
-  assert.throws(() => createGamesServer(nonfinal, 1), /Nonfinal result/)
+  await assert.rejects(makeTestApi(nonfinal, 1), /Nonfinal result/)
 })
 
 test('failed refresh and invalid replacement preserve the previous snapshot', async () => {
@@ -130,26 +129,23 @@ test('imports downloaded schedules with explicit provenance and writes validated
 })
 
 test('HTTP endpoint returns filtered games and rejects unsupported requests', async () => {
-  const server = createGamesServer(snapshot(), 1)
-  server.listen(0, '127.0.0.1')
-  await once(server, 'listening')
+  const api = await makeTestApi(snapshot(), 1)
   try {
-    const base = `http://127.0.0.1:${server.address().port}`
-    const result = await fetch(`${base}/api/games?team=NJD`)
+    const result = await api.request('/api/games?team=NJD')
     assert.equal(result.status, 200)
+    assert.equal(result.headers.get('cache-control'), 'no-cache')
     const body = await result.json()
     assert.equal(body.count, 1)
     assert.equal(body.team, 'NJD')
     assert.equal(body.fetchedAt, fetchedAt)
-    assert.equal((await (await fetch(`${base}/api/games`)).json()).games.length, 1)
-    assert.equal((await (await fetch(`${base}/api/teams`)).json()).teams.length, 2)
+    assert.equal((await (await api.request('/api/games')).json()).games.length, 1)
+    assert.equal((await (await api.request('/api/teams')).json()).teams.length, 2)
     for (const path of ['/api/games?team=XXX', '/api/games?team=', '/api/games?team=NJD&team=TOR', '/api/games?season=20262027', '/api/teams?team=NJD']) {
-      assert.equal((await fetch(`${base}${path}`)).status, 400, path)
+      assert.equal((await api.request(`${path}`)).status, 400, path)
     }
-    assert.equal((await fetch(`${base}/missing`)).status, 404)
-    assert.equal((await fetch(`${base}/api/games`, { method: 'POST' })).status, 405)
+    assert.equal((await api.request('/missing')).status, 404)
+    assert.equal((await api.request('/api/games', { method: 'POST' })).status, 405)
   } finally {
-    server.closeAllConnections()
-    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))
+    await api.dispose()
   }
 })

@@ -1,0 +1,17 @@
+{
+  "name": "@nhl-reddit-stats/season",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/team-season.ts",
+    "./rpc": "./src/contracts.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "effect": "4.1.2"
+  }
+}

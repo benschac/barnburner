@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url'
 const root = fileURLToPath(new URL('../', import.meta.url))
 const dir = await mkdtemp(`${root}src/pattern-rule-test-`)
 const cases = [
+  ['server import', 'import { ApiRoutes } from "../../api/src/routes.ts"; export { ApiRoutes };', 'eslint(no-restricted-imports)'],
+  ['server export', 'export { ApiRoutes } from "../../api/src/routes.ts";', 'eslint(no-restricted-imports)'],
+  ['shared contract', 'export { TeamRpcs } from "@nhl-reddit-stats/season/rpc";', null],
   ['shared binding', 'let selectedTeam = "NJD"; export { selectedTeam };', 'patterns(no-module-mutable-state)'],
   ['exported binding', 'export let selectedTeam = "NJD";', 'patterns(no-module-mutable-state)'],
   ['constant', 'export const selectedTeam = "NJD";', null],
