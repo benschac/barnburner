@@ -9,8 +9,9 @@
     "typecheck": "tsc -b",
     "check:tamagui": "tamagui check --strict",
     "generate:tamagui": "tamagui generate-prompt",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "lint": "oxlint && node scripts/check-design-files.mjs && node scripts/test-design-rules.mjs",
+    "preview": "vite preview",
+    "test:design": "node scripts/test-design-rules.mjs"
   },
   "dependencies": {
     "@tamagui/config": "3.3.1",
