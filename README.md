@@ -21,6 +21,8 @@ The task and workspace setup follows [the Turborepo migration guide](https://tur
 
 ## Content and assets
 
+The league-wide game snapshot and read-only team API are documented in [data/README.md](data/README.md). `npm run data:serve` serves the local snapshot at `http://127.0.0.1:3001/api/games?team=NJD`. The current poster still uses its separate Devils snapshot below. Its standings, player leaders, special teams, and historical playoff comparisons require additional datasets before the whole poster can switch teams.
+
 - `apps/web/src/App.tsx`: semantic page sections, standings, schedules, and leaders.
 - `apps/web/src/stats.ts` contains a point-in-time snapshot from the NHL's [regular-season schedule](https://api-web.nhle.com/v1/club-schedule-season/NJD/20262027), [standings](https://api-web.nhle.com/v1/standings/2026-11-09), [club stats](https://api-web.nhle.com/v1/club-stats/NJD/20262027/2), and [team summary](https://api.nhle.com/stats/rest/en/team/summary?limit=-1&cayenneExp=seasonId%3D20262027%20and%20gameTypeId%3D2). The playoff chart compares points in the same-day standings with the first team out when the Devils hold a playoff spot, or with the last wild card when they are outside.
 - `apps/web/src/Charts.tsx`: high-resolution canvas charts with accessible text descriptions.
