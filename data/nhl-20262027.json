@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "season": 20262027,
-  "fetchedAt": "2026-11-09T17:57:33.325529+00:00",
+  "fetchedAt": "2026-11-10T14:58:58Z",
   "sources": [
     "https://api-web.nhle.com/v1/club-schedule-season/ANA/20262027",
     "https://api-web.nhle.com/v1/club-schedule-season/BOS/20262027",
@@ -4749,11 +4749,15 @@
       "gameType": 2,
       "date": "2026-11-09",
       "startTimeUTC": "2026-11-10T01:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "EDM",
       "awayTeam": "NYR",
-      "result": null
+      "result": {
+        "homeScore": 3,
+        "awayScore": 1,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020284,
@@ -4761,11 +4765,15 @@
       "gameType": 2,
       "date": "2026-11-09",
       "startTimeUTC": "2026-11-10T02:30:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "VAN",
       "awayTeam": "PHI",
-      "result": null
+      "result": {
+        "homeScore": 1,
+        "awayScore": 3,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020285,
@@ -4773,11 +4781,15 @@
       "gameType": 2,
       "date": "2026-11-09",
       "startTimeUTC": "2026-11-10T03:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "SJS",
       "awayTeam": "NYI",
-      "result": null
+      "result": {
+        "homeScore": 3,
+        "awayScore": 2,
+        "decision": "SO"
+      }
     },
     {
       "id": 2026020286,
