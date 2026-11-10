@@ -53,7 +53,7 @@ Vite proxies `/api` to `http://127.0.0.1:3001` in development and preview. On Ve
 
 `boxscores/20262027/<gameId>.json` records a final game's score, team shots on goal, and the NHL's skater and goalie statistics. Each file identifies its source and retrieval time. The collector checks the game ID, teams, and final score against the season snapshot before saving a box score.
 
-`bun run data:refresh:all` stages the game and poster snapshots together. It spaces out NHL requests and backs off when the feed rate-limits a request. It rechecks box scores for the two latest game dates with finals and collects up to 16 missing older box scores per run. If a box score is unavailable or fails validation, the run logs the game ID and preserves any previously saved copy. Files are updated only when their data changes.
+`bun run data:refresh:all` stages the game and poster snapshots together. It spaces out NHL requests and backs off when the feed rate-limits a request. It rechecks box scores for the two latest game dates with finals and tries up to 16 older games with missing box scores or corrected finals per run. If a box score is unavailable or fails validation, the run logs the game ID and preserves any previously saved copy. Files are updated only when their data changes.
 
 The [GitHub Actions workflow](../.github/workflows/refresh-nhl-data.yml) can run manually from the default branch. After confirming permission for ongoing collection and archiving, set the repository Actions variable `NHL_REFRESH_ENABLED` to `true` to enable the daily 6:17 a.m. Eastern run. The workflow validates and builds before committing changed data in one push. Confirm that branch rules allow the push and that Vercel deploys the resulting commit.
 

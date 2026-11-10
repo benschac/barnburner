@@ -1,9 +1,9 @@
-import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { setTimeout as wait } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { isDeepStrictEqual, parseArgs } from 'node:util'
-import { boxScoreUrl, normalizeBoxScore } from '../lib/nhl-boxscores.mjs'
+import { boxScoreMatchesGame, boxScoreUrl, normalizeBoxScore } from '../lib/nhl-boxscores.mjs'
 import { SEASON } from '../lib/nhl-games.mjs'
 import { completedDates } from '../lib/nhl-poster.mjs'
 import { refreshSnapshot } from './refresh-nhl-games.mjs'
@@ -23,8 +23,8 @@ function createNhlFetcher() {
       const response = await fetch(url, { signal: AbortSignal.timeout(30_000) })
       if (response.status !== 429) return response
 
-      const retryAfter = response.headers.get('retry-after')
-      const retryAt = retryAfter === null ? NaN : /^\d+$/.test(retryAfter)
+      const retryAfter = response.headers.get('retry-after') ?? ''
+      const retryAt = /^\d+$/.test(retryAfter)
         ? Date.now() + Number(retryAfter) * 1_000
         : Date.parse(retryAfter)
       nextRequestAt = Number.isFinite(retryAt) ? Math.max(nextRequestAt, retryAt) : Date.now() + 30_000
@@ -35,14 +35,18 @@ function createNhlFetcher() {
   }
 }
 
-async function changed(path, next) {
+async function readSavedJson(path) {
   try {
-    const previous = await readJson(path)
-    return !isDeepStrictEqual({ ...previous, fetchedAt: next.fetchedAt }, next)
+    return await readJson(path)
   } catch (error) {
     if (error.code !== 'ENOENT') throw error
-    return true
+    return null
   }
+}
+
+async function changed(path, next) {
+  const previous = await readSavedJson(path)
+  return !isDeepStrictEqual({ ...previous, fetchedAt: next.fetchedAt }, next)
 }
 
 async function refresh(directory) {
@@ -57,14 +61,19 @@ async function refresh(directory) {
     const poster = await refreshPosterSnapshot({ games, output: join(staging, posterFile), fetcher })
 
     const archive = join(directory, 'boxscores', String(SEASON))
-    const archived = new Set(await readdir(archive).catch((error) => {
-      if (error.code !== 'ENOENT') throw error
-      return []
-    }))
     const finals = games.games.filter((game) => game.result)
+    const currentBoxes = new Set()
+    for (const game of finals) {
+      const box = await readSavedJson(join(archive, `${game.id}.json`))
+      if (boxScoreMatchesGame(box, game)) currentBoxes.add(game.id)
+    }
     const recentDates = new Set(completedDates(games).slice(-2))
     const recent = finals.filter((game) => recentDates.has(game.date))
-    const backlog = finals.filter((game) => !recentDates.has(game.date) && !archived.has(`${game.id}.json`))
+    const backlog = finals.filter((game) => !recentDates.has(game.date) && !currentBoxes.has(game.id))
+    // Rotate the starting point so persistent gaps cannot starve other games.
+    const day = Math.floor(Date.now() / 86_400_000)
+    const offset = day * backfillLimit % Math.max(1, backlog.length)
+    const older = [...backlog.slice(offset), ...backlog.slice(0, offset)].slice(0, backfillLimit)
     const pending = []
     const writes = []
 
@@ -73,7 +82,7 @@ async function refresh(directory) {
       if (await changed(destination, snapshot)) writes.push([join(staging, filename), destination])
     }
 
-    for (const game of [...recent, ...backlog.slice(-backfillLimit)]) {
+    for (const game of [...recent, ...older]) {
       let boxScore
       try {
         const response = await fetcher(boxScoreUrl(game.id))
@@ -81,7 +90,7 @@ async function refresh(directory) {
         boxScore = normalizeBoxScore(await response.json(), game, new Date().toISOString())
       } catch (error) {
         pending.push(game.id)
-        console.warn(`Box score ${game.id} will be retried on a later run: ${error.message}`)
+        console.warn(`Could not refresh box score ${game.id}: ${error.message}`)
         continue
       }
       const filename = `${game.id}.json`
@@ -91,14 +100,13 @@ async function refresh(directory) {
         await writeFile(staged, `${JSON.stringify(boxScore, null, 2)}\n`)
         writes.push([staged, destination])
       }
-      archived.add(filename)
+      currentBoxes.add(game.id)
     }
 
     await mkdir(archive, { recursive: true })
     for (const [source, destination] of writes) await rename(source, destination)
-    const archivedFinals = finals.filter(({ id }) => archived.has(`${id}.json`)).length
-    console.log(`Checked ${finals.length} finals through ${poster.standings[0].date}. Box score files: ${archivedFinals}/${finals.length}. Updated files: ${writes.length}.`)
-    if (pending.length) console.warn(`Box scores to retry: ${pending.join(', ')}`)
+    console.log(`Checked ${finals.length} finals through ${poster.standings[0].date}. Matching box scores: ${currentBoxes.size}/${finals.length}. Updated files: ${writes.length}.`)
+    if (pending.length) console.warn(`Box scores unavailable this run: ${pending.join(', ')}`)
   } finally {
     await rm(staging, { recursive: true, force: true })
   }

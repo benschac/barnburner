@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { normalizeBoxScore } from '../lib/nhl-boxscores.mjs'
+import { boxScoreMatchesGame, normalizeBoxScore } from '../lib/nhl-boxscores.mjs'
 
 const game = {
   id: 2026020285,
@@ -50,4 +50,11 @@ test('rejects mismatched scores and incomplete or duplicated player rows', () =>
   assert.throws(() => normalizeBoxScore(raw, game, fetchedAt), /Missing SJS defense/)
   raw.playerByGameStats.homeTeam.defense.push({ playerId: 4 })
   assert.throws(() => normalizeBoxScore(raw, game, fetchedAt), /duplicate SJS player/)
+})
+
+test('an archived box score needs a refresh when the final result changes', () => {
+  const saved = normalizeBoxScore(sourceBoxScore(), game, fetchedAt)
+  assert.equal(boxScoreMatchesGame(saved, game), true)
+  assert.equal(boxScoreMatchesGame(saved, { ...game, result: { ...game.result, awayScore: 1 } }), false)
+  assert.equal(boxScoreMatchesGame(null, game), false)
 })
