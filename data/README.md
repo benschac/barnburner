@@ -36,7 +36,7 @@ The web app calls the shared `GetTeamData` RPC at `/api/rpc` on team selection. 
 
 ## Poster supplement
 
-`nhl-poster-20262027.json` contains current standings, standings for completed game dates, special-team percentages and league ranks, and player leaders for all 32 clubs. Its sources are the NHL [standings](https://api-web.nhle.com/v1/standings/2026-11-08), [club stats](https://api-web.nhle.com/v1/club-stats/NJD/20262027/2), and [team summary](https://api.nhle.com/stats/rest/en/team/summary?limit=-1&cayenneExp=seasonId%3D20262027%20and%20gameTypeId%3D2) feeds. Player portraits remain NHL-hosted URLs.
+`nhl-poster-20262027.json` contains current standings, standings for completed game dates, special-team percentages and league ranks, and player leaders for all 32 clubs. Its sources are the NHL [standings](https://api-web.nhle.com/v1/standings/2026-11-09), [club stats](https://api-web.nhle.com/v1/club-stats/NJD/20262027/2), and [team summary](https://api.nhle.com/stats/rest/en/team/summary?limit=-1&cayenneExp=seasonId%3D20262027%20and%20gameTypeId%3D2) feeds. Player portraits remain NHL-hosted URLs.
 
 Refresh games first, then the poster supplement:
 
@@ -47,7 +47,15 @@ bun run data:refresh:poster
 
 Restart `bun run data:serve` after refreshing. The server serves saved data without requesting NHL feeds. The supplement refresh checks coverage and consistency with the game snapshot before replacing its output. A failed refresh preserves the previous supplement. The two files are replaced separately, so complete both refreshes before restarting the API.
 
-Vite proxies `/api` to `http://127.0.0.1:3001` in development and preview. On Vercel, the web project's API function hosts the same router with bundled snapshots. Publishing refreshed production data requires redeploying. No database or scheduled refresh is configured.
+Vite proxies `/api` to `http://127.0.0.1:3001` in development and preview. On Vercel, the web project's API function hosts the same router with bundled snapshots. Publishing refreshed production data requires redeploying.
+
+## Box scores and automation
+
+`boxscores/20262027/<gameId>.json` records a final game's score, team shots on goal, and the NHL's skater and goalie statistics. Each file identifies its source and retrieval time. The collector checks the game ID, teams, and final score against the season snapshot before saving a box score.
+
+`bun run data:refresh:all` stages the game and poster snapshots together. It spaces out NHL requests and backs off when the feed rate-limits a request. It rechecks box scores for the two latest game dates with finals and collects up to 16 missing older box scores per run. If a box score is unavailable or fails validation, the run logs the game ID and preserves any previously saved copy. Files are updated only when their data changes.
+
+The [GitHub Actions workflow](../.github/workflows/refresh-nhl-data.yml) can run manually from the default branch. After confirming permission for ongoing collection and archiving, set the repository Actions variable `NHL_REFRESH_ENABLED` to `true` to enable the daily 6:17 a.m. Eastern run. The workflow validates and builds before committing changed data in one push. Confirm that branch rules allow the push and that Vercel deploys the resulting commit.
 
 Run `bun run test:data` to verify normalization, coverage, filtering, failed-write preservation, and HTTP behavior.
 

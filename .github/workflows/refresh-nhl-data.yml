@@ -1,0 +1,48 @@
+name: Refresh NHL data
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * *'
+      timezone: America/New_York
+
+concurrency:
+  group: nhl-data-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    if: github.ref_type == 'branch' && github.ref_name == github.event.repository.default_branch && (github.event_name == 'workflow_dispatch' || vars.NHL_REFRESH_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - run: bun install --frozen-lockfile
+      - name: Collect NHL scores and box scores
+        shell: bash
+        run: bun run data:refresh:all 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+      - run: bun run test:data
+      - run: bun run test:api
+      - run: bun run build
+      - name: Publish changed data
+        run: |
+          git add -- data/nhl-20262027.json data/nhl-poster-20262027.json data/boxscores/20262027
+          if git diff --cached --quiet; then
+            echo 'NHL data is already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(data): refresh NHL scores and stats'
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"

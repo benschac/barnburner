@@ -36,7 +36,7 @@ The league-wide game snapshot and read-only team API are documented in [data/REA
 - `apps/web/src/Charts.tsx`: high-resolution canvas charts with accessible text descriptions.
 - `apps/web/public/assets`: local NHL logos, player portraits, Graduate and Roboto Condensed fonts, and Material venue icons. Source URLs and licenses are documented in `apps/web/public/assets/SOURCES.md`.
 
-The reference screenshot is used for comparison only and is not embedded in the page. Team data comes from the API, while player portraits use the NHL image URLs recorded in the snapshot. Refreshes are explicit; no background NHL polling is configured. Production snapshot updates require a new deployment.
+The reference screenshot is used for comparison only and is not embedded in the page. Team data comes from the API, while player portraits use the NHL image URLs recorded in the snapshot. The [data guide](data/README.md#box-scores-and-automation) covers manual and scheduled refreshes. Production snapshot updates require a new deployment.
 
 ## Credits
 

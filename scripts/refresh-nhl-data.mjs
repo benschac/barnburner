@@ -1,0 +1,112 @@
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
+import { join, resolve } from 'node:path'
+import { setTimeout as wait } from 'node:timers/promises'
+import { fileURLToPath } from 'node:url'
+import { isDeepStrictEqual, parseArgs } from 'node:util'
+import { boxScoreUrl, normalizeBoxScore } from '../lib/nhl-boxscores.mjs'
+import { SEASON } from '../lib/nhl-games.mjs'
+import { completedDates } from '../lib/nhl-poster.mjs'
+import { refreshSnapshot } from './refresh-nhl-games.mjs'
+import { refreshPosterSnapshot } from './refresh-nhl-poster.mjs'
+
+const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'))
+const backfillLimit = 16
+
+function createNhlFetcher() {
+  let nextRequestAt = 0
+  return async (url) => {
+    for (let attempt = 1; ; attempt++) {
+      const delay = nextRequestAt - Date.now()
+      if (delay > 60_000) throw new Error('NHL requested a cooldown longer than one minute')
+      if (delay > 0) await wait(delay)
+      nextRequestAt = Date.now() + 1_000
+      const response = await fetch(url, { signal: AbortSignal.timeout(30_000) })
+      if (response.status !== 429) return response
+
+      const retryAfter = response.headers.get('retry-after')
+      const retryAt = retryAfter === null ? NaN : /^\d+$/.test(retryAfter)
+        ? Date.now() + Number(retryAfter) * 1_000
+        : Date.parse(retryAfter)
+      nextRequestAt = Number.isFinite(retryAt) ? Math.max(nextRequestAt, retryAt) : Date.now() + 30_000
+      if (attempt === 3) return response
+      console.warn(`NHL rate limit while reading ${url}. Waiting before retry.`)
+      await response.body?.cancel()
+    }
+  }
+}
+
+async function changed(path, next) {
+  try {
+    const previous = await readJson(path)
+    return !isDeepStrictEqual({ ...previous, fetchedAt: next.fetchedAt }, next)
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+    return true
+  }
+}
+
+async function refresh(directory) {
+  const teams = await readJson(join(directory, 'teams.json'))
+  if (teams.length !== 32) throw new Error('Expected all 32 NHL teams')
+  const staging = await mkdtemp(join(directory, '.nhl-refresh-'))
+  try {
+    const gamesFile = `nhl-${SEASON}.json`
+    const posterFile = `nhl-poster-${SEASON}.json`
+    const fetcher = createNhlFetcher()
+    const games = await refreshSnapshot({ teams, output: join(staging, gamesFile), fetcher })
+    const poster = await refreshPosterSnapshot({ games, output: join(staging, posterFile), fetcher })
+
+    const archive = join(directory, 'boxscores', String(SEASON))
+    const archived = new Set(await readdir(archive).catch((error) => {
+      if (error.code !== 'ENOENT') throw error
+      return []
+    }))
+    const finals = games.games.filter((game) => game.result)
+    const recentDates = new Set(completedDates(games).slice(-2))
+    const recent = finals.filter((game) => recentDates.has(game.date))
+    const backlog = finals.filter((game) => !recentDates.has(game.date) && !archived.has(`${game.id}.json`))
+    const pending = []
+    const writes = []
+
+    for (const [filename, snapshot] of [[gamesFile, games], [posterFile, poster]]) {
+      const destination = join(directory, filename)
+      if (await changed(destination, snapshot)) writes.push([join(staging, filename), destination])
+    }
+
+    for (const game of [...recent, ...backlog.slice(-backfillLimit)]) {
+      let boxScore
+      try {
+        const response = await fetcher(boxScoreUrl(game.id))
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        boxScore = normalizeBoxScore(await response.json(), game, new Date().toISOString())
+      } catch (error) {
+        pending.push(game.id)
+        console.warn(`Box score ${game.id} will be retried on a later run: ${error.message}`)
+        continue
+      }
+      const filename = `${game.id}.json`
+      const destination = join(archive, filename)
+      if (await changed(destination, boxScore)) {
+        const staged = join(staging, filename)
+        await writeFile(staged, `${JSON.stringify(boxScore, null, 2)}\n`)
+        writes.push([staged, destination])
+      }
+      archived.add(filename)
+    }
+
+    await mkdir(archive, { recursive: true })
+    for (const [source, destination] of writes) await rename(source, destination)
+    const archivedFinals = finals.filter(({ id }) => archived.has(`${id}.json`)).length
+    console.log(`Checked ${finals.length} finals through ${poster.standings[0].date}. Box score files: ${archivedFinals}/${finals.length}. Updated files: ${writes.length}.`)
+    if (pending.length) console.warn(`Box scores to retry: ${pending.join(', ')}`)
+  } finally {
+    await rm(staging, { recursive: true, force: true })
+  }
+}
+
+const { values } = parseArgs({ options: { 'data-dir': { type: 'string' } } })
+const directory = values['data-dir'] ? resolve(values['data-dir']) : fileURLToPath(new URL('../data', import.meta.url))
+refresh(directory).catch((error) => {
+  console.error(error.message)
+  process.exitCode = 1
+})

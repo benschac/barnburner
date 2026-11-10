@@ -8,8 +8,9 @@
   "scripts": {
     "data:refresh": "node scripts/refresh-nhl-games.mjs",
     "data:refresh:poster": "node scripts/refresh-nhl-poster.mjs",
+    "data:refresh:all": "node scripts/refresh-nhl-data.mjs",
     "data:serve": "node apps/api/src/main.ts",
-    "test:data": "node --test tests/nhl-games.test.mjs tests/nhl-poster.test.mjs",
+    "test:data": "node --test tests/nhl-*.test.mjs",
     "test:api": "bun run --cwd apps/api test",
     "dev": "turbo run dev",
     "build": "turbo run build",
