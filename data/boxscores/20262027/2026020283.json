@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "https://api-web.nhle.com/v1/gamecenter/2026020283/boxscore",
-  "fetchedAt": "2026-11-10T14:58:22.830Z",
+  "fetchedAt": "2026-11-11T13:16:18.999Z",
   "id": 2026020283,
   "season": 20262027,
   "date": "2026-11-09",
@@ -9,7 +9,7 @@
   "awayTeam": {
     "abbrev": "NYR",
     "score": 1,
-    "shotsOnGoal": 30,
+    "shotsOnGoal": 31,
     "players": {
       "forwards": [
         {
@@ -317,7 +317,7 @@
           "pim": 0,
           "hits": 0,
           "powerPlayGoals": 0,
-          "sog": 3,
+          "sog": 4,
           "faceoffWinningPctg": 0,
           "toi": "25:21",
           "blockedShots": 0,
@@ -876,10 +876,10 @@
           },
           "position": "G",
           "evenStrengthShotsAgainst": "18/18",
-          "powerPlayShotsAgainst": "11/11",
+          "powerPlayShotsAgainst": "12/12",
           "shorthandedShotsAgainst": "0/1",
-          "saveShotsAgainst": "29/30",
-          "savePctg": 0.966667,
+          "saveShotsAgainst": "30/31",
+          "savePctg": 0.967742,
           "evenStrengthGoalsAgainst": 0,
           "powerPlayGoalsAgainst": 0,
           "shorthandedGoalsAgainst": 1,
@@ -888,8 +888,8 @@
           "toi": "60:00",
           "starter": true,
           "decision": "W",
-          "shotsAgainst": 30,
-          "saves": 29
+          "shotsAgainst": 31,
+          "saves": 30
         },
         {
           "playerId": 8477465,

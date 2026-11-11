@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "https://api-web.nhle.com/v1/gamecenter/2026020285/boxscore",
-  "fetchedAt": "2026-11-10T14:58:22.939Z",
+  "fetchedAt": "2026-11-11T13:16:21.025Z",
   "id": 2026020285,
   "season": 20262027,
   "date": "2026-11-09",
@@ -425,11 +425,11 @@
             "default": "I. Sorokin"
           },
           "position": "G",
-          "evenStrengthShotsAgainst": "29/31",
-          "powerPlayShotsAgainst": "5/5",
+          "evenStrengthShotsAgainst": "30/32",
+          "powerPlayShotsAgainst": "6/6",
           "shorthandedShotsAgainst": "3/3",
-          "saveShotsAgainst": "37/39",
-          "savePctg": 0.948718,
+          "saveShotsAgainst": "39/41",
+          "savePctg": 0.95122,
           "evenStrengthGoalsAgainst": 2,
           "powerPlayGoalsAgainst": 0,
           "shorthandedGoalsAgainst": 0,
@@ -438,8 +438,8 @@
           "toi": "65:00",
           "starter": true,
           "decision": "O",
-          "shotsAgainst": 39,
-          "saves": 37
+          "shotsAgainst": 41,
+          "saves": 39
         },
         {
           "playerId": 8473575,
@@ -468,7 +468,7 @@
   "homeTeam": {
     "abbrev": "SJS",
     "score": 3,
-    "shotsOnGoal": 39,
+    "shotsOnGoal": 41,
     "players": {
       "forwards": [
         {
@@ -595,7 +595,7 @@
           "pim": 0,
           "hits": 0,
           "powerPlayGoals": 0,
-          "sog": 3,
+          "sog": 4,
           "faceoffWinningPctg": 0,
           "toi": "15:54",
           "blockedShots": 0,
@@ -727,7 +727,7 @@
           "pim": 0,
           "hits": 1,
           "powerPlayGoals": 0,
-          "sog": 5,
+          "sog": 6,
           "faceoffWinningPctg": 0.5,
           "toi": "19:55",
           "blockedShots": 1,

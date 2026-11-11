@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "season": 20262027,
-  "fetchedAt": "2026-11-10T14:58:58Z",
+  "fetchedAt": "2026-11-11T13:15:02.027Z",
   "sources": [
     "https://api-web.nhle.com/v1/club-schedule-season/ANA/20262027",
     "https://api-web.nhle.com/v1/club-schedule-season/BOS/20262027",
@@ -4797,11 +4797,15 @@
       "gameType": 2,
       "date": "2026-11-10",
       "startTimeUTC": "2026-11-11T00:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "TOR",
       "awayTeam": "COL",
-      "result": null
+      "result": {
+        "homeScore": 3,
+        "awayScore": 6,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020287,
@@ -4809,11 +4813,15 @@
       "gameType": 2,
       "date": "2026-11-10",
       "startTimeUTC": "2026-11-11T00:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "MTL",
       "awayTeam": "MIN",
-      "result": null
+      "result": {
+        "homeScore": 1,
+        "awayScore": 2,
+        "decision": "OT"
+      }
     },
     {
       "id": 2026020288,
@@ -4821,11 +4829,15 @@
       "gameType": 2,
       "date": "2026-11-10",
       "startTimeUTC": "2026-11-11T00:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "OTT",
       "awayTeam": "WSH",
-      "result": null
+      "result": {
+        "homeScore": 2,
+        "awayScore": 3,
+        "decision": "OT"
+      }
     },
     {
       "id": 2026020291,
@@ -4833,11 +4845,15 @@
       "gameType": 2,
       "date": "2026-11-10",
       "startTimeUTC": "2026-11-11T00:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "WPG",
       "awayTeam": "NJD",
-      "result": null
+      "result": {
+        "homeScore": 4,
+        "awayScore": 2,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020289,
@@ -4845,11 +4861,15 @@
       "gameType": 2,
       "date": "2026-11-10",
       "startTimeUTC": "2026-11-11T00:30:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "CBJ",
       "awayTeam": "FLA",
-      "result": null
+      "result": {
+        "homeScore": 1,
+        "awayScore": 4,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020290,
@@ -4857,11 +4877,15 @@
       "gameType": 2,
       "date": "2026-11-10",
       "startTimeUTC": "2026-11-11T01:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "STL",
       "awayTeam": "DET",
-      "result": null
+      "result": {
+        "homeScore": 3,
+        "awayScore": 2,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020292,
@@ -4869,11 +4893,15 @@
       "gameType": 2,
       "date": "2026-11-10",
       "startTimeUTC": "2026-11-11T03:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "LAK",
       "awayTeam": "NSH",
-      "result": null
+      "result": {
+        "homeScore": 0,
+        "awayScore": 3,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020293,
