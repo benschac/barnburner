@@ -62,7 +62,7 @@ function Division({ name, record, teams, selectedTeam, activeGame, onActiveGameC
               onMouseEnter={() => onPrefetchTeam(team)} onFocus={() => onPrefetchTeam(team)}
               bg={selectedGame?.team === team ? 'highlight print:transparent' : 'transparent'}>
               <View render={<a href={teamHref(team)} />} aria-label={`View ${team} wins and losses`} onClick={(event) => event.stopPropagation()}>
-                <Logo src={`/assets/teams/${team === 'TOR' && theme === 'light' ? 'TOR-inverted' : team === 'WSH' ? 'WSH-alt' : team}.svg`} alt={team} w="8" h="icon" scale={1.18} />
+                <Logo src={teamLogo(team, theme)} alt={team} w="8" h="icon" scale={1.18} />
               </View>
               <Row gap="1">
                 {games.map(({ game, index, outcome }) => {
@@ -138,7 +138,7 @@ const PlayoffPicture = memo(function PlayoffPicture({ data, onPrefetchTeam }: { 
                 <TableCell render="td" pl="1.5" color="gold" fontSize="body" borderTopLeftRadius="sm" borderBottomLeftRadius="sm">{seed}</TableCell>
                 <View render="th" {...{ scope: 'row' }} style={{ display: "table-cell" }} text="left" fontWeight="500">
                   <Row render={<a href={teamHref(team)} />} h="8" gap="4" textDecorationLine="none" onClick={(event) => event.stopPropagation()}>
-                    <Logo src={`/assets/teams/${team === 'TOR' && theme === 'light' ? 'TOR-inverted' : team}.svg`} alt={team} w="8" h="8" scale={1.4} />
+                    <Logo src={team === 'WSH' ? '/assets/teams/WSH.svg' : teamLogo(team, theme)} alt={team} w="8" h="8" scale={1.4} />
                     <Copy fontSize="label" lineHeight="detail" fontWeight="500">{team}</Copy>
                   </Row>
                 </View>
@@ -201,7 +201,7 @@ const Schedule = memo(function Schedule({ data, onPrefetchTeam }: { data: TeamPo
                 <Score fontSize="score" lineHeight="score" flex={1} text="center">{game.date}</Score>
               </Row>
               <Copy fontSize="detail" lineHeight="detail" color="muted" w="12" text="center">{game.venue}</Copy>
-              <Logo src={`/assets/teams/${game.team === 'TOR' && theme === 'light' ? 'TOR-inverted' : game.team === 'WSH' ? 'WSH-alt' : game.team}.svg`} alt={game.team} w="12" h="12" scale={1.4} />
+              <Logo src={teamLogo(game.team, theme)} alt={game.team} w="12" h="12" scale={1.4} />
               <Copy flex={1} text="center" fontSize="label" lineHeight="label" fontWeight="500">{game.time}</Copy>
               </Row>
             </Row>
@@ -216,7 +216,7 @@ const Schedule = memo(function Schedule({ data, onPrefetchTeam }: { data: TeamPo
             <Row render="li" h="12" key={game.id}>
               <Row render={<a href={teamHref(game.team)} />} w="100%" h="12" gap="3" textDecorationLine="none"
                 onMouseEnter={() => onPrefetchTeam(game.team)} onFocus={() => onPrefetchTeam(game.team)}>
-              <Logo src={`/assets/teams/${game.team === 'TOR' && theme === 'light' ? 'TOR-inverted' : game.team}.svg`} alt={game.team} w="16" h="10" mr="px" scale={1.07} />
+              <Logo src={game.team === 'WSH' ? '/assets/teams/WSH.svg' : teamLogo(game.team, theme)} alt={game.team} w="16" h="10" mr="px" scale={1.07} />
               <Copy w="10" h="10" display="flex" items="center" justify="center" rounded="sm" fontFamily="result" fontSize="title" lineHeight="label"
                 bg={outcomeColors[game.outcome]} color={game.outcome === 'win' ? 'result-ink' : 'loss-ink'}>{game.outcome === 'win' ? 'W' : 'L'}</Copy>
               <Copy fontSize="title" lineHeight="title" fontWeight="500">{game.score}</Copy>
