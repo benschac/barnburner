@@ -1,6 +1,8 @@
 # Library documentation
 
-For Tamagui components, styling, themes, tokens, configuration, or compiler work, read [the source guide](.agent-sources/README.md).
+Use this repository's documentation in `.agent-sources` first for library API and behavior questions. Read [the source guide](.agent-sources/README.md), search the relevant local index, and read the matching cached topics before consulting live documentation or MCP sources. Check installed package types or source for version compatibility. Use external sources only for a specific gap the local references cannot answer or when the user explicitly requests current information; state the gap before fetching.
+
+For Tamagui components, styling, animations, themes, tokens, configuration, or compiler work, follow the source guide.
 Start with `apps/web/tamagui-prompt.md` and the owning project configuration in `apps/web`, then use `.agent-sources/tamagui/index.md` to find relevant upstream documentation.
 Read only the relevant topics. Other tasks do not require loading the library cache.
 
