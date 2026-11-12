@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "season": 20262027,
-  "fetchedAt": "2026-11-11T13:15:02.027Z",
+  "fetchedAt": "2026-11-12T14:41:51.958Z",
   "sources": [
     "https://api-web.nhle.com/v1/club-schedule-season/ANA/20262027",
     "https://api-web.nhle.com/v1/club-schedule-season/BOS/20262027",
@@ -4909,11 +4909,15 @@
       "gameType": 2,
       "date": "2026-11-11",
       "startTimeUTC": "2026-11-12T00:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "BUF",
       "awayTeam": "TBL",
-      "result": null
+      "result": {
+        "homeScore": 3,
+        "awayScore": 8,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020294,
@@ -4921,11 +4925,15 @@
       "gameType": 2,
       "date": "2026-11-11",
       "startTimeUTC": "2026-11-12T00:30:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "CGY",
       "awayTeam": "NYR",
-      "result": null
+      "result": {
+        "homeScore": 1,
+        "awayScore": 3,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020295,
@@ -4933,11 +4941,15 @@
       "gameType": 2,
       "date": "2026-11-11",
       "startTimeUTC": "2026-11-12T02:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "EDM",
       "awayTeam": "PHI",
-      "result": null
+      "result": {
+        "homeScore": 3,
+        "awayScore": 2,
+        "decision": "OT"
+      }
     },
     {
       "id": 2026020296,
@@ -4945,11 +4957,15 @@
       "gameType": 2,
       "date": "2026-11-11",
       "startTimeUTC": "2026-11-12T02:30:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "VGK",
       "awayTeam": "UTA",
-      "result": null
+      "result": {
+        "homeScore": 5,
+        "awayScore": 3,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020297,
@@ -4957,11 +4973,15 @@
       "gameType": 2,
       "date": "2026-11-11",
       "startTimeUTC": "2026-11-12T03:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "ANA",
       "awayTeam": "NSH",
-      "result": null
+      "result": {
+        "homeScore": 2,
+        "awayScore": 4,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020298,
@@ -4969,11 +4989,15 @@
       "gameType": 2,
       "date": "2026-11-11",
       "startTimeUTC": "2026-11-12T03:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "SJS",
       "awayTeam": "PIT",
-      "result": null
+      "result": {
+        "homeScore": 2,
+        "awayScore": 3,
+        "decision": "SO"
+      }
     },
     {
       "id": 2026020309,

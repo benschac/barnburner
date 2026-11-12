@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "https://api-web.nhle.com/v1/gamecenter/2026020288/boxscore",
-  "fetchedAt": "2026-11-11T13:16:24.020Z",
+  "fetchedAt": "2026-11-12T14:43:11.951Z",
   "id": 2026020288,
   "season": 20262027,
   "date": "2026-11-10",
@@ -422,11 +422,11 @@
             "default": "L. Thompson"
           },
           "position": "G",
-          "evenStrengthShotsAgainst": "20/22",
+          "evenStrengthShotsAgainst": "21/23",
           "powerPlayShotsAgainst": "4/4",
           "shorthandedShotsAgainst": "0/0",
-          "saveShotsAgainst": "24/26",
-          "savePctg": 0.923077,
+          "saveShotsAgainst": "25/27",
+          "savePctg": 0.925926,
           "evenStrengthGoalsAgainst": 2,
           "powerPlayGoalsAgainst": 0,
           "shorthandedGoalsAgainst": 0,
@@ -435,8 +435,8 @@
           "toi": "61:14",
           "starter": true,
           "decision": "W",
-          "shotsAgainst": 26,
-          "saves": 24
+          "shotsAgainst": 27,
+          "saves": 25
         },
         {
           "playerId": 8479292,
@@ -465,7 +465,7 @@
   "homeTeam": {
     "abbrev": "OTT",
     "score": 2,
-    "shotsOnGoal": 26,
+    "shotsOnGoal": 27,
     "players": {
       "forwards": [
         {
@@ -636,7 +636,7 @@
           "pim": 0,
           "hits": 1,
           "powerPlayGoals": 0,
-          "sog": 2,
+          "sog": 3,
           "faceoffWinningPctg": 0.642857,
           "toi": "16:33",
           "blockedShots": 0,

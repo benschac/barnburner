@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "https://api-web.nhle.com/v1/gamecenter/2026020290/boxscore",
-  "fetchedAt": "2026-11-11T13:16:27.023Z",
+  "fetchedAt": "2026-11-12T14:43:14.951Z",
   "id": 2026020290,
   "season": 20262027,
   "date": "2026-11-10",
@@ -9,7 +9,7 @@
   "awayTeam": {
     "abbrev": "DET",
     "score": 2,
-    "shotsOnGoal": 32,
+    "shotsOnGoal": 31,
     "players": {
       "forwards": [
         {
@@ -114,7 +114,7 @@
           "pim": 0,
           "hits": 1,
           "powerPlayGoals": 0,
-          "sog": 2,
+          "sog": 1,
           "faceoffWinningPctg": 0,
           "toi": "13:27",
           "blockedShots": 0,
@@ -864,7 +864,7 @@
           "sog": 2,
           "faceoffWinningPctg": 0,
           "toi": "18:20",
-          "blockedShots": 1,
+          "blockedShots": 2,
           "shifts": 20,
           "giveaways": 0,
           "takeaways": 0
@@ -878,11 +878,11 @@
             "default": "J. Hofer"
           },
           "position": "G",
-          "evenStrengthShotsAgainst": "24/26",
+          "evenStrengthShotsAgainst": "23/25",
           "powerPlayShotsAgainst": "6/6",
           "shorthandedShotsAgainst": "0/0",
-          "saveShotsAgainst": "30/32",
-          "savePctg": 0.9375,
+          "saveShotsAgainst": "29/31",
+          "savePctg": 0.935484,
           "evenStrengthGoalsAgainst": 2,
           "powerPlayGoalsAgainst": 0,
           "shorthandedGoalsAgainst": 0,
@@ -891,8 +891,8 @@
           "toi": "60:00",
           "starter": true,
           "decision": "W",
-          "shotsAgainst": 32,
-          "saves": 30
+          "shotsAgainst": 31,
+          "saves": 29
         },
         {
           "playerId": 8476412,

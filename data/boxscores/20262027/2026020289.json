@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "https://api-web.nhle.com/v1/gamecenter/2026020289/boxscore",
-  "fetchedAt": "2026-11-11T13:16:26.025Z",
+  "fetchedAt": "2026-11-12T14:43:13.949Z",
   "id": 2026020289,
   "season": 20262027,
   "date": "2026-11-10",
@@ -9,7 +9,7 @@
   "awayTeam": {
     "abbrev": "FLA",
     "score": 4,
-    "shotsOnGoal": 28,
+    "shotsOnGoal": 29,
     "players": {
       "forwards": [
         {
@@ -48,7 +48,7 @@
           "pim": 2,
           "hits": 1,
           "powerPlayGoals": 1,
-          "sog": 4,
+          "sog": 5,
           "faceoffWinningPctg": 0.076923,
           "toi": "17:01",
           "blockedShots": 0,
@@ -423,11 +423,11 @@
             "sv": "J. Markström"
           },
           "position": "G",
-          "evenStrengthShotsAgainst": "34/35",
+          "evenStrengthShotsAgainst": "35/36",
           "powerPlayShotsAgainst": "3/3",
           "shorthandedShotsAgainst": "0/0",
-          "saveShotsAgainst": "37/38",
-          "savePctg": 0.973684,
+          "saveShotsAgainst": "38/39",
+          "savePctg": 0.974359,
           "evenStrengthGoalsAgainst": 1,
           "powerPlayGoalsAgainst": 0,
           "shorthandedGoalsAgainst": 0,
@@ -436,8 +436,8 @@
           "toi": "60:00",
           "starter": true,
           "decision": "W",
-          "shotsAgainst": 38,
-          "saves": 37
+          "shotsAgainst": 39,
+          "saves": 38
         },
         {
           "playerId": 8481033,
@@ -466,7 +466,7 @@
   "homeTeam": {
     "abbrev": "CBJ",
     "score": 1,
-    "shotsOnGoal": 38,
+    "shotsOnGoal": 39,
     "players": {
       "forwards": [
         {
@@ -505,7 +505,7 @@
           "pim": 0,
           "hits": 3,
           "powerPlayGoals": 0,
-          "sog": 3,
+          "sog": 4,
           "faceoffWinningPctg": 1,
           "toi": "15:11",
           "blockedShots": 1,
@@ -879,11 +879,11 @@
             "default": "C. Talbot"
           },
           "position": "G",
-          "evenStrengthShotsAgainst": "23/25",
+          "evenStrengthShotsAgainst": "24/26",
           "powerPlayShotsAgainst": "1/2",
           "shorthandedShotsAgainst": "0/0",
-          "saveShotsAgainst": "24/27",
-          "savePctg": 0.888889,
+          "saveShotsAgainst": "25/28",
+          "savePctg": 0.892857,
           "evenStrengthGoalsAgainst": 2,
           "powerPlayGoalsAgainst": 1,
           "shorthandedGoalsAgainst": 0,
@@ -892,8 +892,8 @@
           "toi": "59:25",
           "starter": true,
           "decision": "L",
-          "shotsAgainst": 27,
-          "saves": 24
+          "shotsAgainst": 28,
+          "saves": 25
         },
         {
           "playerId": 8482982,
