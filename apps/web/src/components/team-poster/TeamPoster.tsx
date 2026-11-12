@@ -5,6 +5,7 @@ import { Chart } from '../../Charts'
 import type { TeamPosterData } from '../../stats'
 import { teamLogo } from '../../team-season'
 import { Division } from './Division'
+import { AnimatedRecord } from './AnimatedRecord'
 import { PlayoffPicture } from './PlayoffPicture'
 import { Schedule } from './Schedule'
 import { BannerLayer, Copy, Heading, List, Logo, Row, Score } from './primitives'
@@ -29,7 +30,7 @@ export const TeamPoster = memo(function TeamPoster({ data, onPrefetchTeam }: { d
             </Theme>
             <Logo src={teamLogo(data.team.abbrev, 'dark')} alt={data.team.name} position="absolute" w="hero" h="banner" l="10" t="0" z={1} />
             <View position="relative poster:absolute print:absolute" pt="36 poster:0 print:0" px="4 poster:0 print:0" t="poster:4 print:4" l="poster:25% print:25%">
-              <Score render="h1" fontSize="hero" lineHeight="hero" letterSpacing={1} color="bright">{seasonSummary.record}</Score>
+              <AnimatedRecord record={seasonSummary.record} />
               <Copy render="p" fontSize="detail poster:label print:label" lineHeight="detail poster:label print:label" mt="0.5">
                 <Copy render="strong" fontSize="detail poster:label print:label" lineHeight="detail poster:label print:label" fontWeight="700">{seasonSummary.points} points,</Copy> {seasonSummary.divisionPlace} in the {data.team.division}, {seasonSummary.streak}
               </Copy>
