@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import { getConfig, getVariableValue, Text, useTheme, View } from 'tamagui'
 import contract from '../design/contract.json'
@@ -12,7 +12,65 @@ type ChartColors = Record<'win' | 'loss' | 'grid' | 'muted' | 'gold' | 'pending'
 
 type ChartKind = 'season' | 'playoff'
 
-function drawChart(ctx: CanvasRenderingContext2D, axis: CanvasRenderingContext2D, kind: ChartKind, colors: ChartColors, font: string, activeGame: number | null, data: TeamPosterData) {
+type ChartPoint = { x: number; y: number }
+type ChartBar = { x: number; yStart: number; yEnd: number; opacity: number; ink: keyof ChartColors }
+type ChartGeometry = { bars: ChartBar[]; line: ChartPoint[]; opacity: number }
+
+function chartGeometry(data: TeamPosterData, kind: ChartKind): ChartGeometry {
+  const step = plotWidth / Math.max(1, data.seasonGames.length)
+  const margins = data.seasonGames.map(({ result }) => result ? result.goalsFor - result.goalsAgainst : null)
+  const gaps = data.seasonGames.flatMap(({ result }, index) => result?.comparison ? [{ index, cushion: playoffGap(result.comparison) }] : [])
+  const extent = kind === 'season' ? Math.max(6, ...margins.map(value => Math.abs(value ?? 0))) : Math.max(10, ...gaps.map(({ cushion }) => Math.abs(cushion)))
+  const unit = (kind === 'season' ? 96 : 56) / extent
+  return {
+    bars: kind === 'season' ? data.seasonGames.map(({ result }, index) => {
+      const margin = margins[index]
+      return {
+        x: 6 + index * step,
+        yStart: margin === null ? 102 : 105 - Math.max(0, margin) * unit,
+        yEnd: margin === null ? 108 : 105 - Math.min(0, margin) * unit,
+        opacity: 1,
+        ink: margin === null ? 'pending' : margin > 0 ? 'win' : result?.decision === 'REG' ? 'loss' : 'gold',
+      }
+    }) : [],
+    line: kind === 'playoff' ? gaps.map(({ index, cushion }) => ({ x: 6 + index * step, y: 64 - cushion * unit })) : [],
+    opacity: gaps.length ? 1 : 0,
+  }
+}
+
+function interpolateGeometry(from: ChartGeometry, to: ChartGeometry, progress: number): ChartGeometry {
+  const mix = (a: number, b: number) => a + (b - a) * progress
+  const bars = Array.from({ length: Math.max(from.bars.length, to.bars.length) }, (_, index) => {
+    const previous = from.bars[index]
+    const next = to.bars[index]
+    const anchor = next ?? previous
+    const start = previous ?? { x: anchor.x, ink: anchor.ink, yStart: 105, yEnd: 105, opacity: 0 }
+    const end = next ?? { x: anchor.x, ink: anchor.ink, yStart: 105, yEnd: 105, opacity: 0 }
+    return { x: mix(start.x, end.x), yStart: mix(start.yStart, end.yStart), yEnd: mix(start.yEnd, end.yEnd), opacity: mix(start.opacity, end.opacity), ink: anchor.ink }
+  })
+  const line = Array.from({ length: Math.max(from.line.length, to.line.length) }, (_, index) => {
+    const start = from.line[index] ?? from.line.at(-1) ?? { x: to.line[index].x, y: 64 }
+    const end = to.line[index] ?? to.line.at(-1) ?? { x: start.x, y: 64 }
+    return { x: mix(start.x, end.x), y: mix(start.y, end.y) }
+  })
+  return { bars, line, opacity: mix(from.opacity, to.opacity) }
+}
+
+function chartEase(progress: number) {
+  // Invert cubic-bezier(0.77, 0, 0.175, 1) for on-screen morphing.
+  let low = 0
+  let high = 1
+  for (let i = 0; i < 16; i++) {
+    const t = (low + high) / 2
+    const x = 3 * (1 - t) ** 2 * t * 0.77 + 3 * (1 - t) * t ** 2 * 0.175 + t ** 3
+    if (x < progress) low = t
+    else high = t
+  }
+  const t = (low + high) / 2
+  return 3 * (1 - t) * t ** 2 + t ** 3
+}
+
+function drawChart(ctx: CanvasRenderingContext2D, axis: CanvasRenderingContext2D, kind: ChartKind, colors: ChartColors, font: string, activeGame: number | null, data: TeamPosterData, geometry: ChartGeometry) {
   const { seasonGames } = data
   const step = plotWidth / Math.max(1, seasonGames.length)
   const x = (i: number) => 6 + i * step
@@ -47,11 +105,13 @@ function drawChart(ctx: CanvasRenderingContext2D, axis: CanvasRenderingContext2D
   if (kind === 'season') {
     ctx.fillStyle = colors.grid
     ctx.fillRect(0, zero - 1, plotWidth, 2)
-    for (const [i, { result, venue }] of seasonGames.entries()) {
-      const margin = result ? result.goalsFor - result.goalsAgainst : undefined
-      ctx.fillStyle = margin === undefined ? colors.pending : margin > 0 ? colors.win : result?.decision === 'REG' ? colors.loss : colors.gold
-      const barHeight = margin === undefined ? 6 : Math.abs(margin) * unit
-      ctx.fillRect(x(i) - 4.3, margin === undefined ? zero - 3 : margin > 0 ? zero - barHeight : zero, 8.6, barHeight)
+    for (const bar of geometry.bars) {
+      ctx.globalAlpha = bar.opacity
+      ctx.fillStyle = colors[bar.ink]
+      ctx.fillRect(bar.x - 4.3, bar.yStart, 8.6, bar.yEnd - bar.yStart)
+    }
+    ctx.globalAlpha = 1
+    for (const [i, { venue }] of seasonGames.entries()) {
       ctx.beginPath()
       ctx.arc(x(i), 216, 3, 0, Math.PI * 2)
       ctx.fillStyle = colors.muted
@@ -72,34 +132,37 @@ function drawChart(ctx: CanvasRenderingContext2D, axis: CanvasRenderingContext2D
       }
     })
   } else {
-    const first = playoffPoints[0]
-    const last = playoffPoints.at(-1)
-    if (!first || !last) return
-    for (const positive of [false, true]) {
-      ctx.save()
+    const first = geometry.line[0]
+    const last = geometry.line.at(-1)
+    if (first && last) {
+      ctx.globalAlpha = geometry.opacity
+      for (const positive of [false, true]) {
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(0, positive ? 0 : zero, plotWidth, positive ? zero : height - zero)
+        ctx.clip()
+        ctx.beginPath()
+        ctx.moveTo(first.x, zero)
+        geometry.line.forEach(({ x, y }) => ctx.lineTo(x, y))
+        ctx.lineTo(last.x, zero)
+        ctx.closePath()
+        ctx.fillStyle = positive ? colors.positive : colors.negative
+        ctx.fill()
+        ctx.restore()
+      }
       ctx.beginPath()
-      ctx.rect(0, positive ? 0 : zero, plotWidth, positive ? zero : height - zero)
-      ctx.clip()
+      ctx.moveTo(first.x, first.y)
+      geometry.line.slice(1).forEach(({ x, y }) => ctx.lineTo(x, y))
+      ctx.lineWidth = 3
+      ctx.lineJoin = 'round'
+      ctx.strokeStyle = colors.line
+      ctx.stroke()
       ctx.beginPath()
-      ctx.moveTo(x(first.index), zero)
-      playoffPoints.forEach(({ index, playoffMargin }) => ctx.lineTo(x(index), zero - playoffMargin * unit))
-      ctx.lineTo(x(last.index), zero)
-      ctx.closePath()
-      ctx.fillStyle = positive ? colors.positive : colors.negative
+      ctx.arc(last.x, last.y, 6.5, 0, Math.PI * 2)
+      ctx.fillStyle = colors.line
       ctx.fill()
-      ctx.restore()
+      ctx.globalAlpha = 1
     }
-    ctx.beginPath()
-    ctx.moveTo(x(first.index), zero - first.playoffMargin * unit)
-    playoffPoints.slice(1).forEach(({ index, playoffMargin }) => ctx.lineTo(x(index), zero - playoffMargin * unit))
-    ctx.lineWidth = 3
-    ctx.lineJoin = 'round'
-    ctx.strokeStyle = colors.line
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.arc(x(last.index), zero - last.playoffMargin * unit, 6.5, 0, Math.PI * 2)
-    ctx.fillStyle = colors.line
-    ctx.fill()
   }
   if (activeGame !== null) {
     const position = x(activeGame)
@@ -160,31 +223,59 @@ export function Chart({ data, kind, activeGame, onActiveGameChange }: {
   const font = String(getVariableValue(getConfig().fonts.body.family))
   const heightToken = kind === 'season' ? 'seasonChart' : 'playoffChart'
   const height = contract.size[heightToken]
+  const geometry = useMemo(() => chartGeometry(data, kind), [data, kind])
+  const displayed = useRef<ChartGeometry | null>(null)
+  const redraw = useRef<(() => void) | null>(null)
+  const currentHighlight = useEffectEvent(() => activeGame)
   useEffect(() => {
     let cancelled = false
+    let frame = 0
+    let printing = false
     let context: CanvasRenderingContext2D | null = null
     let axis: CanvasRenderingContext2D | null = null
-    const clearHighlight = () => {
-      if (context && axis && activeGame !== null) drawChart(context, axis, kind, colors, font, null, data)
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const paint = () => {
+      if (context && axis) drawChart(context, axis, kind, colors, font, printing ? null : currentHighlight(), data, displayed.current ?? geometry)
     }
-    const restoreHighlight = () => {
-      if (context && axis && activeGame !== null) drawChart(context, axis, kind, colors, font, activeGame, data)
+    const finish = () => {
+      cancelAnimationFrame(frame)
+      displayed.current = geometry
+      paint()
     }
+    const beforePrint = () => { printing = true; finish() }
+    const afterPrint = () => { printing = false; paint() }
+    const motionChanged = () => { if (reducedMotion.matches) finish() }
+    redraw.current = paint
     fontsReady.then(() => {
       if (cancelled || !ref.current || !axisRef.current) return
       const ratio = Math.max(2, window.devicePixelRatio || 1)
       context = scaleCanvas(ref.current, plotWidth, height, ratio)
       axis = scaleCanvas(axisRef.current, axisWidth, height, ratio)
-      if (context && axis) drawChart(context, axis, kind, colors, font, activeGame, data)
+      const from = displayed.current
+      if (!from || reducedMotion.matches || printing) { finish(); return }
+      const started = performance.now()
+      const animate = (now: number) => {
+        const progress = Math.min(1, (now - started) / 220)
+        displayed.current = progress === 1 ? geometry : interpolateGeometry(from, geometry, chartEase(progress))
+        paint()
+        if (progress < 1) frame = requestAnimationFrame(animate)
+      }
+      frame = requestAnimationFrame(animate)
     })
-    window.addEventListener('beforeprint', clearHighlight)
-    window.addEventListener('afterprint', restoreHighlight)
+    window.addEventListener('beforeprint', beforePrint)
+    window.addEventListener('afterprint', afterPrint)
+    reducedMotion.addEventListener('change', motionChanged)
     return () => {
       cancelled = true
-      window.removeEventListener('beforeprint', clearHighlight)
-      window.removeEventListener('afterprint', restoreHighlight)
+      cancelAnimationFrame(frame)
+      redraw.current = null
+      window.removeEventListener('beforeprint', beforePrint)
+      window.removeEventListener('afterprint', afterPrint)
+      reducedMotion.removeEventListener('change', motionChanged)
     }
-  }, [kind, height, colors, font, activeGame, data])
+  }, [kind, height, colors, font, data, geometry])
+
+  useEffect(() => { redraw.current?.() }, [activeGame])
 
   useEffect(() => {
     const canvas = ref.current
