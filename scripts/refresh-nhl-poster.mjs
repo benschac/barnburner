@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { parseArgs } from 'node:util'
 import { validateSnapshot } from '../lib/nhl-games.mjs'
-import { buildPosterSnapshot, clubStatsUrl, completedDates, standingsUrl, teamSummaryUrl, validatePosterSnapshot } from '../lib/nhl-poster.mjs'
+import { buildPosterSnapshot, clubStatsUrl, completedDates, normalizeStandings, standingsUrl, teamSummaryUrl, validatePosterSnapshot, validateStandingsAgainstGames } from '../lib/nhl-poster.mjs'
 
 export async function writePosterSnapshot(path, snapshot, teams, dates) {
   validatePosterSnapshot(snapshot, teams, dates)
@@ -27,7 +27,13 @@ export async function refreshPosterSnapshot({ games, output, fromDir, fetchedAt,
     return response.json()
   }
   const standingsByDate = new Map()
-  for (const date of completedDates(games)) standingsByDate.set(date, await read(standingsUrl(date), `standings-${date}.json`))
+  const dates = completedDates(games)
+  if (dates.length === 0) throw new Error('No completed games for poster snapshot')
+  // Check the newest standings before spending requests on history and player stats.
+  const latest = dates.at(-1)
+  const latestStandings = await read(standingsUrl(latest), `standings-${latest}.json`)
+  validateStandingsAgainstGames(normalizeStandings(latestStandings, games.teams, latest), games)
+  for (const date of dates) standingsByDate.set(date, date === latest ? latestStandings : await read(standingsUrl(date), `standings-${date}.json`))
   const summary = await read(teamSummaryUrl, 'summary.json')
   const clubStats = new Map()
   for (const { abbrev } of games.teams) clubStats.set(abbrev, await read(clubStatsUrl(abbrev), `club-${abbrev}.json`))

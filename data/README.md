@@ -55,6 +55,8 @@ Vite proxies `/api` to `http://127.0.0.1:3001` in development and preview. On Ve
 
 `bun run data:refresh:all` stages the game and poster snapshots together. It spaces out NHL requests and backs off when the feed rate-limits a request. It rechecks box scores for the two latest game dates with finals and tries up to 16 older games with missing box scores or corrected finals per run. If a box score is unavailable or fails validation, the run logs the game ID and preserves any previously saved copy. Files are updated only when their data changes.
 
+The NHL schedule, standings, and team-summary feeds can update at different times after a game. The collector checks the newest standings against the final scores before collecting historical standings and player stats. A mismatch reports the team, date, and both totals and stops before replacing the saved snapshots. The team-summary check also reports both games-played totals. Retry after the feeds settle; the morning schedule avoids most in-game update windows. A successful refresh requires the feeds to agree, rather than combining newer scores with stale season statistics.
+
 The [GitHub Actions workflow](../.github/workflows/refresh-nhl-data.yml) can run manually from the default branch. After confirming permission for ongoing collection and archiving, set the repository Actions variable `NHL_REFRESH_ENABLED` to `true` to enable the daily 6:17 a.m. Eastern run. The workflow validates and builds before committing changed data in one push. Confirm that branch rules allow the push and that Vercel deploys the resulting commit.
 
 Run `bun run test:data` to verify normalization, coverage, filtering, failed-write preservation, and HTTP behavior.

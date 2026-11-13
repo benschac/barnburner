@@ -97,6 +97,30 @@ test('failed refresh or replacement keeps the last valid poster snapshot intact'
   } finally { await rm(directory, { recursive: true, force: true }) }
 })
 
+test('lagging standings report both totals before fetching other feeds and preserve saved data', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'nhl-poster-'))
+  const output = join(directory, 'poster.json')
+  const requests = []
+  const lagging = rawStandings()
+  lagging.standings[0].gamesPlayed = 0
+  lagging.standings[0].points = 0
+  try {
+    await writeFile(output, 'previous')
+    await assert.rejects(refreshPosterSnapshot({ games, output, fetcher: async (url) => {
+      requests.push(url)
+      return { ok: true, json: async () => url.includes('/standings/') ? lagging : url.includes('/club-stats/') ? club() : input().summary }
+    } }), /Standings and games disagree for NJD on 2026-11-08: standings has 0 games played and 0 points; completed schedule has 1 games played and 2 points/)
+    assert.deepEqual(requests, ['https://api-web.nhle.com/v1/standings/2026-11-08'])
+    assert.equal(await readFile(output, 'utf8'), 'previous')
+  } finally { await rm(directory, { recursive: true, force: true }) }
+})
+
+test('lagging team summaries report their games played against the standings', () => {
+  const source = input()
+  source.summary.data[0].gamesPlayed = 0
+  assert.throws(() => buildPosterSnapshot(source), /Invalid or stale summary for NJD on 2026-11-08: summary has 0 games played; standings has 1 games played/)
+})
+
 test('refresh reads every dated standing and club then publishes the validated contract', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'nhl-poster-'))
   const output = join(directory, 'poster.json')
