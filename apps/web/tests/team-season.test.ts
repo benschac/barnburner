@@ -130,6 +130,6 @@ test('mixed snapshot generations fail before contradictory points can reach the 
     ...snapshot,
     games: snapshot.games.map((game) => game.id === 2026020279 ? { ...game, state: 'FUT', result: null } : game),
   }
-  assert.equal(teamSeason(olderSeason, 'NJD').points, 24)
+  assert.equal(teamSeason(olderSeason, 'NJD').points, teamSeason(snapshot, 'NJD').points - 2)
   assert.throws(() => Schema.decodeUnknownSync(TeamData)({ season: olderSeason, poster }))
 })
