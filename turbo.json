@@ -7,7 +7,11 @@
         "^build"
       ],
       "env": [
-        "NODE_ENV"
+        "NODE_ENV",
+        "SITE_URL",
+        "VERCEL_ENV",
+        "VERCEL_PROJECT_PRODUCTION_URL",
+        "VERCEL_URL"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",

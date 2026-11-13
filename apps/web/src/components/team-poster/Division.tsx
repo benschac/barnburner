@@ -2,6 +2,7 @@ import { View, useThemeName } from 'tamagui'
 import { gameDateTime } from '../../stats'
 import type { Matchup } from '../../stats'
 import { teamHref, teamLogo } from '../../team-season.ts'
+import { navigateTeam } from '../../navigate-team.ts'
 import { Copy, Score, Row, List, Logo } from './primitives'
 
 const outcomeColors = { win: 'win', loss: 'loss', overtime: 'gold', pending: 'pending' } as const
@@ -28,7 +29,7 @@ export function Division({ name, record, teams, selectedTeam, activeGame, onActi
       <List pt="1.5">
         {teams.map(({ team, games }) => {
           return (
-            <Row render="li" h="8" gap="4" key={team} cursor="pointer" onClick={() => { window.location.hash = teamHref(team) }}
+            <Row render="li" h="8" gap="4" key={team} cursor="pointer" onClick={() => navigateTeam(team)}
               onMouseEnter={() => onPrefetchTeam(team)} onFocus={() => onPrefetchTeam(team)}
               bg={selectedGame?.team === team ? 'highlight print:transparent' : 'transparent'}>
               <View render={<a href={teamHref(team)} />} aria-label={`View ${team} wins and losses`} onClick={(event) => event.stopPropagation()}>

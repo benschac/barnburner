@@ -5,7 +5,7 @@ import { test } from 'node:test'
 import { Schema } from 'effect'
 import snapshotData from '../../../data/nhl-20262027.json' with { type: 'json' }
 import { SeasonSnapshot, TeamData, teams, teamSeason } from '@nhl-reddit-stats/season'
-import { teamFromHash, teamHref } from '../src/team-season.ts'
+import { teamFromHash, teamFromLocation, teamFromPath, teamHref } from '../src/team-season.ts'
 
 const snapshot = Schema.decodeUnknownSync(SeasonSnapshot)(snapshotData)
 
@@ -29,7 +29,8 @@ test('all 32 teams have their own schedule and paired game perspectives', () => 
   for (const team of teams) {
     const season = teamSeason(snapshot, team.abbrev)
     assert.equal(season.games.length, 84, team.abbrev)
-    assert.equal(teamFromHash(teamHref(team.abbrev)), team.abbrev)
+    assert.equal(teamFromPath(teamHref(team.abbrev)), team.abbrev)
+    assert.equal(teamFromHash(`#team/${team.abbrev}`), team.abbrev)
     for (const game of season.games) {
       assert.notEqual(game.opponent, team.abbrev)
       const other = teamSeason(snapshot, game.opponent).games.find((item) => item.game.id === game.game.id)
@@ -58,6 +59,12 @@ test('regulation, overtime and shootout results use the selected team perspectiv
 })
 
 test('invalid routes return to the poster and invalid snapshots fail decoding', () => {
+  assert.equal(teamFromPath('/team/XXX'), null)
+  assert.equal(teamFromPath('/team/EDM/'), 'EDM')
+  assert.equal(teamFromPath('/team/EDM.html'), 'EDM')
+  assert.equal(teamFromLocation({ pathname: '/team/EDM', hash: '' }), 'EDM')
+  assert.equal(teamFromLocation({ pathname: '/team/EDM', hash: '#team/BOS' }), 'BOS')
+  assert.equal(teamFromLocation({ pathname: '/team/EDM', hash: '#poster' }), null)
   assert.equal(teamFromHash('#team/XXX'), null)
   assert.equal(teamFromHash('#poster'), null)
   assert.throws(() => Schema.decodeUnknownSync(SeasonSnapshot)({ schemaVersion: 2 }))

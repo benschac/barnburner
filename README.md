@@ -16,7 +16,7 @@ bun run data:serve
 bun run dev -- --host 127.0.0.1 --port 4173
 ```
 
-Open http://127.0.0.1:4173. Select a team to load its poster in place. Links such as `#team/BOS` open a team directly; the default route and `#poster` open New Jersey. The layout rearranges sections on small screens, and charts scroll horizontally when needed. Browser zoom remains enabled.
+Open http://127.0.0.1:4173. Select a team to load its poster in place. Shareable links such as `/team/BOS` open a team directly; legacy links such as `#team/BOS` still work. The default route and `#poster` open New Jersey. The layout rearranges sections on small screens, and charts scroll horizontally when needed. Browser zoom remains enabled.
 
 ## Workspace
 
@@ -37,6 +37,16 @@ The league-wide game snapshot and read-only team API are documented in [data/REA
 - `apps/web/public/assets`: local NHL logos, player portraits, Graduate and Roboto Condensed fonts, and Material venue icons. Source URLs and licenses are documented in `apps/web/public/assets/SOURCES.md`.
 
 The reference screenshot is used for comparison only and is not embedded in the page. Team data comes from the API, while player portraits use the NHL image URLs recorded in the snapshot. The [data guide](data/README.md#box-scores-and-automation) covers manual and scheduled refreshes. Production snapshot updates require a new deployment.
+
+## Social previews
+
+Each build generates 1200×630 PNG cards and HTML metadata for all 32 `/team/{TEAM}` URLs. The default page previews New Jersey. Cards reuse `teamPoster()` and the shared design palette, with local fonts and logos rendered by the build-only `@resvg/resvg-js` dependency. No NHL requests or image-rendering service run when a crawler opens a link.
+
+Cards include the team's record, points, division rank, streak, last ten, special teams, points leader, and snapshot timestamps. Refresh the saved data and rebuild/deploy to update them. Image URLs include a content hash to distinguish changed cards; social platforms may still cache a link's metadata.
+
+Set `SITE_URL=https://your-domain.example` at build time for a custom canonical domain. Otherwise the build uses Vercel's `VERCEL_PROJECT_PRODUCTION_URL`, then `VERCEL_URL`, then `http://localhost:5173` for local development. Preview deployments use their own `VERCEL_URL` for image assets, so new image hashes resolve before production is updated. These variables and `VERCEL_ENV` are included in the Turbo build cache key. Other static hosts must serve `/team/BOS` from `dist/team/BOS.html`; Vercel's `cleanUrls` setting handles this here.
+
+Run `bun run --cwd apps/web test:social` for PNG and metadata checks. `apps/web/social/card.ts` owns the SVG layout; `apps/web/social/plugin.ts` owns validation, raster generation, and crawler metadata.
 
 ## Credits
 

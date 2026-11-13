@@ -2,6 +2,7 @@ import { Fragment, memo } from 'react'
 import { Image, View, useThemeName } from 'tamagui'
 import type { TeamPosterData } from '../../stats'
 import { teamHref, teamLogo } from '../../team-season'
+import { navigateTeam } from '../../navigate-team.ts'
 import { ColumnHeading, Copy, Label, List, Logo, Row, RuledHeading, Score, TableCell } from './primitives'
 
 export const PlayoffPicture = memo(function PlayoffPicture({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetchTeam: (team: string) => void }) {
@@ -30,7 +31,7 @@ export const PlayoffPicture = memo(function PlayoffPicture({ data, onPrefetchTea
                 </View>
               )}
               <View render="tr" style={{ display: "table-row" }} h="8" bg={team === data.team.abbrev ? 'highlight' : 'transparent'}
-                cursor="pointer" onClick={() => { window.location.hash = teamHref(team) }}
+                cursor="pointer" onClick={() => navigateTeam(team)}
                 onMouseEnter={() => onPrefetchTeam(team)} onFocus={() => onPrefetchTeam(team)}
                 borderTopWidth={index === 5 ? 2 : 0} borderTopColor="gold" borderTopStyle="dashed">
                 <TableCell render="td" pl="1.5" color="gold" fontSize="body" borderTopLeftRadius="sm" borderBottomLeftRadius="sm">{seed}</TableCell>

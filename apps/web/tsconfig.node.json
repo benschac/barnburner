@@ -23,5 +23,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "tamagui.build.ts", "tamagui.config.ts", "api"]
+  "include": ["vite.config.ts", "tamagui.build.ts", "tamagui.config.ts", "api", "social"]
 }

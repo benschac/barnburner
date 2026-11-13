@@ -5,7 +5,8 @@ import type { EffectActor } from '@xstate/effect'
 import type { SnapshotFrom } from 'xstate'
 import { teamMachine } from './team-machine.ts'
 import { rpcSeasonSourceLayer } from './season-source.ts'
-import { teamFromHash } from './team-season.ts'
+import { teamFromLocation, teamFromPath } from './team-season.ts'
+import { navigateTeam } from './navigate-team.ts'
 
 export function useTeamNavigation() {
   const actorRef = useRef<EffectActor<typeof teamMachine> | null>(null)
@@ -15,19 +16,33 @@ export function useTeamNavigation() {
       const actor = yield* createEffectActor(teamMachine)
       actorRef.current = actor
       const syncRoute = () => {
-        const team = teamFromHash(window.location.hash)
+        const team = teamFromLocation(window.location)
         actor.send(team ? { type: 'SELECT_TEAM', team } : { type: 'SHOW_POSTER' })
+      }
+      const followTeamLink = (event: MouseEvent) => {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+        const link = event.target instanceof Element ? event.target.closest('a') : null
+        if (!(link instanceof HTMLAnchorElement) || link.hasAttribute('download') || (link.target && link.target !== '_self')) return
+        const url = new URL(link.href)
+        const team = teamFromPath(url.pathname)
+        if (url.origin !== window.location.origin || !team || url.search || url.hash) return
+        event.preventDefault()
+        navigateTeam(team)
       }
       yield* Effect.acquireRelease(
         Effect.sync(() => {
           const subscription = actor.subscribe(setSnapshot)
           window.addEventListener('hashchange', syncRoute)
+          window.addEventListener('popstate', syncRoute)
+          document.addEventListener('click', followTeamLink, true)
           syncRoute()
           return subscription
         }),
         (subscription) => Effect.sync(() => {
           subscription.unsubscribe()
           window.removeEventListener('hashchange', syncRoute)
+          window.removeEventListener('popstate', syncRoute)
+          document.removeEventListener('click', followTeamLink, true)
           if (actorRef.current === actor) actorRef.current = null
         }),
       )
