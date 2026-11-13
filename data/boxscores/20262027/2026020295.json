@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "https://api-web.nhle.com/v1/gamecenter/2026020295/boxscore",
-  "fetchedAt": "2026-11-12T14:43:18.882Z",
+  "fetchedAt": "2026-11-13T03:19:56.524Z",
   "id": 2026020295,
   "season": 20262027,
   "date": "2026-11-11",
@@ -9,7 +9,7 @@
   "awayTeam": {
     "abbrev": "PHI",
     "score": 2,
-    "shotsOnGoal": 32,
+    "shotsOnGoal": 33,
     "players": {
       "forwards": [
         {
@@ -161,7 +161,7 @@
           "pim": 0,
           "hits": 1,
           "powerPlayGoals": 0,
-          "sog": 1,
+          "sog": 2,
           "faceoffWinningPctg": 0.333333,
           "toi": "06:25",
           "blockedShots": 0,
@@ -775,7 +775,7 @@
           "sog": 1,
           "faceoffWinningPctg": 0,
           "toi": "22:11",
-          "blockedShots": 4,
+          "blockedShots": 3,
           "shifts": 28,
           "giveaways": 1,
           "takeaways": 0
@@ -898,11 +898,11 @@
             "default": "T. Jarry"
           },
           "position": "G",
-          "evenStrengthShotsAgainst": "26/27",
+          "evenStrengthShotsAgainst": "27/28",
           "powerPlayShotsAgainst": "4/5",
           "shorthandedShotsAgainst": "0/0",
-          "saveShotsAgainst": "30/32",
-          "savePctg": 0.9375,
+          "saveShotsAgainst": "31/33",
+          "savePctg": 0.939394,
           "evenStrengthGoalsAgainst": 1,
           "powerPlayGoalsAgainst": 1,
           "shorthandedGoalsAgainst": 0,
@@ -911,8 +911,8 @@
           "toi": "60:47",
           "starter": true,
           "decision": "W",
-          "shotsAgainst": 32,
-          "saves": 30
+          "shotsAgainst": 33,
+          "saves": 31
         }
       ]
     }

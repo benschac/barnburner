@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "season": 20262027,
-  "fetchedAt": "2026-11-12T14:41:51.958Z",
+  "fetchedAt": "2026-11-13T13:26:30.390Z",
   "sources": [
     "https://api-web.nhle.com/v1/club-schedule-season/ANA/20262027",
     "https://api-web.nhle.com/v1/club-schedule-season/BOS/20262027",
@@ -5005,11 +5005,15 @@
       "gameType": 2,
       "date": "2026-11-12",
       "startTimeUTC": "2026-11-12T17:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "SEA",
       "awayTeam": "CAR",
-      "result": null
+      "result": {
+        "homeScore": 1,
+        "awayScore": 4,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020299,
@@ -5017,11 +5021,15 @@
       "gameType": 2,
       "date": "2026-11-12",
       "startTimeUTC": "2026-11-13T00:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "BOS",
       "awayTeam": "MTL",
-      "result": null
+      "result": {
+        "homeScore": 2,
+        "awayScore": 5,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020300,
@@ -5029,11 +5037,15 @@
       "gameType": 2,
       "date": "2026-11-12",
       "startTimeUTC": "2026-11-13T00:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "TOR",
       "awayTeam": "MIN",
-      "result": null
+      "result": {
+        "homeScore": 2,
+        "awayScore": 5,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020301,
@@ -5041,11 +5053,15 @@
       "gameType": 2,
       "date": "2026-11-12",
       "startTimeUTC": "2026-11-13T00:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "OTT",
       "awayTeam": "COL",
-      "result": null
+      "result": {
+        "homeScore": 4,
+        "awayScore": 3,
+        "decision": "OT"
+      }
     },
     {
       "id": 2026020303,
@@ -5053,11 +5069,15 @@
       "gameType": 2,
       "date": "2026-11-12",
       "startTimeUTC": "2026-11-13T00:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "NJD",
       "awayTeam": "WSH",
-      "result": null
+      "result": {
+        "homeScore": 5,
+        "awayScore": 2,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020304,
@@ -5065,11 +5085,15 @@
       "gameType": 2,
       "date": "2026-11-12",
       "startTimeUTC": "2026-11-13T00:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "CBJ",
       "awayTeam": "TBL",
-      "result": null
+      "result": {
+        "homeScore": 1,
+        "awayScore": 3,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020302,
@@ -5077,11 +5101,15 @@
       "gameType": 2,
       "date": "2026-11-12",
       "startTimeUTC": "2026-11-13T00:30:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "FLA",
       "awayTeam": "DET",
-      "result": null
+      "result": {
+        "homeScore": 5,
+        "awayScore": 4,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020305,
@@ -5089,11 +5117,15 @@
       "gameType": 2,
       "date": "2026-11-12",
       "startTimeUTC": "2026-11-13T01:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "CHI",
       "awayTeam": "BUF",
-      "result": null
+      "result": {
+        "homeScore": 3,
+        "awayScore": 2,
+        "decision": "OT"
+      }
     },
     {
       "id": 2026020306,
@@ -5101,11 +5133,15 @@
       "gameType": 2,
       "date": "2026-11-12",
       "startTimeUTC": "2026-11-13T01:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "DAL",
       "awayTeam": "WPG",
-      "result": null
+      "result": {
+        "homeScore": 3,
+        "awayScore": 8,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020307,
@@ -5113,11 +5149,15 @@
       "gameType": 2,
       "date": "2026-11-12",
       "startTimeUTC": "2026-11-13T02:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "UTA",
       "awayTeam": "STL",
-      "result": null
+      "result": {
+        "homeScore": 0,
+        "awayScore": 1,
+        "decision": "SO"
+      }
     },
     {
       "id": 2026020308,
@@ -5125,11 +5165,15 @@
       "gameType": 2,
       "date": "2026-11-12",
       "startTimeUTC": "2026-11-13T03:00:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "LAK",
       "awayTeam": "NYI",
-      "result": null
+      "result": {
+        "homeScore": 2,
+        "awayScore": 5,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020310,
@@ -8904,7 +8948,7 @@
       "season": 20262027,
       "gameType": 2,
       "date": "2026-12-28",
-      "startTimeUTC": "2026-12-29T00:30:00Z",
+      "startTimeUTC": "2026-12-29T00:00:00Z",
       "state": "FUT",
       "scheduleState": "OK",
       "homeTeam": "WPG",
@@ -10896,7 +10940,7 @@
       "season": 20262027,
       "gameType": 2,
       "date": "2027-01-19",
-      "startTimeUTC": "2027-01-20T00:00:00Z",
+      "startTimeUTC": "2027-01-20T00:30:00Z",
       "state": "FUT",
       "scheduleState": "OK",
       "homeTeam": "WPG",
