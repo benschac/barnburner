@@ -135,6 +135,28 @@ test('refresh reads every dated standing and club then publishes the validated c
   } finally { await rm(directory, { recursive: true, force: true }) }
 })
 
+test('refreshes completed-game stats while ignoring another game still in progress', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'nhl-poster-'))
+  const pending = { ...sourceGame, id: 2026020280, gameState: 'LIVE', homeTeam: { abbrev: 'TOR', score: 2 }, awayTeam: { abbrev: 'NJD', score: 2 } }
+  const schedules = new Map(teams.map(({ abbrev }) => [abbrev, { games: [sourceGame, { ...pending, gameState: abbrev === 'TOR' ? 'CRIT' : 'LIVE' }] }]))
+  const mixed = buildSnapshot(schedules, teams, fetchedAt, 2)
+  try {
+    const poster = await refreshPosterSnapshot({ games: mixed, output: join(directory, 'poster.json'), fetcher: async (url) => ({
+      ok: true, json: async () => url.includes('/standings/') ? rawStandings() : url.includes('/club-stats/') ? club() : input().summary,
+    }) })
+    assert.deepEqual(poster.standings.map(({ played }) => played), [1, 1])
+    const api = await makeTestApi(mixed, 2, poster)
+    try {
+      const response = await api.request('/api/games')
+      assert.equal(response.status, 200)
+      const body = await response.json()
+      assert.equal(body.games.length, 2)
+      assert.equal(body.games.find(({ id }) => id === pending.id).result, null)
+      assert.deepEqual(body.games.find(({ id }) => id === sourceGame.id).result, { homeScore: 0, awayScore: 4, decision: 'REG' })
+    } finally { await api.dispose() }
+  } finally { await rm(directory, { recursive: true, force: true }) }
+})
+
 test('HTTP poster endpoint serves the validated contract, rejects parameters, and reports missing data', async () => {
   const poster = buildPosterSnapshot(input())
   for (const supplement of [poster, null]) {

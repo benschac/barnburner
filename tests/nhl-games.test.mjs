@@ -51,6 +51,42 @@ test('rejects conflicting and repeated games', () => {
   assert.throws(() => buildSnapshot(duplicate, teams, fetchedAt, 1), /Duplicate game/)
 })
 
+test('ignores changing unfinished game states and scores in either club order', () => {
+  for (const states of [['PRE', 'LIVE'], ['LIVE', 'CRIT'], ['LIVE', 'FINAL'], ['OFF', 'LIVE']]) {
+    for (const order of [teams, [...teams].reverse()]) {
+      const input = schedules()
+      input.get('NJD').games[0].gameState = states[0]
+      input.get('TOR').games[0].gameState = states[1]
+      // A live score is allowed to be tied or change between club requests.
+      input.get(states[0] === 'OFF' ? 'TOR' : 'NJD').games[0].homeTeam.score = 4
+      const data = buildSnapshot(input, order, fetchedAt, 1)
+      assert.equal(data.games.length, 1)
+      assert.equal(data.games[0].result, null)
+      assert.ok(!['FINAL', 'OFF'].includes(data.games[0].state))
+      validateSnapshot(data, 1)
+    }
+  }
+})
+
+test('accepts matching finished scores while the game changes from FINAL to OFF', () => {
+  for (const order of [teams, [...teams].reverse()]) {
+    const input = schedules()
+    input.get('NJD').games[0].gameState = 'FINAL'
+    const data = buildSnapshot(input, order, fetchedAt, 1)
+    assert.equal(data.games[0].state, 'OFF')
+    assert.deepEqual(data.games[0].result, { homeScore: 0, awayScore: 4, decision: 'REG' })
+    input.get('TOR').games[0].homeTeam.score = 1
+    assert.throws(() => buildSnapshot(input, order, fetchedAt, 1), /Conflicting/)
+  }
+})
+
+test('still rejects conflicting schedule details for unfinished games', () => {
+  const input = schedules()
+  for (const schedule of input.values()) schedule.games[0].gameState = 'LIVE'
+  input.get('TOR').games[0].startTimeUTC = '2026-11-09T01:00:00Z'
+  assert.throws(() => buildSnapshot(input, teams, fetchedAt, 1), /Conflicting/)
+})
+
 test('requires complete club and game coverage before publishing', () => {
   const missing = schedules()
   missing.delete('TOR')

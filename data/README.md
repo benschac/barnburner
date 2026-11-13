@@ -10,7 +10,7 @@ From the repository root, refresh explicitly with Node.js 22 or newer:
 bun run data:refresh
 ```
 
-The refresh validates all 32 schedules, requires 84 unique regular-season games per team, checks both clubs report each game identically, and replaces the JSON file atomically. A failed or inconsistent fetch leaves the previous snapshot intact. A live game can change between club requests, which makes conflicting copies fail validation. Rerun after the source settles. Only `OFF` and `FINAL` games have a `result`; live and future scores do not become final results.
+The refresh validates all 32 schedules, requires 84 unique regular-season games per team, checks both clubs report matching schedule details and final scores, and replaces the JSON file atomically. A failed or inconsistent fetch leaves the previous snapshot intact. Unfinished games remain in the schedule with `result: null`; their live scores are ignored. Status changes between club requests do not fail the refresh. A game counts as completed only when both club feeds report `OFF` or `FINAL`. If one copy is still unfinished, its result is deferred until a later refresh. Matching final scores are accepted across the `FINAL` to `OFF` transition; conflicting final scores still fail validation.
 
 To import an existing download, place each club response in `DIR/TEAM.json`, such as `DIR/NJD.json`. Supply the actual retrieval timestamp:
 
