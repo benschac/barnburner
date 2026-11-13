@@ -8,17 +8,17 @@ import {
 } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { isDeepStrictEqual, parseArgs } from "node:util";
 import {
   boxScoreMatchesGame,
   boxScoreUrl,
   normalizeBoxScore,
 } from "../lib/nhl-boxscores.mjs";
-import { SEASON } from "../lib/nhl-games.mjs";
-import { completedDates } from "../lib/nhl-poster.mjs";
+import { SEASON, validateSnapshot } from "../lib/nhl-games.mjs";
+import { completedDates, NhlFeedMismatchError, validatePosterAgainstGames } from "../lib/nhl-poster.mjs";
 import { refreshSnapshot } from "./refresh-nhl-games.mjs";
-import { refreshPosterSnapshot } from "./refresh-nhl-poster.mjs";
+import { refreshPosterSnapshot, writePosterSnapshot } from "./refresh-nhl-poster.mjs";
 
 const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
 const backfillLimit = 16;
@@ -67,24 +67,42 @@ async function changed(path, next) {
   return !isDeepStrictEqual({ ...previous, fetchedAt: next.fetchedAt }, next);
 }
 
-async function refresh(directory) {
+export async function refreshData(directory, { fetcher = createNhlFetcher() } = {}) {
   const teams = await readJson(join(directory, "teams.json"));
   if (teams.length !== 32) throw new Error("Expected all 32 NHL teams");
   const staging = await mkdtemp(join(directory, ".nhl-refresh-"));
   try {
     const gamesFile = `nhl-${SEASON}.json`;
     const posterFile = `nhl-poster-${SEASON}.json`;
-    const fetcher = createNhlFetcher();
     const games = await refreshSnapshot({
       teams,
       output: join(staging, gamesFile),
       fetcher,
     });
-    const poster = await refreshPosterSnapshot({
-      games,
-      output: join(staging, posterFile),
-      fetcher,
-    });
+    let poster;
+    try {
+      poster = await refreshPosterSnapshot({
+        games,
+        output: join(staging, posterFile),
+        fetcher,
+      });
+    } catch (error) {
+      if (!(error instanceof NhlFeedMismatchError)) throw error;
+      const previousGames = await readSavedJson(join(directory, gamesFile));
+      const previousPoster = await readSavedJson(join(directory, posterFile));
+      if (!previousGames || !previousPoster) throw error;
+      validateSnapshot(previousGames);
+      validatePosterAgainstGames(previousPoster, previousGames);
+      // Bind legacy stats to their original finals before adding new scores.
+      poster = {
+        ...previousPoster,
+        completedGameIds: previousPoster.completedGameIds ?? previousGames.games
+          .filter((game) => game.result).map((game) => game.id).sort((a, b) => a - b),
+      };
+      validatePosterAgainstGames(poster, games);
+      await writePosterSnapshot(join(staging, posterFile), poster, games.teams, poster.history.map(({ date }) => date));
+      console.warn(`Keeping supplemental stats fetched ${poster.fetchedAt}; completed scores and box scores will still refresh. ${error.message}`);
+    }
 
     const archive = join(directory, "boxscores", String(SEASON));
     const finals = games.games.filter((game) => game.result);
@@ -148,7 +166,7 @@ async function refresh(directory) {
     for (const [source, destination] of writes)
       await rename(source, destination);
     console.log(
-      `Checked ${finals.length} finals through ${poster.standings[0].date}. Matching box scores: ${currentBoxes.size}/${finals.length}. Updated files: ${writes.length}.`,
+      `Checked ${finals.length} finals through ${completedDates(games).at(-1)}. Supplemental stats fetched ${poster.fetchedAt}. Matching box scores: ${currentBoxes.size}/${finals.length}. Updated files: ${writes.length}.`,
     );
     if (pending.length)
       console.warn(`Box scores unavailable this run: ${pending.join(", ")}`);
@@ -157,11 +175,13 @@ async function refresh(directory) {
   }
 }
 
-const { values } = parseArgs({ options: { "data-dir": { type: "string" } } });
-const directory = values["data-dir"]
-  ? resolve(values["data-dir"])
-  : fileURLToPath(new URL("../data", import.meta.url));
-refresh(directory).catch((error) => {
-  console.error(error.message);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  const { values } = parseArgs({ options: { "data-dir": { type: "string" } } });
+  const directory = values["data-dir"]
+    ? resolve(values["data-dir"])
+    : fileURLToPath(new URL("../data", import.meta.url));
+  refreshData(directory).catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}

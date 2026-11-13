@@ -2,7 +2,7 @@ import { Context, Effect, FileSystem, Layer, Schema } from 'effect'
 import { PosterSnapshot, SeasonGame, SeasonSnapshot, TeamData } from '@nhl-reddit-stats/season'
 import { SnapshotLoadError } from '@nhl-reddit-stats/season/rpc'
 import { GAMES_PER_TEAM, validateSnapshot } from '../../../lib/nhl-games.mjs'
-import { completedDates, validatePosterSnapshot, validateStandingsAgainstGames } from '../../../lib/nhl-poster.mjs'
+import { validatePosterAgainstGames } from '../../../lib/nhl-poster.mjs'
 
 const SavedSeason = Schema.Struct({
   ...SeasonSnapshot.fields,
@@ -24,8 +24,7 @@ export const makeSnapshots = (input: { season: unknown, poster: unknown | null, 
     try: () => {
       validateSnapshot(season, input.expectedGamesPerTeam ?? GAMES_PER_TEAM)
       if (poster !== null) {
-        validatePosterSnapshot(poster, season.teams, completedDates(season))
-        validateStandingsAgainstGames(poster.standings, season)
+        validatePosterAgainstGames(poster, season)
       }
     },
     catch: (error) => new SnapshotDataError({ message: error instanceof Error ? error.message : String(error) }),

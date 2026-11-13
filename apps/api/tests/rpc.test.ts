@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { NodeHttpServer, NodeServices } from '@effect/platform-node'
 import { Deferred, Effect, Fiber, Layer, Schema } from 'effect'
 import { HttpRouter, HttpServer } from 'effect/http'
-import { TeamData } from '@nhl-reddit-stats/season'
+import { PosterSnapshot, TeamData } from '@nhl-reddit-stats/season'
 import { SnapshotLoadError } from '@nhl-reddit-stats/season/rpc'
 import { SeasonSource, rpcSeasonSourceLayer } from '../../web/src/season-source.ts'
 import { ApiRoutes } from '../src/routes.ts'
@@ -35,6 +35,35 @@ test('the browser SeasonSource decodes a real HTTP RPC response using the shared
   assert.equal(result.season.games.length, season.games.length)
   assert.equal(result.poster.clubs.length, 32)
   assert.deepEqual(result, Schema.decodeUnknownSync(TeamData)({ season, poster }))
+})
+
+test('the browser receives new final scores alongside validated older team stats', async () => {
+  const pending = season.games.find((game) => game.result === null)
+  assert.ok(pending)
+  const savedPoster = Schema.decodeUnknownSync(PosterSnapshot)(poster)
+  const retained = {
+    ...savedPoster,
+    completedGameIds: savedPoster.completedGameIds ?? season.games.filter((game) => game.result !== null).map((game) => game.id),
+  }
+  // Additional finals can arrive on the same date as the retained standings.
+  for (const date of [pending.date, poster.history.at(-1)!.date]) {
+    const updated: typeof season = {
+      ...season,
+      games: season.games.map((game) => game.id === pending.id ? {
+        ...game, date, state: 'OFF', result: { homeScore: 3, awayScore: 1, decision: 'REG' },
+      } : game),
+    }
+    const snapshots = await Effect.runPromise(makeSnapshots({ season: updated, poster: retained }))
+    const result = await Effect.runPromise(sourceLoad().pipe(Effect.provide(apiLayer(snapshots))))
+    assert.deepEqual(result.season.games.find((game) => game.id === pending.id)?.result, { homeScore: 3, awayScore: 1, decision: 'REG' })
+    assert.equal(result.poster.fetchedAt, poster.fetchedAt)
+    assert.deepEqual(result.poster.clubs, poster.clubs)
+    assert.deepEqual(result.poster.completedGameIds, retained.completedGameIds)
+    assert.throws(() => Schema.decodeUnknownSync(TeamData)({ season: updated, poster: { ...retained, completedGameIds: [...retained.completedGameIds, pending.id] } }))
+  }
+  for (const ids of [[...retained.completedGameIds, pending.id], [...retained.completedGameIds, retained.completedGameIds[0]], [...retained.completedGameIds, 2026029999]]) {
+    await assert.rejects(Effect.runPromise(makeSnapshots({ season, poster: { ...retained, completedGameIds: ids } })))
+  }
 })
 
 test('missing poster returns the declared RPC error while games remain readable', async () => {

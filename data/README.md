@@ -36,9 +36,9 @@ The web app calls the shared `GetTeamData` RPC at `/api/rpc` on team selection. 
 
 ## Poster supplement
 
-`nhl-poster-20262027.json` contains current standings, standings for completed game dates, special-team percentages and league ranks, and player leaders for all 32 clubs. Its sources are the NHL [standings](https://api-web.nhle.com/v1/standings/2026-11-09), [club stats](https://api-web.nhle.com/v1/club-stats/NJD/20262027/2), and [team summary](https://api.nhle.com/stats/rest/en/team/summary?limit=-1&cayenneExp=seasonId%3D20262027%20and%20gameTypeId%3D2) feeds. Player portraits remain NHL-hosted URLs.
+`nhl-poster-20262027.json` contains standings, standings for completed game dates, special-team percentages and league ranks, and player leaders for all 32 clubs. Its sources are the NHL [standings](https://api-web.nhle.com/v1/standings/2026-11-09), [club stats](https://api-web.nhle.com/v1/club-stats/NJD/20262027/2), and [team summary](https://api.nhle.com/stats/rest/en/team/summary?limit=-1&cayenneExp=seasonId%3D20262027%20and%20gameTypeId%3D2) feeds. Player portraits remain NHL-hosted URLs. New snapshots record `completedGameIds`, identifying the exact final games covered by these statistics. Legacy snapshots without this field require matching score totals until the combined collector adds their original game coverage.
 
-Refresh games first, then the poster supplement:
+For normal updates, use `bun run data:refresh:all` so finished scores can advance while delayed supplemental feeds retain their last validated values. The individual commands are also available when both feeds are ready:
 
 ```sh
 bun run data:refresh
@@ -55,7 +55,7 @@ Vite proxies `/api` to `http://127.0.0.1:3001` in development and preview. On Ve
 
 `bun run data:refresh:all` stages the game and poster snapshots together. It spaces out NHL requests and backs off when the feed rate-limits a request. It rechecks box scores for the two latest game dates with finals and tries up to 16 older games with missing box scores or corrected finals per run. If a box score is unavailable or fails validation, the run logs the game ID and preserves any previously saved copy. Files are updated only when their data changes.
 
-The NHL schedule, standings, and team-summary feeds can update at different times after a game. The collector checks the newest standings against the final scores before collecting historical standings and player stats. A mismatch reports the team, date, and both totals and stops before replacing the saved snapshots. The team-summary check also reports both games-played totals. Retry after the feeds settle; the morning schedule avoids most in-game update windows. A successful refresh requires the feeds to agree, rather than combining newer scores with stale season statistics.
+The NHL schedule, standings, and team-summary feeds can update at different times after a game. The collector checks the newest standings against the final scores before collecting historical standings and player stats. If standings or summary totals disagree, it logs the mismatch and retains the last valid supplemental stats while continuing to save completed scores and box scores. The retained stats keep their original `fetchedAt` and `completedGameIds`, including when more games finish on the same date. The API validates those stats against the finals they cover, while the app displays separate update times for scores and team stats. Once the feeds agree, a later run replaces the supplemental stats normally. A missing or incompatible saved supplement, malformed provider data, or an unexpected error still fails validation before replacing the saved files.
 
 The [GitHub Actions workflow](../.github/workflows/refresh-nhl-data.yml) can run manually from the default branch. After confirming permission for ongoing collection and archiving, set the repository Actions variable `NHL_REFRESH_ENABLED` to `true` to enable the daily 6:17 a.m. Eastern run. The workflow validates and builds before committing changed data in one push. Confirm that branch rules allow the push and that Vercel deploys the resulting commit.
 

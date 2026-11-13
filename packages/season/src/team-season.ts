@@ -77,6 +77,7 @@ export const PosterSnapshot = Schema.Struct({
   schemaVersion: Schema.Literal(1),
   season: Schema.Int,
   fetchedAt: Timestamp,
+  completedGameIds: Schema.optionalKey(Schema.Array(Schema.Int)),
   standings: Schema.Array(Standing),
   history: Schema.Array(Schema.Struct({ date: DateText, standings: Schema.Array(Standing) })),
   clubs: Schema.Array(Schema.Struct({
@@ -94,12 +95,19 @@ export const PosterSnapshot = Schema.Struct({
 export type PosterSnapshot = typeof PosterSnapshot.Type
 export type Standing = typeof Standing.Type
 export const TeamData = Schema.Struct({ season: SeasonSnapshot, poster: PosterSnapshot }).check(
-  Schema.makeFilter((data) => data.season.season === data.poster.season &&
-    teams.every(({ abbrev }) => {
+  Schema.makeFilter((data) => {
+    if (data.season.season !== data.poster.season) return false
+    const finals = data.season.games.filter((game) => game.result !== null)
+    const ids = new Set(data.poster.completedGameIds ?? finals.map((game) => game.id))
+    const covered = finals.filter((game) => ids.has(game.id))
+    if (covered.length !== ids.size || (data.poster.completedGameIds && ids.size !== data.poster.completedGameIds.length)) return false
+    const coveredSeason = { ...data.season, games: covered }
+    return teams.every(({ abbrev }) => {
       const rows = data.poster.standings.filter((row) => row.team === abbrev)
-      const season = teamSeason(data.season, abbrev)
+      const season = teamSeason(coveredSeason, abbrev)
       return data.poster.clubs.filter((club) => club.team === abbrev).length === 1 && rows.length === 1 &&
         rows[0].played === season.played && rows[0].points === season.points
-    })),
+    })
+  }),
 )
 export type TeamData = typeof TeamData.Type
