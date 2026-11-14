@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "https://api-web.nhle.com/v1/gamecenter/2026020307/boxscore",
-  "fetchedAt": "2026-11-13T13:28:04.447Z",
+  "fetchedAt": "2026-11-14T13:34:35.976Z",
   "id": 2026020307,
   "season": 20262027,
   "date": "2026-11-12",
@@ -120,7 +120,7 @@
           "sog": 0,
           "faceoffWinningPctg": 0.5,
           "toi": "13:43",
-          "blockedShots": 0,
+          "blockedShots": 1,
           "shifts": 21,
           "giveaways": 1,
           "takeaways": 1
@@ -527,7 +527,7 @@
           "points": 0,
           "plusMinus": 0,
           "pim": 0,
-          "hits": 5,
+          "hits": 4,
           "powerPlayGoals": 0,
           "sog": 2,
           "faceoffWinningPctg": 0.571429,
