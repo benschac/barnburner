@@ -1,0 +1,47 @@
+[
+  {
+    "id": "multistep-njd-scoring-change",
+    "team": "NJD",
+    "question": "How much higher or lower is the New Jersey Devils' goals-per-game average over their last 10 completed games than over their first 10 completed games this season? Give the last-10 average minus the first-10 average, rounded to two decimals.",
+    "truthSql": "WITH games AS (SELECT gf, row_number() OVER (ORDER BY date, game_id) AS first_n, row_number() OVER (ORDER BY date DESC, game_id DESC) AS last_n FROM team_games WHERE team = 'NJD' AND is_final) SELECT round(avg(gf) FILTER (WHERE last_n <= 10) - avg(gf) FILTER (WHERE first_n <= 10), 2) AS value FROM games",
+    "expect": "value",
+    "tolerance": 0.01
+  },
+  {
+    "id": "multistep-wsh-points-percentage-change",
+    "team": "WSH",
+    "question": "How did the Washington Capitals' points percentage in their last 5 completed games compare with their first 5 this season? Count two standings points for a win and one for an overtime or shootout loss, and give last-5 minus first-5 in percentage points, rounded to two decimals.",
+    "truthSql": "WITH games AS (SELECT CASE result WHEN 'W' THEN 2 WHEN 'OTL' THEN 1 ELSE 0 END AS pts, row_number() OVER (ORDER BY date, game_id) AS first_n, row_number() OVER (ORDER BY date DESC, game_id DESC) AS last_n FROM team_games WHERE team = 'WSH' AND is_final) SELECT round(50.0 * (avg(pts) FILTER (WHERE last_n <= 5) - avg(pts) FILTER (WHERE first_n <= 5)), 2) AS value FROM games",
+    "expect": "value",
+    "tolerance": 0.01
+  },
+  {
+    "id": "multistep-tor-current-win-streak",
+    "team": "TOR",
+    "question": "How many straight wins do the Toronto Maple Leafs have right now, looking backward from their latest completed game this season? Include overtime and shootout wins, ignore unplayed games, and say zero if their latest completed game was a loss.",
+    "truthSql": "WITH games AS (SELECT result, row_number() OVER (ORDER BY date DESC, game_id DESC) AS recency FROM team_games WHERE team = 'TOR' AND is_final) SELECT count(*) AS value FROM games WHERE result = 'W' AND recency < coalesce((SELECT min(recency) FROM games WHERE result <> 'W'), (SELECT count(*) + 1 FROM games))",
+    "expect": "value"
+  },
+  {
+    "id": "multistep-edm-longest-point-streak",
+    "team": "EDM",
+    "question": "What's the Edmonton Oilers' longest streak of completed games with at least one standings point this season? Wins and overtime or shootout losses keep the streak going, a regulation loss breaks it, and a streak still in progress counts.",
+    "truthSql": "WITH games AS (SELECT result, sum(CASE WHEN result = 'L' THEN 1 ELSE 0 END) OVER (ORDER BY date, game_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS streak_group FROM team_games WHERE team = 'EDM' AND is_final), streaks AS (SELECT count(*) AS length FROM games WHERE result IN ('W', 'OTL') GROUP BY streak_group) SELECT coalesce(max(length), 0) AS value FROM streaks",
+    "expect": "value"
+  },
+  {
+    "id": "multistep-bos-one-goal-points",
+    "team": "BOS",
+    "question": "How many standings points did the Boston Bruins earn in their 5 most recent completed games decided by exactly one goal this season? Count two points for a win and one for an overtime or shootout loss, including shootout games whose final score has a one-goal margin.",
+    "truthSql": "WITH close_games AS (SELECT result FROM team_games WHERE team = 'BOS' AND is_final AND abs(gf - ga) = 1 ORDER BY date DESC, game_id DESC LIMIT 5) SELECT coalesce(sum(CASE result WHEN 'W' THEN 2 WHEN 'OTL' THEN 1 ELSE 0 END), 0) AS value FROM close_games",
+    "expect": "value"
+  },
+  {
+    "id": "multistep-mtl-recent-points-pace",
+    "team": "MTL",
+    "question": "If the Montreal Canadiens kept earning standings points at the rate of their last 10 completed games this season, how many points would that pace produce over 82 games? Use two points for a win and one for an overtime or shootout loss, and round to one decimal.",
+    "truthSql": "WITH recent AS (SELECT result FROM team_games WHERE team = 'MTL' AND is_final ORDER BY date DESC, game_id DESC LIMIT 10) SELECT round(82.0 * avg(CASE result WHEN 'W' THEN 2 WHEN 'OTL' THEN 1 ELSE 0 END), 1) AS value FROM recent",
+    "expect": "value",
+    "tolerance": 0.1
+  }
+]
