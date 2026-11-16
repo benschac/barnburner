@@ -14,7 +14,7 @@ export type EvalCase = typeof EvalCase.Type
 export const EvalCases = Schema.Array(EvalCase)
 
 export type EvalAnswer =
-  | { readonly value: number; readonly coverage?: string | undefined }
+  | { readonly value: number; readonly coverage?: { readonly archived: number; readonly finals: number } | undefined }
   | { readonly declined: true; readonly reason?: string | undefined }
 
 export type Grade = { readonly pass: true } | { readonly pass: false; readonly reason: string }

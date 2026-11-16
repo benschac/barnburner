@@ -31,8 +31,8 @@ test('declining a value case fails', () => {
 test('mustMentionCoverage needs a coverage value', () => {
   const c = { expect: 'value', mustMentionCoverage: true } as const
   assert.equal(grade(c, 3, { value: 3 }).pass, false)
-  assert.equal(grade(c, 3, { value: 3, coverage: ' ' }).pass, false)
-  assert.equal(grade(c, 3, { value: 3, coverage: '2024-25 only' }).pass, true)
+  assert.equal(grade(c, 3, { value: 3, coverage: { archived: Number.NaN, finals: 10 } }).pass, false)
+  assert.equal(grade(c, 3, { value: 3, coverage: { archived: 8, finals: 10 } }).pass, true)
 })
 
 test('non-finite answers and missing truth fail', () => {

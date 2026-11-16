@@ -25,7 +25,7 @@ export const grade = (
     }
   }
 
-  if (evalCase.mustMentionCoverage === true && (answer.coverage === undefined || answer.coverage.trim() === '')) {
+  if (evalCase.mustMentionCoverage === true && (answer.coverage === undefined || !Number.isFinite(answer.coverage.archived) || !Number.isFinite(answer.coverage.finals))) {
     return fail('answer must state its coverage')
   }
   return { pass: true }
