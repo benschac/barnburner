@@ -91,13 +91,30 @@ export const openDb = (opts: OpenDbOpts): Effect.Effect<Db, DbError, Scope.Scope
       if (prepared.statementType !== StatementType.SELECT) throw new Error('only SELECT statements are allowed')
     }
 
-    const query = (sql: string, _opts?: QueryOpts): Effect.Effect<QueryResult, SqlError> =>
+    const query = (sql: string, queryOpts?: QueryOpts): Effect.Effect<QueryResult, SqlError> =>
       Effect.tryPromise({
         try: async () => {
-          await assertSingleSelect(sql)
-          const reader = await connection.runAndReadAll(sql)
-          const rows = convertRows(reader, await reader.getRowObjectsJson())
-          return { rows, rowCount: rows.length }
+          const { timeoutMs, rowCap } = queryOpts ?? {}
+          let timedOut = false
+          const timer =
+            timeoutMs === undefined
+              ? undefined
+              : setTimeout(() => {
+                  timedOut = true
+                  connection.interrupt()
+                }, timeoutMs)
+          try {
+            await assertSingleSelect(sql)
+            const reader = await connection.runAndReadAll(sql)
+            const all = convertRows(reader, await reader.getRowObjectsJson())
+            const rows = rowCap === undefined ? all : all.slice(0, Math.max(0, rowCap))
+            return { rows, rowCount: all.length }
+          } catch (error) {
+            if (timedOut) throw new Error(`query timed out after ${timeoutMs}ms`)
+            throw error
+          } finally {
+            if (timer !== undefined) clearTimeout(timer)
+          }
         },
         catch: (error) => new SqlError({ message: error instanceof Error ? error.message : String(error), sql }),
       })
