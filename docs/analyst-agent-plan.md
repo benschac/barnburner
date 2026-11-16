@@ -103,7 +103,8 @@ await tools.Agent({
 - **One linear stack.** Analyst PRs form a single stack on `main`, in the order they were verified. Workers branch from the current top of the stack; when several finish together, the orchestrator rebases them into a chain, reruns each Done check, and submits. A **Stack on** note only fixes the order of two tasks. DATA1 and N1a touch nothing in `packages/analyst`, so they sit beside the stack on `main`.
 - **Merging** is bottom-up, whenever Ben chooses. It never blocks dispatch.
 - **Shared files:** `bun.lock` changes only in **A1**, **DEP1**, and **DEP2**. Every `package.json` script is registered in **A1**. No later task edits a `package.json`.
-- After a worktree agent commits, register the branch with `gt track --parent <parent>`, then `gt submit`.
+- After a worktree agent commits, register the branch with `gt track --parent <parent>`, then submit with `gt submit --stack --force --no-edit --no-interactive --publish --branch <top>` and set the title and body with `gh pr edit`. Do not open PRs with `gh pr create`: Graphite only shows a stack for PRs it submitted.
+- Codex runs need stdin closed: `codex exec -s workspace-write -C <worktree> "<prompt>" < /dev/null`.
 
 ## Contracts
 
@@ -664,17 +665,17 @@ Everything else hangs off **A1** or **K1** and can land at any time. Once **A1**
 | C3 | Sonnet | DB1 | analyst/c3-guard | #33 | in review | on V4 |
 | C1 | Sonnet | K1, B1, B2 | analyst/c1-verify-static | #19 | in review | on DB1 |
 | C2 | Sonnet | K1, B1 | analyst/c2-verify-rerun | #20 | in review | on C1 |
-| C4 | Sonnet | C1, C2, C3, V1, V4 | analyst/c4-verify | | todo | |
+| C4 | Sonnet | C1, C2, C3, V1, V4 | analyst/c4-verify | #36 | in review | on DB2 |
 | E1 | Sonnet | A1 | analyst/e1-grader | #9 | in review | on T1 |
 | E6a | Sonnet | E1, K1 | analyst/e6a-runner | #21 | in review | on C2 |
-| E2 | Codex | E1, V1 | analyst/e2-cases-easy | | todo | |
-| E3 | Codex | E1, V1 | analyst/e3-cases-multistep | | todo | |
-| E4 | Codex | E1, V2a, V2b, V4 | analyst/e4-cases-coverage | | todo | |
+| E2 | Codex | E1, V1 | analyst/e2-cases-easy | #40 | in review | on X3; Ben to skim the truth SQL |
+| E3 | Codex | E1, V1 | analyst/e3-cases-multistep | #41 | in review | on E2; Ben to skim the truth SQL |
+| E4 | Codex | E1, V2a, V2b, V4 | analyst/e4-cases-coverage | #42 | in review | on E3; Ben to skim the truth SQL |
 | E5 | Haiku | E1 | analyst/e5-cases-decline | #12 | in review | on R3 |
 | E8 | Haiku | K1, B1 | analyst/e8-card-pass-rate | #22 | in review | on E6a |
-| X1 | Sonnet | B1, B2, V1 | analyst/x1-results | | todo | |
-| X2 | Sonnet | B1, B2, V1 | analyst/x2-form | | todo | |
-| X3 | Sonnet | B1, B2, V2a, V2b, V4 | analyst/x3-players | | todo | |
+| X1 | Sonnet | B1, B2, V1 | analyst/x1-results | #37 | in review | on C4 |
+| X2 | Sonnet | B1, B2, V1 | analyst/x2-form | #38 | in review | on X1 |
+| X3 | Sonnet | B1, B2, V2a, V2b, V4 | analyst/x3-players | #39 | in review | on X2 |
 | X4 | Haiku | X1, X2, X3, C4, G2b, E8 | analyst/x4-detector-score | | todo | |
 | T1 | Haiku | A1 | analyst/t1-trace | #11 | in review | on F1 |
 | G1 | Sonnet | DEP2 | analyst/g1-llm | #17 | in review | on G7; model IDs need a live check |
@@ -694,7 +695,7 @@ Everything else hangs off **A1** or **K1** and can land at any time. Once **A1**
 | E7 | Sonnet | E6b, G8, E8, P-key | analyst/e7-model-compare | | todo | live |
 | R1 | Sonnet | G7, B2 | analyst/r1-review-cli | #27 | in review | on G6; not yet run on real cards |
 | R3 | Haiku | T1 | analyst/r3-report | #13 | in review | on G5a |
-| S1 | Sonnet | K1, G7, B2, G2b | analyst/s1-staleness | #34 | in review | on C3; script main not wired yet |
+| S1 | Sonnet | K1, G7, B2, G2b | analyst/s1-staleness | #34 | in review | on C3 |
 | CI1 | Sonnet | G8, S1, P-key, P-pr | analyst/ci1-workflow | | todo | P1 exit |
 | N1a | Sonnet | P-plan | analyst/n1a-contract | #4 | in review | |
 | N1b | Sonnet | N1a, B1, B2, G7 | analyst/n1b-api | | todo | |
