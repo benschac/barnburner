@@ -29,6 +29,9 @@
           "patterns": [{
             "group": ["**/api/**", "@nhl-reddit-stats/api", "@nhl-reddit-stats/api/*"],
             "message": "Browser code imports shared season contracts, never API implementations."
+          }, {
+            "group": ["**/data/boxscores/**", "**/lib/nhl-boxscores.mjs"],
+            "message": "Browser code reads box scores through the GetGameBoxscore RPC summary, never the raw archive."
           }]
         }],
         "patterns/no-module-mutable-state": "error",

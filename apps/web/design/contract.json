@@ -27,6 +27,7 @@
     "hero": 160,
     "poster": 1206,
     "posterHeight": 1518,
+    "drawer": 640,
     "chart": 1100,
     "chartPlot": 1058,
     "chartAxis": 42,

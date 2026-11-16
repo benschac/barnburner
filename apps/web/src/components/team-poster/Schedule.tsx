@@ -2,6 +2,7 @@ import { memo } from 'react'
 import { View, useThemeName } from 'tamagui'
 import type { TeamPosterData } from '../../stats'
 import { teamHref, teamLogo } from '../../team-season.ts'
+import { GameBoxscoreDialog } from './GameBoxscore'
 import { Copy, Score, Row, List, Logo, RuledHeading } from './primitives'
 
 const outcomeColors = { win: 'win', loss: 'loss', overtime: 'gold', pending: 'pending' } as const
@@ -40,7 +41,7 @@ export const Schedule = memo(function Schedule({ data, onPrefetchTeam }: { data:
         <List render="ol">
           {recent.map((game) => (
             <Row render="li" h="12" key={game.id}>
-              <Row render={<a href={teamHref(game.team)} />} w="100%" h="12" gap="3" textDecorationLine="none"
+              <Row render={<a href={teamHref(game.team)} />} flex={1} h="12" gap="3" textDecorationLine="none"
                 onMouseEnter={() => onPrefetchTeam(game.team)} onFocus={() => onPrefetchTeam(game.team)}>
               <Logo src={game.team === 'WSH' ? '/assets/teams/WSH.svg' : teamLogo(game.team, theme)} alt={game.team} w="16" h="10" mr="px" scale={1.07} />
               <Copy w="10" h="10" display="flex" items="center" justify="center" rounded="sm" fontFamily="result" fontSize="title" lineHeight="label"
@@ -48,6 +49,7 @@ export const Schedule = memo(function Schedule({ data, onPrefetchTeam }: { data:
               <Copy fontSize="title" lineHeight="title" fontWeight="500">{game.score}</Copy>
               <Copy fontSize="body" lineHeight="caption" color="gold" ml="px">{game.extra}</Copy>
               </Row>
+              <GameBoxscoreDialog gameId={game.id} opponent={game.team} score={game.score} />
             </Row>
           ))}
         </List>

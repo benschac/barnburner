@@ -59,6 +59,8 @@ The NHL schedule, standings, and team-summary feeds can update at different time
 
 The [GitHub Actions workflow](../.github/workflows/refresh-nhl-data.yml) can run manually from the default branch. After confirming permission for ongoing collection and archiving, set the repository Actions variable `NHL_REFRESH_ENABLED` to `true` to enable the daily 6:17 a.m. Eastern run. The workflow validates and builds before committing changed data in one push. Confirm that branch rules allow the push and that Vercel deploys the resulting commit.
 
+The web app's "Box score" button on each Last 5 game calls the `GetGameBoxscore` RPC when its drawer opens. It returns a summary (final score and decision, shots on goal, skaters' goals, assists and points, goalie saves and save percentage) and never the raw file. A game with no archived file, or one not yet final, answers with the typed `BoxscoreNotArchived` failure, which the drawer shows as "not available yet". `data:serve` reads the file on each request; the Vercel build bundles each file as a separate lazy chunk.
+
 Run `bun run test:data` to verify normalization, coverage, filtering, failed-write preservation, and HTTP behavior.
 
 Run `bun run test:api` to verify real Node HTTP RPC calls, typed failures, and cancellation. See [the server architecture](../apps/api/README.md) for the shared contract and Layer composition.
