@@ -3,7 +3,8 @@ import { test } from 'node:test'
 import { Effect } from 'effect'
 import { cardId } from '../src/card.ts'
 import type { CardDraft, InsightCard } from '../src/card.ts'
-import { fillCard, submitCardText } from '../src/tools/submit-card.ts'
+import type { Guard } from '../src/shapes.ts'
+import { fillCard, makeSubmitCardTool, submitCardText } from '../src/tools/submit-card.ts'
 import { fakeDb, fakeGuard, fakeVerify } from './fakes.ts'
 
 const query = 'SELECT n FROM t'
@@ -33,6 +34,44 @@ test('fillCard fills derived fields, coverage only when boxscores touched', asyn
     fillCard({ db, guard: fakeGuard({ ok: true, touchesBoxscores: false }) }, { ...draft, evidence: { query } }, meta),
   )
   assert.deepEqual(noGames.evidence.gameIds, [])
+})
+
+test('guard rejection stops before any db call', async () => {
+  const calls: string[] = []
+  const inner = fakeDb({})
+  const spy = {
+    query: (s: string) => (calls.push(s), inner.query(s)),
+    queryCanonical: (s: string) => (calls.push(s), inner.queryCanonical(s)),
+  }
+  const reject = fakeGuard({ ok: false, reason: 'nope' })
+  const err = await Effect.runPromise(Effect.flip(fillCard({ db: spy, guard: reject }, draft, meta)))
+  assert.equal(err.message, 'nope')
+  const onlyGames: Guard = (_db, sql) => Effect.succeed(sql === gamesQuery ? { ok: false, reason: 'bad games' } : { ok: true, touchesBoxscores: false })
+  const err2 = await Effect.runPromise(Effect.flip(fillCard({ db: spy, guard: onlyGames }, draft, meta)))
+  assert.equal(err2.message, 'bad games')
+  const text = await Effect.runPromise(
+    submitCardText({ db: spy, guard: reject, verify: fakeVerify({ ok: true }), finals: new Set(), meta, onCard: () => {} }, draft),
+  )
+  assert.equal(text, 'ERROR: nope')
+  const assertGuard: Guard = (_db, sql) => Effect.succeed(sql === 'SELECT true' ? { ok: false, reason: 'bad assert' } : { ok: true, touchesBoxscores: false })
+  const t2 = await Effect.runPromise(
+    submitCardText({ db: spy, guard: assertGuard, verify: fakeVerify({ ok: true }), finals: new Set(), meta, onCard: () => {} }, { ...draft, assert: 'SELECT true' }),
+  )
+  assert.equal(t2, 'ERROR: bad assert')
+  assert.deepEqual(calls, [])
+})
+
+test('null optional fields are treated as absent', async () => {
+  const cards: InsightCard[] = []
+  const input = { ...draft, assert: null, evidence: { query, gamesQuery: null } }
+  const text = await Effect.runPromise(
+    submitCardText({ db, guard: fakeGuard({ ok: true, touchesBoxscores: false }), verify: fakeVerify({ ok: true }), finals: new Set(), meta, onCard: (c) => cards.push(c) }, input),
+  )
+  assert.equal(text, 'ok')
+  assert.deepEqual(cards[0]?.evidence.gameIds, [])
+  const tool = makeSubmitCardTool({ db, guard: fakeGuard({ ok: true, touchesBoxscores: false }), verify: fakeVerify({ ok: true }), finals: new Set(), meta, onCard: () => {} })
+  const v = await (tool.inputSchema as any).validate(input)
+  assert.equal(v.success, true)
 })
 
 test('submit tool body returns ok, failures and errors as text', async () => {

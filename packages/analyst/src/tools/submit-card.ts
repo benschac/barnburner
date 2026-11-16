@@ -25,6 +25,12 @@ export const fillCard = (
   Effect.gen(function* () {
     const { db, guard } = deps
     const { query, gamesQuery } = draft.evidence
+    const verdict = yield* guard(db, query)
+    if (!verdict.ok) return yield* new FillError({ message: verdict.reason })
+    if (gamesQuery !== undefined) {
+      const gv = yield* guard(db, gamesQuery)
+      if (!gv.ok) return yield* new FillError({ message: gv.reason })
+    }
     const result = yield* db.queryCanonical(query)
     const gameIds: number[] = []
     if (gamesQuery !== undefined) {
@@ -35,9 +41,8 @@ export const fillCard = (
         gameIds.push(id)
       }
     }
-    const verdict = yield* guard(db, query)
     let coverage: { archived: number; finals: number } | undefined
-    if (verdict.ok && verdict.touchesBoxscores) {
+    if (verdict.touchesBoxscores) {
       const rows = (yield* db.query(
         `SELECT archived, finals FROM boxscore_coverage WHERE team = '${sqlText(draft.team)}'`,
       )).rows
@@ -80,7 +85,11 @@ export interface SubmitCardDeps {
 
 export const submitCardText = (deps: SubmitCardDeps, input: unknown): Effect.Effect<string> =>
   Effect.gen(function* () {
-    const draft = yield* Schema.decodeUnknownEffect(CardDraft)(input)
+    const draft = yield* Schema.decodeUnknownEffect(Schema.toCodecJson(CardDraft))(input)
+    if (draft.assert !== undefined) {
+      const av = yield* deps.guard(deps.db, draft.assert)
+      if (!av.ok) return `ERROR: ${av.reason}`
+    }
     const card = yield* fillCard(deps, draft, deps.meta)
     const verdict = yield* deps.verify(card, deps.finals)
     if (!verdict.ok) return `FAILED check ${verdict.check}: ${verdict.detail}`
@@ -93,7 +102,7 @@ const draftInputSchema = jsonSchema<CardDraft>(
   { ...jsonDoc.schema, definitions: jsonDoc.definitions } as JSONSchema7,
   {
     validate: (value) => {
-      const decoded = Schema.decodeUnknownExit(CardDraft)(value)
+      const decoded = Schema.decodeUnknownExit(Schema.toCodecJson(CardDraft))(value)
       return decoded._tag === 'Success'
         ? { success: true, value: decoded.value }
         : { success: false, error: new Error(String(decoded.cause)) }
