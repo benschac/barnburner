@@ -1,58 +1,108 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { Result, Schema, Tuple } from "effect";
+
+export class InvalidRunIdError extends Schema.TaggedError<
+  InvalidRunIdError,
+  { readonly brand: unique symbol }
+>()("InvalidRunIdError", {
+  runId: Schema.String,
+}) {
+  override get message(): string {
+    return `invalid runId for trace file: ${JSON.stringify(this.runId)}`;
+  }
+}
+
+// A JSONL line that is not valid JSON or does not decode as a trace event.
+export class TraceLineError extends Schema.TaggedError<
+  TraceLineError,
+  { readonly brand: unique symbol }
+>()("TraceLineError", {
+  reason: Schema.String,
+  line: Schema.String,
+}) {
+  override get message(): string {
+    return `invalid trace line: ${this.reason}`;
+  }
+}
+
+// One schema per trace event. The writer and the reader both validate against these,
+// so a line the writer persists is always a line the reader accepts.
 
 export const TRACE_EVENT_TYPES = ["model_call", "tool_call", "verify", "card", "outcome"] as const;
 export type TraceEventType = (typeof TRACE_EVENT_TYPES)[number];
 
-export interface ModelCallEvent {
-  readonly type: "model_call";
-  readonly model: string;
-  readonly inputTokens: number;
-  readonly outputTokens: number;
-  readonly latencyMs: number;
-}
-
-export interface ToolCallEvent {
-  readonly type: "tool_call";
-  readonly tool: string;
-  readonly input: unknown;
-  readonly output: string;
-  readonly durationMs: number;
-  readonly error?: string;
-}
-
-export interface VerifyEvent {
-  readonly type: "verify";
-  // Verifier check number, 1-8.
-  readonly check: number;
-  readonly passed: boolean;
-  readonly detail?: string;
-}
-
-export interface CardEvent {
-  readonly type: "card";
-  readonly cardId: string;
-  readonly card: unknown;
-}
-
 export const OUTCOME_STATUSES = ["cards", "answered", "declined", "no_insight", "crashed"] as const;
-export type OutcomeStatus = (typeof OUTCOME_STATUSES)[number];
+export const OutcomeStatus = Schema.Literals(OUTCOME_STATUSES);
+export type OutcomeStatus = typeof OutcomeStatus.Type;
 
-export interface OutcomeEvent {
-  readonly type: "outcome";
-  readonly status: OutcomeStatus;
-  readonly detail?: string;
-}
+// Unknown alone accepts undefined, which JSON.stringify drops; require a value.
+const JsonValue = Schema.Unknown.check(
+  Schema.makeFilter((value) => value !== undefined, { expected: "a JSON value" }),
+);
+
+export const ModelCallEvent = Schema.Struct({
+  type: Schema.Literal("model_call"),
+  model: Schema.String,
+  inputTokens: Schema.Finite,
+  outputTokens: Schema.Finite,
+  latencyMs: Schema.Finite,
+});
+export type ModelCallEvent = typeof ModelCallEvent.Type;
+
+export const ToolCallEvent = Schema.Struct({
+  type: Schema.Literal("tool_call"),
+  tool: Schema.String,
+  input: JsonValue,
+  output: Schema.String,
+  durationMs: Schema.Finite,
+  error: Schema.optionalKey(Schema.String),
+});
+export type ToolCallEvent = typeof ToolCallEvent.Type;
+
+export const VerifyEvent = Schema.Struct({
+  type: Schema.Literal("verify"),
+  // Verifier check number, 1-8.
+  check: Schema.Finite,
+  passed: Schema.Boolean,
+  detail: Schema.optionalKey(Schema.String),
+});
+export type VerifyEvent = typeof VerifyEvent.Type;
+
+export const CardEvent = Schema.Struct({
+  type: Schema.Literal("card"),
+  cardId: Schema.String,
+  card: JsonValue,
+});
+export type CardEvent = typeof CardEvent.Type;
+
+export const OutcomeEvent = Schema.Struct({
+  type: Schema.Literal("outcome"),
+  status: OutcomeStatus,
+  detail: Schema.optionalKey(Schema.String),
+});
+export type OutcomeEvent = typeof OutcomeEvent.Type;
 
 // What callers pass to append(); the writer adds ts and runId.
-export type TracePayload = ModelCallEvent | ToolCallEvent | VerifyEvent | CardEvent | OutcomeEvent;
-
-export type TraceEvent = TracePayload & { readonly ts: string; readonly runId: string };
-
-export const DEFAULT_MAX_TOOL_OUTPUT_CHARS = 2000;
+export const TracePayload = Schema.Union([ModelCallEvent, ToolCallEvent, VerifyEvent, CardEvent, OutcomeEvent]);
+export type TracePayload = typeof TracePayload.Type;
 
 const RUN_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+// Run IDs become file names, so they cannot contain path separators or start with a dot.
+export const RunId = Schema.String.check(Schema.isPattern(RUN_ID_PATTERN));
+
+// A persisted event is a payload plus the envelope the writer adds.
+export const TraceEvent = TracePayload.mapMembers(Tuple.map(Schema.fieldsAssign({ ts: Schema.String, runId: RunId })));
+export type TraceEvent = typeof TraceEvent.Type;
+
+// Every event schema must be listed in TRACE_EVENT_TYPES and vice versa.
+const _typesMatch: [TraceEventType, TracePayload["type"]] extends [TracePayload["type"], TraceEventType] ? true : never = true;
+void _typesMatch;
+
+const decodeTraceLine = Schema.decodeUnknownResult(Schema.fromJsonString(TraceEvent));
+
+export const DEFAULT_MAX_TOOL_OUTPUT_CHARS = 2000;
 
 // Repo root is four levels up from src/ (packages/analyst/src -> repo root).
 export function defaultTraceDir(): string {
@@ -75,13 +125,14 @@ export interface TraceOptions {
 export interface TraceWriter {
   readonly runId: string;
   readonly path: string;
-  append(payload: TracePayload): TraceEvent;
+  // Fails, and writes nothing, when the event would serialize to a line the reader rejects.
+  append(payload: TracePayload): Result.Result<TraceEvent, TraceLineError>;
 }
 
 // Append-only JSONL writer: one line per event, written synchronously in call order.
-export function openTrace(options: TraceOptions): TraceWriter {
-  if (!RUN_ID_PATTERN.test(options.runId)) {
-    throw new Error(`invalid runId for trace file: ${JSON.stringify(options.runId)}`);
+export function openTrace(options: TraceOptions): Result.Result<TraceWriter, InvalidRunIdError> {
+  if (!Schema.is(RunId)(options.runId)) {
+    return Result.fail(new InvalidRunIdError({ runId: options.runId }));
   }
   const dir = options.dir ?? defaultTraceDir();
   const now = options.now ?? (() => new Date());
@@ -89,7 +140,7 @@ export function openTrace(options: TraceOptions): TraceWriter {
   mkdirSync(dir, { recursive: true });
   const path = join(dir, `${options.runId}.jsonl`);
 
-  return {
+  return Result.succeed({
     runId: options.runId,
     path,
     append(payload) {
@@ -97,57 +148,18 @@ export function openTrace(options: TraceOptions): TraceWriter {
         payload.type === "tool_call"
           ? { ...payload, output: truncateText(payload.output, maxToolOutput), ts: now().toISOString(), runId: options.runId }
           : { ...payload, ts: now().toISOString(), runId: options.runId };
-      // Round-trip through the parser so the writer never persists a line the reader rejects
-      // (e.g. undefined input/card, which JSON drops, or NaN, which JSON nulls).
+      // Decode the serialized line, not the object: JSON drops undefined and turns NaN into null,
+      // and only the round trip catches what the reader would see.
       const line = JSON.stringify(event);
-      parseTraceLine(line);
+      const parsed = parseTraceLine(line);
+      if (Result.isFailure(parsed)) return parsed;
       appendFileSync(path, `${line}\n`, "utf8");
-      return event;
+      return Result.succeed(event);
     },
-  };
+  });
 }
 
-const OPTIONAL_FIELDS: Partial<Record<TraceEventType, Record<string, "string">>> = {
-  tool_call: { error: "string" },
-  verify: { detail: "string" },
-  outcome: { detail: "string" },
-};
-
-const REQUIRED_FIELDS: Record<TraceEventType, Record<string, "string" | "number" | "boolean" | "any">> = {
-  model_call: { model: "string", inputTokens: "number", outputTokens: "number", latencyMs: "number" },
-  tool_call: { tool: "string", input: "any", output: "string", durationMs: "number" },
-  verify: { check: "number", passed: "boolean" },
-  card: { cardId: "string", card: "any" },
-  outcome: { status: "string" },
-};
-
-// Validates one JSONL line against the event shapes above. Throws on malformed input.
-export function parseTraceLine(line: string): TraceEvent {
-  const value: unknown = JSON.parse(line);
-  if (typeof value !== "object" || value === null) throw new Error("trace line is not an object");
-  const record = value as Record<string, unknown>;
-  if (typeof record.ts !== "string" || typeof record.runId !== "string") {
-    throw new Error("trace event missing ts or runId");
-  }
-  const type = record.type;
-  if (typeof type !== "string" || !(TRACE_EVENT_TYPES as readonly string[]).includes(type)) {
-    throw new Error(`unknown trace event type: ${String(type)}`);
-  }
-  const fields = REQUIRED_FIELDS[type as TraceEventType];
-  for (const [field, kind] of Object.entries(fields)) {
-    const actual = record[field];
-    if (kind === "any" ? actual === undefined : typeof actual !== kind) {
-      throw new Error(`trace event ${type} has invalid field ${field}`);
-    }
-  }
-  for (const [field, kind] of Object.entries(OPTIONAL_FIELDS[type as TraceEventType] ?? {})) {
-    const actual = record[field];
-    if (actual !== undefined && typeof actual !== kind) {
-      throw new Error(`trace event ${type} has invalid optional field ${field}`);
-    }
-  }
-  if (type === "outcome" && !(OUTCOME_STATUSES as readonly unknown[]).includes(record.status)) {
-    throw new Error(`trace event outcome has invalid status ${String(record.status)}`);
-  }
-  return record as unknown as TraceEvent;
+// Decodes one JSONL line against the event schemas. Fails with TraceLineError on malformed input.
+export function parseTraceLine(line: string): Result.Result<TraceEvent, TraceLineError> {
+  return Result.mapError(decodeTraceLine(line), (error) => new TraceLineError({ reason: error.message, line }));
 }
