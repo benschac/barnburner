@@ -1,7 +1,8 @@
-import { memo, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { Theme, View } from 'tamagui'
 import { teamBannerThemeName } from '../../../design/themes'
 import { Chart } from '../../Charts'
+import { idleInspection, inspectGame, inspectedGame } from '../../game-inspection'
 import type { TeamPosterData } from '../../stats'
 import { teamLogo } from '../../team-season'
 import { Division } from './Division'
@@ -11,12 +12,11 @@ import { Schedule } from './Schedule'
 import { BannerLayer, Copy, Heading, List, Logo, Row, Score } from './primitives'
 
 export const TeamPoster = memo(function TeamPoster({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetchTeam: (team: string) => void }) {
-  const [activeGame, setActiveGame] = useState<number | null>(null)
-  const [activeTeam, setActiveTeam] = useState(data.team.abbrev)
-  if (activeTeam !== data.team.abbrev) {
-    setActiveTeam(data.team.abbrev)
-    setActiveGame(null)
-  }
+  const team = data.team.abbrev
+  const [inspection, setInspection] = useState(() => idleInspection(team))
+  const activeGame = inspectedGame(inspection, team)
+  const pointGame = useCallback((game: number | null) => setInspection((state) => inspectGame(state, { type: 'point', team, game })), [team])
+  const holdGame = useCallback((game: number | null) => setInspection((state) => inspectGame(state, { type: 'hold', team, game })), [team])
   const { seasonGames, completedGames, divisions, seasonSummary, snapshotDate, latestPlayoffCushion } = data
   return (
       <View w="100%" maxW="poster" data-poster-shell="">
@@ -47,7 +47,7 @@ export const TeamPoster = memo(function TeamPoster({ data, onPrefetchTeam }: { d
                 <Heading id="season-heading">The season, game by game</Heading>
                 <Copy render="p" color="muted" fontSize="detail" lineHeight="detail">{completedGames.length} of {seasonGames.length} played, bar height = goal margin</Copy>
               </Row>
-              <Chart data={data} kind="season" activeGame={activeGame} onActiveGameChange={setActiveGame} />
+              <Chart data={data} kind="season" activeGame={activeGame} onPointGame={pointGame} onHoldGame={holdGame} />
             </View>
             <View render="section" minH="hero" aria-labelledby="line-heading">
               <Row minH="12" flexWrap="wrap" columnGap="2" rowGap="1" justify="space-between" items="baseline" pr="0 poster:10 print:10" pb="3">
@@ -56,14 +56,14 @@ export const TeamPoster = memo(function TeamPoster({ data, onPrefetchTeam }: { d
                 )}</Heading>
                 <Copy render="p" color="muted" fontSize="detail" lineHeight="detail">{latestPlayoffCushion?.equation ?? 'No playoff data yet'}</Copy>
               </Row>
-              <Chart data={data} kind="playoff" activeGame={activeGame} onActiveGameChange={setActiveGame} />
+              <Chart data={data} kind="playoff" activeGame={activeGame} onPointGame={pointGame} onHoldGame={holdGame} />
             </View>
             <View display="grid" gridTemplateColumns="minmax(0, 1fr) md:repeat(2, minmax(0, 1fr)) poster:1.5fr 1fr 1fr print:1.5fr 1fr 1fr" gap="8 poster:6 print:6" mt="4 poster:0 print:0">
               <View display="grid" gridTemplateColumns="minmax(0, 1fr) sm:repeat(2, minmax(0, 1fr)) print:repeat(2, minmax(0, 1fr))"
                 gridColumn="md:1 / -1 poster:auto print:auto" content="flex-start" gap="4 print:6">
                 {divisions.map(({ name, record, teams }) => (
                   <Division selectedTeam={data.team.abbrev} name={name} record={record} teams={teams} key={name} onPrefetchTeam={onPrefetchTeam}
-                    activeGame={activeGame} onActiveGameChange={setActiveGame} />
+                    activeGame={activeGame} onPointGame={pointGame} onHoldGame={holdGame} />
                 ))}
               </View>
               <PlayoffPicture data={data} onPrefetchTeam={onPrefetchTeam} />

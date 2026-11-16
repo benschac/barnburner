@@ -8,13 +8,14 @@ import { Copy, Score, Row, List, Logo } from './primitives'
 const outcomeColors = { win: 'win', loss: 'loss', overtime: 'gold', pending: 'pending' } as const
 
 
-export function Division({ name, record, teams, selectedTeam, activeGame, onActiveGameChange, onPrefetchTeam }: {
+export function Division({ name, record, teams, selectedTeam, activeGame, onPointGame, onHoldGame, onPrefetchTeam }: {
   name: string
   record: string
   teams: Matchup[]
   selectedTeam: string
   activeGame: number | null
-  onActiveGameChange: (index: number | null) => void
+  onPointGame: (index: number | null) => void
+  onHoldGame: (index: number | null) => void
   onPrefetchTeam: (team: string) => void
 }) {
   const theme = useThemeName()
@@ -46,11 +47,8 @@ export function Division({ name, record, teams, selectedTeam, activeGame, onActi
                       bg="transparent hover:surface" rounded="sm" borderWidth={1} cursor="pointer"
                       borderColor={index === activeGame ? 'gold print:transparent' : 'transparent focus-visible:gold'}
                       aria-label={`${venue === 'home' ? 'vs' : 'at'} ${team}, ${gameDateTime(game)}, ${label}`}
-                      onMouseEnter={() => onActiveGameChange(index)}
-                      onMouseLeave={(event) => {
-                        if (event.currentTarget !== document.activeElement) onActiveGameChange(null)
-                      }}
-                      onFocus={() => onActiveGameChange(index)} onBlur={() => onActiveGameChange(null)}
+                      onMouseEnter={() => onPointGame(index)} onMouseLeave={() => onPointGame(null)}
+                      onFocus={() => onHoldGame(index)} onBlur={() => onHoldGame(null)}
                       onClick={(event) => event.stopPropagation()}
                     >
                       <View w="6" h="6" bg={outcomeColors[outcome]} maskRepeat="no-repeat" maskSize="contain" maskPosition="center"

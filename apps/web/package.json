@@ -12,7 +12,7 @@
     "lint": "oxlint && node scripts/check-design-files.mjs && node scripts/test-design-rules.mjs && node scripts/test-pattern-rules.mjs",
     "preview": "vite preview",
     "test:design": "node scripts/test-design-rules.mjs",
-    "test:teams": "node --test tests/team-season.test.ts tests/team-machine.test.ts tests/boxscore-machine.test.ts",
+    "test:teams": "node --test tests/team-season.test.ts tests/team-machine.test.ts tests/boxscore-machine.test.ts tests/game-inspection.test.ts",
     "test:social": "node --test tests/social-*.test.ts"
   },
   "dependencies": {

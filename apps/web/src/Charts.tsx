@@ -194,11 +194,14 @@ function scaleCanvas(canvas: HTMLCanvasElement, width: number, height: number, r
   return context
 }
 
-export function Chart({ data, kind, activeGame, onActiveGameChange }: {
+export function Chart({ data, kind, activeGame, onPointGame, onHoldGame }: {
   data: TeamPosterData
   kind: ChartKind
   activeGame: number | null
-  onActiveGameChange: (game: number | null) => void
+  /** The pointer is over a game, or left with `null`. */
+  onPointGame: (game: number | null) => void
+  /** A click or the keyboard selected a game; `null` releases it. */
+  onHoldGame: (game: number | null) => void
 }) {
   const { seasonGames, completedGames, seasonSummary, latestPlayoffCushion } = data
   const step = plotWidth / Math.max(1, seasonGames.length)
@@ -287,18 +290,29 @@ export function Chart({ data, kind, activeGame, onActiveGameChange }: {
     }
   }, [activeGame, step])
 
-  function inspectGame(event: MouseEvent) {
+  function gameAt(event: MouseEvent) {
     const bounds = ref.current?.getBoundingClientRect()
-    if (!bounds?.width) return
+    if (!bounds?.width) return undefined
     const position = (event.clientX - bounds.left) * plotWidth / bounds.width
     const game = Math.round((position - x(0)) / step)
-    onActiveGameChange(position >= 0 && position < plotWidth && game >= 0 && game < seasonGames.length ? game : null)
+    return position >= 0 && position < plotWidth && game >= 0 && game < seasonGames.length ? game : null
+  }
+
+  function pointAt(event: MouseEvent) {
+    const game = gameAt(event)
+    if (game !== undefined) onPointGame(game)
+  }
+
+  // A click keeps its game highlighted after the pointer leaves, until the chart loses focus.
+  function holdAt(event: MouseEvent) {
+    const game = gameAt(event)
+    if (game !== undefined) onHoldGame(game)
   }
 
   function navigateGames(event: KeyboardEvent) {
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || seasonGames.length === 0) return
     if (event.key === 'Escape') {
-      onActiveGameChange(null)
+      onHoldGame(null)
       return
     }
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
@@ -308,7 +322,7 @@ export function Chart({ data, kind, activeGame, onActiveGameChange }: {
       : Math.max(0, Math.min(seasonGames.length - 1, activeGame + offset))
     if (nextGame === activeGame) return
     event.preventDefault()
-    onActiveGameChange(nextGame)
+    onHoldGame(nextGame)
   }
 
   let detail: string | undefined
@@ -337,12 +351,12 @@ export function Chart({ data, kind, activeGame, onActiveGameChange }: {
           onKeyDown={navigateGames} onFocus={() => setIsFocused(true)}
           onBlur={() => {
             setIsFocused(false)
-            onActiveGameChange(null)
+            onHoldGame(null)
           }}
         >
           <View render="canvas" ref={(node) => { ref.current = node instanceof HTMLCanvasElement ? node : null }}
             w="chartPlot" h={heightToken} display="block" role="img"
-            onMouseMove={inspectGame} onMouseLeave={() => { if (!isFocused) onActiveGameChange(null) }} onClick={inspectGame}
+            onMouseMove={pointAt} onMouseLeave={() => onPointGame(null)} onClick={holdAt}
             aria-label={kind === 'season'
               ? `Season goal margins for ${completedGames.length} of ${seasonGames.length} games. Record: ${seasonSummary.record}.`
               : `Playoff cushion over ${playoffPoints.length} games. ${latestPlayoffCushion?.equation ?? 'No playoff data yet'}.`}
