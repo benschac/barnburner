@@ -62,6 +62,33 @@ test('queryCanonical orders all columns', async () => {
   })
 })
 
+test('duplicate column names keep keys and types aligned', async () => {
+  await withDb(async (db) => {
+    const { rows } = await q(db, "select 'A' as x, 2::BIGINT as x")
+    assert.equal(rows.length, 1)
+    assert.deepEqual(Object.values(rows[0] ?? {}), ['A', 2])
+  })
+})
+
+test('queryCanonical accepts trailing line comments and terminators', async () => {
+  await withDb(async (db) => {
+    for (const sql of ['select 1 as x -- why', 'select 1 as x; -- why', 'select 1 as x;']) {
+      assert.deepEqual((await Effect.runPromise(db.queryCanonical(sql))).rows, [{ x: 1 }], sql)
+    }
+  })
+})
+
+test('only a single SELECT runs; injected statements leave tables intact', async () => {
+  await withDb(async (db) => {
+    const injection = 'SELECT 1) AS s; DROP TABLE t; SELECT 1 --'
+    assert.equal((await Effect.runPromise(Effect.flip(db.queryCanonical(injection))))._tag, 'SqlError')
+    assert.equal((await fails(db, 'select 1; drop table t')) ._tag, 'SqlError')
+    assert.equal((await fails(db, 'drop table t'))._tag, 'SqlError')
+    assert.equal((await fails(db, 'create table z as select 1'))._tag, 'SqlError')
+    assert.equal((await q(db, 'select count(*) as c from t')).rows[0]?.c, 3)
+  })
+})
+
 test('sql errors are SqlError', async () => {
   await withDb(async (db) => {
     const error = await fails(db, 'select nope from t')

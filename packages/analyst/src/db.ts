@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DuckDBInstance, DuckDBTypeId } from '@duckdb/node-api'
+import { DuckDBInstance, DuckDBTypeId, StatementType } from '@duckdb/node-api'
 import type { DuckDBResultReader } from '@duckdb/node-api'
 import { Effect, type Scope } from 'effect'
 import { type Db, DbError, type QueryOpts, type QueryResult, type Row, SqlError } from './shapes.ts'
@@ -36,7 +36,7 @@ export const convertValue = (typeId: number, value: unknown): Row[string] => {
 }
 
 export const convertRows = (reader: DuckDBResultReader, json: Record<string, unknown>[]): Row[] => {
-  const names = reader.columnNames()
+  const names = reader.deduplicatedColumnNames()
   const ids = reader.columnTypes().map((type) => type.typeId as number)
   return json.map((raw) => {
     const row: Row = {}
@@ -83,9 +83,18 @@ export const openDb = (opts: OpenDbOpts): Effect.Effect<Db, DbError, Scope.Scope
     yield* run('SET enable_external_access=false', 'lock')
     yield* run('SET lock_configuration=true', 'lock')
 
+    // Refuses anything that is not exactly one SELECT, judged by DuckDB's own parser on the final text.
+    const assertSingleSelect = async (sql: string): Promise<void> => {
+      const statements = await connection.extractStatements(sql)
+      if (statements.count !== 1) throw new Error(`expected exactly one statement, got ${statements.count}`)
+      const prepared = await statements.prepare(0)
+      if (prepared.statementType !== StatementType.SELECT) throw new Error('only SELECT statements are allowed')
+    }
+
     const query = (sql: string, _opts?: QueryOpts): Effect.Effect<QueryResult, SqlError> =>
       Effect.tryPromise({
         try: async () => {
+          await assertSingleSelect(sql)
           const reader = await connection.runAndReadAll(sql)
           const rows = convertRows(reader, await reader.getRowObjectsJson())
           return { rows, rowCount: rows.length }
@@ -94,7 +103,7 @@ export const openDb = (opts: OpenDbOpts): Effect.Effect<Db, DbError, Scope.Scope
       })
 
     const queryCanonical = (sql: string, queryOpts?: QueryOpts): Effect.Effect<QueryResult, SqlError> =>
-      query(`SELECT * FROM (${sql.trim().replace(/;+\s*$/, '')}) ORDER BY ALL`, queryOpts)
+      query(`SELECT * FROM (\n${sql.trim().replace(/;(\s|--[^\n]*)*$/, '')}\n) ORDER BY ALL`, queryOpts)
 
     return { query, queryCanonical }
   })
