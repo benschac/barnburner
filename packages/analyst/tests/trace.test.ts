@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -75,6 +75,23 @@ test("parseTraceLine rejects malformed events", () => {
   assert.throws(() => parseTraceLine('{"ts":"x","runId":"r","type":"verify","check":"3","passed":true}'), /invalid field check/);
   assert.throws(() => parseTraceLine('{"ts":"x","runId":"r","type":"verify","check":3}'), /invalid field passed/);
   assert.throws(() => parseTraceLine('{"runId":"r","type":"outcome","status":"cards"}'), /missing ts/);
+});
+
+test("writer refuses events that would serialize to unreadable lines", () => {
+  withTempDir((dir) => {
+    const trace = openTrace({ runId: "run-4", dir });
+    assert.throws(() => trace.append({ type: "tool_call", tool: "t", input: undefined, output: "", durationMs: 1 }), /invalid field input/);
+    assert.throws(() => trace.append({ type: "card", cardId: "c", card: undefined }), /invalid field card/);
+    assert.throws(() => trace.append({ type: "model_call", model: "m", inputTokens: NaN, outputTokens: 1, latencyMs: 1 }), /invalid field inputTokens/);
+    assert.equal(existsSync(trace.path), false);
+  });
+});
+
+test("parseTraceLine rejects malformed optional fields", () => {
+  assert.throws(() => parseTraceLine('{"ts":"x","runId":"r","type":"verify","check":1,"passed":true,"detail":42}'), /invalid optional field detail/);
+  assert.throws(() => parseTraceLine('{"ts":"x","runId":"r","type":"tool_call","tool":"t","input":null,"output":"","durationMs":1,"error":{}}'), /invalid optional field error/);
+  assert.throws(() => parseTraceLine('{"ts":"x","runId":"r","type":"outcome","status":"cards","detail":false}'), /invalid optional field detail/);
+  assert.equal(parseTraceLine('{"ts":"x","runId":"r","type":"verify","check":1,"passed":true,"detail":"ok"}').type, "verify");
 });
 
 test("truncateText leaves short text alone", () => {

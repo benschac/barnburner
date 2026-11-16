@@ -97,11 +97,21 @@ export function openTrace(options: TraceOptions): TraceWriter {
         payload.type === "tool_call"
           ? { ...payload, output: truncateText(payload.output, maxToolOutput), ts: now().toISOString(), runId: options.runId }
           : { ...payload, ts: now().toISOString(), runId: options.runId };
-      appendFileSync(path, `${JSON.stringify(event)}\n`, "utf8");
+      // Round-trip through the parser so the writer never persists a line the reader rejects
+      // (e.g. undefined input/card, which JSON drops, or NaN, which JSON nulls).
+      const line = JSON.stringify(event);
+      parseTraceLine(line);
+      appendFileSync(path, `${line}\n`, "utf8");
       return event;
     },
   };
 }
+
+const OPTIONAL_FIELDS: Partial<Record<TraceEventType, Record<string, "string">>> = {
+  tool_call: { error: "string" },
+  verify: { detail: "string" },
+  outcome: { detail: "string" },
+};
 
 const REQUIRED_FIELDS: Record<TraceEventType, Record<string, "string" | "number" | "boolean" | "any">> = {
   model_call: { model: "string", inputTokens: "number", outputTokens: "number", latencyMs: "number" },
@@ -128,6 +138,12 @@ export function parseTraceLine(line: string): TraceEvent {
     const actual = record[field];
     if (kind === "any" ? actual === undefined : typeof actual !== kind) {
       throw new Error(`trace event ${type} has invalid field ${field}`);
+    }
+  }
+  for (const [field, kind] of Object.entries(OPTIONAL_FIELDS[type as TraceEventType] ?? {})) {
+    const actual = record[field];
+    if (actual !== undefined && typeof actual !== kind) {
+      throw new Error(`trace event ${type} has invalid optional field ${field}`);
     }
   }
   if (type === "outcome" && !(OUTCOME_STATUSES as readonly unknown[]).includes(record.status)) {
