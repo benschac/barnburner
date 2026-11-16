@@ -1,8 +1,10 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Result, Schema } from 'effect'
 import type { LanguageModel } from 'ai'
 import { Llm } from './llm.ts'
 import type { LlmError } from './llm.ts'
 import type { InsightCard } from './card.ts'
+import { render } from './render.ts'
+import type { RenderError, Row } from './render.ts'
 
 export class RankError extends Schema.TaggedError<RankError, { readonly brand: unique symbol }>()('RankError', {
   message: Schema.String,
@@ -59,10 +61,43 @@ const system = [
   'Include every card id exactly once. Scores are integers 1-5.',
 ].join('\n')
 
-const buildPrompt = (cards: ReadonlyArray<InsightCard>, posterFacts: ReadonlyArray<string>) =>
+export interface DroppedCard {
+  readonly id: string
+  readonly reason: string
+}
+
+export interface RankResult {
+  readonly ranked: ReadonlyArray<RankedCard>
+  readonly dropped: ReadonlyArray<DroppedCard>
+}
+
+interface RenderedCard {
+  readonly card: InsightCard
+  readonly headline: string
+  readonly body: string
+}
+
+const renderCard = (card: InsightCard): RenderedCard | DroppedCard => {
+  const rows = card.evidence.result as unknown as Row[]
+  const dropped = (error: RenderError): DroppedCard => ({ id: card.id, reason: `render failed: ${error.message}` })
+  const headline = render(card.headline, card.bindings, rows)
+  if (Result.isFailure(headline)) return dropped(headline.failure)
+  const body = render(card.body, card.bindings, rows)
+  if (Result.isFailure(body)) return dropped(body.failure)
+  return { card, headline: headline.success, body: body.success }
+}
+
+const buildPrompt = (cards: ReadonlyArray<RenderedCard>, posterFacts: ReadonlyArray<string>) =>
   JSON.stringify({
     posterFacts,
-    cards: cards.map((c) => ({ id: c.id, team: c.team, kind: c.kind, headline: c.headline, body: c.body })),
+    cards: cards.map((c) => ({
+      id: c.card.id,
+      team: c.card.team,
+      kind: c.card.kind,
+      headline: c.headline,
+      body: c.body,
+      headlineTemplate: c.card.headline,
+    })),
   })
 
 const stripFences = (text: string) => text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
@@ -94,14 +129,17 @@ export interface RankInput {
   readonly model?: LanguageModel
 }
 
-export const rank = (input: RankInput): Effect.Effect<ReadonlyArray<RankedCard>, RankError | LlmError, Llm> =>
+export const rank = (input: RankInput): Effect.Effect<RankResult, RankError | LlmError, Llm> =>
   Effect.gen(function* () {
-    const cards = dedupeCards(input.cards)
-    if (cards.length === 0) return []
+    const rendered = dedupeCards(input.cards).map(renderCard)
+    const dropped = rendered.filter((r): r is DroppedCard => 'reason' in r)
+    const renderedCards = rendered.filter((r): r is RenderedCard => 'card' in r)
+    const cards = renderedCards.map((r) => r.card)
+    if (cards.length === 0) return { ranked: [], dropped }
     const llm = yield* Llm
     const result = yield* llm.run({
       system,
-      prompt: buildPrompt(cards, input.posterFacts),
+      prompt: buildPrompt(renderedCards, input.posterFacts),
       model: input.model ?? llm.config.rankModel,
     })
     const parsed = yield* parseScores(result.text, new Set(cards.map((c) => c.id)))
@@ -110,7 +148,8 @@ export const rank = (input: RankInput): Effect.Effect<ReadonlyArray<RankedCard>,
       const s = byId.get(card.id)!
       return { card, novelty: s.novelty, specificity: s.specificity, readability: s.readability, total: s.novelty + s.specificity + s.readability }
     })
-    return ranked
+    const top = ranked
       .sort((a, b) => b.total - a.total || (a.card.id < b.card.id ? -1 : a.card.id > b.card.id ? 1 : 0))
       .slice(0, TOP_N)
+    return { ranked: top, dropped }
   })
