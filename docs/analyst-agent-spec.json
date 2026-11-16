@@ -1,0 +1,196 @@
+{
+  "name": "rinkside-analyst-agent",
+  "status": "proposal",
+  "date": "2026-11-16",
+  "repo": "benschac/barnburner",
+  "goal": "Agent reads saved season data, finds non-obvious facts per team, publishes them as insight cards on the poster. Every number comes from a rerunnable query. Human approves each card before it ships.",
+  "nonGoals": [
+    "Live chat on the public site (v1)",
+    "Fetching from NHL feeds",
+    "Editing existing data files"
+  ],
+  "dataConstraints": {
+    "seasonSnapshot": {
+      "path": "data/nhl-20262027.json",
+      "games": 1344,
+      "finals": 325,
+      "fields": ["id", "date", "homeTeam", "awayTeam", "result.homeScore", "result.awayScore", "result.decision"],
+      "notes": "Results only. No period scores."
+    },
+    "boxscores": {
+      "path": "data/boxscores/20262027/<gameId>.json",
+      "archived": 139,
+      "coverage": "~43% of finals",
+      "skaterFields": ["goals", "assists", "points", "plusMinus", "pim", "hits", "powerPlayGoals", "sog", "faceoffWinningPctg", "toi", "blockedShots", "shifts", "giveaways", "takeaways"],
+      "goalieFields": ["shotsAgainst", "saves", "savePctg", "goalsAgainst", "evenStrengthGoalsAgainst", "powerPlayGoalsAgainst", "shorthandedGoalsAgainst", "toi", "starter", "decision"],
+      "notes": "No goal events, no period data."
+    },
+    "posterSupplement": {
+      "path": "data/nhl-poster-20262027.json",
+      "keys": ["standings", "history", "clubs", "completedGameIds"]
+    },
+    "rules": [
+      "Any claim touching box-score views must include coverage (archived vs finals) or it fails verification.",
+      "Claims needing period or event data are out of scope. Agent must decline, not estimate."
+    ]
+  },
+  "pipeline": ["refresh (existing)", "buildViews", "generate", "verify", "rank", "writePending", "review", "publish", "stalenessRecheck"],
+  "packageLayout": {
+    "packages/analyst/src/views.sql": "DuckDB views over data/. Hand-written, single source of truth for derived tables.",
+    "packages/analyst/src/sandbox.ts": "Create sandbox, copy data/ read-only, install duckdb + jq, load views.",
+    "packages/analyst/src/tools.ts": "sql, bash, read_file, submit_card",
+    "packages/analyst/src/schema.ts": "InsightCard, EvidenceQuery (Effect Schema, shared with packages/season)",
+    "packages/analyst/src/generate.ts": "Agent loop per team",
+    "packages/analyst/src/verify.ts": "Deterministic rerun + binding check",
+    "packages/analyst/src/rank.ts": "LLM judge: novelty vs poster, triviality, dedupe",
+    "packages/analyst/src/trace.ts": "JSONL run traces",
+    "evals/qa/*.yaml": "question, ground-truth SQL, expected, tolerance",
+    "evals/run.ts": "Eval runner",
+    "scripts/generate-insights.ts": "Entry point",
+    "data/insights/20262027/<TEAM>.json": "Card store"
+  },
+  "runtime": {
+    "llm": "Vercel AI SDK generateText with tools and stopWhen step cap, wrapped in an Effect service",
+    "execution": "Vercel Sandbox, data/ copied read-only, duckdb + jq preinstalled, views loaded at startup, snapshot the prepared sandbox for fast cold starts",
+    "localDev": "Same sandbox via SDK. No host filesystem access."
+  },
+  "views": [
+    { "name": "team_games", "columns": ["team", "game_id", "date", "home", "opp", "gf", "ga", "result", "decision", "is_final"], "grain": "one row per team per game" },
+    { "name": "skater_games", "columns": ["game_id", "team", "player_id", "name", "pos", "g", "a", "p", "sog", "toi_sec", "hits", "blocks", "pim", "ppg", "plus_minus"], "grain": "archived games only" },
+    { "name": "goalie_games", "columns": ["game_id", "team", "player_id", "name", "starter", "decision", "shots_against", "saves", "save_pct", "ga", "toi_sec"], "grain": "archived games only" },
+    { "name": "boxscore_coverage", "columns": ["team", "finals", "archived"] },
+    { "name": "standings_daily", "columns": ["date", "team", "points", "rank_div", "rank_conf", "wc_rank"] }
+  ],
+  "tools": [
+    { "name": "sql", "input": { "query": "string" }, "output": "rows (cap 200) + rowCount", "limits": "read-only DuckDB connection, 10s timeout" },
+    { "name": "bash", "input": { "cmd": "string" }, "output": "stdout/stderr (cap 8KB)", "use": "ls, jq, head exploration" },
+    { "name": "read_file", "input": { "path": "string", "range": "optional [start, end]" }, "output": "text", "limits": "paths under /data only" },
+    { "name": "submit_card", "input": "InsightCard draft", "output": "ok | validation errors", "limits": "max 6 per team per run" }
+  ],
+  "errorPolicy": {
+    "toolErrors": "Returned to model as text",
+    "maxConsecutiveToolFailures": 3,
+    "onExceed": "End run for that team, log failure",
+    "stepCap": 25
+  },
+  "schemas": {
+    "InsightCard": {
+      "id": "string, hash(team, query, template)",
+      "team": "TeamCode",
+      "status": "'pending' | 'approved' | 'rejected' | 'stale'",
+      "headline": "template string, e.g. '{wins}-{losses} in one-goal games'",
+      "body": "template string",
+      "bindings": "Record<placeholder, { column: string, row: number }>",
+      "evidence": {
+        "query": "SQL against views",
+        "result": "Row[] captured at generation",
+        "gameIds": "number[] for source drawer",
+        "coverage": "optional { archived: number, finals: number }, required if query touches skater_games or goalie_games"
+      },
+      "assert": "optional SQL returning one boolean that must stay true",
+      "asOf": { "fetchedAt": "string", "completedGameIds": "number" },
+      "model": "string",
+      "runId": "string",
+      "review": "optional { by: 'ben', at: string, reason?: RejectReason }"
+    },
+    "RejectReason": ["wrong", "trivial", "already_on_poster", "misleading", "bad_copy", "other"]
+  },
+  "keyRule": "Model never writes numbers as text. Headline and body are templates filled from evidence.result via bindings. A literal digit outside a placeholder fails verification.",
+  "steps": {
+    "generate": {
+      "scope": "per team",
+      "systemPromptIncludes": ["view schemas", "boxscore_coverage table", "current poster contents", "out-of-scope list"],
+      "output": "up to 6 candidate cards",
+      "stepCap": 25
+    },
+    "verify": {
+      "usesModel": false,
+      "checks": [
+        "rerun query in fresh sandbox, deep-equal result",
+        "every placeholder resolves via bindings",
+        "no literal digits outside placeholders",
+        "coverage present when required",
+        "gameIds exist and are final",
+        "assert passes if present"
+      ],
+      "onFail": "drop card, log reason"
+    },
+    "rank": {
+      "usesModel": true,
+      "output": "structured scores: novelty, specificity, readability",
+      "keep": 3,
+      "dedupe": ["id", "near-identical headline"]
+    },
+    "writePending": {
+      "target": "data/insights/20262027/<TEAM>.json",
+      "rule": "Never overwrite approved or rejected cards"
+    },
+    "review": {
+      "v1": "Workflow opens PR 'insights: <date>'. Approve by flipping status in diff or via CLI.",
+      "cli": "bun run insights:review (render card + query, prompt a/r/e, record RejectReason)"
+    },
+    "stalenessRecheck": {
+      "trigger": "after every data:refresh:all",
+      "ifResultChangedAndAssertHolds": "re-render with new values, stay approved",
+      "ifAssertFailsOrQueryErrors": "set status stale, hide"
+    }
+  },
+  "web": {
+    "rpc": "Add approved insights to GetTeamData payload, validated with shared schema",
+    "section": "Poster 'Notes' section, max 3 cards",
+    "sourceDrawer": "Shows query, result table, linked games. Each game opens existing Box score drawer (GetGameBoxscore)."
+  },
+  "evals": {
+    "command": "bun run evals",
+    "cadence": "On prompt, tool, or view changes. Not nightly.",
+    "resultsPath": "evals/results/<date>.json",
+    "suites": [
+      {
+        "name": "qa_accuracy",
+        "size": 50,
+        "grading": "numeric exact match, tolerance for percentages",
+        "groundTruth": "human-written SQL against views",
+        "categories": {
+          "easy": "NJD record at home",
+          "multiStep": "points pace last 10 vs first 10",
+          "coverageTrap": "Hughes points per game, must report archived-game coverage",
+          "unanswerable": "goals in the third period, must decline"
+        }
+      },
+      { "name": "verify_pass_rate", "metric": "share of generated cards passing verify, per prompt version" },
+      { "name": "human_approval_rate", "metric": "from review fields; every 'wrong' rejection becomes a new QA case" },
+      { "name": "cost_latency", "metric": "tokens, tool calls, wall time per team, from traces" }
+    ]
+  },
+  "observability": {
+    "traces": ".audit/agent-runs/<runId>.jsonl",
+    "contents": ["model calls (tokens, latency)", "tool calls (input, truncated output, duration, error)", "verify results", "final cards"],
+    "report": "bun run insights:report <runId>",
+    "storage": "gitignored, uploaded as workflow artifact"
+  },
+  "workflow": {
+    "file": ".github/workflows/refresh-nhl-data.yml",
+    "change": "After data publish, run generate-insights and open PR",
+    "flag": "INSIGHTS_ENABLED"
+  },
+  "phases": [
+    { "id": "P0", "timebox": "weekend 1", "scope": ["views.sql", "sandbox", "sql + bash tools", "bun run ask \"<question>\" --team NJD", "20 eval cases"], "exit": "eval runner reports a score" },
+    { "id": "P1", "timebox": "weekend 2", "scope": ["InsightCard schema", "generate", "verify", "rank", "review CLI", "PR step behind INSIGHTS_ENABLED"], "exit": "one real PR with pending cards for all 32 teams" },
+    { "id": "P2", "scope": ["poster Notes section", "source drawer", "staleness recheck"], "exit": "approved cards live on rinkside.xyz and survive a refresh" },
+    { "id": "P3", "optional": true, "scope": ["live Ask box", "streaming", "per-IP rate limit", "cached answers", "same tools and verifier", "answers show their query"] }
+  ],
+  "openDecisions": [
+    "Model for generate vs rank (cheaper rank model likely fine, measure with evals)",
+    "Backfill remaining box scores first (139/325 coverage)",
+    "Move review from PR diffs to authenticated /review page in P2",
+    "Data rights: confirm publishing derived stat claims against source terms (see docs/nhl-ingestion-framework-evaluation.md)"
+  ],
+  "writeup": {
+    "include": [
+      "verify drop reasons by category",
+      "rejection taxonomy",
+      "eval score by prompt version",
+      "1-2 concrete bugs caught (e.g. coverage omission, bound value drift after refresh)"
+    ]
+  }
+}
