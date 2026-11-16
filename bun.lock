@@ -50,6 +50,16 @@
         "vite": "^8.3.6",
       },
     },
+    "packages/analyst": {
+      "name": "@nhl-reddit-stats/analyst",
+      "version": "0.0.0",
+      "dependencies": {
+        "effect": "4.1.2",
+      },
+      "devDependencies": {
+        "@types/node": "^24.19.2",
+      },
+    },
     "packages/season": {
       "name": "@nhl-reddit-stats/season",
       "version": "0.0.0",
@@ -286,6 +296,8 @@
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.6.0", "", {}, "sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw=="],
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
+
+    "@nhl-reddit-stats/analyst": ["@nhl-reddit-stats/analyst@workspace:packages/analyst"],
 
     "@nhl-reddit-stats/api": ["@nhl-reddit-stats/api@workspace:apps/api"],
 
