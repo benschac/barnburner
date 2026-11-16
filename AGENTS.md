@@ -24,6 +24,14 @@ For non-trivial implementation, architecture, data, or debugging work, follow [t
 
 Adopt the stack incrementally through concrete features. Preserve this project's Bun/Turborepo commands, React/Tamagui UI, and design contract. Upstream rules do not authorize dependency additions, runtime migrations, production writes, or deployment. Introduce executable boundary checks with each adopted architecture rule; documentation alone does not establish conformance.
 
+# Error model
+
+- Return expected failures as `Schema.TaggedError` classes with a brand and context fields, through `Effect` or `Result`. Package source does not `throw` them or subclass `Error`.
+- Handle failures by tag (`Effect.catchTag`, `_tag`). Avoid `try`/`catch` with `instanceof Error` except where a foreign exception is translated into a tagged error.
+- A genuine programming defect may `throw`; put a `// defect: <reason>` comment on the line above it.
+- Read `/lore/error-model` through `.agent-sources/ratstack/index.md` before adding an error. House examples: `packages/season/src/contracts.ts` and `packages/analyst/src/render.ts`.
+- `packages/analyst` enforces this in `bun run lint` with `scripts/check-error-model.mjs`. Add the check to a package's `lint` script when that package adopts the rule.
+
 # Design-system enforcement
 
 For web UI changes, follow [the enforced design contract](apps/web/design/README.md). Run `bun run lint` and `bun run check:tamagui`; use the shared contract rather than inventing literal style values or disabling design rules.
