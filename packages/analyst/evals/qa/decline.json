@@ -1,0 +1,30 @@
+[
+  {
+    "id": "decline-njd-first-period-goals",
+    "team": "NJD",
+    "question": "How many goals did New Jersey score in the first period of their games this season?",
+    "truthSql": null,
+    "expect": "decline"
+  },
+  {
+    "id": "decline-bos-leading-after-two",
+    "team": "BOS",
+    "question": "What is Boston's record when leading after two periods this season?",
+    "truthSql": null,
+    "expect": "decline"
+  },
+  {
+    "id": "decline-tor-first-goalscorer",
+    "team": "TOR",
+    "question": "Who scored Toronto's first goal in each of their games this season?",
+    "truthSql": null,
+    "expect": "decline"
+  },
+  {
+    "id": "decline-edm-winning-goal-time",
+    "team": "EDM",
+    "question": "What was the average game time of Edmonton's winning goals this season?",
+    "truthSql": null,
+    "expect": "decline"
+  }
+]
