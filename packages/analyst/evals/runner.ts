@@ -1,4 +1,4 @@
-import { Effect } from 'effect'
+import { Cause, Effect } from 'effect'
 import type { Db } from '../src/shapes.ts'
 import type { EvalAnswer, EvalCase } from './case.ts'
 import { grade } from './grade.ts'
@@ -49,7 +49,7 @@ const runCase = (evalCase: EvalCase, db: Db, answerer: Answerer): Effect.Effect<
     }
     const answered = yield* Effect.suspend(() => answerer(evalCase)).pipe(
       Effect.map((answer) => ({ ok: true as const, answer })),
-      Effect.catchCause((cause) => Effect.succeed({ ok: false as const, reason: describe(cause) })),
+      Effect.catchCause((cause) => Effect.succeed({ ok: false as const, reason: describe(Cause.squash(cause)) })),
     )
     const base = truth === null ? {} : { truth }
     if (!answered.ok) return { id: evalCase.id, pass: false, reason: `answerer failed: ${answered.reason}`, ...base }
