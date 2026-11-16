@@ -8,6 +8,26 @@ import { Copy, Score, Row, List, Logo, RuledHeading } from './primitives'
 const outcomeColors = { win: 'win', loss: 'loss', overtime: 'gold', pending: 'pending' } as const
 
 
+// Ragged right edge, as if the ticket was torn from a roll. It clips only the
+// background layer so the link's focus ring stays visible.
+const tornEdge = 'polygon(0 0, calc(100% - 4px) 0, 100% 7%, calc(100% - 3px) 15%, 100% 24%, calc(100% - 6px) 33%, calc(100% - 1px) 42%, calc(100% - 4px) 51%, 100% 60%, calc(100% - 5px) 70%, calc(100% - 1px) 79%, calc(100% - 4px) 89%, calc(100% - 2px) 100%, 0 100%)'
+
+// Punched notches at the top and bottom of the stub's tear line. The stub-side
+// quarter carries the gold outline; the body-side quarter is a plain cut-out.
+const TicketPerforation = () => (
+  <View h="card" w="4" aria-hidden>
+    <Row>
+      <View w="2" h="2" bg="background" borderLeftWidth={2} borderBottomWidth={2} borderColor="gold" borderBottomLeftRadius="full" />
+      <View w="2" h="2" bg="background" borderBottomRightRadius="full" />
+    </Row>
+    <View flex={1} self="center" borderWidth={0} borderLeftWidth={2} borderColor="gold" borderStyle="dashed" />
+    <Row>
+      <View w="2" h="2" bg="background" borderLeftWidth={2} borderTopWidth={2} borderColor="gold" borderTopLeftRadius="full" />
+      <View w="2" h="2" bg="background" borderTopRightRadius="full" />
+    </Row>
+  </View>
+)
+
 export const Schedule = memo(function Schedule({ data, onPrefetchTeam }: { data: TeamPosterData; onPrefetchTeam: (team: string) => void }) {
   const { upcoming, recent } = data
   const theme = useThemeName()
@@ -20,16 +40,29 @@ export const Schedule = memo(function Schedule({ data, onPrefetchTeam }: { data:
         {upcoming.length === 0 && <Copy color="muted">No remaining games.</Copy>}
         <List render="ol" gap="2">
           {upcoming.map((game) => (
-            <Row render="li" key={game.id} h="card" bg="surface" rounded="md">
-              <Row render={<a href={teamHref(game.team)} />} w="100%" h="card" textDecorationLine="none"
+            <Row render="li" key={game.id} h="card" position="relative">
+              <View position="absolute" l="0" t="0" w="100%" h="card" bg="surface" rounded="md" clipPath={tornEdge} />
+              <Row render={<a href={teamHref(game.team)} />} position="relative" w="100%" h="card" textDecorationLine="none"
+                aria-label={`${game.day} ${game.date}, ${data.team.name} ${game.venue === 'vs' ? 'home against' : 'away at'} ${game.team}, ${game.time} Eastern time`}
                 onMouseEnter={() => onPrefetchTeam(game.team)} onFocus={() => onPrefetchTeam(game.team)}>
-              <Row h="card" w="24" borderWidth={2} borderColor="gold" borderRightStyle="dashed" borderTopLeftRadius="md" borderBottomLeftRadius="md">
-                <Copy fontSize="caption" lineHeight="caption" fontWeight="600" color="gold" writingMode="vertical-rl" rotate="180deg" w="icon" text="center">{game.day}</Copy>
-                <Score fontSize="score" lineHeight="score" flex={1} text="center">{game.date}</Score>
+              <Row h="card" w="24" borderWidth={2} borderRightWidth={0} borderColor="gold" borderTopLeftRadius="md" borderBottomLeftRadius="md">
+                <View flex={1} items="center">
+                  <Copy fontSize="caption" lineHeight="caption" fontWeight="700" letterSpacing={1} color="gold">{game.day}</Copy>
+                  <Score fontSize="score" lineHeight="score">{game.date}</Score>
+                </View>
               </Row>
-              <Copy fontSize="detail" lineHeight="detail" color="muted" w="12" text="center">{game.venue}</Copy>
-              <Logo src={teamLogo(game.team, theme)} alt={game.team} w="12" h="12" scale={1.4} />
-              <Copy flex={1} text="center" fontSize="label" lineHeight="label" fontWeight="500">{game.time}</Copy>
+              <TicketPerforation />
+              <View flex={1} minW="0" h="card" py="1" pl="1" pr="3" borderTopWidth={1} borderBottomWidth={1} borderColor="gold">
+                <Copy text="center" fontSize="caption" lineHeight="caption" fontWeight="700" letterSpacing={1} bg="brand" color="loss-ink dark:bright">{data.team.abbrev} {game.venue.toUpperCase()} {game.team}</Copy>
+                <Row flex={1} gap="1" justify="space-between">
+                  <Logo src={teamLogo(data.team.abbrev, theme)} alt="" w="10" h="10" />
+                  <View flex={1} minW="0" items="center">
+                    <Copy fontSize="detail" lineHeight="detail" fontWeight="600" text="center">{game.time}</Copy>
+                    <Copy fontSize="caption" lineHeight="caption" fontWeight="700" letterSpacing={1} color="gold">{game.venue === 'vs' ? 'HOME' : 'AWAY'}</Copy>
+                  </View>
+                  <Logo src={teamLogo(game.team, theme)} alt="" w="10" h="10" />
+                </Row>
+              </View>
               </Row>
             </Row>
           ))}

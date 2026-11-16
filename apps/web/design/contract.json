@@ -94,7 +94,8 @@
       "md:1 / -1 poster:auto print:auto"
     ],
     "clipPath": [
-      "polygon(0 0, 100% 0, 88% 100%, 0 100%)"
+      "polygon(0 0, 100% 0, 88% 100%, 0 100%)",
+      "polygon(0 0, calc(100% - 4px) 0, 100% 7%, calc(100% - 3px) 15%, 100% 24%, calc(100% - 6px) 33%, calc(100% - 1px) 42%, calc(100% - 4px) 51%, 100% 60%, calc(100% - 5px) 70%, calc(100% - 1px) 79%, calc(100% - 4px) 89%, calc(100% - 2px) 100%, 0 100%)"
     ],
     "zoom": [
       "print:calc(100vw / 1206px)"

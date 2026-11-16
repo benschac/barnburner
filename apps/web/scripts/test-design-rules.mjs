@@ -32,6 +32,8 @@ const cases = [
   ['logical size valid', '<View inlineSize="100%" />', true],
   ['logical border width valid', '<View borderInlineStartWidth={2} />', true],
   ['mutated const', 'const palette = {good: "win"}; palette.good = getColor(); <View bg={palette.good} />', false],
+  ['ticket torn edge', '<View clipPath="polygon(0 0, calc(100% - 4px) 0, 100% 7%, calc(100% - 3px) 15%, 100% 24%, calc(100% - 6px) 33%, calc(100% - 1px) 42%, calc(100% - 4px) 51%, 100% 60%, calc(100% - 5px) 70%, calc(100% - 1px) 79%, calc(100% - 4px) 89%, calc(100% - 2px) 100%, 0 100%)" />', true],
+  ['unlisted clip path', '<View clipPath="polygon(0 0, 100% 0, 0 100%)" />', false],
   ['shadow escape', '<View boxShadow="0 0 4px red" />', false],
   ['palette', '<View bg="red-500" />', false],
   ['hover literal', '<View bg="surface hover:#fff" />', false],
