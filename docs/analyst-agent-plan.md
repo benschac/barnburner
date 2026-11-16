@@ -651,36 +651,36 @@ Everything else hangs off **A1** or **K1** and can land at any time. Once **A1**
 | DATA1 | Sonnet | P-plan | analyst/data1-backfill-flag | #3 | in review | |
 | DEP1 | Sonnet | A1, P-deps | analyst/dep1-duckdb | #6 | in review | on K1; D3 and D9 confirmed |
 | DEP2 | Haiku | P-deps | analyst/dep2-ai-sdk | #14 | in review | on DEP1; ai@7.0.173 |
-| DB1 | Sonnet | K1, DEP1 | analyst/db1-open | | todo | |
-| DB2 | Sonnet | DB1 | analyst/db2-limits | | todo | |
+| DB1 | Sonnet | K1, DEP1 | analyst/db1-open | #18 | in review | on E5 |
+| DB2 | Sonnet | DB1 | analyst/db2-limits | #35 | in review | on S1 |
 | F1 | Haiku | A1 | analyst/f1-fixtures | #10 | in review | on B2 |
-| V1 | Sonnet | DB1, F1 | analyst/v1-team-games | | todo | |
-| V2a | Sonnet | DB1, F1 | analyst/v2a-skater-games | | todo | |
-| V2b | Sonnet | DB1, F1 | analyst/v2b-goalie-games | | todo | |
-| V3 | Sonnet | DB1, F1 | analyst/v3-standings | | todo | |
-| V4 | Haiku | DB1, F1 | analyst/v4-coverage | | todo | |
+| V1 | Sonnet | DB1, F1 | analyst/v1-team-games | #28 | in review | on R1 |
+| V2a | Sonnet | DB1, F1 | analyst/v2a-skater-games | #29 | in review | on V1 |
+| V2b | Sonnet | DB1, F1 | analyst/v2b-goalie-games | #30 | in review | on V2a |
+| V3 | Sonnet | DB1, F1 | analyst/v3-standings | #31 | in review | on V2b |
+| V4 | Haiku | DB1, F1 | analyst/v4-coverage | #32 | in review | on V3 |
 | B1 | Sonnet | A1 | analyst/b1-card-schema | #8 | in review | on DEP2 |
 | B2 | Haiku | A1 | analyst/b2-render | #7 | in review | on B1 |
-| C3 | Sonnet | DB1 | analyst/c3-guard | | todo | |
-| C1 | Sonnet | K1, B1, B2 | analyst/c1-verify-static | | todo | |
-| C2 | Sonnet | K1, B1 | analyst/c2-verify-rerun | | todo | |
+| C3 | Sonnet | DB1 | analyst/c3-guard | #33 | in review | on V4 |
+| C1 | Sonnet | K1, B1, B2 | analyst/c1-verify-static | #19 | in review | on DB1 |
+| C2 | Sonnet | K1, B1 | analyst/c2-verify-rerun | #20 | in review | on C1 |
 | C4 | Sonnet | C1, C2, C3, V1, V4 | analyst/c4-verify | | todo | |
 | E1 | Sonnet | A1 | analyst/e1-grader | #9 | in review | on T1 |
-| E6a | Sonnet | E1, K1 | analyst/e6a-runner | | todo | |
+| E6a | Sonnet | E1, K1 | analyst/e6a-runner | #21 | in review | on C2 |
 | E2 | Codex | E1, V1 | analyst/e2-cases-easy | | todo | |
 | E3 | Codex | E1, V1 | analyst/e3-cases-multistep | | todo | |
 | E4 | Codex | E1, V2a, V2b, V4 | analyst/e4-cases-coverage | | todo | |
 | E5 | Haiku | E1 | analyst/e5-cases-decline | #12 | in review | on R3 |
-| E8 | Haiku | K1, B1 | analyst/e8-card-pass-rate | | todo | |
+| E8 | Haiku | K1, B1 | analyst/e8-card-pass-rate | #22 | in review | on E6a |
 | X1 | Sonnet | B1, B2, V1 | analyst/x1-results | | todo | |
 | X2 | Sonnet | B1, B2, V1 | analyst/x2-form | | todo | |
 | X3 | Sonnet | B1, B2, V2a, V2b, V4 | analyst/x3-players | | todo | |
 | X4 | Haiku | X1, X2, X3, C4, G2b, E8 | analyst/x4-detector-score | | todo | |
 | T1 | Haiku | A1 | analyst/t1-trace | #11 | in review | on F1 |
 | G1 | Sonnet | DEP2 | analyst/g1-llm | #17 | in review | on G7; model IDs need a live check |
-| G2a | Sonnet | K1, DEP2 | analyst/g2a-sql-tool | | todo | |
-| G2b | Sonnet | K1, B1, DEP2 | analyst/g2b-submit-card | | todo | |
-| G2c | Haiku | K1, DEP2 | analyst/g2c-answer-decline | | todo | |
+| G2a | Sonnet | K1, DEP2 | analyst/g2a-sql-tool | #23 | in review | on E8 |
+| G2b | Sonnet | K1, B1, DEP2 | analyst/g2b-submit-card | #24 | in review | on G2a |
+| G2c | Haiku | K1, DEP2 | analyst/g2c-answer-decline | #25 | in review | on G2b |
 | G3 | Sonnet | G2a, G2b, G2c, C4, DB2 | analyst/g3-toolset | | todo | |
 | G4a | Sonnet | G3, G1, T1 | analyst/g4a-ask | | todo | |
 | G4b | Sonnet | G4a, V2a, V2b, V3, P-key | analyst/g4b-ask-cli | | todo | live |
@@ -688,13 +688,13 @@ Everything else hangs off **A1** or **K1** and can land at any time. Once **A1**
 | G5a | Opus | K1 | analyst/g5a-prompt | #16 | in review | on G1; untested live until G5c |
 | G5b | Sonnet | G5a, G3, G1, T1 | analyst/g5b-generate | | todo | |
 | G5c | Opus | G5b, V2a, V2b, V3, P-key | analyst/g5c-tune | | todo | live |
-| G6 | Sonnet | B1, G1 | analyst/g6-rank | | todo | |
+| G6 | Sonnet | B1, G1 | analyst/g6-rank | #26 | in review | on G2c; no live run yet |
 | G7 | Haiku | B1 | analyst/g7-store | #15 | in review | on E1 |
 | G8 | Sonnet | G5b, G5c, G6, G7, T1, P-key | analyst/g8-entry | | todo | live |
 | E7 | Sonnet | E6b, G8, E8, P-key | analyst/e7-model-compare | | todo | live |
-| R1 | Sonnet | G7, B2 | analyst/r1-review-cli | | todo | |
+| R1 | Sonnet | G7, B2 | analyst/r1-review-cli | #27 | in review | on G6; not yet run on real cards |
 | R3 | Haiku | T1 | analyst/r3-report | #13 | in review | on G5a |
-| S1 | Sonnet | K1, G7, B2, G2b | analyst/s1-staleness | | todo | |
+| S1 | Sonnet | K1, G7, B2, G2b | analyst/s1-staleness | #34 | in review | on C3; script main not wired yet |
 | CI1 | Sonnet | G8, S1, P-key, P-pr | analyst/ci1-workflow | | todo | P1 exit |
 | N1a | Sonnet | P-plan | analyst/n1a-contract | #4 | in review | |
 | N1b | Sonnet | N1a, B1, B2, G7 | analyst/n1b-api | | todo | |
