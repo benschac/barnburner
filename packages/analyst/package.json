@@ -18,6 +18,7 @@
     "evals": "node evals/run.ts"
   },
   "dependencies": {
+    "@duckdb/node-api": "2.0.0-r.1",
     "effect": "4.1.2"
   },
   "devDependencies": {
