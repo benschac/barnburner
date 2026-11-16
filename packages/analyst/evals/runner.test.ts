@@ -65,6 +65,22 @@ test('runEvals grades, flags invalid cases, and survives answerer failures', asy
   assert.equal(by.dec?.pass, true)
 })
 
+test('runEvals grades a typed answerer failure as a failed case', async () => {
+  class TypedError {
+    readonly _tag = 'TypedError'
+    readonly message = 'typed failure'
+  }
+  const out = await Effect.runPromise(
+    runEvals({
+      db: fakeDb({ 'sql-a': [{ value: 1 }] }),
+      answerer: () => Effect.fail(new TypedError()),
+      cases: [c('a')],
+    }),
+  )
+  assert.equal(out.results[0]?.pass, false)
+  assert.match(out.results[0]?.reason ?? '', /answerer failed: typed failure/)
+})
+
 test('runEvals on no cases scores zero', async () => {
   const out = await Effect.runPromise(runEvals({ cases: [], db: fakeDb({}), answerer: () => Effect.succeed({ value: 1 }) }))
   assert.equal(out.score, 0)

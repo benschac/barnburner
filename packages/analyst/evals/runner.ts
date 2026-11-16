@@ -3,7 +3,7 @@ import type { Db } from '../src/shapes.ts'
 import type { EvalAnswer, EvalCase } from './case.ts'
 import { grade } from './grade.ts'
 
-export type Answerer = (evalCase: EvalCase) => Effect.Effect<EvalAnswer>
+export type Answerer = (evalCase: EvalCase) => Effect.Effect<EvalAnswer, unknown>
 
 export interface CaseResult {
   readonly id: string
