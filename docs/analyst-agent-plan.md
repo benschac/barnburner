@@ -6,7 +6,7 @@ Source spec: [analyst-agent-spec.md](analyst-agent-spec.md). This plan makes the
 ## How to use this plan
 
 - Each task card (§Task cards) is a complete prompt for one worker. §Worker preamble applies to every card.
-- A task is **ready** when every ID on its **Needs** line is merged to `main`. There are no waves: the orchestrator dispatches any ready task, and each PR merges as soon as it is green and reviewed.
+- The work is one Graphite stack of small PRs. A task is **ready** when every ID on its **Needs** line is in the stack (verified and submitted); nothing waits for a merge. There are no waves: the orchestrator dispatches every ready task at once.
 - §Contracts defines every shared shape. Cards point at one contract section instead of the whole spec.
 - Track progress in §Ledger. Update it whenever a PR opens or merges.
 
@@ -72,7 +72,7 @@ Rules that shaped this plan:
 ### Worker preamble (prepended to every card)
 
 1. Run `bun install` first. A fresh worktree has no `node_modules`.
-2. Branch from `main` as `analyst/<id>-<slug>`, unless the card says **Stack on**.
+2. Branch from the top of the stack (the orchestrator names it) as `analyst/<id>-<slug>`.
 3. Write only the files on the **Write** list. If the task needs a change anywhere else, stop and report.
 4. Read the card's **Read** list first. You may also read anything under `packages/analyst/` and the installed types of its dependencies. Do not explore the rest of the repo.
 5. For Effect APIs, copy the style of `packages/season/src/contracts.ts` and check the `node_modules/effect` types. `.agent-sources/effect` is only a README and has no Schema or Layer topics.
@@ -100,10 +100,10 @@ await tools.Agent({
 `gt` is installed but the repo is not initialised; **P-plan** runs `gt init` with trunk `main`.
 
 - **One PR per task.** The PR title is the card title and the body is the card's Done output.
-- **Stacks are the exception.** Only the pairs marked **Stack on** are stacked (`gt create` on the parent). Everything else branches from `main`.
+- **One linear stack.** Analyst PRs form a single stack on `main`, in the order they were verified. Workers branch from the current top of the stack; when several finish together, the orchestrator rebases them into a chain, reruns each Done check, and submits. A **Stack on** note only fixes the order of two tasks. DATA1 and N1a touch nothing in `packages/analyst`, so they sit beside the stack on `main`.
+- **Merging** is bottom-up, whenever Ben chooses. It never blocks dispatch.
 - **Shared files:** `bun.lock` changes only in **A1**, **DEP1**, and **DEP2**. Every `package.json` script is registered in **A1**. No later task edits a `package.json`.
 - After a worktree agent commits, register the branch with `gt track --parent <parent>`, then `gt submit`.
-- **Unmerged parents:** a task whose single parent is verified but not yet merged may be stacked on that parent's branch (noted as "on X" in §Ledger). A task that needs two unmerged parents waits for the merge.
 
 ## Contracts
 
@@ -646,38 +646,38 @@ Everything else hangs off **A1** or **K1** and can land at any time. Once **A1**
 | P-key | you | – | – | – | todo | Blocks live tasks |
 | P-pr | you | – | – | – | todo | Blocks CI1 |
 | P-rights | you | – | – | – | todo | Blocks approving cards |
-| A1 | Haiku | P-plan | analyst/a1-scaffold | #2 | in review | |
+| A1 | Haiku | P-plan | analyst/a1-scaffold | #2 | in review | stack bottom |
 | K1 | Sonnet | A1 | analyst/k1-shapes | #5 | in review | on A1 |
 | DATA1 | Sonnet | P-plan | analyst/data1-backfill-flag | #3 | in review | |
-| DEP1 | Sonnet | A1, P-deps | analyst/dep1-duckdb | #6 | in review | on A1; D3 and D9 confirmed |
+| DEP1 | Sonnet | A1, P-deps | analyst/dep1-duckdb | #6 | in review | on K1; D3 and D9 confirmed |
 | DEP2 | Haiku | P-deps | analyst/dep2-ai-sdk | #14 | in review | on DEP1; ai@7.0.173 |
 | DB1 | Sonnet | K1, DEP1 | analyst/db1-open | | todo | |
 | DB2 | Sonnet | DB1 | analyst/db2-limits | | todo | |
-| F1 | Haiku | A1 | analyst/f1-fixtures | #10 | in review | on A1 |
+| F1 | Haiku | A1 | analyst/f1-fixtures | #10 | in review | on B2 |
 | V1 | Sonnet | DB1, F1 | analyst/v1-team-games | | todo | |
 | V2a | Sonnet | DB1, F1 | analyst/v2a-skater-games | | todo | |
 | V2b | Sonnet | DB1, F1 | analyst/v2b-goalie-games | | todo | |
 | V3 | Sonnet | DB1, F1 | analyst/v3-standings | | todo | |
 | V4 | Haiku | DB1, F1 | analyst/v4-coverage | | todo | |
-| B1 | Sonnet | A1 | analyst/b1-card-schema | #8 | in review | on A1 |
-| B2 | Haiku | A1 | analyst/b2-render | #7 | in review | on A1 |
+| B1 | Sonnet | A1 | analyst/b1-card-schema | #8 | in review | on DEP2 |
+| B2 | Haiku | A1 | analyst/b2-render | #7 | in review | on B1 |
 | C3 | Sonnet | DB1 | analyst/c3-guard | | todo | |
 | C1 | Sonnet | K1, B1, B2 | analyst/c1-verify-static | | todo | |
 | C2 | Sonnet | K1, B1 | analyst/c2-verify-rerun | | todo | |
 | C4 | Sonnet | C1, C2, C3, V1, V4 | analyst/c4-verify | | todo | |
-| E1 | Sonnet | A1 | analyst/e1-grader | #9 | in review | on A1 |
+| E1 | Sonnet | A1 | analyst/e1-grader | #9 | in review | on T1 |
 | E6a | Sonnet | E1, K1 | analyst/e6a-runner | | todo | |
 | E2 | Codex | E1, V1 | analyst/e2-cases-easy | | todo | |
 | E3 | Codex | E1, V1 | analyst/e3-cases-multistep | | todo | |
 | E4 | Codex | E1, V2a, V2b, V4 | analyst/e4-cases-coverage | | todo | |
-| E5 | Haiku | E1 | analyst/e5-cases-decline | #12 | in review | on E1 |
+| E5 | Haiku | E1 | analyst/e5-cases-decline | #12 | in review | on R3 |
 | E8 | Haiku | K1, B1 | analyst/e8-card-pass-rate | | todo | |
 | X1 | Sonnet | B1, B2, V1 | analyst/x1-results | | todo | |
 | X2 | Sonnet | B1, B2, V1 | analyst/x2-form | | todo | |
 | X3 | Sonnet | B1, B2, V2a, V2b, V4 | analyst/x3-players | | todo | |
 | X4 | Haiku | X1, X2, X3, C4, G2b, E8 | analyst/x4-detector-score | | todo | |
-| T1 | Haiku | A1 | analyst/t1-trace | #11 | in review | on A1 |
-| G1 | Sonnet | DEP2 | analyst/g1-llm | | todo | |
+| T1 | Haiku | A1 | analyst/t1-trace | #11 | in review | on F1 |
+| G1 | Sonnet | DEP2 | analyst/g1-llm | #17 | in review | on G7; model IDs need a live check |
 | G2a | Sonnet | K1, DEP2 | analyst/g2a-sql-tool | | todo | |
 | G2b | Sonnet | K1, B1, DEP2 | analyst/g2b-submit-card | | todo | |
 | G2c | Haiku | K1, DEP2 | analyst/g2c-answer-decline | | todo | |
@@ -685,15 +685,15 @@ Everything else hangs off **A1** or **K1** and can land at any time. Once **A1**
 | G4a | Sonnet | G3, G1, T1 | analyst/g4a-ask | | todo | |
 | G4b | Sonnet | G4a, V2a, V2b, V3, P-key | analyst/g4b-ask-cli | | todo | live |
 | E6b | Sonnet | E6a, G4a, E2, E3, E4, E5, P-key | analyst/e6b-eval-cli | | todo | live; P0 exit |
-| G5a | Opus | K1 | analyst/g5a-prompt | #16 | in review | on K1; untested live until G5c |
+| G5a | Opus | K1 | analyst/g5a-prompt | #16 | in review | on G1; untested live until G5c |
 | G5b | Sonnet | G5a, G3, G1, T1 | analyst/g5b-generate | | todo | |
 | G5c | Opus | G5b, V2a, V2b, V3, P-key | analyst/g5c-tune | | todo | live |
 | G6 | Sonnet | B1, G1 | analyst/g6-rank | | todo | |
-| G7 | Haiku | B1 | analyst/g7-store | #15 | in review | on B1 |
+| G7 | Haiku | B1 | analyst/g7-store | #15 | in review | on E1 |
 | G8 | Sonnet | G5b, G5c, G6, G7, T1, P-key | analyst/g8-entry | | todo | live |
 | E7 | Sonnet | E6b, G8, E8, P-key | analyst/e7-model-compare | | todo | live |
 | R1 | Sonnet | G7, B2 | analyst/r1-review-cli | | todo | |
-| R3 | Haiku | T1 | analyst/r3-report | #13 | in review | on T1 |
+| R3 | Haiku | T1 | analyst/r3-report | #13 | in review | on G5a |
 | S1 | Sonnet | K1, G7, B2, G2b | analyst/s1-staleness | | todo | |
 | CI1 | Sonnet | G8, S1, P-key, P-pr | analyst/ci1-workflow | | todo | P1 exit |
 | N1a | Sonnet | P-plan | analyst/n1a-contract | #4 | in review | |
