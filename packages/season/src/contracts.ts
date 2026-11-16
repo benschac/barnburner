@@ -50,10 +50,29 @@ export const GameBoxscore = Schema.Struct({
 })
 export type GameBoxscore = typeof GameBoxscore.Type
 
+const Cell = Schema.Union([Schema.String, Schema.Number, Schema.Boolean, Schema.Null])
+// An approved insight card as served to the web: rendered copy plus the evidence it rests on.
+export const PublishedInsight = Schema.Struct({
+  headline: Schema.String,
+  body: Schema.String,
+  query: Schema.String,
+  result: Schema.Array(Schema.Record(Schema.String, Cell)),
+  gameIds: Schema.Array(Schema.Int),
+  coverage: Schema.optionalKey(Schema.Struct({ archived: Count, finals: Count })),
+  asOf: Schema.Struct({ fetchedAt: Schema.String, completedGameIds: Count }),
+})
+export type PublishedInsight = typeof PublishedInsight.Type
+
+export const TeamDataWithInsights = Schema.Struct({
+  ...TeamData.fields,
+  insights: Schema.Array(PublishedInsight),
+}).check(...TeamData.ast.checks!)
+export type TeamDataWithInsights = typeof TeamDataWithInsights.Type
+
 export const TeamRpcs = RpcGroup.make(
   Rpc.make('GetTeamData', {
     payload: Schema.Struct({}),
-    success: TeamData,
+    success: TeamDataWithInsights,
     error: SnapshotLoadError,
   }),
   Rpc.make('GetGameBoxscore', {

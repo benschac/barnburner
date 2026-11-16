@@ -35,6 +35,7 @@ export const makeSnapshots = (input: { season: unknown, poster: unknown | null, 
     load: poster === null
       ? Effect.fail(new SnapshotLoadError({ message: 'Poster data is unavailable. Refresh the poster data and restart the server.' }))
       : Schema.decodeUnknownEffect(TeamData)({ season, poster }).pipe(
+        Effect.map((data) => ({ ...data, insights: [] })),
         Effect.mapError(() => new SnapshotLoadError({ message: 'The team data is incomplete or invalid. Refresh the data and try again.' })),
       ),
   }

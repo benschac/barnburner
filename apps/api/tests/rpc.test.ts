@@ -35,7 +35,7 @@ test('the browser SeasonSource decodes a real HTTP RPC response using the shared
   const result = await Effect.runPromise(sourceLoad().pipe(Effect.provide(apiLayer(snapshots))))
   assert.equal(result.season.games.length, season.games.length)
   assert.equal(result.poster.clubs.length, 32)
-  assert.deepEqual(result, Schema.decodeUnknownSync(TeamData)({ season, poster }))
+  assert.deepEqual(result, { ...Schema.decodeUnknownSync(TeamData)({ season, poster }), insights: [] })
 })
 
 test('the browser receives new final scores alongside validated older team stats', async () => {
