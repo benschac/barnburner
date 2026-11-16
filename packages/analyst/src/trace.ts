@@ -24,7 +24,8 @@ export interface ToolCallEvent {
 
 export interface VerifyEvent {
   readonly type: "verify";
-  readonly check: string;
+  // Verifier check number, 1-8.
+  readonly check: number;
   readonly passed: boolean;
   readonly detail?: string;
 }
@@ -35,9 +36,12 @@ export interface CardEvent {
   readonly card: unknown;
 }
 
+export const OUTCOME_STATUSES = ["cards", "answered", "declined", "no_insight", "crashed"] as const;
+export type OutcomeStatus = (typeof OUTCOME_STATUSES)[number];
+
 export interface OutcomeEvent {
   readonly type: "outcome";
-  readonly status: "ok" | "error" | "aborted";
+  readonly status: OutcomeStatus;
   readonly detail?: string;
 }
 
@@ -102,7 +106,7 @@ export function openTrace(options: TraceOptions): TraceWriter {
 const REQUIRED_FIELDS: Record<TraceEventType, Record<string, "string" | "number" | "boolean" | "any">> = {
   model_call: { model: "string", inputTokens: "number", outputTokens: "number", latencyMs: "number" },
   tool_call: { tool: "string", input: "any", output: "string", durationMs: "number" },
-  verify: { check: "string", passed: "boolean" },
+  verify: { check: "number", passed: "boolean" },
   card: { cardId: "string", card: "any" },
   outcome: { status: "string" },
 };
@@ -125,6 +129,9 @@ export function parseTraceLine(line: string): TraceEvent {
     if (kind === "any" ? actual === undefined : typeof actual !== kind) {
       throw new Error(`trace event ${type} has invalid field ${field}`);
     }
+  }
+  if (type === "outcome" && !(OUTCOME_STATUSES as readonly unknown[]).includes(record.status)) {
+    throw new Error(`trace event outcome has invalid status ${String(record.status)}`);
   }
   return record as unknown as TraceEvent;
 }

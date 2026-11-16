@@ -1,5 +1,5 @@
 {"ts":"2026-11-16T12:00:00.000Z","runId":"fixture-run","type":"model_call","model":"claude-haiku-5-5","inputTokens":1200,"outputTokens":310,"latencyMs":2450}
 {"ts":"2026-11-16T12:00:01.000Z","runId":"fixture-run","type":"tool_call","tool":"lookup_player","input":{"playerId":8478402},"output":"{\"name\":\"Connor McDavid\"}","durationMs":42}
-{"ts":"2026-11-16T12:00:02.000Z","runId":"fixture-run","type":"verify","check":"numbers_match_source","passed":true}
+{"ts":"2026-11-16T12:00:02.000Z","runId":"fixture-run","type":"verify","check":3,"passed":true}
 {"ts":"2026-11-16T12:00:03.000Z","runId":"fixture-run","type":"card","cardId":"card-1","card":{"title":"Top scorer","value":42}}
-{"ts":"2026-11-16T12:00:04.000Z","runId":"fixture-run","type":"outcome","status":"ok"}
+{"ts":"2026-11-16T12:00:04.000Z","runId":"fixture-run","type":"outcome","status":"cards"}

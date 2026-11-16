@@ -28,7 +28,7 @@ test("writer appends one JSONL line per event with ts and runId", () => {
   withTempDir((dir) => {
     const trace = openTrace({ runId: "run-1", dir, now: () => new Date("2026-01-02T03:04:05.000Z") });
     trace.append({ type: "model_call", model: "m", inputTokens: 1, outputTokens: 2, latencyMs: 3 });
-    trace.append({ type: "outcome", status: "ok" });
+    trace.append({ type: "outcome", status: "cards" });
     assert.equal(trace.path, join(dir, "run-1.jsonl"));
     const lines = readFileSync(trace.path, "utf8").trim().split("\n");
     assert.equal(lines.length, 2);
@@ -39,11 +39,18 @@ test("writer appends one JSONL line per event with ts and runId", () => {
   });
 });
 
+test("parseTraceLine enforces typed outcome statuses", () => {
+  assert.throws(() => parseTraceLine('{"ts":"x","runId":"r","type":"outcome","status":"ok"}'), /invalid status ok/);
+  for (const status of ["cards", "answered", "declined", "no_insight", "crashed"]) {
+    assert.equal(parseTraceLine(`{"ts":"x","runId":"r","type":"outcome","status":"${status}"}`).type, "outcome");
+  }
+});
+
 test("writer reopened on the same run appends rather than overwrites", () => {
   withTempDir((dir) => {
-    openTrace({ runId: "run-2", dir }).append({ type: "verify", check: "a", passed: true });
+    openTrace({ runId: "run-2", dir }).append({ type: "verify", check: 1, passed: true });
     const again = openTrace({ runId: "run-2", dir });
-    again.append({ type: "verify", check: "b", passed: false, detail: "nope" });
+    again.append({ type: "verify", check: 2, passed: false, detail: "nope" });
     assert.equal(readFileSync(again.path, "utf8").trim().split("\n").length, 2);
   });
 });
@@ -65,8 +72,9 @@ test("writer rejects run ids that are not safe file names", () => {
 
 test("parseTraceLine rejects malformed events", () => {
   assert.throws(() => parseTraceLine('{"ts":"x","runId":"r","type":"bogus"}'), /unknown trace event type/);
-  assert.throws(() => parseTraceLine('{"ts":"x","runId":"r","type":"verify","check":"c"}'), /invalid field passed/);
-  assert.throws(() => parseTraceLine('{"runId":"r","type":"outcome","status":"ok"}'), /missing ts/);
+  assert.throws(() => parseTraceLine('{"ts":"x","runId":"r","type":"verify","check":"3","passed":true}'), /invalid field check/);
+  assert.throws(() => parseTraceLine('{"ts":"x","runId":"r","type":"verify","check":3}'), /invalid field passed/);
+  assert.throws(() => parseTraceLine('{"runId":"r","type":"outcome","status":"cards"}'), /missing ts/);
 });
 
 test("truncateText leaves short text alone", () => {
