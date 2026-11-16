@@ -1,3 +1,11 @@
+# Response style
+
+- Use short, straightforward bullet points for progress updates and final responses.
+- Default to 1–2 bullets for progress and 2–5 bullets for final responses; use fewer when sufficient.
+- Lead with the outcome. Include changed files, validation results, and remaining blockers only when relevant.
+- Use plain language and one point per bullet. Omit filler, repeated context, and routine tool narration.
+- Expand only when the user requests detail or essential instructions, evidence, or risks require it.
+
 # Library documentation
 
 Use this repository's documentation in `.agent-sources` first for library API and behavior questions. Read [the source guide](.agent-sources/README.md), search the relevant local index, and read the matching cached topics before consulting live documentation or MCP sources. Check installed package types or source for version compatibility. Use external sources only for a specific gap the local references cannot answer or when the user explicitly requests current information; state the gap before fetching.
