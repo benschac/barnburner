@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "https://api-web.nhle.com/v1/gamecenter/2026020311/boxscore",
-  "fetchedAt": "2026-11-14T13:34:38.939Z",
+  "fetchedAt": "2026-11-16T00:41:41.377Z",
   "id": 2026020311,
   "season": 20262027,
   "date": "2026-11-13",
@@ -9,7 +9,7 @@
   "awayTeam": {
     "abbrev": "NSH",
     "score": 3,
-    "shotsOnGoal": 32,
+    "shotsOnGoal": 33,
     "players": {
       "forwards": [
         {
@@ -204,7 +204,7 @@
           "points": 0,
           "plusMinus": -1,
           "pim": 0,
-          "hits": 4,
+          "hits": 5,
           "powerPlayGoals": 0,
           "sog": 2,
           "faceoffWinningPctg": 0,
@@ -230,7 +230,7 @@
           "points": 0,
           "plusMinus": -1,
           "pim": 0,
-          "hits": 2,
+          "hits": 1,
           "powerPlayGoals": 0,
           "sog": 0,
           "faceoffWinningPctg": 0.5,
@@ -300,7 +300,7 @@
           "pim": 0,
           "hits": 1,
           "powerPlayGoals": 0,
-          "sog": 1,
+          "sog": 2,
           "faceoffWinningPctg": 0,
           "toi": "28:31",
           "blockedShots": 1,
@@ -847,7 +847,7 @@
           "sog": 1,
           "faceoffWinningPctg": 0,
           "toi": "20:54",
-          "blockedShots": 2,
+          "blockedShots": 1,
           "shifts": 27,
           "giveaways": 2,
           "takeaways": 0
@@ -883,11 +883,11 @@
             "default": "A. Hill"
           },
           "position": "G",
-          "evenStrengthShotsAgainst": "27/29",
+          "evenStrengthShotsAgainst": "28/30",
           "powerPlayShotsAgainst": "2/2",
           "shorthandedShotsAgainst": "1/1",
-          "saveShotsAgainst": "30/32",
-          "savePctg": 0.9375,
+          "saveShotsAgainst": "31/33",
+          "savePctg": 0.939394,
           "evenStrengthGoalsAgainst": 2,
           "powerPlayGoalsAgainst": 0,
           "shorthandedGoalsAgainst": 0,
@@ -896,8 +896,8 @@
           "toi": "65:00",
           "starter": true,
           "decision": "O",
-          "shotsAgainst": 32,
-          "saves": 30
+          "shotsAgainst": 33,
+          "saves": 31
         },
         {
           "playerId": 8479394,

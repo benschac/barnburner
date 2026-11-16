@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "https://api-web.nhle.com/v1/gamecenter/2026020310/boxscore",
-  "fetchedAt": "2026-11-14T13:34:37.982Z",
+  "fetchedAt": "2026-11-16T00:41:40.515Z",
   "id": 2026020310,
   "season": 20262027,
   "date": "2026-11-13",
@@ -9,7 +9,7 @@
   "awayTeam": {
     "abbrev": "NYR",
     "score": 5,
-    "shotsOnGoal": 31,
+    "shotsOnGoal": 30,
     "players": {
       "forwards": [
         {
@@ -339,7 +339,7 @@
           "pim": 0,
           "hits": 0,
           "powerPlayGoals": 0,
-          "sog": 2,
+          "sog": 1,
           "faceoffWinningPctg": 0,
           "toi": "23:58",
           "blockedShots": 4,
@@ -879,11 +879,11 @@
             "default": "L. Meriläinen"
           },
           "position": "G",
-          "evenStrengthShotsAgainst": "23/27",
+          "evenStrengthShotsAgainst": "22/26",
           "powerPlayShotsAgainst": "3/4",
           "shorthandedShotsAgainst": "0/0",
-          "saveShotsAgainst": "26/31",
-          "savePctg": 0.83871,
+          "saveShotsAgainst": "25/30",
+          "savePctg": 0.833333,
           "evenStrengthGoalsAgainst": 4,
           "powerPlayGoalsAgainst": 1,
           "shorthandedGoalsAgainst": 0,
@@ -892,8 +892,8 @@
           "toi": "60:00",
           "starter": true,
           "decision": "L",
-          "shotsAgainst": 31,
-          "saves": 26
+          "shotsAgainst": 30,
+          "saves": 25
         },
         {
           "playerId": 8480947,
