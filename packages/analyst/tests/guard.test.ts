@@ -91,3 +91,29 @@ test('touchesBoxscores is true wherever a boxscore table is read', async () => {
     assert.deepEqual(await check('SELECT (SELECT max(g) FROM skater_games)'), { ok: true, touchesBoxscores: true })
   })
 })
+
+test('CTE names are only visible inside their own query scope', async () => {
+  await withGuard(async (check) => {
+    await rejected(check, 'WITH unused AS (WITH sqlite_master AS (SELECT 1) SELECT 1) SELECT * FROM sqlite_master')
+    await rejected(check, 'WITH a AS (SELECT 1 AS n), b AS (SELECT * FROM c), c AS (SELECT 1 AS n) SELECT * FROM b')
+    await rejected(check, 'WITH x AS (SELECT * FROM x) SELECT * FROM x')
+    assert.deepEqual(await check('WITH a AS (WITH inner_cte AS (SELECT 1 AS n) SELECT * FROM inner_cte) SELECT * FROM a'), {
+      ok: true,
+      touchesBoxscores: false,
+    })
+    assert.deepEqual(await check('SELECT * FROM (WITH q AS (SELECT 1 AS n) SELECT * FROM q) t'), { ok: true, touchesBoxscores: false })
+  })
+})
+
+test('a CTE shadowing a boxscore table does not count as reading boxscores', async () => {
+  await withGuard(async (check) => {
+    assert.deepEqual(await check('WITH skater_games AS (SELECT * FROM team_games) SELECT count(*) FROM skater_games'), {
+      ok: true,
+      touchesBoxscores: false,
+    })
+    assert.deepEqual(await check('WITH skater_games AS (SELECT * FROM skater_games) SELECT count(*) FROM skater_games'), {
+      ok: true,
+      touchesBoxscores: true,
+    })
+  })
+})

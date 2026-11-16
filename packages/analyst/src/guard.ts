@@ -15,26 +15,32 @@ const fail = (reason: string): GuardResult => ({ ok: false, reason })
 
 const sqlLiteral = (value: string): string => value.replaceAll("'", "''")
 
-// Names defined by any WITH clause in the tree (CTE scoping is not tracked; a CTE name is never a data file).
-const collectCteNames = (node: Json, names: Set<string>): void => {
-  if (Array.isArray(node)) return node.forEach((child) => collectCteNames(child, names))
-  if (!isObj(node)) return
-  const map = isObj(node.cte_map) ? node.cte_map.map : undefined
-  if (Array.isArray(map)) {
-    for (const entry of map) if (isObj(entry) && typeof entry.key === 'string') names.add(entry.key.toLowerCase())
-  }
-  for (const child of Object.values(node)) collectCteNames(child, names)
-}
-
 interface Scan {
   reason: string | null
   touchesBoxscores: boolean
 }
 
-const scan = (node: Json, cteNames: ReadonlySet<string>, state: Scan): void => {
+// CTE names are resolved in lexical scope: a WITH clause is visible to later CTEs of the same clause
+// and to the rest of the query node that owns it, never to sibling or enclosing queries.
+const scan = (node: Json, scope: ReadonlySet<string>, state: Scan): void => {
   if (state.reason !== null) return
-  if (Array.isArray(node)) return node.forEach((child) => scan(child, cteNames, state))
+  if (Array.isArray(node)) return node.forEach((child) => scan(child, scope, state))
   if (!isObj(node)) return
+
+  let visible = scope
+  if (node.type === 'RECURSIVE_CTE_NODE' && typeof node.cte_name === 'string') {
+    visible = new Set([...visible, node.cte_name.toLowerCase()])
+  }
+  const map = isObj(node.cte_map) ? node.cte_map.map : undefined
+  if (Array.isArray(map) && map.length > 0) {
+    const inner = new Set(visible)
+    for (const entry of map) {
+      if (!isObj(entry) || typeof entry.key !== 'string') continue
+      scan(entry.value, inner, state)
+      inner.add(entry.key.toLowerCase())
+    }
+    visible = inner
+  }
 
   // A table reference carries both `alias` and `sample`; every one must be a known-safe kind.
   if ('sample' in node && 'alias' in node && typeof node.type === 'string') {
@@ -48,14 +54,16 @@ const scan = (node: Json, cteNames: ReadonlySet<string>, state: Scan): void => {
         state.reason = `qualified table not allowed: ${name}`
         return
       }
-      if (BOXSCORE_TABLES.has(name)) state.touchesBoxscores = true
-      if (!cteNames.has(name) && !ALLOWED_TABLES.has(name)) {
-        state.reason = `unknown table: ${name}`
-        return
+      if (!visible.has(name)) {
+        if (!ALLOWED_TABLES.has(name)) {
+          state.reason = `unknown table: ${name}`
+          return
+        }
+        if (BOXSCORE_TABLES.has(name)) state.touchesBoxscores = true
       }
     }
   }
-  for (const child of Object.values(node)) scan(child, cteNames, state)
+  for (const [key, child] of Object.entries(node)) if (key !== 'cte_map') scan(child, visible, state)
 }
 
 export const guardQuery: Guard = (db: Db, sql: string) =>
@@ -75,10 +83,8 @@ export const guardQuery: Guard = (db: Db, sql: string) =>
       }
       const statements = tree.statements
       if (!Array.isArray(statements) || statements.length !== 1) return fail('exactly one SELECT statement is required')
-      const cteNames = new Set<string>()
-      collectCteNames(statements[0], cteNames)
       const state: Scan = { reason: null, touchesBoxscores: false }
-      scan(statements[0], cteNames, state)
+      scan(statements[0], new Set<string>(), state)
       return state.reason === null ? { ok: true, touchesBoxscores: state.touchesBoxscores } : fail(state.reason)
     }),
     Effect.catch((error) => Effect.succeed(fail(error.message))),
