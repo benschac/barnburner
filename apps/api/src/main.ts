@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { NodeHttpServer, NodeRuntime, NodeServices } from '@effect/platform-node'
 import { Effect, Layer } from 'effect'
 import { HttpRouter } from 'effect/http'
+import { BoxScores } from './boxscores.ts'
 import { ApiRoutes } from './routes.ts'
 import { Snapshots } from './snapshots.ts'
 
@@ -11,6 +12,7 @@ const program = Effect.gen(function* () {
   const { values } = yield* Effect.try(() => parseArgs({ options: {
     snapshot: { type: 'string', default: fileURLToPath(new URL('../../../data/nhl-20262027.json', import.meta.url)) },
     'poster-snapshot': { type: 'string', default: fileURLToPath(new URL('../../../data/nhl-poster-20262027.json', import.meta.url)) },
+    boxscores: { type: 'string', default: fileURLToPath(new URL('../../../data/boxscores/20262027', import.meta.url)) },
     host: { type: 'string', default: '127.0.0.1' },
     port: { type: 'string', default: '3001' },
   } }))
@@ -19,7 +21,10 @@ const program = Effect.gen(function* () {
     return yield* Effect.fail(new Error('Invalid port'))
   }
   return yield* HttpRouter.serve(ApiRoutes).pipe(
-    Layer.provide(Snapshots.layer({ snapshot: values.snapshot, posterSnapshot: values['poster-snapshot'] })),
+    Layer.provide([
+      Snapshots.layer({ snapshot: values.snapshot, posterSnapshot: values['poster-snapshot'] }),
+      BoxScores.layerFiles(values.boxscores),
+    ]),
     Layer.provide(NodeHttpServer.layer(() => createServer(), { host: values.host, port })),
     Layer.provide(NodeServices.layer),
     Layer.launch,

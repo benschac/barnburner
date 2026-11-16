@@ -11,7 +11,7 @@
   },
   "scripts": {
     "dev": "node --watch src/main.ts",
-    "build": "bun build src/web-handler.ts --target=node --format=esm --outfile=dist/web-handler.js",
+    "build": "bun scripts/build.mjs",
     "start": "node src/main.ts",
     "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.json",
     "lint": "oxlint src tests",

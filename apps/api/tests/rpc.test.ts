@@ -11,13 +11,14 @@ import { HttpRouter, HttpServer } from 'effect/http'
 import { PosterSnapshot, TeamData } from '@nhl-reddit-stats/season'
 import { SnapshotLoadError } from '@nhl-reddit-stats/season/rpc'
 import { SeasonSource, rpcSeasonSourceLayer } from '../../web/src/season-source.ts'
+import { BoxScores } from '../src/boxscores.ts'
 import { ApiRoutes } from '../src/routes.ts'
 import { makeSnapshots, Snapshots } from '../src/snapshots.ts'
 import season from '../../../data/nhl-20262027.json' with { type: 'json' }
 import poster from '../../../data/nhl-poster-20262027.json' with { type: 'json' }
 
 const apiLayer = (snapshots: typeof Snapshots.Service) => HttpRouter.serve(ApiRoutes, { disableLogger: true, disableListenLog: true }).pipe(
-  Layer.provide(Layer.succeed(Snapshots, snapshots)),
+  Layer.provide([Layer.succeed(Snapshots, snapshots), BoxScores.layerArchive({})]),
   Layer.provideMerge(NodeHttpServer.layer(() => createServer(), { host: '127.0.0.1', port: 0 })),
 )
 

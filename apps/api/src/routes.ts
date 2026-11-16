@@ -2,11 +2,16 @@ import { ByteSize, Effect, Layer } from 'effect'
 import { HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http'
 import { RpcSerialization, RpcServer } from 'effect/rpc'
 import { TeamRpcs } from '@nhl-reddit-stats/season/rpc'
+import { BoxScores, getGameBoxscore } from './boxscores.ts'
 import { Snapshots } from './snapshots.ts'
 
 const handlers = TeamRpcs.toLayer(Effect.gen(function* () {
   const snapshots = yield* Snapshots
-  return { GetTeamData: () => snapshots.load }
+  const boxScores = yield* BoxScores
+  return {
+    GetTeamData: () => snapshots.load,
+    GetGameBoxscore: ({ gameId }) => getGameBoxscore(snapshots.season, gameId).pipe(Effect.provideService(BoxScores, boxScores)),
+  }
 }))
 
 const rpcBodyLimit = HttpRouter.middleware((httpEffect) => httpEffect.pipe(

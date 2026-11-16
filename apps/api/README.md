@@ -9,6 +9,12 @@ The server follows the Layer composition used by the local `meeeeed` project's
 
 - `packages/season` owns shared response schemas, domain calculations, and the
   `GetTeamData` RPC contract. It imports no server implementation.
+- `GetGameBoxscore` takes a game id and returns a trimmed summary (score, decision, shots,
+  scorers, goalies) with typed `UnknownGame`, `BoxscoreNotArchived` and `BoxscoreLoadError`
+  failures. `src/boxscores.ts` checks the id against the season snapshot before it reads
+  storage, and treats unfinished games as not archived. The `BoxScores` service is the
+  storage port: `data:serve` reads `data/boxscores/20262027/<id>.json` per request
+  (`--boxscores` overrides the directory); Vercel uses the bundled archive below.
 - `src/snapshots.ts` reads and validates saved JSON once at startup. Invalid files
   fail startup. A missing poster file is allowed, with a typed load failure.
 - `src/routes.ts` binds the RPC handler and retains the read-only GET endpoints.
@@ -32,6 +38,13 @@ The existing Vercel project uses `apps/web` as its root. The API entrypoints in
 The web build first bundles `src/web-handler.ts` into `dist/web-handler.js`,
 including the snapshot JSON and shared contracts. This gives Vercel executable
 JavaScript without depending on source TypeScript exports at runtime.
+
+`scripts/build.mjs` also turns every `data/boxscores/20262027/*.json` into a literal dynamic
+import, which Bun emits as its own `dist/chunk-*.js`. A request loads only its game's chunk;
+nothing is inlined in the entry module. Vercel traces those relative imports into the
+function (not verified on Vercel here; see `vercel build` check below). Chunks are content
+hashed, so the build clears `dist` first, and each refresh needs a rebuild/redeploy. The
+whole archive adds about 24 KB of function files per game (about 32 MB at 1,344 games).
 
 The function serves `/api/rpc` and the existing GET routes. Its runtime is reused
 across requests; each request retains Effect's scoped lifetime and body limit.
