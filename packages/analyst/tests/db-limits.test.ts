@@ -49,3 +49,31 @@ test('rowCap truncates rows but rowCount is the full count', async () => {
     assert.equal(canonical.rowCount, 10)
   })
 })
+
+test('concurrent queries on one Db do not cancel each other', async () => {
+  await withDb(async (db) => {
+    const slow = Effect.runPromise(
+      Effect.result(db.query('select count(*) as n from range(30000) a, range(30000) b', { timeoutMs: 20000 })),
+    )
+    const quick = Effect.runPromise(db.query('select 1 as x', { timeoutMs: 100 }))
+    assert.deepEqual(await quick, { rows: [{ x: 1 }], rowCount: 1 })
+    const outcome = await slow
+    assert.equal(outcome._tag, 'Success')
+  })
+})
+
+test('a result that completes after the deadline fails as timed out', async () => {
+  await withDb(async (db) => {
+    const error = await Effect.runPromise(
+      Effect.flip(db.query('select * from range(2000000) t(n)', { timeoutMs: 1, rowCap: 3 })),
+    )
+    assert.equal(error._tag, 'SqlError')
+    assert.match(error.message, /timed out/)
+  })
+})
+
+test('rowCap 0 returns no rows but the full count', async () => {
+  await withDb(async (db) => {
+    assert.deepEqual(await Effect.runPromise(db.query('select * from range(5) t(n)', { rowCap: 0 })), { rows: [], rowCount: 5 })
+  })
+})

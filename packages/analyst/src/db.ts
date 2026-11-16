@@ -1,9 +1,9 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DuckDBInstance, DuckDBTypeId, StatementType } from '@duckdb/node-api'
+import { DuckDBInstance, DuckDBTypeId, JsonDuckDBValueConverter, StatementType } from '@duckdb/node-api'
 import type { DuckDBResultReader } from '@duckdb/node-api'
-import { Effect, type Scope } from 'effect'
+import { Effect, Result, type Scope } from 'effect'
 import { type Db, DbError, type QueryOpts, type QueryResult, type Row, SqlError } from './shapes.ts'
 
 export interface OpenDbOpts {
@@ -47,6 +47,21 @@ export const convertRows = (reader: DuckDBResultReader, json: Record<string, unk
   })
 }
 
+// Reads only the first `limit` rows as JSON values, so rows beyond a cap are never converted.
+const readJsonRows = (reader: DuckDBResultReader, limit: number): Record<string, unknown>[] => {
+  const names = reader.deduplicatedColumnNames()
+  const types = reader.columnTypes()
+  const out: Record<string, unknown>[] = []
+  for (let r = 0; r < limit; r++) {
+    const raw: Record<string, unknown> = {}
+    names.forEach((name, c) => {
+      raw[name] = JsonDuckDBValueConverter(reader.value(c, r), types[c]!, JsonDuckDBValueConverter)
+    })
+    out.push(raw)
+  }
+  return out
+}
+
 const sqlLiteral = (value: string): string => value.replaceAll("'", "''")
 
 export const openDb = (opts: OpenDbOpts): Effect.Effect<Db, DbError, Scope.Scope> =>
@@ -83,41 +98,55 @@ export const openDb = (opts: OpenDbOpts): Effect.Effect<Db, DbError, Scope.Scope
     yield* run('SET enable_external_access=false', 'lock')
     yield* run('SET lock_configuration=true', 'lock')
 
-    // Refuses anything that is not exactly one SELECT, judged by DuckDB's own parser on the final text.
-    const assertSingleSelect = async (sql: string): Promise<void> => {
+    // Why the text is not exactly one SELECT, judged by DuckDB's own parser on the final text; undefined when it is.
+    const singleSelectRefusal = async (sql: string): Promise<string | undefined> => {
       const statements = await connection.extractStatements(sql)
-      if (statements.count !== 1) throw new Error(`expected exactly one statement, got ${statements.count}`)
+      if (statements.count !== 1) return `expected exactly one statement, got ${statements.count}`
       const prepared = await statements.prepare(0)
-      if (prepared.statementType !== StatementType.SELECT) throw new Error('only SELECT statements are allowed')
+      if (prepared.statementType !== StatementType.SELECT) return 'only SELECT statements are allowed'
+      return undefined
+    }
+
+    // One query at a time per connection, so an interrupt can only ever hit its own statement.
+    let tail: Promise<unknown> = Promise.resolve()
+    const serialised = <A>(work: () => Promise<A>): Promise<A> => {
+      const result = tail.then(work, work)
+      tail = result.catch(() => undefined)
+      return result
     }
 
     const query = (sql: string, queryOpts?: QueryOpts): Effect.Effect<QueryResult, SqlError> =>
-      Effect.tryPromise({
-        try: async () => {
-          const { timeoutMs, rowCap } = queryOpts ?? {}
-          let timedOut = false
-          const timer =
-            timeoutMs === undefined
-              ? undefined
-              : setTimeout(() => {
-                  timedOut = true
-                  connection.interrupt()
-                }, timeoutMs)
-          try {
-            await assertSingleSelect(sql)
-            const reader = await connection.runAndReadAll(sql)
-            const all = convertRows(reader, await reader.getRowObjectsJson())
-            const rows = rowCap === undefined ? all : all.slice(0, Math.max(0, rowCap))
-            return { rows, rowCount: all.length }
-          } catch (error) {
-            if (timedOut) throw new Error(`query timed out after ${timeoutMs}ms`)
-            throw error
-          } finally {
-            if (timer !== undefined) clearTimeout(timer)
-          }
-        },
-        catch: (error) => new SqlError({ message: error instanceof Error ? error.message : String(error), sql }),
-      })
+      Effect.promise(() =>
+          serialised(async (): Promise<Result.Result<QueryResult, SqlError>> => {
+            const { timeoutMs, rowCap } = queryOpts ?? {}
+            const started = Date.now()
+            let timedOut = false
+            const timer =
+              timeoutMs === undefined
+                ? undefined
+                : setTimeout(() => {
+                    timedOut = true
+                    connection.interrupt()
+                  }, timeoutMs)
+            const fail = (message: string) => Result.fail(new SqlError({ message, sql }))
+            const timeout = `query timed out after ${timeoutMs}ms`
+            try {
+              const refusal = await singleSelectRefusal(sql)
+              if (refusal !== undefined) return fail(timedOut ? timeout : refusal)
+              const reader = await connection.runAndReadAll(sql)
+              const total = reader.currentRowCount
+              const keep = rowCap === undefined ? total : Math.min(total, Math.max(0, rowCap))
+              const rows = convertRows(reader, readJsonRows(reader, keep))
+              if (timeoutMs !== undefined && (timedOut || Date.now() - started > timeoutMs)) return fail(timeout)
+              return Result.succeed({ rows, rowCount: total })
+            } catch (error) {
+              // A driver exception is translated here; nothing else can reject this promise.
+              return fail(timedOut ? timeout : error instanceof Error ? error.message : String(error))
+            } finally {
+              if (timer !== undefined) clearTimeout(timer)
+            }
+          }),
+      ).pipe(Effect.flatMap(Effect.fromResult))
 
     const queryCanonical = (sql: string, queryOpts?: QueryOpts): Effect.Effect<QueryResult, SqlError> =>
       query(`SELECT * FROM (\n${sql.trim().replace(/;(\s|--[^\n]*)*$/, '')}\n) ORDER BY ALL`, queryOpts)
