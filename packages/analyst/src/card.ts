@@ -7,7 +7,8 @@ export type RejectReason = typeof RejectReason.Type
 const TeamCode = Schema.String.check(Schema.isPattern(/^[A-Z]{3}$/))
 const Count = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
 export const CardKind = Schema.Literals(['record', 'trend', 'comparative', 'player'])
-const Row = Schema.Record(Schema.String, Schema.Unknown)
+const Cell = Schema.Union([Schema.String, Schema.Number, Schema.Boolean, Schema.Null])
+const Row = Schema.Record(Schema.String, Cell)
 
 // Fields the model writes.
 const draftFields = {

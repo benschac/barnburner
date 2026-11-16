@@ -27,6 +27,11 @@ test('rejects a comparative card with no assert', () => {
   assert.doesNotThrow(() => Schema.decodeUnknownSync(InsightCard)({ ...base, kind: 'comparative', assert: 'SELECT true' }))
 })
 
+test('rejects a result with an object cell', () => {
+  const bad = { ...base, evidence: { ...base.evidence, result: [{ wins: { n: 1 } }] } }
+  assert.throws(() => Schema.decodeUnknownSync(InsightCard)(bad))
+})
+
 test('drafts decode without system fields', () => {
   const { team, kind, headline, body, bindings } = base
   const draft = { team, kind, headline, body, bindings, evidence: { query: 'SELECT 1 AS wins' } }
