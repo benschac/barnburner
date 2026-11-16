@@ -18,7 +18,13 @@
     "check:tamagui": "turbo run check:tamagui",
     "generate:tamagui": "turbo run generate:tamagui",
     "lint": "turbo run lint",
-    "preview": "turbo run preview"
+    "preview": "turbo run preview",
+    "ask": "bun run --cwd packages/analyst ask",
+    "insights:generate": "bun run --cwd packages/analyst insights:generate",
+    "insights:review": "bun run --cwd packages/analyst insights:review",
+    "insights:report": "bun run --cwd packages/analyst insights:report",
+    "insights:recheck": "bun run --cwd packages/analyst insights:recheck",
+    "evals": "bun run --cwd packages/analyst evals"
   },
   "devDependencies": {
     "turbo": "2.11.10",
