@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { Answer, Row } from '../src/shapes.ts'
 import { SqlError } from '../src/shapes.ts'
+import { asSchema } from 'ai'
 import { coverageSql, makeAnswerTool, runAnswer } from '../src/tools/answer.ts'
 import { fakeDb, fakeGuard } from './fakes.ts'
 
@@ -56,8 +57,8 @@ test('SqlError from the canonical query returns ERROR text', async () => {
 test('row out of range returns ERROR text', async () => {
   const { deps, answers } = setup({ [query]: rows })
   assert.match(await runAnswer(deps, { query, row: 2, column: 'wins' }), /^ERROR: row 2 is out of range/)
-  assert.match(await runAnswer(deps, { query, row: -1, column: 'wins' }), /^ERROR: row -1/)
-  assert.match(await runAnswer(deps, { query, row: 0.5, column: 'wins' }), /^ERROR: row 0.5/)
+  assert.match(await runAnswer(deps, { query, row: -1, column: 'wins' }), /^ERROR: row must be a non-negative integer/)
+  assert.match(await runAnswer(deps, { query, row: 0.5, column: 'wins' }), /^ERROR: row must be a non-negative integer/)
   assert.deepEqual(answers, [])
 })
 
@@ -114,4 +115,32 @@ test('failing coverage query returns ERROR text and records nothing', async () =
 test('makeAnswerTool builds a tool', () => {
   const { deps } = setup({ [query]: rows })
   assert.ok(makeAnswerTool(deps))
+})
+
+test('regression: a numeric column is rejected, not coerced into a property name', async () => {
+  const numericRows: Row[] = [{ '0': 'zero', wins: 10 }]
+  const { deps, answers } = setup({ [query]: numericRows })
+  const reply = await runAnswer(deps, { query, row: 0, column: 0 })
+  assert.equal(reply, 'ERROR: column must be a string')
+  assert.deepEqual(answers, [])
+})
+
+test('regression: wrong types for query, row, or column return ERROR text', async () => {
+  const { deps, answers } = setup({ [query]: rows })
+  assert.equal(await runAnswer(deps, null), 'ERROR: input must be an object')
+  assert.equal(await runAnswer(deps, { query: 1, row: 0, column: 'wins' }), 'ERROR: query must be a string')
+  assert.equal(await runAnswer(deps, { query, row: '0', column: 'wins' }), 'ERROR: row must be a non-negative integer')
+  assert.equal(await runAnswer(deps, { query, row: 1.5, column: 'wins' }), 'ERROR: row must be a non-negative integer')
+  assert.deepEqual(answers, [])
+})
+
+test('regression: the tool schema validate callback rejects malformed arguments', async () => {
+  const { deps } = setup({ [query]: rows })
+  const schema = asSchema(makeAnswerTool(deps).inputSchema)
+  const validate = schema.validate
+  assert.ok(validate)
+  assert.equal((await validate({ query, row: 0, column: 0 })).success, false)
+  assert.equal((await validate({ query, row: '0', column: 'wins' })).success, false)
+  const good = await validate({ query, row: 0, column: 'wins' })
+  assert.deepEqual(good.success && good.value, { query, row: 0, column: 'wins' })
 })

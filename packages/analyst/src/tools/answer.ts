@@ -16,6 +16,20 @@ export interface AnswerInput {
   readonly column: string
 }
 
+type Checked<T> = { ok: true; input: T } | { ok: false; reason: string }
+
+// Runtime check of model-supplied arguments. Wrong types are reported, never coerced.
+export const checkAnswerInput = (raw: unknown): Checked<AnswerInput> => {
+  if (typeof raw !== 'object' || raw === null) return { ok: false, reason: 'input must be an object' }
+  const { query, row, column } = raw as Record<string, unknown>
+  if (typeof query !== 'string') return { ok: false, reason: 'query must be a string' }
+  if (typeof row !== 'number' || !Number.isInteger(row) || row < 0) {
+    return { ok: false, reason: 'row must be a non-negative integer' }
+  }
+  if (typeof column !== 'string') return { ok: false, reason: 'column must be a string' }
+  return { ok: true, input: { query, row, column } }
+}
+
 const fail = (reason: string): string => `ERROR: ${reason}`
 
 // Exact SQL text; the fake DB in tests keys on it.
@@ -33,7 +47,10 @@ const readCoverage = async (deps: AnswerDeps): Promise<Coverage | 'missing' | st
 }
 
 // Returns "ok" or "ERROR: <reason>". Tool errors go back to the model as text.
-export const runAnswer = async (deps: AnswerDeps, input: AnswerInput): Promise<string> => {
+export const runAnswer = async (deps: AnswerDeps, raw: unknown): Promise<string> => {
+  const checked = checkAnswerInput(raw)
+  if (!checked.ok) return fail(checked.reason)
+  const input = checked.input
   const verdict = await Effect.runPromise(deps.guard(deps.db, input.query))
   if (!verdict.ok) return fail(verdict.reason)
 
@@ -68,15 +85,23 @@ export const makeAnswerTool = (deps: AnswerDeps) =>
   tool({
     description:
       'Record the answer to the user question. Give the SQL query, the zero-based row index, and the column name of the single cell that answers the question. The query must be a single SELECT over the allowed views.',
-    inputSchema: jsonSchema<AnswerInput>({
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'A single SELECT statement.' },
-        row: { type: 'integer', minimum: 0, description: 'Zero-based row index in the query result.' },
-        column: { type: 'string', description: 'Column name in the query result.' },
+    inputSchema: jsonSchema<AnswerInput>(
+      {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'A single SELECT statement.' },
+          row: { type: 'integer', minimum: 0, description: 'Zero-based row index in the query result.' },
+          column: { type: 'string', description: 'Column name in the query result.' },
+        },
+        required: ['query', 'row', 'column'],
+        additionalProperties: false,
       },
-      required: ['query', 'row', 'column'],
-      additionalProperties: false,
-    }),
+      {
+        validate: (value) => {
+          const checked = checkAnswerInput(value)
+          return checked.ok ? { success: true, value: checked.input } : { success: false, error: new Error(checked.reason) }
+        },
+      },
+    ),
     execute: (input) => runAnswer(deps, input),
   })
