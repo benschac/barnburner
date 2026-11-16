@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util'
 import { Effect } from 'effect'
 import type { InsightCard } from './card.ts'
 import type { Db, Row, VerifyResult } from './shapes.ts'
@@ -17,7 +18,7 @@ const check5 = (db: Db, card: InsightCard) =>
   Effect.map(
     rerun(5, db.queryCanonical(card.evidence.query)),
     ({ rows }): VerifyResult =>
-      json(JSON.parse(json(rows))) === json(card.evidence.result) ? pass : fail(5, 'canonical rerun differs from evidence.result'),
+      isDeepStrictEqual(JSON.parse(json(rows)), JSON.parse(json(card.evidence.result))) ? pass : fail(5, 'canonical rerun differs from evidence.result'),
   )
 
 const check6 = (db: Db, card: InsightCard, finals: ReadonlySet<number>) => {

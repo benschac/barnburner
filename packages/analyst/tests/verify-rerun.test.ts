@@ -35,6 +35,16 @@ test('fails check 5 on drift and on SqlError', async () => {
   assert.deepEqual(err, { ok: false, check: 5, detail: 'boom' })
 })
 
+test('check 5 ignores row key order but not values or row order', async () => {
+  const stored = card({ result: [{ losses: 2, wins: 1 }] })
+  assert.deepEqual(await run(fakeDb({ [Q]: [{ wins: 1, losses: 2 }] }), stored), { ok: true })
+  const differs = await run(fakeDb({ [Q]: [{ wins: 1, losses: 3 }] }), stored)
+  assert.equal(differs.ok === false && differs.check, 5)
+  const two = card({ result: [{ n: 1 }, { n: 2 }] })
+  const reordered = await run(fakeDb({ [Q]: [{ n: 2 }, { n: 1 }] }), two)
+  assert.equal(reordered.ok === false && reordered.check, 5)
+})
+
 test('check 6: changed game list, non-final game, gameIds without query', async () => {
   const c = card({ gamesQuery: G, gameIds: [1, 2] })
   assert.deepEqual(await run(fakeDb({ ...base, [G]: [{ game_id: 1 }, { game_id: 2 }] }), c), { ok: true })
