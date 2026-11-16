@@ -19,6 +19,18 @@ test('decimals use tolerance', () => {
   assert.equal(grade(value, 0.915, { value: 0.916 }).pass, false)
 })
 
+test('tolerance boundary passes despite floating-point error', () => {
+  const c = { expect: 'value', tolerance: 0.01 } as const
+  assert.equal(grade(c, 0.915, { value: 0.925 }).pass, true)
+  assert.equal(grade(c, 0.915, { value: 0.905 }).pass, true)
+  assert.equal(grade(c, 0.915, { value: 0.926 }).pass, false)
+})
+
+test('non-finite truth fails', () => {
+  assert.equal(grade(value, Number.NaN, { value: 123 }).pass, false)
+  assert.equal(grade(value, Number.POSITIVE_INFINITY, { value: Number.POSITIVE_INFINITY }).pass, false)
+})
+
 test('decline cases must be declined', () => {
   assert.equal(grade({ expect: 'decline' }, null, { declined: true }).pass, true)
   assert.equal(grade({ expect: 'decline' }, null, { value: 3 }).pass, false)
