@@ -13,7 +13,9 @@ SCHEMA = """
 CREATE TABLE spans (
     a INTEGER NOT NULL, b INTEGER NOT NULL, season_id INTEGER NOT NULL,
     game_type INTEGER NOT NULL, team_id INTEGER NOT NULL, link INTEGER NOT NULL,
-    games INTEGER NOT NULL, first_game_id INTEGER NOT NULL
+    games INTEGER NOT NULL, first_game_id INTEGER NOT NULL,
+    CHECK (a < b AND link IN (0, 1)),
+    UNIQUE (a, b, season_id, game_type, team_id, link)
 );
 """
 
