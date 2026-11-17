@@ -3,7 +3,7 @@ import type { LanguageModel } from 'ai'
 import { Llm } from './llm.ts'
 import type { LlmError } from './llm.ts'
 import type { InsightCard } from './card.ts'
-import { parseJson, toJson } from './json.ts'
+import { toJson } from './json.ts'
 import { render } from './render.ts'
 import type { RenderError, Row } from './render.ts'
 
@@ -101,24 +101,16 @@ const buildPrompt = (cards: ReadonlyArray<RenderedCard>, posterFacts: ReadonlyAr
     })),
   })
 
-const stripFences = (text: string) => text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
-
-const parseScores = (text: string, ids: ReadonlySet<string>): Effect.Effect<RankScores, RankError> =>
+const validateScores = (parsed: RankScores, ids: ReadonlySet<string>): Effect.Effect<RankScores, RankError> =>
   Effect.gen(function* () {
-    const json = yield* Effect.fromResult(
-      Result.mapError(parseJson(stripFences(text)), () => new RankError({ message: 'ranker reply is not valid JSON', raw: text })),
-    )
-    const parsed = yield* Schema.decodeUnknownEffect(RankScores)(json).pipe(
-      Effect.mapError((e) => new RankError({ message: `ranker reply failed validation: ${String(e)}`, raw: text })),
-    )
     const seen = new Set<string>()
     for (const s of parsed.scores) {
-      if (!ids.has(s.id)) return yield* new RankError({ message: `ranker scored unknown id ${s.id}`, raw: text })
-      if (seen.has(s.id)) return yield* new RankError({ message: `ranker scored id ${s.id} twice`, raw: text })
+      if (!ids.has(s.id)) return yield* new RankError({ message: `ranker scored unknown id ${s.id}` })
+      if (seen.has(s.id)) return yield* new RankError({ message: `ranker scored id ${s.id} twice` })
       seen.add(s.id)
     }
     for (const id of ids) {
-      if (!seen.has(id)) return yield* new RankError({ message: `ranker did not score id ${id}`, raw: text })
+      if (!seen.has(id)) return yield* new RankError({ message: `ranker did not score id ${id}` })
     }
     return parsed
   })
@@ -135,12 +127,13 @@ export const rank = (input: RankInput): Effect.Effect<RankResult, RankError | Ll
     const cards = renderedCards.map((r) => r.card)
     if (cards.length === 0) return { ranked: [], dropped }
     const llm = yield* Llm
-    const result = yield* llm.run({
+    const result = yield* llm.generateObject({
+      schema: RankScores,
       system,
       prompt: buildPrompt(renderedCards, input.posterFacts),
       model: input.model ?? llm.config.rankModel,
-    })
-    const parsed = yield* parseScores(result.text, new Set(cards.map((c) => c.id)))
+    }).pipe(Effect.catchTag('LlmOutputError', (error) => Effect.fail(new RankError({ message: error.message, ...(error.raw === undefined ? {} : { raw: error.raw }) }))))
+    const parsed = yield* validateScores(result.object, new Set(cards.map((c) => c.id)))
     const byId = new Map(parsed.scores.map((s) => [s.id, s]))
     const ranked = cards.map((card): RankedCard => {
       const s = byId.get(card.id)!
