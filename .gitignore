@@ -28,3 +28,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# NHL history: archives and databases live in GitHub releases (see docs/nhl-teammate-graph-plan.md)
+__pycache__/
+data/history/*
+!data/history/manifest.json
+!data/history/serving.json

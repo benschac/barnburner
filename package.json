@@ -11,9 +11,14 @@
     "data:refresh": "node scripts/refresh-nhl-games.mjs",
     "data:refresh:poster": "node scripts/refresh-nhl-poster.mjs",
     "data:refresh:all": "node scripts/refresh-nhl-data.mjs",
+    "data:import:history": "python3 scripts/import-nhl-history.py && python3 scripts/check_nhl_history.py --fetch && python3 scripts/build-nhl-history.py",
+    "data:import:dressed": "python3 scripts/import-nhl-dressed.py",
+    "data:build:history": "python3 scripts/build-nhl-history.py",
+    "data:build:serving": "python3 scripts/build-nhl-serving.py --base data/history/nhl.sqlite --out data/history/nhl-serve.sqlite",
     "data:serve": "node apps/api/src/main.ts",
     "test:data": "node --test tests/nhl-*.test.mjs",
     "test:api": "bun run --cwd apps/api test",
+    "test:history": "python3 -m unittest discover -s tests -p 'test_*.py'",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
@@ -26,7 +31,9 @@
     "insights:review": "bun run --cwd packages/analyst insights:review",
     "insights:report": "bun run --cwd packages/analyst insights:report",
     "insights:recheck": "bun run --cwd packages/analyst insights:recheck",
-    "evals": "bun run --cwd packages/analyst evals"
+    "evals": "bun run --cwd packages/analyst evals",
+    "history:accept": "bun run --cwd apps/api history:accept",
+    "history:query": "bun run --cwd apps/api history:query"
   },
   "devDependencies": {
     "turbo": "2.11.10",
