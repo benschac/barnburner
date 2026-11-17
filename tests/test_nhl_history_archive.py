@@ -1,5 +1,6 @@
 import contextlib
 import functools
+import gzip
 import http.server
 import importlib.util
 import io
@@ -22,11 +23,18 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+def write_gz(path, payload):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(gzip.compress(json.dumps(payload).encode()))
+
+
 def populate(root):
-    for kind in ("seasons", "dressed"):
-        (root / kind).mkdir(parents=True)
-        for season in SEASONS:
-            (root / kind / f"{season}-2.json.gz").write_bytes(f"{kind}{season}".encode())
+    (root).mkdir(parents=True, exist_ok=True)
+    (root / "seasons.json").write_text(json.dumps({"data": [{"id": int(s)} for s in SEASONS]}))
+    for season in SEASONS:
+        for game_type in (2, 3):
+            write_gz(root / "seasons" / f"{season}-{game_type}.json.gz", {"s": season, "t": game_type})
+            write_gz(root / "dressed" / f"{season}-{game_type}.json.gz", {"games": {"1": {"home": []}}})
 
 
 def run(argv):
@@ -64,11 +72,11 @@ class ArchiveTest(unittest.TestCase):
     def test_manifest_excludes_two_latest_seasons(self):
         self.assertEqual(self.manifest["release"], "nhl-history-archive")
         self.assertEqual([e["asset"] for e in self.manifest["files"]],
-                         ["dressed-19171918-2.json.gz", "seasons-19171918-2.json.gz",
-                          "dressed-20232024-2.json.gz", "seasons-20232024-2.json.gz"])
-        entry = self.manifest["files"][1]
+                         [f"{k}-{s}-{t}.json.gz" for s in SEASONS[:2]
+                          for k in ("dressed", "seasons") for t in (2, 3)])
+        entry = self.manifest["files"][2]
         self.assertEqual(entry["path"], "seasons/19171918-2.json.gz")
-        self.assertEqual(entry["bytes"], len(b"seasons19171918"))
+        self.assertEqual(entry["bytes"], (self.source / entry["path"]).stat().st_size)
         self.assertEqual(len(entry["sha256"]), 64)
 
     def test_manifest_is_deterministic(self):
@@ -89,7 +97,7 @@ class ArchiveTest(unittest.TestCase):
             (self.release / entry["asset"]).unlink()
         code, out, _ = self.fetch()
         self.assertEqual(code, 0)
-        self.assertIn("fetched 0, skipped 4", out)
+        self.assertIn("fetched 0, skipped 8", out)
 
     def test_corrupt_download_fails_without_partial_file(self):
         entry = self.manifest["files"][0]
@@ -98,6 +106,74 @@ class ArchiveTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("sha256", err)
         self.assertEqual(list(self.target.rglob("*.json.gz*")), [])
+
+    def test_fetch_uses_unique_temp_files(self):
+        self.fetch()
+        self.assertEqual(list(self.target.rglob("*.part")), [])
+
+    def test_fetch_rejects_bad_manifest_paths(self):
+        for bad in ("../evil.json.gz", "seasons/../../evil.json.gz", "/etc/passwd",
+                    "other/19171918-2.json.gz", "seasons/1917-2.json.gz",
+                    "seasons/19171918-4.json.gz"):
+            manifest = dict(self.manifest, files=[dict(self.manifest["files"][0], path=bad)])
+            (self.target / "manifest.json").write_text(json.dumps(manifest))
+            code, _, err = self.fetch()
+            self.assertEqual(code, 1, bad)
+            self.assertIn("manifest path", err)
+
+    def test_fetch_rejects_symlink_escape(self):
+        outside = Path(self.tmp.name) / "outside"
+        outside.mkdir()
+        (self.target / "seasons").symlink_to(outside)
+        code, _, err = self.fetch()
+        self.assertEqual(code, 1)
+        self.assertIn("escapes", err)
+        self.assertEqual(list(outside.iterdir()), [])
+
+
+class ManifestTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        populate(self.root)
+
+    def test_missing_catalog_fails(self):
+        (self.root / "seasons.json").unlink()
+        code, _, err = run(["manifest", "--root", str(self.root)])
+        self.assertEqual(code, 1)
+        self.assertIn("catalog is missing", err)
+        self.assertFalse((self.root / "manifest.json").exists())
+
+    def test_cutoff_comes_from_catalog_not_files(self):
+        for kind in ("seasons", "dressed"):
+            for game_type in (2, 3):
+                (self.root / kind / f"20252026-{game_type}.json.gz").unlink()
+                (self.root / kind / f"20242025-{game_type}.json.gz").unlink()
+        code, _, _ = run(["manifest", "--root", str(self.root)])
+        self.assertEqual(code, 0)
+        paths = {e["path"] for e in json.loads((self.root / "manifest.json").read_text())["files"]}
+        self.assertEqual(len(paths), 8)
+        self.assertFalse(any("20242025" in p or "20252026" in p for p in paths))
+
+    def test_missing_files_are_listed(self):
+        (self.root / "seasons" / "20232024-3.json.gz").unlink()
+        (self.root / "dressed" / "19171918-2.json.gz").unlink()
+        code, out, err = run(["manifest", "--root", str(self.root), "--files"])
+        self.assertEqual(code, 1)
+        self.assertIn("seasons/20232024-3.json.gz", err)
+        self.assertIn("dressed/19171918-2.json.gz", err)
+        self.assertEqual(out, "")
+        self.assertFalse((self.root / "manifest.json").exists())
+
+    def test_null_dressed_games_are_listed(self):
+        write_gz(self.root / "dressed" / "20232024-2.json.gz", {"games": {"7": None, "8": {}}})
+        code, out, err = run(["manifest", "--root", str(self.root), "--files"])
+        self.assertEqual(code, 1)
+        self.assertIn("dressed/20232024-2.json.gz: 7", err)
+        self.assertNotIn(": 8", err)
+        self.assertEqual(out, "")
+        self.assertFalse((self.root / "manifest.json").exists())
 
 
 if __name__ == "__main__":
