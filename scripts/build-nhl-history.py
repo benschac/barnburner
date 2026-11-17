@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS appearances (
     season_id INTEGER NOT NULL, game_type INTEGER NOT NULL, game_id INTEGER, team_id INTEGER,
     team TEXT NOT NULL, player_id INTEGER, name TEXT NOT NULL,
     role TEXT CHECK(role IN ('skater','goalie')) NOT NULL,
+    position TEXT NOT NULL, points INTEGER,
     PRIMARY KEY(game_id,team_id,player_id,role),
     FOREIGN KEY(game_id,team_id) REFERENCES game_sides ON DELETE CASCADE
 ) WITHOUT ROWID;
@@ -40,6 +41,9 @@ CREATE TABLE IF NOT EXISTS source_disagreements (
 ) WITHOUT ROWID;
 CREATE INDEX IF NOT EXISTS player_games ON appearances(player_id,game_id);
 """
+
+
+SCHEMA_VERSION = 2
 
 
 def require(condition, detail):
@@ -115,14 +119,23 @@ def project(db, data, season, kind):
             name = row[role + "FullName"]
             require(positive(row["playerId"]) and isinstance(name, str) and name.strip(),
                     f"invalid player {row}")
-            yield season, kind, game, team_id, row["teamAbbrev"], row["playerId"], name, role
+            position = row["positionCode"] if role == "skater" else "G"
+            require(isinstance(position, str) and position, f"invalid position {row}")
+            points = row.get("points")
+            require(points is None or type(points) is int, f"invalid points {row}")
+            yield (season, kind, game, team_id, row["teamAbbrev"], row["playerId"], name, role,
+                   position, points)
 
     for role in ("skater", "goalie"):
-        db.executemany("INSERT INTO appearances VALUES(?,?,?,?,?,?,?,?)",
+        db.executemany("INSERT INTO appearances VALUES(?,?,?,?,?,?,?,?,?,?)",
                        appearances(data[role + "s"], role))
 
 
 def build(root, db):
+    version = db.execute("PRAGMA user_version").fetchone()[0]
+    has_tables = db.execute("SELECT 1 FROM sqlite_master WHERE type='table'").fetchone()
+    require(version == SCHEMA_VERSION or (version == 0 and not has_tables),
+            f"database schema version {version} is not {SCHEMA_VERSION}: delete the file and rebuild")
     catalog = json.loads((root / "seasons.json").read_text())
     ids = [row["id"] for row in catalog["data"]]
     require(ids and len(ids) == catalog["total"] == len(set(ids)) and all(map(positive, ids)),
@@ -132,6 +145,7 @@ def build(root, db):
     require(not missing, f"missing {len(missing)} archives: {missing[:5]}")
     db.execute("PRAGMA foreign_keys=ON")
     db.executescript(SCHEMA)
+    db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
     changed = 0
     with db:
         db.execute("BEGIN IMMEDIATE")
