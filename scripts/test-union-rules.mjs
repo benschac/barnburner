@@ -7,7 +7,8 @@ import { spawnSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const oxlint = fileURLToPath(new URL('../node_modules/.bin/oxlint', import.meta.url))
+// The package config turns on type-aware rules, which only the Effect-patched oxlint can run.
+const effectTsgo = fileURLToPath(new URL('../node_modules/.bin/effect-tsgo', import.meta.url))
 const root = resolve(process.argv[2] ?? '.')
 const dir = await mkdtemp(`${root}/union-rule-test-`)
 const cases = [
@@ -20,13 +21,17 @@ const cases = [
   ['foreign in', "// foreign: a is parsed JSON\nexport const f = (a: object) => 'declined' in a", null],
   ['bare foreign marker', "// foreign:\nexport const f = (a: object) => 'declined' in a", 'unions(no-in-narrowing)'],
   ['dynamic in', 'export const f = (a: object, key: string) => key in a', null],
+  // Type-aware rules: these prove the lint run has type information.
+  ['open switch', "type A = { _tag: 'X' } | { _tag: 'Y' }\nexport const f = (a: A) => { switch (a._tag) { case 'X': return 1 } return 0 }", 'typescript(switch-exhaustiveness-check)'],
+  ['closed switch', "type A = { _tag: 'X' } | { _tag: 'Y' }\nexport const f = (a: A) => { switch (a._tag) { case 'X': return 1; case 'Y': return 2 } }", null],
+  ['floating promise', 'const g = async () => 1\nexport const h = () => { g() }', 'typescript(no-floating-promises)'],
 ]
 
 try {
   for (const [name, source, expected] of cases) {
     const file = `${dir}/case.ts`
     await writeFile(file, source)
-    const result = spawnSync(oxlint, ['--format', 'json', file], { cwd: root, encoding: 'utf8' })
+    const result = spawnSync(effectTsgo, ['--tsrs-lint', 'oxlint', '--format', 'json', file], { cwd: root, encoding: 'utf8' })
     assert.equal(result.error, undefined, name)
     const { diagnostics } = JSON.parse(result.stdout)
     assert.ok(!diagnostics.some((d) => d.message.includes('Error running JS plugin')), `${name}: plugin crashed`)
@@ -35,7 +40,7 @@ try {
     else assert.equal(errors.length, 0, `${name}: ${result.stdout}`)
     assert.equal(result.status, expected ? 1 : 0, name)
   }
-  console.log(`${cases.length} union-model lint cases passed`)
+  console.log(`${cases.length} union-model and type-aware lint cases passed`)
 } finally {
   await rm(dir, { recursive: true, force: true })
 }

@@ -14,7 +14,7 @@
     "build": "bun scripts/build.mjs",
     "start": "node src/main.ts",
     "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.json",
-    "lint": "oxlint src tests",
+    "lint": "effect-tsgo --tsrs-lint oxlint src tests",
     "test": "bun run build && node --test tests/*.test.ts"
   },
   "dependencies": {

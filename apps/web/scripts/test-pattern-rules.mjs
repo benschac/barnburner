@@ -23,7 +23,7 @@ try {
   for (const [name, source, expected] of cases) {
     const file = `${dir}/case.ts`
     await writeFile(file, source)
-    const result = spawnSync(`${root}../../node_modules/.bin/oxlint`, ['--format', 'json', file], { cwd: root, encoding: 'utf8' })
+    const result = spawnSync(`${root}../../node_modules/.bin/effect-tsgo`, ['--tsrs-lint', 'oxlint', '--format', 'json', file], { cwd: root, encoding: 'utf8' })
     assert.equal(result.error, undefined, name)
     const { diagnostics } = JSON.parse(result.stdout)
     assert.ok(!diagnostics.some((d) => d.message.includes('Error running JS plugin')), `${name}: plugin crashed`)
