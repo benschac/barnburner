@@ -3,6 +3,7 @@ import type { LanguageModel } from 'ai'
 import { Llm } from './llm.ts'
 import type { LlmError } from './llm.ts'
 import type { InsightCard } from './card.ts'
+import { parseJson, toJson } from './json.ts'
 import { render } from './render.ts'
 import type { RenderError, Row } from './render.ts'
 
@@ -88,7 +89,7 @@ const renderCard = (card: InsightCard): Result.Result<RenderedCard, DroppedCard>
 }
 
 const buildPrompt = (cards: ReadonlyArray<RenderedCard>, posterFacts: ReadonlyArray<string>) =>
-  JSON.stringify({
+  toJson({
     posterFacts,
     cards: cards.map((c) => ({
       id: c.card.id,
@@ -104,10 +105,9 @@ const stripFences = (text: string) => text.trim().replace(/^```(?:json)?\s*/i, '
 
 const parseScores = (text: string, ids: ReadonlySet<string>): Effect.Effect<RankScores, RankError> =>
   Effect.gen(function* () {
-    const json = yield* Effect.try({
-      try: () => JSON.parse(stripFences(text)) as unknown,
-      catch: () => new RankError({ message: 'ranker reply is not valid JSON', raw: text }),
-    })
+    const json = yield* Effect.fromResult(
+      Result.mapError(parseJson(stripFences(text)), () => new RankError({ message: 'ranker reply is not valid JSON', raw: text })),
+    )
     const parsed = yield* Schema.decodeUnknownEffect(RankScores)(json).pipe(
       Effect.mapError((e) => new RankError({ message: `ranker reply failed validation: ${String(e)}`, raw: text })),
     )

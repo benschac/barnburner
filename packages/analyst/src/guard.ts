@@ -1,5 +1,6 @@
-import { Effect } from 'effect'
+import { Effect, Result } from 'effect'
 import { type Db, type Guard, type GuardResult, VIEWS } from './shapes.ts'
+import { parseJson } from './json.ts'
 
 type Json = unknown
 type Obj = Record<string, Json>
@@ -72,12 +73,9 @@ export const guardQuery: Guard = (db: Db, sql: string) =>
     Effect.map((result): GuardResult => {
       const raw = result.rows[0]?.tree
       if (typeof raw !== 'string') return fail('parser returned no result')
-      let tree: Json
-      try {
-        tree = JSON.parse(raw)
-      } catch {
-        return fail('parser returned invalid JSON')
-      }
+      const parsed = parseJson(raw)
+      if (Result.isFailure(parsed)) return fail('parser returned invalid JSON')
+      const tree: Json = parsed.success
       if (!isObj(tree)) return fail('parser returned an unexpected shape')
       if (tree.error === true) {
         return fail(typeof tree.error_message === 'string' ? tree.error_message : 'not a single SELECT statement')

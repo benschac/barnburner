@@ -2,6 +2,7 @@ import { isDeepStrictEqual } from 'node:util'
 import { Effect } from 'effect'
 import type { InsightCard } from './card.ts'
 import type { Db, Row, VerifyResult } from './shapes.ts'
+import { jsonRoundTrip, toJson } from './json.ts'
 
 export const coverageSql = (team: string): string =>
   `SELECT archived, finals FROM boxscore_coverage WHERE team = '${team}'`
@@ -9,7 +10,6 @@ export const coverageSql = (team: string): string =>
 const fail = (check: number, detail: string): VerifyResult => ({ ok: false, check, detail })
 const pass: VerifyResult = { ok: true }
 
-const json = (value: unknown): string => JSON.stringify(value)
 // Rerun a query; a SqlError becomes a failure of the given check.
 const rerun = (check: number, run: Effect.Effect<{ rows: Row[] }, { message: string }>) =>
   Effect.mapError(run, (e) => fail(check, e.message))
@@ -18,13 +18,13 @@ const check5 = (db: Db, card: InsightCard) =>
   Effect.map(
     rerun(5, db.queryCanonical(card.evidence.query)),
     ({ rows }): VerifyResult =>
-      isDeepStrictEqual(JSON.parse(json(rows)), JSON.parse(json(card.evidence.result))) ? pass : fail(5, 'canonical rerun differs from evidence.result'),
+      isDeepStrictEqual(jsonRoundTrip(rows), jsonRoundTrip(card.evidence.result)) ? pass : fail(5, 'canonical rerun differs from evidence.result'),
   )
 
 const check6 = (db: Db, card: InsightCard, finals: ReadonlySet<number>) => {
   const { gamesQuery, gameIds } = card.evidence
   const verifyIds = (ids: ReadonlyArray<unknown>): VerifyResult => {
-    if (json(ids) !== json(gameIds)) return fail(6, 'canonical rerun of gamesQuery differs from gameIds')
+    if (toJson(ids) !== toJson(gameIds)) return fail(6, 'canonical rerun of gamesQuery differs from gameIds')
     const missing = gameIds.filter((id) => !finals.has(id))
     return missing.length === 0 ? pass : fail(6, `game ids not final: ${missing.join(', ')}`)
   }
@@ -41,7 +41,7 @@ const check7 = (db: Db, card: InsightCard, touchesBoxscores: boolean) => {
     if (rows.length !== 1 || row === undefined) return fail(7, 'boxscore_coverage must return exactly one row')
     return row['archived'] === coverage.archived && row['finals'] === coverage.finals
       ? pass
-      : fail(7, `coverage ${json(coverage)} differs from boxscore_coverage ${json(row)}`)
+      : fail(7, `coverage ${toJson(coverage)} differs from boxscore_coverage ${toJson(row)}`)
   })
 }
 

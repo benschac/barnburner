@@ -5,6 +5,7 @@ import { DuckDBInstance, DuckDBTypeId, JsonDuckDBValueConverter, StatementType }
 import type { DuckDBResultReader } from '@duckdb/node-api'
 import { Effect, Result, type Scope } from 'effect'
 import { type Db, DbError, type QueryOpts, type QueryResult, type Row, SqlError } from './shapes.ts'
+import { toJson } from './json.ts'
 
 export interface OpenDbOpts {
   readonly dataDir: string
@@ -32,7 +33,7 @@ export const convertValue = (typeId: number, value: unknown): Row[string] => {
     return Number.isFinite(n) ? n : null
   }
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value
-  return JSON.stringify(value)
+  return toJson(value)
 }
 
 export const convertRows = (reader: DuckDBResultReader, json: Record<string, unknown>[]): Row[] => {

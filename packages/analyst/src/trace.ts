@@ -2,6 +2,7 @@ import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Result, Schema, Tuple } from "effect";
+import { toJson } from "./json.ts";
 
 export class InvalidRunIdError extends Schema.TaggedError<
   InvalidRunIdError,
@@ -10,7 +11,7 @@ export class InvalidRunIdError extends Schema.TaggedError<
   runId: Schema.String,
 }) {
   override get message(): string {
-    return `invalid runId for trace file: ${JSON.stringify(this.runId)}`;
+    return `invalid runId for trace file: ${toJson(this.runId)}`;
   }
 }
 
@@ -150,7 +151,7 @@ export function openTrace(options: TraceOptions): Result.Result<TraceWriter, Inv
           : { ...payload, ts: now().toISOString(), runId: options.runId };
       // Decode the serialized line, not the object: JSON drops undefined and turns NaN into null,
       // and only the round trip catches what the reader would see.
-      const line = JSON.stringify(event);
+      const line = toJson(event);
       const parsed = parseTraceLine(line);
       if (Result.isFailure(parsed)) return parsed;
       appendFileSync(path, `${line}\n`, "utf8");

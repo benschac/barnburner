@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Result, Schema } from 'effect'
 import { type InsightCard, InsightCard as InsightCardSchema } from './card.ts'
+import { parseJson, toPrettyJson } from './json.ts'
 
 const CardList = Schema.Array(InsightCardSchema)
 
@@ -27,10 +28,7 @@ export const readCards = (dir: string, team: string): Result.Result<readonly Ins
   const file = cardsPath(dir, team)
   if (!existsSync(file)) return Result.succeed([])
   const text = readFileSync(file, 'utf8')
-  const json = Result.try({
-    try: () => JSON.parse(text) as unknown,
-    catch: (error) => new StoreError({ file, team, reason: `invalid JSON: ${String(error)}` }),
-  })
+  const json = Result.mapError(parseJson(text), (error) => new StoreError({ file, team, reason: error.message }))
   if (Result.isFailure(json)) return Result.fail(json.failure)
   const cards = decodeCards(file, team, json.success)
   if (Result.isFailure(cards)) return cards
@@ -47,7 +45,7 @@ export const writeCards = (dir: string, team: string, cards: readonly InsightCar
   const stray = valid.success.find((card) => card.team !== team)
   if (stray !== undefined) return Result.fail(new StoreError({ file, team, reason: `cannot write card ${stray.id} with team ${stray.team} to ${team}` }))
   mkdirSync(dir, { recursive: true })
-  writeFileSync(file, `${JSON.stringify(valid.success, null, 2)}\n`)
+  writeFileSync(file, `${toPrettyJson(valid.success)}\n`)
   return Result.succeed(undefined)
 }
 

@@ -4,6 +4,18 @@
       {
         "name": "@effect/language-service",
         "ignoreEffectWarningsInTscExitCode": true,
+        "overrides": [
+          {
+            "include": ["src/**/*.ts", "scripts/**/*.ts"],
+            "options": {
+              "diagnosticSeverity": {
+                "floatingEffect": "error",
+                "globalJson": "error",
+                "globalJsonInEffect": "error"
+              }
+            }
+          }
+        ],
         "diagnosticSeverity": {
           "extendsNativeError": "error",
           "globalErrorInEffectFailure": "error",
