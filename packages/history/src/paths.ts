@@ -114,41 +114,38 @@ export const walkFirstPath = (
 /**
  * Number of distinct shortest chains from index `from` to the target, saturating at `cap`.
  * `distanceToTarget` comes from a breadth-first sweep from the target: every node closer than `from` has
- * its exact distance. DP over the layers: `ways[node]` is the sum of `ways` over its neighbours one step
- * closer, `ways[target] = 1`. `closerWays(node, ways)` returns that sum for one node (it may stop early
- * once the sum reaches `cap`); each sum is clamped to `cap`, which is exact for "reached the cap" because
- * clamping is monotone. `capped` means the true count is `>= cap` (exactly `cap` counts as capped).
+ * its exact distance. Forward DP from `from` over the edges that lower the distance by one, in breadth-first
+ * order (so every predecessor of a node is summed before the node is expanded): `ways[node]` is the number of
+ * chains from `from` to it, `ways[from] = 1`. Only nodes on a shortest chain from `from` are touched; players
+ * closer to the target that no such chain passes through cost nothing. `forEachCloser(node, visit)` calls
+ * `visit(other)` once per neighbour of `node` that is one step closer over a passing edge. Each sum is clamped
+ * to `cap`, which is exact for "reached the cap" because clamping is monotone and every node on this DAG
+ * leads to the target. `capped` means the true count is `>= cap` (exactly `cap` counts as capped).
  * Requires `distanceToTarget[from] >= 0`.
  */
 export const countChainsBy = (
   distanceToTarget: Int32Array, from: number, cap: number,
-  closerWays: (node: number, ways: Float64Array) => number,
+  forEachCloser: (node: number, visit: (other: number) => void) => void,
 ): { readonly count: number; readonly capped: boolean } => {
-  const n = distanceToTarget.length
-  const total = distanceToTarget[from]
-  if (total === 0) return { count: Math.min(1, cap), capped: 1 >= cap }
-  // Counting sort of the nodes with distance < total by distance; `from` itself is summed last.
-  const layerStart = new Int32Array(total + 1)
-  for (let node = 0; node < n; node += 1) {
-    const d = distanceToTarget[node]
-    if (d >= 0 && d < total) layerStart[d + 1] += 1
+  if (distanceToTarget[from] === 0) return { count: Math.min(1, cap), capped: 1 >= cap }
+  const ways = new Float64Array(distanceToTarget.length)
+  const queue: number[] = [from]
+  ways[from] = 1
+  let current = from
+  const visit = (other: number): void => {
+    if (ways[other] === 0) queue.push(other)
+    ways[other] = Math.min(ways[other] + ways[current], cap)
   }
-  for (let d = 0; d < total; d += 1) layerStart[d + 1] += layerStart[d]
-  const order = new Int32Array(layerStart[total])
-  const fill = layerStart.slice(0, total)
-  for (let node = 0; node < n; node += 1) {
-    const d = distanceToTarget[node]
-    if (d >= 0 && d < total) {
-      order[fill[d]] = node
-      fill[d] += 1
+  let count = 0
+  for (let head = 0; head < queue.length; head += 1) {
+    current = queue[head]
+    if (distanceToTarget[current] === 0) {
+      count = ways[current]
+      break
     }
+    forEachCloser(current, visit)
   }
-  const ways = new Float64Array(n)
-  for (let k = 0; k < order.length; k += 1) {
-    const node = order[k]
-    ways[node] = distanceToTarget[node] === 0 ? 1 : Math.min(closerWays(node, ways), cap)
-  }
-  const count = Math.min(closerWays(from, ways), cap)
+  count = Math.min(count, cap)
   return { count, capped: count >= cap }
 }
 
@@ -157,16 +154,14 @@ export const countShortestChains = (
   graph: TeammateGraph, distanceToTarget: Int32Array, from: number, filter: Filter, cap: number,
 ): { readonly count: number; readonly capped: boolean } => {
   const { offsets, neighbours, linkIds } = graph.adjacency
-  return countChainsBy(distanceToTarget, from, cap, (node, ways) => {
+  return countChainsBy(distanceToTarget, from, cap, (node, visit) => {
     const want = distanceToTarget[node] - 1
     const end = offsets[node + 1]
-    let sum = 0
-    for (let at = offsets[node]; at < end && sum < cap; at += 1) {
+    for (let at = offsets[node]; at < end; at += 1) {
       if (distanceToTarget[neighbours[at]] !== want) continue
       if (!linkPasses(graph, linkIds[at], filter)) continue
-      sum += ways[neighbours[at]]
+      visit(neighbours[at])
     }
-    return sum
   })
 }
 

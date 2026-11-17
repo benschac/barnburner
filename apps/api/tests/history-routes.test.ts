@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { DatabaseSync } from 'node:sqlite'
-import { Effect, Layer } from 'effect'
+import { Context, Effect, Exit, Layer, Scope } from 'effect'
 import { FetchHttpClient, HttpRouter } from 'effect/http'
 import { RpcClient, RpcClientError, RpcSerialization } from 'effect/rpc'
 import { HistoryUnavailable, UnknownPlayer, UnknownRoster } from '@nhl-reddit-stats/history'
@@ -196,3 +196,28 @@ test('GetSharedGames lists the span of the requested link kind', () => withFake(
   const same = await Effect.runPromise(client.GetSharedGames({ a: 16, b: 16, seasonId: 19511952, gameType: 2, teamId: 3, link: 'PlayedWith' }))
   assert.deepEqual(same.games, [])
 }))
+
+test('closing the History layer releases the SQLite connection, and the file opens lazily', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'history-close-'))
+  const run = async () => {
+    const path = join(directory, 'nhl-serve.sqlite')
+    writeMini(path)
+    const scope = Scope.makeUnsafe()
+    const history = await Effect.runPromise(Layer.buildWithScope(History.layer(path), scope).pipe(Effect.map((context) => Context.get(context, History))))
+    const store = await Effect.runPromise(history.store)
+    assert.equal(store.snapshotId, MINI_SNAPSHOT_ID)
+    assert.equal((await Effect.runPromise(store.searchPlayers('dvorak', 5))).length, 1)
+    await Effect.runPromise(Scope.close(scope, Exit.void))
+    assert.ok((await flip(store.searchPlayers('dvorak', 5))) instanceof HistoryUnavailable)
+    // The file is free again: it can be rewritten and a fresh layer reads it.
+    rmSync(path)
+    writeMini(path)
+    const again = Scope.makeUnsafe()
+    const reopened = await Effect.runPromise(Layer.buildWithScope(History.layer(path), again).pipe(
+      Effect.flatMap((context) => Context.get(context, History).store),
+    ))
+    assert.equal(reopened.snapshotId, MINI_SNAPSHOT_ID)
+    await Effect.runPromise(Scope.close(again, Exit.void))
+  }
+  return run().finally(() => rmSync(directory, { recursive: true, force: true }))
+})

@@ -81,23 +81,21 @@ const countRelationChains = (
 ): { readonly count: number; readonly capped: boolean } => {
   const cap = PATH_COUNT_CAP
   const team = graph.adjacency
-  return countChainsBy(distanceToTarget, from, cap, (node, ways) => {
+  return countChainsBy(distanceToTarget, from, cap, (node, visit) => {
     const want = distanceToTarget[node] - 1
-    let sum = 0
     if (withTeammates) {
       const end = team.offsets[node + 1]
-      for (let at = team.offsets[node]; at < end && sum < cap; at += 1) {
-        if (distanceToTarget[team.neighbours[at]] === want) sum += ways[team.neighbours[at]]
+      for (let at = team.offsets[node]; at < end; at += 1) {
+        if (distanceToTarget[team.neighbours[at]] === want) visit(team.neighbours[at])
       }
     }
     const end = opponents.offsets[node + 1]
-    for (let at = opponents.offsets[node]; at < end && sum < cap; at += 1) {
+    for (let at = opponents.offsets[node]; at < end; at += 1) {
       const other = opponents.neighbours[at]
       if (distanceToTarget[other] !== want) continue
       if (withTeammates && linkIdBetween(graph, node, other) >= 0) continue
-      sum += ways[other]
+      visit(other)
     }
-    return sum
   })
 }
 
@@ -150,7 +148,7 @@ const enumerateRelationChains = (
  */
 export const findRelationPaths = (
   graph: TeammateGraph, fromIndex: number, toIndex: number, filter: Filter, relation: Exclude<Relation, 'with'>,
-  limit: number,
+  limit = 1,
 ): Result.Result<PathResult, UnsupportedFilter | HistoryUnavailable | NoPath> => {
   if (!isDefaultFilter(filter)) return Result.fail(new UnsupportedFilter({ relation }))
   const opponents = opponentAdjacency(graph)
