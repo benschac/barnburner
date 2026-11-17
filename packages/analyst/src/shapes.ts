@@ -38,8 +38,8 @@ export interface Coverage {
 }
 
 export type Answer =
-  | { value: string | number | boolean | null; query: string; coverage?: Coverage }
-  | { declined: string }
+  | { _tag: 'Answered'; value: string | number | boolean | null; query: string; coverage?: Coverage }
+  | { _tag: 'Declined'; reason: string }
 
 export type Outcome = 'cards' | 'declined' | 'no_insight' | 'crashed'
 
