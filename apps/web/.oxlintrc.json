@@ -1,5 +1,8 @@
 {
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "options": {
+    "typeAware": true
+  },
   "plugins": [
     "react",
     "typescript",
@@ -12,7 +15,11 @@
       {
         "allowConstantExport": true
       }
-    ]
+    ],
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error"
   },
   "jsPlugins": [
     "./lint/design-plugin.mjs",
@@ -25,21 +32,43 @@
         "src/**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"
       ],
       "rules": {
-        "no-restricted-imports": ["error", {
-          "patterns": [{
-            "group": ["**/api/**", "@nhl-reddit-stats/api", "@nhl-reddit-stats/api/*"],
-            "message": "Browser code imports shared season contracts, never API implementations."
-          }, {
-            "group": ["**/data/boxscores/**", "**/lib/nhl-boxscores.mjs"],
-            "message": "Browser code reads box scores through the GetGameBoxscore RPC summary, never the raw archive."
-          }]
-        }],
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/api/**",
+                  "@nhl-reddit-stats/api",
+                  "@nhl-reddit-stats/api/*"
+                ],
+                "message": "Browser code imports shared season contracts, never API implementations."
+              },
+              {
+                "group": [
+                  "**/data/boxscores/**",
+                  "**/lib/nhl-boxscores.mjs"
+                ],
+                "message": "Browser code reads box scores through the GetGameBoxscore RPC summary, never the raw archive."
+              }
+            ]
+          }
+        ],
         "patterns/no-module-mutable-state": "error",
         "xstate-effect/no-inline-effect": "error",
         "design/semantic-colors": "error",
         "design/token-values": "error",
         "design/no-style-escape": "error",
         "design/no-css-imports": "error"
+      }
+    },
+    {
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx"
+      ],
+      "rules": {
+        "typescript/no-floating-promises": "off"
       }
     }
   ]

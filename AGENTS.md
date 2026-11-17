@@ -45,6 +45,7 @@ Adopt the stack incrementally through concrete features. Preserve this project's
 - A boolean literal such as `ok: true` / `ok: false` is an accepted discriminant for two-way outcomes; prefer `Result` for new ones.
 - Do not narrow with `'key' in value`. For untyped external data, put a `// foreign: <reason>` comment on the line above.
 - Keep plain guard chains over numbers and strings as `if` statements; `Match` is for unions.
+- A `switch` over a tag must cover every member. Every package lints with type information (`effect-tsgo --tsrs-lint oxlint`), so `typescript/switch-exhaustiveness-check` and `typescript/no-floating-promises` are errors. Run it through `bun run lint`; plain `oxlint` cannot load that config.
 - `packages/analyst` enforces this in `bun run lint` with `lint/union-model-plugin.mjs` (`unions/discriminated`, `unions/no-in-narrowing`) and proves the rules with `scripts/test-union-rules.mjs`. Add the plugin to a package's `.oxlintrc.json` when that package adopts the rule. House example: `packages/analyst/evals/grade.ts`.
 
 # Design-system enforcement

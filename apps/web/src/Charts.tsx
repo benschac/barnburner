@@ -249,7 +249,7 @@ export function Chart({ data, kind, activeGame, onPointGame, onHoldGame }: {
     const afterPrint = () => { printing = false; paint() }
     const motionChanged = () => { if (reducedMotion.matches) finish() }
     redraw.current = paint
-    fontsReady.then(() => {
+    void fontsReady.then(() => {
       if (cancelled || !ref.current || !axisRef.current) return
       const ratio = Math.max(2, window.devicePixelRatio || 1)
       context = scaleCanvas(ref.current, plotWidth, height, ratio)

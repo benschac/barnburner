@@ -50,7 +50,7 @@ const cases = [
   ['table adapter', '<View style={{ display: "table-cell" }} />', true],
   ['css import', 'import "./bad.css";', false],
   ['generated import', 'import "./tamagui.generated.css";', true],
-  ['dynamic JSON', 'import("../../../data/season.json", { with: { type: "json" } });', true],
+  ['dynamic JSON', 'void import("../../../data/season.json", { with: { type: "json" } });', true],
   ['dynamic CSS', 'import("./bad.css");', false],
   ['dynamic code', 'import("./module.js");', false],
   ['dynamic variable', 'import(path);', false],
@@ -66,7 +66,7 @@ try {
   for (const [name, source, pass] of cases) {
     const file = `${dir}/case.tsx`
     await writeFile(file, source)
-    const result = spawnSync(`${root}../../node_modules/.bin/oxlint`, ['--format', 'json', file], { cwd: root, encoding: 'utf8' })
+    const result = spawnSync(`${root}../../node_modules/.bin/effect-tsgo`, ['--tsrs-lint', 'oxlint', '--format', 'json', file], { cwd: root, encoding: 'utf8' })
     assert.equal(result.error, undefined, name)
     const diagnostics = JSON.parse(result.stdout).diagnostics
     assert.ok(!diagnostics.some((d) => d.message.includes('Error running JS plugin')), `${name}: plugin crashed`)
