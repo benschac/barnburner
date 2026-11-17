@@ -1,11 +1,24 @@
 import { Context, Effect, Layer, Schema } from 'effect'
-import { generateText } from 'ai'
+import { generateText, NoObjectGeneratedError, Output } from 'ai'
 import type { LanguageModel, LanguageModelUsage, StepResult, StopCondition, ToolSet } from 'ai'
 
 export class LlmError extends Schema.TaggedError<LlmError, { readonly brand: unique symbol }>()('LlmError', {
   message: Schema.String,
   model: Schema.String,
 }) {}
+
+export class LlmOutputError extends Schema.TaggedError<LlmOutputError, { readonly brand: unique symbol }>()('LlmOutputError', {
+  message: Schema.String,
+  model: Schema.String,
+  raw: Schema.optional(Schema.String),
+}) {}
+
+export interface LlmObjectInput<S extends Schema.ConstraintDecoder<unknown>> {
+  readonly schema: S
+  readonly prompt: string
+  readonly system?: string
+  readonly model?: LanguageModel
+}
 
 // Gateway "provider/model" strings; both are starting guesses (see E7 evals).
 export interface LlmConfig {
@@ -41,6 +54,7 @@ export interface LlmRunResult {
 
 export interface LlmService {
   readonly config: LlmConfig
+  readonly generateObject: <S extends Schema.ConstraintDecoder<unknown>>(input: LlmObjectInput<S>) => Effect.Effect<{ readonly object: S['Type']; readonly usage: LanguageModelUsage }, LlmError | LlmOutputError>
   readonly run: (input: LlmRunInput) => Effect.Effect<LlmRunResult, LlmError>
 }
 
@@ -48,6 +62,27 @@ const modelLabel = (model: LanguageModel) => typeof model === 'string' ? model :
 
 export const makeLlm = (config: LlmConfig = llmConfigFromEnv()): LlmService => ({
   config,
+  generateObject: (input) => {
+    const model = input.model ?? config.generateModel
+    return Effect.tryPromise({
+      try: async (signal) => {
+        const result = await generateText({
+          model,
+          prompt: input.prompt,
+          abortSignal: signal,
+          output: Output.object({ schema: { '~standard': {
+            ...Schema.toStandardSchemaV1(input.schema)['~standard'],
+            ...Schema.toStandardJSONSchemaV1(input.schema)['~standard'],
+          } } }),
+          ...(input.system === undefined ? {} : { system: input.system }),
+        })
+        return { object: result.output, usage: result.totalUsage }
+      },
+      catch: (cause) => NoObjectGeneratedError.isInstance(cause)
+        ? new LlmOutputError({ message: cause.message, model: modelLabel(model), ...(cause.text === undefined ? {} : { raw: cause.text }) })
+        : new LlmError({ message: cause instanceof Error ? cause.message : String(cause), model: modelLabel(model) }),
+    })
+  },
   run: (input) => {
     const model = input.model ?? config.generateModel
     return Effect.tryPromise({

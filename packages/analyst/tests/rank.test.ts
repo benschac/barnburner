@@ -41,16 +41,11 @@ test('rank: keeps top 3 by total, ties broken by id', async () => {
   assert.deepEqual(out.map((r) => r.card.id), ['a', 'b', 'c'])
   assert.equal(out[0]!.total, 15)
   assert.equal(model.doGenerateCalls.length, 1)
-})
-
-test('rank: tolerates code fences', async () => {
-  const model = mock('```json\n' + JSON.stringify({ scores: [score('a', 2, 2, 2)] }) + '\n```')
-  const { ranked: out } = await run(rank({ cards: [card('a', 'h')], posterFacts: [], model }))
-  assert.equal(out.length, 1)
+  assert.equal(model.doGenerateCalls[0]!.responseFormat?.type, 'json')
 })
 
 test('rank: unparseable, out-of-range and incomplete replies are RankError', async () => {
-  for (const text of ['nope', JSON.stringify({ scores: [score('a', 6, 1, 1)] }), JSON.stringify({ scores: [] }), JSON.stringify({ scores: [score('zzz', 1, 1, 1)] })]) {
+  for (const text of ['nope', JSON.stringify({ scores: [score('a', 6, 1, 1)] }), JSON.stringify({ scores: [] }), JSON.stringify({ scores: [score('a', 1, 1, 1), score('a', 2, 2, 2)] }), JSON.stringify({ scores: [score('zzz', 1, 1, 1)] })]) {
     const error = await run(rank({ cards: [card('a', 'h')], posterFacts: [], model: mock(text) }).pipe(Effect.flip))
     assert.ok(error instanceof RankError, text)
   }

@@ -44,3 +44,26 @@ test('llm: config defaults and env overrides', () => {
     { generateModel: 'a/b', rankModel: 'c/d' },
   )
 })
+
+test('llm: structured generation forwards cancellation to the provider', async () => {
+  const { Schema } = await import('effect')
+  const { makeLlm } = await import('../src/llm.ts')
+  let started!: () => void
+  const ready = new Promise<void>((resolve) => { started = resolve })
+  let signal: AbortSignal | undefined
+  const model = new MockLanguageModelV4({
+    doGenerate: (options) => {
+      signal = options.abortSignal
+      started()
+      return new Promise((_resolve, reject) => {
+        options.abortSignal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true })
+      })
+    },
+  })
+  const controller = new AbortController()
+  const pending = Effect.runPromiseExit(makeLlm().generateObject({ schema: Schema.Struct({ value: Schema.String }), prompt: 'hi', model }), { signal: controller.signal })
+  await ready
+  controller.abort()
+  await pending
+  assert.equal(signal?.aborted, true)
+})
