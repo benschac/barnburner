@@ -3,7 +3,7 @@ import test from 'node:test'
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { refreshData } from '../scripts/refresh-nhl-data.mjs'
+import { parseBackfillLimit, refreshData } from '../scripts/refresh-nhl-data.mjs'
 
 const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'))
 const seedSeason = await readJson(new URL('../data/nhl-20262027.json', import.meta.url))
@@ -183,6 +183,25 @@ test('a later synchronized refresh replaces retained stats with current coverage
     assert.equal(current.standings.find(({ team }) => team === data.final.homeTeam).played, data.poster.standings.find(({ team }) => team === data.final.homeTeam).played + 1)
     assert.equal(current.clubs.find(({ team }) => team === data.final.homeTeam).leaders[0].name, 'T. Player')
   } finally { await rm(directory, { recursive: true, force: true }) }
+})
+
+test('--backfill-limit controls how many older box scores are requested', async (t) => {
+  t.mock.method(console, 'log', () => {})
+  t.mock.method(console, 'warn', () => {})
+  const counts = {}
+  for (const [name, options] of [['default', {}], ['small', { backfillLimit: 3 }], ['large', { backfillLimit: 40 }]]) {
+    const data = fixture()
+    const directory = await savedDirectory(data)
+    const requests = []
+    try {
+      await refreshData(directory, { fetcher: provider(data, 'ready', requests), ...options })
+      counts[name] = requests.filter((url) => url.includes('/gamecenter/')).length
+    } finally { await rm(directory, { recursive: true, force: true }) }
+  }
+  assert.equal(counts.large - counts.default, 24)
+  assert.equal(counts.default - counts.small, 13)
+  assert.equal(parseBackfillLimit('200'), 200)
+  assert.throws(() => parseBackfillLimit('abc'), /non-negative integer/)
 })
 
 for (const mode of ['malformed', 'unknown']) {

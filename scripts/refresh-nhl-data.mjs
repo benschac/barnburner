@@ -21,7 +21,12 @@ import { refreshSnapshot } from "./refresh-nhl-games.mjs";
 import { refreshPosterSnapshot, writePosterSnapshot } from "./refresh-nhl-poster.mjs";
 
 const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
-const backfillLimit = 16;
+const defaultBackfillLimit = 16;
+
+export function parseBackfillLimit(value) {
+  if (!/^\d+$/.test(value ?? "")) throw new Error("--backfill-limit must be a non-negative integer");
+  return Number(value);
+}
 
 function createNhlFetcher() {
   let nextRequestAt = 0;
@@ -67,7 +72,7 @@ async function changed(path, next) {
   return !isDeepStrictEqual({ ...previous, fetchedAt: next.fetchedAt }, next);
 }
 
-export async function refreshData(directory, { fetcher = createNhlFetcher() } = {}) {
+export async function refreshData(directory, { fetcher = createNhlFetcher(), backfillLimit = defaultBackfillLimit } = {}) {
   const teams = await readJson(join(directory, "teams.json"));
   if (teams.length !== 32) throw new Error("Expected all 32 NHL teams");
   const staging = await mkdtemp(join(directory, ".nhl-refresh-"));
@@ -176,11 +181,11 @@ export async function refreshData(directory, { fetcher = createNhlFetcher() } = 
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const { values } = parseArgs({ options: { "data-dir": { type: "string" } } });
+  const { values } = parseArgs({ options: { "data-dir": { type: "string" }, "backfill-limit": { type: "string" } } });
   const directory = values["data-dir"]
     ? resolve(values["data-dir"])
     : fileURLToPath(new URL("../data", import.meta.url));
-  refreshData(directory).catch((error) => {
+  refreshData(directory, values["backfill-limit"] === undefined ? {} : { backfillLimit: parseBackfillLimit(values["backfill-limit"]) }).catch((error) => {
     console.error(error.message);
     process.exitCode = 1;
   });
