@@ -16,7 +16,7 @@ class HistoryTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp, sqlite3.connect(":memory:") as db:
             root = Path(tmp)
             totals = dict(fetchedAt="2024-01-01", seasons=[19171918],
-                          reports=[[19171918, k, r, [[1,1],[2,1],[3,2]] if (k,r)==(2,"skater") else []]
+                          reports=[[19171918, k, r, [[1,1],[2,1],[3,2]] if (k,r)==(2,"skater") else [[4,1]] if (k,r)==(2,"goalie") else []]
                                    for k in (2,3) for r in ("skater","goalie")])
             (root / "season-totals.json.gz").write_bytes(gzip.compress(json.dumps(totals).encode()))
             directory = root / "seasons"
@@ -38,8 +38,11 @@ class HistoryTest(unittest.TestCase):
                     players = [1 if n == 1 else 2] if side == traded_side else []
                     for player in players + ([3] if side == traded_side else []):
                         data["skaters"].append(dict(base, teamAbbrev=team, playerId=player,
-                                                    skaterFullName=f"Player {player}"))
-                    data["goalies"].append(dict(base, gamesPlayed=0, teamAbbrev=team, playerId=4,
+                                                    skaterFullName=f"Player {player}",
+                                                    positionCode="D" if player == 3 else "C",
+                                                    points=None if player == 3 else player))
+                    data["goalies"].append(dict(base, gamesPlayed=int(n == 1 and side == "H"),
+                                                teamAbbrev=team, playerId=4,
                                                 goalieFullName="Backup"))
             # Historical source reports sometimes invert home/road or disagree on a date.
             data["skaters"][0].update(homeRoad="R", gameDate="2023-12-03")
@@ -51,9 +54,12 @@ class HistoryTest(unittest.TestCase):
             self.assertEqual(build(root, db), 0)
             evidence = db.execute("SELECT player_id,reported_side,reported_date FROM source_disagreements")
             self.assertEqual(list(evidence), [(1, "R", "2023-12-03")])
+            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 2)
+            rows = db.execute("SELECT player_id,position,points FROM appearances ORDER BY game_id,player_id")
+            self.assertEqual(list(rows), [(1, "C", 1), (3, "D", None), (4, "G", None), (2, "C", 2), (3, "D", None)])
             pairs = db.execute("""SELECT a.player_id,b.player_id FROM appearances a JOIN appearances b
                                   USING(game_id,team_id) WHERE a.player_id<b.player_id ORDER BY 1,2""")
-            self.assertEqual(list(pairs), [(1, 3), (2, 3)])
+            self.assertEqual(list(pairs), [(1, 3), (1, 4), (2, 3), (3, 4)])
             data = regular
             missing = data["skaters"].pop()
             save()
@@ -64,7 +70,19 @@ class HistoryTest(unittest.TestCase):
             save()
             with self.assertRaisesRegex(ValueError, "side mismatch"):
                 build(root, db)
-            self.assertEqual(db.execute("SELECT COUNT(*) FROM appearances").fetchone()[0], 4)
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM appearances").fetchone()[0], 5)
+
+    def test_goalie_position_and_old_version(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "seasons.json").write_text(json.dumps({"data": [{"id": 19171918}], "total": 1}))
+            old = sqlite3.connect(":memory:")
+            old.execute("CREATE TABLE appearances(x)")
+            with self.assertRaisesRegex(ValueError, "delete the file and rebuild"):
+                build(root, old)
+            old.execute("PRAGMA user_version = 1")
+            with self.assertRaisesRegex(ValueError, "delete the file and rebuild"):
+                build(root, old)
 
 
 if __name__ == "__main__":
