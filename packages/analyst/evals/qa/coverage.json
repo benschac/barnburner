@@ -1,0 +1,36 @@
+[
+  {
+    "id": "coverage-njd-hughes-goals",
+    "team": "NJD",
+    "question": "In the saved box scores for the New Jersey Devils, how many goals did Jack Hughes score?",
+    "truthSql": "SELECT sum(g) AS value FROM skater_games WHERE team = 'NJD' AND player_id = 8481559",
+    "expect": "value",
+    "mustMentionCoverage": true
+  },
+  {
+    "id": "coverage-njd-bratt-points-per-game",
+    "team": "NJD",
+    "question": "Across the saved box scores for the New Jersey Devils, how many points per game did Jesper Bratt average?",
+    "truthSql": "SELECT avg(p) AS value FROM skater_games WHERE team = 'NJD' AND player_id = 8479407",
+    "expect": "value",
+    "tolerance": 0.001,
+    "mustMentionCoverage": true
+  },
+  {
+    "id": "coverage-njd-allen-saves",
+    "team": "NJD",
+    "question": "In the saved box scores for the New Jersey Devils, how many saves did Jake Allen make in total?",
+    "truthSql": "SELECT sum(saves) AS value FROM goalie_games WHERE team = 'NJD' AND player_id = 8474596",
+    "expect": "value",
+    "mustMentionCoverage": true
+  },
+  {
+    "id": "coverage-wsh-thompson-save-percentage",
+    "team": "WSH",
+    "question": "In the saved box scores for the Washington Capitals, what was Logan Thompson's overall save percentage on a 0 to 100 scale, combining all the shots he faced?",
+    "truthSql": "SELECT 100.0 * sum(saves) / nullif(sum(shots_against), 0) AS value FROM goalie_games WHERE team = 'WSH' AND player_id = 8480313",
+    "expect": "value",
+    "tolerance": 0.01,
+    "mustMentionCoverage": true
+  }
+]
