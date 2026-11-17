@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "season": 20262027,
-  "fetchedAt": "2026-11-16T15:10:53.212Z",
+  "fetchedAt": "2026-11-17T15:55:58.727Z",
   "sources": [
     "https://api-web.nhle.com/v1/club-schedule-season/ANA/20262027",
     "https://api-web.nhle.com/v1/club-schedule-season/BOS/20262027",
@@ -5517,11 +5517,15 @@
       "gameType": 2,
       "date": "2026-11-16",
       "startTimeUTC": "2026-11-17T00:30:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "NYR",
       "awayTeam": "MTL",
-      "result": null
+      "result": {
+        "homeScore": 3,
+        "awayScore": 1,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020332,
@@ -5529,11 +5533,15 @@
       "gameType": 2,
       "date": "2026-11-16",
       "startTimeUTC": "2026-11-17T02:30:00Z",
-      "state": "FUT",
+      "state": "OFF",
       "scheduleState": "OK",
       "homeTeam": "UTA",
       "awayTeam": "VAN",
-      "result": null
+      "result": {
+        "homeScore": 2,
+        "awayScore": 3,
+        "decision": "REG"
+      }
     },
     {
       "id": 2026020333,
