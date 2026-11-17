@@ -36,25 +36,25 @@ const fail = (reason: string): string => `ERROR: ${reason}`
 export const coverageSql = (team: string): string =>
   `SELECT archived, finals FROM boxscore_coverage WHERE team = '${team.replaceAll("'", "''")}'`
 
-const readCoverage = async (deps: AnswerDeps): Promise<Coverage | 'missing' | string> => {
-  const result = await Effect.runPromise(Effect.result(deps.db.query(coverageSql(deps.team))))
+const readCoverage = (deps: AnswerDeps): Effect.Effect<Coverage | string> => Effect.gen(function* () {
+  const result = yield* Effect.result(deps.db.query(coverageSql(deps.team)))
   if (Result.isFailure(result)) return result.failure.message
   const row = result.success.rows[0]
   if (row === undefined) return 'missing'
   const { archived, finals } = row
   if (typeof archived !== 'number' || typeof finals !== 'number') return 'boxscore_coverage has no numeric counts'
   return { archived, finals }
-}
+})
 
 // Returns "ok" or "ERROR: <reason>". Tool errors go back to the model as text.
-export const runAnswer = async (deps: AnswerDeps, raw: unknown): Promise<string> => {
+export const runAnswer = (deps: AnswerDeps, raw: unknown): Effect.Effect<string> => Effect.gen(function* () {
   const checked = checkAnswerInput(raw)
   if (!checked.ok) return fail(checked.reason)
   const input = checked.input
-  const verdict = await Effect.runPromise(deps.guard(deps.db, input.query))
+  const verdict = yield* deps.guard(deps.db, input.query)
   if (!verdict.ok) return fail(verdict.reason)
 
-  const result = await Effect.runPromise(Effect.result(deps.db.queryCanonical(input.query)))
+  const result = yield* Effect.result(deps.db.queryCanonical(input.query))
   if (Result.isFailure(result)) return fail(result.failure.message)
   const rows: readonly Row[] = result.success.rows
 
@@ -69,7 +69,7 @@ export const runAnswer = async (deps: AnswerDeps, raw: unknown): Promise<string>
 
   let coverage: Coverage | undefined
   if (verdict.touchesBoxscores) {
-    const found = await readCoverage(deps)
+    const found = yield* readCoverage(deps)
     if (typeof found === 'string') {
       if (found === 'missing') return fail(`no boxscore_coverage row for ${deps.team}`)
       return fail(`coverage query failed: ${found}`)
@@ -79,7 +79,7 @@ export const runAnswer = async (deps: AnswerDeps, raw: unknown): Promise<string>
 
   deps.onAnswer({ _tag: 'Answered', value, query: input.query, ...(coverage === undefined ? {} : { coverage }) })
   return 'ok'
-}
+})
 
 export const makeAnswerTool = (deps: AnswerDeps) =>
   tool({
@@ -103,5 +103,5 @@ export const makeAnswerTool = (deps: AnswerDeps) =>
         },
       },
     ),
-    execute: (input) => runAnswer(deps, input),
+    execute: (input, { abortSignal }) => Effect.runPromise(runAnswer(deps, input), { signal: abortSignal }),
   })

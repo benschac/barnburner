@@ -77,3 +77,51 @@ test('rowCap 0 returns no rows but the full count', async () => {
     assert.deepEqual(await Effect.runPromise(db.query('select * from range(5) t(n)', { rowCap: 0 })), { rows: [], rowCount: 5 })
   })
 })
+
+test('aborting native work drains it before the connection is reused', { timeout: 4000 }, async () => {
+  await withDb(async (db) => {
+    const controller = new AbortController()
+    const pending = Effect.runPromise(db.query('select count(*) from range(100000000) a, range(100000000) b'), { signal: controller.signal })
+    const rejected = assert.rejects(pending)
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    controller.abort()
+    await rejected
+    assert.deepEqual(await Effect.runPromise(db.query('select 1 as x')), { rows: [{ x: 1 }], rowCount: 1 })
+  })
+})
+
+test('a cancelled queued query never runs or interrupts the active query', { timeout: 4000 }, async () => {
+  await withDb(async (db) => {
+    const active = Effect.runPromise(Effect.result(db.query('select count(*) from range(100000000) a, range(100000000) b', { timeoutMs: 200 })))
+    const controller = new AbortController()
+    const queued = Effect.runPromise(db.query('select count(*) from range(100000000) a, range(100000000) b'), { signal: controller.signal })
+    const rejected = assert.rejects(queued)
+    controller.abort()
+    const result = await active
+    assert.equal(result._tag, 'Failure')
+    if (result._tag === 'Failure') assert.match(result.failure.message, /timed out after 200ms/)
+    await rejected
+    assert.deepEqual(await Effect.runPromise(db.query('select 1 as x')), { rows: [{ x: 1 }], rowCount: 1 })
+  })
+})
+
+test('scope cleanup waits for an aborted native query', { timeout: 4000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'db-abort-scope-'))
+  const controller = new AbortController()
+  let opened!: () => void
+  const ready = new Promise<void>((resolve) => { opened = resolve })
+  try {
+    const pending = Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const db = yield* openDb({ dataDir: dir, viewsDir: dir })
+      opened()
+      return yield* db.query('select count(*) from range(100000000) a, range(100000000) b')
+    })), { signal: controller.signal })
+    const rejected = assert.rejects(pending)
+    await ready
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    controller.abort()
+    await rejected
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})

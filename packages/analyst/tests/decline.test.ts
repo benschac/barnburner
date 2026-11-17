@@ -1,3 +1,4 @@
+import { Effect } from 'effect'
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { asSchema } from 'ai'
@@ -6,14 +7,14 @@ import { makeDeclineTool, runDecline } from '../src/tools/decline.ts'
 test('records the trimmed reason and returns ok', () => {
   const reasons: string[] = []
   const deps = { onDecline: (reason: string) => reasons.push(reason) }
-  assert.equal(runDecline(deps, { reason: '  no playoff data  ' }), 'ok')
+  assert.equal(Effect.runSync(runDecline(deps, { reason: '  no playoff data  ' })), 'ok')
   assert.deepEqual(reasons, ['no playoff data'])
 })
 
 test('a blank reason returns ERROR text and records nothing', () => {
   const reasons: string[] = []
   const deps = { onDecline: (reason: string) => reasons.push(reason) }
-  assert.equal(runDecline(deps, { reason: '   ' }), 'ERROR: reason must be a non-empty string')
+  assert.equal(Effect.runSync(runDecline(deps, { reason: '   ' })), 'ERROR: reason must be a non-empty string')
   assert.deepEqual(reasons, [])
 })
 
@@ -24,8 +25,8 @@ test('makeDeclineTool builds a tool', () => {
 test('regression: a non-string reason returns ERROR text and does not throw', () => {
   const reasons: string[] = []
   const deps = { onDecline: (reason: string) => reasons.push(reason) }
-  assert.equal(runDecline(deps, { reason: 42 }), 'ERROR: reason must be a non-empty string')
-  assert.equal(runDecline(deps, undefined), 'ERROR: input must be an object')
+  assert.equal(Effect.runSync(runDecline(deps, { reason: 42 })), 'ERROR: reason must be a non-empty string')
+  assert.equal(Effect.runSync(runDecline(deps, undefined)), 'ERROR: input must be an object')
   assert.deepEqual(reasons, [])
 })
 
