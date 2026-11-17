@@ -57,7 +57,7 @@ export const ToolCallEvent = Schema.Struct({
   tool: Schema.String,
   input: JsonValue,
   output: Schema.String,
-  durationMs: Schema.Finite,
+  durationMs: Schema.NullOr(Schema.Finite),
   error: Schema.optionalKey(Schema.String),
 });
 export type ToolCallEvent = typeof ToolCallEvent.Type;
