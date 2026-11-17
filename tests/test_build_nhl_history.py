@@ -1,4 +1,6 @@
+import contextlib
 import gzip
+import io
 import json
 from pathlib import Path
 import runpy
@@ -54,7 +56,7 @@ class HistoryTest(unittest.TestCase):
             self.assertEqual(build(root, db), 0)
             evidence = db.execute("SELECT player_id,reported_side,reported_date FROM source_disagreements")
             self.assertEqual(list(evidence), [(1, "R", "2023-12-03")])
-            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 2)
+            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 3)
             rows = db.execute("SELECT player_id,position,points FROM appearances ORDER BY game_id,player_id")
             self.assertEqual(list(rows), [(1, "C", 1), (3, "D", None), (4, "G", None), (2, "C", 2), (3, "D", None)])
             pairs = db.execute("""SELECT a.player_id,b.player_id FROM appearances a JOIN appearances b
@@ -71,6 +73,63 @@ class HistoryTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "side mismatch"):
                 build(root, db)
             self.assertEqual(db.execute("SELECT COUNT(*) FROM appearances").fetchone()[0], 5)
+
+    def test_dressed_goalies(self):
+        season = 19171918
+        with tempfile.TemporaryDirectory() as tmp, sqlite3.connect(":memory:") as db:
+            root = Path(tmp)
+            (root / "seasons").mkdir()
+            (root / "dressed").mkdir()
+            (root / "seasons.json").write_text(json.dumps({"data": [{"id": season}], "total": 1}))
+            teams, goalies = [], []
+            for n in (1, 2):
+                for side, team, opp, tid in [("H", "AAA", "BBB", 1), ("R", "BBB", "AAA", 2)]:
+                    base = dict(gameId=1917020000 + n, gameDate="2023-12-01", homeRoad=side,
+                                opponentTeamAbbrev=opp, gamesPlayed=1)
+                    teams.append(dict(base, teamId=tid, teamFullName=team))
+                    goalies.append(dict(base, teamAbbrev=team, playerId=10 * tid + n,
+                                        goalieFullName="G"))
+            data = dict(seasonId=season, gameType=2, fetchedAt="t", sources=["u"], teams=teams,
+                        skaters=[], goalies=goalies)
+            (root / "seasons" / f"{season}-2.json.gz").write_bytes(gzip.compress(json.dumps(data).encode()))
+            data = dict(data, gameType=3, teams=[], goalies=[])
+            (root / "seasons" / f"{season}-3.json.gz").write_bytes(gzip.compress(json.dumps(data).encode()))
+            reports = [[season, k, r, [[10 * t + n, 1] for t in (1, 2) for n in (1, 2)]
+                        if (k, r) == (2, "goalie") else []] for k in (2, 3) for r in ("skater", "goalie")]
+            (root / "season-totals.json.gz").write_bytes(gzip.compress(json.dumps(
+                dict(fetchedAt="t", seasons=[season], reports=reports)).encode()))
+
+            def save(games):
+                dressed = dict(seasonId=season, gameType=2, fetchedAt="t", games=games)
+                (root / "dressed" / f"{season}-2.json.gz").write_bytes(gzip.compress(json.dumps(dressed).encode()))
+
+            # Missing dressed files are allowed.
+            self.assertEqual(build(root, db), 2)
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM dressed_goalies").fetchone()[0], 0)
+            games = {"1917020001": {"AAA": [{"playerId": 11, "toi": "60:00"}, {"playerId": 99, "toi": None}],
+                                    "BBB": [{"playerId": 21, "toi": "60:00"}]},
+                     "1917020002": None}
+            save(games)
+            self.assertEqual(build(root, db), 1)
+            self.assertEqual(build(root, db), 0)
+            rows = db.execute("SELECT * FROM dressed_goalies ORDER BY player_id").fetchall()
+            self.assertEqual(rows, [(1917020001, 1, 11), (1917020001, 2, 21), (1917020001, 1, 99)])
+            # Game 2 is null so its credited goalies are not counted; game 1 lists all credited.
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                build(root, db)
+            self.assertIn("0 credited goalie appearances", out.getvalue())
+            games["1917020001"]["BBB"] = []
+            save(games)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(build(root, db), 1)
+            self.assertIn("1 credited goalie appearances", out.getvalue())
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM dressed_goalies").fetchone()[0], 2)
+            games["1917020001"]["CCC"] = []
+            save(games)
+            with self.assertRaisesRegex(ValueError, "CCC matches no side"):
+                build(root, db)
 
     def test_retry_refetches_recent_seasons_once(self):
         seasons = [19171918, 19181919, 19191920]
