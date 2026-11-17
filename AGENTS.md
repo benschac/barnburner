@@ -32,6 +32,7 @@ Adopt the stack incrementally through concrete features. Preserve this project's
 - Read `/lore/error-model` through `.agent-sources/ratstack/index.md` before adding an error. House examples: `packages/season/src/contracts.ts` and `packages/analyst/src/render.ts`.
 - `packages/analyst` also fails `bun run typecheck` on the `effect-tsgo` diagnostics `extendsNativeError`, `globalErrorInEffectFailure`, `globalErrorInEffectCatch`, and `tryCatchInEffectGen`, set in its `tsconfig.json`.
 - `packages/analyst` enforces this in `bun run lint` with `scripts/check-error-model.mjs`. Add the check to a package's `lint` script when that package adopts the rule.
+- `apps/web` runs the same check on `plan-viewer/plan.ts`. `content-collections.ts` is the one place that throws its `PlanParseError`, because the content build only reports thrown errors.
 
 # Union model
 
