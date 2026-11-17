@@ -63,8 +63,8 @@ def goalies(box):
 
 
 class Fetcher:
-    def __init__(self, fetch, sleep, wait=1.0):
-        self.fetch, self.sleep, self.wait = fetch, sleep, wait
+    def __init__(self, fetch, sleep, wait=1.0, clock=time.monotonic):
+        self.fetch, self.sleep, self.wait, self.clock = fetch, sleep, wait, clock
         self.pause_until = 0.0
         self.lock = threading.Lock()
 
@@ -73,15 +73,18 @@ class Fetcher:
         delay = self.wait
         for attempt in range(ATTEMPTS):
             with self.lock:
-                pause = self.pause_until - time.monotonic()
-            if pause > 0:
+                pause = self.pause_until - self.clock()
+            while pause > 0:
                 self.sleep(pause)
+                # Another worker may have extended the cooldown while this one slept.
+                with self.lock:
+                    pause = self.pause_until - self.clock()
             try:
                 return goalies(self.fetch(URL.format(game_id)))
             except RateLimited:
                 # Slow every worker down; the response is never stored.
                 with self.lock:
-                    self.pause_until = max(self.pause_until, time.monotonic() + delay * 2)
+                    self.pause_until = max(self.pause_until, self.clock() + delay * 2)
             except Exception:
                 pass
             if attempt < ATTEMPTS - 1:
@@ -93,13 +96,19 @@ class Fetcher:
 def run_season(source, target, fetcher, refresh=False, batch=BATCH, workers=WORKERS):
     season = load(source)
     game_ids = sorted({str(row["gameId"]) for row in season["teams"]})
-    existing = load(target)["games"] if target.exists() else {}
-    games = {g: existing[g] for g in game_ids if g in existing}
+    existing = load(target)["games"] if target.exists() else None
+    games = {g: existing[g] for g in game_ids if g in (existing or {})}
+    saved = existing
     todo = [g for g in game_ids if refresh or games.get(g) is None]
     skipped = len(game_ids) - len(todo)
     fetched = 0
 
     def write():
+        nonlocal saved
+        current = {g: games[g] for g in game_ids if g in games}
+        if saved == current:
+            return
+        saved = current
         save(target, {
             "seasonId": season["seasonId"], "gameType": season["gameType"],
             "fetchedAt": datetime.now(timezone.utc).isoformat(),
@@ -110,18 +119,16 @@ def run_season(source, target, fetcher, refresh=False, batch=BATCH, workers=WORK
         for start in range(0, len(todo), batch):
             chunk = todo[start:start + batch]
             for game_id, result in zip(chunk, pool.map(fetcher.game, chunk)):
-                # A failed refresh keeps the data already stored.
-                if result is not None or games.get(game_id) is None:
-                    games[game_id] = result
+                # A game that still fails is stored as null so the next run retries it.
+                games[game_id] = result
                 fetched += result is not None
             write()
-    if not todo:
-        write()
+    write()
     nulls = sum(games.get(g) is None for g in game_ids)
     return fetched, skipped, nulls
 
 
-def main(argv=None, fetch=http_fetch, sleep=time.sleep, batch=BATCH):
+def main(argv=None, fetch=http_fetch, sleep=time.sleep, batch=BATCH, clock=time.monotonic):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT, help="archive root (default data/history)")
     parser.add_argument("--season", type=int, help="only this NHL season ID, e.g. 20232024")
@@ -131,7 +138,7 @@ def main(argv=None, fetch=http_fetch, sleep=time.sleep, batch=BATCH):
     if args.season is not None:
         sources = [s for s in sources if s.name.startswith(f"{args.season}-")]
     (args.root / "dressed").mkdir(parents=True, exist_ok=True)
-    fetcher = Fetcher(fetch, sleep)
+    fetcher = Fetcher(fetch, sleep, clock=clock)
     totals = [0, 0, 0]
     for source in sources:
         counts = run_season(source, args.root / "dressed" / source.name, fetcher, args.refresh, batch)

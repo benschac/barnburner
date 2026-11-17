@@ -62,3 +62,15 @@ class HistoryCheck(unittest.TestCase):
         calls, result = run(19171918)
         self.assertEqual(calls, [])
         self.assertEqual(result["differences"], [dict(season=19171918)])
+
+    def test_no_retry_for_coverage_errors_or_without_refetch(self):
+        seasons = [19171918, 19181919, 19191920]
+        calls = []
+        report = dict(differences=[dict(season=19191920)], missingPartitions=[(19191920, 2)], unexpectedPartitions=[])
+        runs = []
+        result = checker["check_with_retry"](lambda: runs.append(1) or report, calls.append, seasons)
+        self.assertEqual((calls, len(runs), result), ([], 1, report))
+        report = dict(differences=[dict(season=19191920)], missingPartitions=[], unexpectedPartitions=[])
+        runs.clear()
+        checker["check_with_retry"](lambda: runs.append(1) or report, None, seasons)
+        self.assertEqual(len(runs), 1)

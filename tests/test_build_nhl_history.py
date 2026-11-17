@@ -131,6 +131,38 @@ class HistoryTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "CCC matches no side"):
                 build(root, db)
 
+    def test_interrupted_init_retries_and_misplaced_dressed_game_is_rejected(self):
+        season = 19171918
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "seasons").mkdir()
+            (root / "dressed").mkdir()
+            (root / "seasons.json").write_text(json.dumps({"data": [{"id": season}], "total": 1}))
+            for kind in (2, 3):
+                data = dict(seasonId=season, gameType=kind, fetchedAt="t", sources=["u"], teams=[],
+                            skaters=[], goalies=[])
+                (root / "seasons" / f"{season}-{kind}.json.gz").write_bytes(gzip.compress(json.dumps(data).encode()))
+            reports = [[season, k, r, []] for k in (2, 3) for r in ("skater", "goalie")]
+            (root / "season-totals.json.gz").write_bytes(gzip.compress(json.dumps(
+                dict(fetchedAt="t", seasons=[season], reports=reports)).encode()))
+
+            def save(game):
+                dressed = dict(seasonId=season, gameType=2, fetchedAt="t", games={game: {}})
+                (root / "dressed" / f"{season}-2.json.gz").write_bytes(gzip.compress(json.dumps(dressed).encode()))
+
+            save("1917030001")  # a playoff game ID inside the regular-season partition
+            path = root / "nhl.sqlite"
+            with sqlite3.connect(path) as db:
+                with self.assertRaisesRegex(ValueError, "outside partition"):
+                    build(root, db)
+            with sqlite3.connect(path) as db:
+                # Nothing committed: not mistaken for an old file, and a retry succeeds.
+                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 0)
+                self.assertIsNone(db.execute("SELECT 1 FROM sqlite_master").fetchone())
+                save("1917020001")
+                self.assertEqual(build(root, db), 2)
+                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 3)
+
     def test_retry_refetches_recent_seasons_once(self):
         seasons = [19171918, 19181919, 19191920]
 
