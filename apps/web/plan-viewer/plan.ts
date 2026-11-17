@@ -72,7 +72,9 @@ export const parseAnalystPlan = (source: string) => Result.gen(function* () {
     cards.push({ heading: match[1], body: match[2].trim(), ids: expandIds(match[1].split(' · ')[0]), group })
   }
   const tasks: PlanTask[] = []
-  for (const [ledgerId, model, needs, branch, pr, status, notes] of tableRows(yield* section('Ledger')).slice(1)) {
+  // Only the first table is the task ledger; later subsections (such as work outside the cards) have their own tables.
+  const ledger = (yield* section('Ledger')).split('\n### ')[0]
+  for (const [ledgerId, model, needs, branch, pr, status, notes] of tableRows(ledger).slice(1)) {
     for (const id of expandIds(ledgerId)) {
       if (!/^[A-Za-z][A-Za-z0-9-]*$/.test(id)) return yield* refuse('Invalid task ID', id)
       const card = id.startsWith('P-')
