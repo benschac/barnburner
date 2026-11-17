@@ -30,6 +30,7 @@ Adopt the stack incrementally through concrete features. Preserve this project's
 - Handle failures by tag (`Effect.catchTag`, `_tag`). Avoid `try`/`catch` with `instanceof Error` except where a foreign exception is translated into a tagged error.
 - A genuine programming defect may `throw`; put a `// defect: <reason>` comment on the line above it.
 - Read `/lore/error-model` through `.agent-sources/ratstack/index.md` before adding an error. House examples: `packages/season/src/contracts.ts` and `packages/analyst/src/render.ts`.
+- `packages/analyst` also fails `bun run typecheck` on the `effect-tsgo` diagnostics `extendsNativeError`, `globalErrorInEffectFailure`, `globalErrorInEffectCatch`, and `tryCatchInEffectGen`, set in its `tsconfig.json`.
 - `packages/analyst` enforces this in `bun run lint` with `scripts/check-error-model.mjs`. Add the check to a package's `lint` script when that package adopts the rule.
 
 # Union model
