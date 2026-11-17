@@ -1,8 +1,8 @@
 // Pure teammate graph (C-graph, C-search): compact adjacency over the packed arrays and the D7 filter.
 // No I/O. Player IDs cross the `link` boundary; everything else here works in indexes.
 import { Result } from 'effect'
-import { UnknownPlayer } from './contracts.ts'
-import type { Filter, Graph, GraphArrays, LinkKind, LinkResult, LinkSpan } from './shapes.ts'
+import { HistoryUnavailable, UnknownPlayer } from './contracts.ts'
+import type { Filter, Graph, GraphArrays, LinkKind, LinkResult, LinkSpan, Opponent } from './shapes.ts'
 
 /**
  * Teammate adjacency in CSR form. Player `p`'s neighbours are `neighbours[offsets[p]..offsets[p + 1])`,
@@ -148,13 +148,107 @@ const passingSpans = (graph: Graph, linkId: number, filter: Filter, partner: 0 |
   return spans
 }
 
-const emptyLink: LinkResult = { spans: [], totalGames: 0, evidenceGameId: null, opposedGames: 0 }
+/**
+ * Opponent adjacency in CSR form (D14). Player `p`'s opponents are `neighbours[offsets[p]..offsets[p + 1])`,
+ * ascending by player index (so ascending by player ID), with `games` at the same position. A pair is
+ * stored once in the arrays and twice here, so `neighbours` has `2 * o` entries.
+ */
+export type OpponentAdjacency = {
+  readonly offsets: Uint32Array
+  readonly neighbours: Uint16Array
+  readonly games: Uint16Array
+}
+
+const buildOpponentAdjacency = (
+  n: number, oppA: Uint16Array, oppB: Uint16Array, oppGames: Uint16Array,
+): OpponentAdjacency => {
+  const o = oppA.length
+  const offsets = new Uint32Array(n + 1)
+  for (let e = 0; e < o; e += 1) {
+    offsets[oppA[e] + 1] += 1
+    offsets[oppB[e] + 1] += 1
+  }
+  for (let p = 0; p < n; p += 1) offsets[p + 1] += offsets[p]
+  const neighbours = new Uint16Array(2 * o)
+  const games = new Uint16Array(2 * o)
+  const cursor = offsets.slice(0, n)
+  // Pairs are sorted by (a, b) with a < b, so as in `buildAdjacency` each player's entries land ascending.
+  for (let e = 0; e < o; e += 1) {
+    const a = oppA[e]
+    const b = oppB[e]
+    neighbours[cursor[a]] = b
+    games[cursor[a]] = oppGames[e]
+    cursor[a] += 1
+    neighbours[cursor[b]] = a
+    games[cursor[b]] = oppGames[e]
+    cursor[b] += 1
+  }
+  return { offsets, neighbours, games }
+}
+
+// Built on first use (3.27M pairs on the real graph) and cached per arrays object, so the teammate-only
+// callers never pay for it. Only a successful build is cached.
+const opponentCache = new WeakMap<GraphArrays, OpponentAdjacency>()
+
+/** The opponent adjacency, built and cached on first use; undefined when the opponent arrays are absent. */
+export const opponentAdjacency = (graph: Graph): OpponentAdjacency | undefined => {
+  const { arrays } = graph
+  const cached = opponentCache.get(arrays)
+  if (cached !== undefined) return cached
+  const { oppA, oppB, oppGames } = arrays
+  if (oppA === undefined || oppB === undefined || oppGames === undefined) return undefined
+  const built = buildOpponentAdjacency(arrays.playerIds.length, oppA, oppB, oppGames)
+  opponentCache.set(arrays, built)
+  return built
+}
+
+/** Games between player indexes as opponents: binary search over a's neighbours; 0 when they never met. */
+const opponentGamesBetween = (adjacency: OpponentAdjacency, a: number, b: number): number => {
+  const { offsets, neighbours, games } = adjacency
+  let low = offsets[a]
+  let high = offsets[a + 1] - 1
+  while (low <= high) {
+    const mid = (low + high) >>> 1
+    const value = neighbours[mid]
+    if (value === b) return games[mid]
+    if (value < b) low = mid + 1
+    else high = mid - 1
+  }
+  return 0
+}
 
 /**
- * The teammate link between two players by ID. Spans list shared-game spans before goalie-partner spans,
- * each in array order; the evidence game is the first span's first game. A pair with no passing span
- * (including a pair never linked, or the same player twice) gets no spans, 0 games, null evidence.
- * `opposedGames` is left at 0; Q7 adds the opponent count.
+ * The players this player has faced, most games first, then lower player ID. Dressed goalies are nobody's
+ * opponent because only credited appearances make pairs. A graph without opponent arrays is
+ * `HistoryUnavailable`, never an empty list.
+ */
+export const opponents = (
+  graph: Graph, playerId: number,
+): Result.Result<ReadonlyArray<Opponent>, UnknownPlayer | HistoryUnavailable> => {
+  const index = graph.indexOf.get(playerId)
+  if (index === undefined) return Result.fail(new UnknownPlayer({ playerId }))
+  const adjacency = opponentAdjacency(graph)
+  if (adjacency === undefined) {
+    return Result.fail(new HistoryUnavailable({ message: 'This history file has no opponent data.' }))
+  }
+  const { offsets, neighbours, games } = adjacency
+  const rows: Opponent[] = []
+  for (let at = offsets[index]; at < offsets[index + 1]; at += 1) {
+    rows.push({ playerId: graph.arrays.playerIds[neighbours[at]], games: games[at] })
+  }
+  rows.sort((x, y) => y.games - x.games || x.playerId - y.playerId)
+  return Result.succeed(rows)
+}
+
+const noTeammateLink = (opposedGames: number): LinkResult => ({ spans: [], totalGames: 0, evidenceGameId: null, opposedGames })
+
+/**
+ * The link between two players by ID: their teammate spans and the games they played against each other.
+ * Spans list shared-game spans before goalie-partner spans, each in array order; the evidence game is the
+ * first span's first game. A pair with no passing span (including a pair never linked, or the same player
+ * twice) gets no spans, 0 games, null evidence. `opposedGames` ignores the filter (opponent links carry a
+ * game count only, D14) and is 0 when the pair never met. It is also 0 when the graph has no opponent
+ * arrays: `link` cannot fail on that, so callers that need to tell the two apart use `opponents`.
  */
 export const link = (
   graph: TeammateGraph, a: number, b: number, filter: Filter,
@@ -163,10 +257,12 @@ export const link = (
   if (ai === undefined) return Result.fail(new UnknownPlayer({ playerId: a }))
   const bi = graph.indexOf.get(b)
   if (bi === undefined) return Result.fail(new UnknownPlayer({ playerId: b }))
+  const adjacency = opponentAdjacency(graph)
+  const opposedGames = adjacency === undefined ? 0 : opponentGamesBetween(adjacency, ai, bi)
   const linkId = linkIdBetween(graph, ai, bi)
-  if (linkId < 0) return Result.succeed(emptyLink)
+  if (linkId < 0) return Result.succeed(noTeammateLink(opposedGames))
   const spans = [...passingSpans(graph, linkId, filter, 0), ...passingSpans(graph, linkId, filter, 1)]
-  if (spans.length === 0) return Result.succeed(emptyLink)
+  if (spans.length === 0) return Result.succeed(noTeammateLink(opposedGames))
   const totalGames = spans.reduce((sum, span) => sum + span.games, 0)
-  return Result.succeed({ spans, totalGames, evidenceGameId: spans[0].firstGameId, opposedGames: 0 })
+  return Result.succeed({ spans, totalGames, evidenceGameId: spans[0].firstGameId, opposedGames })
 }
