@@ -26,17 +26,19 @@
     "generate:tamagui": "turbo run generate:tamagui",
     "lint": "turbo run lint",
     "preview": "turbo run preview",
-    "ask": "bun run --cwd packages/analyst ask",
-    "insights:generate": "bun run --cwd packages/analyst insights:generate",
+    "ask": "varlock run -- bun run --cwd packages/analyst ask",
+    "insights:generate": "varlock run -- bun run --cwd packages/analyst insights:generate",
     "insights:review": "bun run --cwd packages/analyst insights:review",
     "insights:report": "bun run --cwd packages/analyst insights:report",
     "insights:recheck": "bun run --cwd packages/analyst insights:recheck",
-    "evals": "bun run --cwd packages/analyst evals",
+    "evals": "varlock run -- bun run --cwd packages/analyst evals",
+    "env:check": "varlock load --agent",
     "history:accept": "bun run --cwd apps/api history:accept",
     "history:query": "bun run --cwd apps/api history:query"
   },
   "devDependencies": {
+    "@effect/tsgo": "0.67.1",
     "turbo": "2.11.10",
-    "@effect/tsgo": "0.67.1"
+    "varlock": "1.23.0"
   }
 }

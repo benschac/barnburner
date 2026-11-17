@@ -241,7 +241,7 @@ Everything else hangs off **A1** or **K1** and can land at any time. Once **A1**
 
 - **P-plan:** commit this plan and the spec, then run `gt init` (trunk `main`). Worktree agents can't see untracked files.
 - **P-deps:** approve these additions: `@duckdb/node-api` and `ai` (AI SDK 7). Blocks **DEP1** and **DEP2**.
-- **P-key:** provide an AI Gateway key in the local environment, with a spend cap. Blocks every **live** task.
+- **P-key:** put `AI_GATEWAY_API_KEY` (with a spend cap) in gitignored `.env.local`, declared in `.env.schema` through varlock. Agents never read that file; they confirm it with `bun run env:check`. Blocks every **live** task.
 - **P-pr:** allow GitHub Actions to create pull requests in the repo settings, and add the gateway key as a repo secret. Blocks **CI1**.
 - **P-rights:** confirm that publishing derived stat claims is acceptable under the source terms (see `docs/nhl-ingestion-framework-evaluation.md`). No card may be approved on `main` until this is settled. The web code can land before it, because it shows nothing without approved cards.
 

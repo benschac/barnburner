@@ -51,3 +51,10 @@ Adopt the stack incrementally through concrete features. Preserve this project's
 # Design-system enforcement
 
 For web UI changes, follow [the enforced design contract](apps/web/design/README.md). Run `bun run lint` and `bun run check:tamagui`; use the shared contract rather than inventing literal style values or disabling design rules.
+
+# Secrets
+
+- varlock `1.23.0` declares environment variables in the root `.env.schema`. Mark secrets `@sensitive=true`. Add a key to the schema before code reads it.
+- Real values live in gitignored `.env.local`. Agents never read, print, or edit `.env.local` or any `.env*` file other than `.env.schema`.
+- Check that values resolve with `bun run env:check` (`varlock load --agent`), which never prints sensitive values.
+- Live commands (`ask`, `evals`, `insights:generate`) run through `varlock run --`, which injects the values and masks them in output.
