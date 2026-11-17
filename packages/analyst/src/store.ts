@@ -51,22 +51,15 @@ export const writeCards = (dir: string, team: string, cards: readonly InsightCar
   return Result.succeed(undefined)
 }
 
-// Keeps every existing card. Adds incoming cards with new ids. Replaces an existing card
+// Keeps every existing card in order. Adds incoming cards with new ids. Replaces an existing card
 // only when it is pending. Approved, rejected and stale cards are never changed.
+// Cards are keyed by id, so two existing cards with the same id collapse to the later one.
 export const mergePending = (existing: readonly InsightCard[], incoming: readonly InsightCard[]): InsightCard[] => {
-  const merged = [...existing]
-  const indexById = new Map<string, number>()
-  existing.forEach((card, index) => {
-    if (!indexById.has(card.id)) indexById.set(card.id, index)
-  })
+  // A Map keeps insertion order, and overwriting a key keeps its position.
+  const byId = new Map(existing.map((card) => [card.id, card]))
   for (const card of incoming) {
-    const index = indexById.get(card.id)
-    if (index === undefined) {
-      indexById.set(card.id, merged.length)
-      merged.push(card)
-    } else if (merged[index]?.status === 'pending') {
-      merged[index] = card
-    }
+    const current = byId.get(card.id)
+    if (current === undefined || current.status === 'pending') byId.set(card.id, card)
   }
-  return merged
+  return [...byId.values()]
 }
