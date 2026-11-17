@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -47,7 +47,7 @@ function workDir() {
 function writePointer(dir: string, overrides: Record<string, unknown> = {}) {
   const pointerPath = join(dir, 'serving.json')
   const pointer = {
-    snapshotId: 'test-snapshot',
+    snapshotId: 'abcdef012345',
     url: `${baseUrl}/nhl-serve.sqlite.gz`,
     sha256: payloadSha,
     bytes: payload.length,
@@ -74,7 +74,7 @@ test('writes the verified uncompressed file', async () => {
     const result = await run(['--pointer', writePointer(dir), '--out', out])
     assert.equal(result.status, 0)
     assert.deepEqual(readFileSync(out), payload)
-    assert.equal(existsSync(`${out}.part`), false)
+    assert.deepEqual(readdirSync(join(out, '..')).filter((name) => name.endsWith('.part')), [])
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -89,7 +89,7 @@ test('a wrong hash exits 1 and leaves no file behind', async () => {
     assert.equal(result.status, 1)
     assert.match(result.stderr, /mismatch/)
     assert.equal(existsSync(out), false)
-    assert.equal(existsSync(`${out}.part`), false)
+    assert.deepEqual(readdirSync(join(out, '..')).filter((name) => name.endsWith('.part')), [])
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -121,6 +121,59 @@ test('an existing file that matches the pointer skips the download', async () =>
     assert.match(result.stdout, /skipping download/)
     assert.equal(hits, before)
     assert.deepEqual(readFileSync(out), payload)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('a missing pointer removes a stale output unless --keep-existing', async () => {
+  const dir = workDir()
+  try {
+    const out = join(dir, 'nhl-serve.sqlite')
+    writeFileSync(out, 'stale')
+    const kept = await run(['--pointer', join(dir, 'absent.json'), '--out', out, '--keep-existing'])
+    assert.equal(kept.status, 0)
+    assert.equal(readFileSync(out, 'utf8'), 'stale')
+    const removed = await run(['--pointer', join(dir, 'absent.json'), '--out', out])
+    assert.equal(removed.status, 0)
+    assert.equal(existsSync(out), false)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('an invalid pointer fails before any network request', async () => {
+  const dir = workDir()
+  try {
+    const out = join(dir, 'nhl-serve.sqlite')
+    const before = hits
+    for (const bad of [
+      { snapshotId: 'short' },
+      { url: 'http://example.com/x.gz' },
+      { sha256: 'abc' },
+      { bytes: 0 },
+      { bytes: 1.5 },
+    ]) {
+      const result = await run(['--pointer', writePointer(dir, bad), '--out', out])
+      assert.equal(result.status, 1, JSON.stringify(bad))
+      assert.match(result.stderr, /invalid/)
+    }
+    assert.equal(hits, before)
+    assert.equal(existsSync(out), false)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('concurrent fetches use their own temp files and leave a verified file', async () => {
+  const dir = workDir()
+  try {
+    const out = join(dir, 'nhl-serve.sqlite')
+    const pointerPath = writePointer(dir)
+    const results = await Promise.all([run(['--pointer', pointerPath, '--out', out]), run(['--pointer', pointerPath, '--out', out])])
+    for (const result of results) assert.equal(result.status, 0, result.stderr)
+    assert.deepEqual(readFileSync(out), payload)
+    assert.deepEqual(readdirSync(dir).filter((name) => name.endsWith('.part')), [])
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
