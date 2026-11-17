@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { Result } from 'effect'
-import { UnknownPlayer } from '../src/contracts.ts'
+import { HistoryUnavailable, UnknownPlayer } from '../src/contracts.ts'
 import {
-  evidenceSpan, hopKind, link, linkIdBetween, linkPassingGames, linkPasses, makeGraph, spanPasses,
+  evidenceSpan, hopKind, link, linkIdBetween, linkPassingGames, linkPasses, makeGraph, opponents, spanPasses,
 } from '../src/graph.ts'
 import { DEFAULT_FILTER } from '../src/shapes.ts'
 import type { Filter, LinkResult } from '../src/shapes.ts'
@@ -55,7 +55,8 @@ for (const [name, filter, rows] of expectations) {
       assert.equal(result.success.totalGames, games, `${a}-${b} total games`)
       assert.equal(result.success.spans.length > 0, games > 0, `${a}-${b} has spans iff it passes`)
       assert.equal(result.success.evidenceGameId === null, games === 0, `${a}-${b} evidence iff it passes`)
-      assert.equal(result.success.opposedGames, 0)
+      // Opponent games ignore the filter; of the teammate links only 15-16 also met as opponents (2 games).
+      assert.equal(result.success.opposedGames, a === 15 && b === 16 ? 2 : 0)
       // The reverse order is the same link, and the allocation-free helpers agree with `link`.
       const reverse = link(graph, b, a, filter)
       assert.ok(Result.isSuccess(reverse))
@@ -185,7 +186,7 @@ test('an unknown player is UnknownPlayer, whichever side', () => {
 
 test('a pair with no link, and a player with himself, is empty', () => {
   const empty = { spans: [], totalGames: 0, evidenceGameId: null, opposedGames: 0 }
-  for (const [a, b] of [[11, 14], [11, 19], [11, 11]] as const) {
+  for (const [a, b] of [[11, 14], [11, 11]] as const) {
     const result = link(graph, a, b, DEFAULT_FILTER)
     assert.ok(Result.isSuccess(result))
     assert.deepEqual(result.success, empty)
@@ -223,4 +224,35 @@ test('spanPasses tests competition, inclusive season bounds, and partner spans',
   assert.equal(spanPasses(graph, 0, filterWith({ toSeason: S1 - 1 })), false)
   assert.equal(spanPasses(graph, 6, filterWith({ goaliePartners: false })), false)
   assert.equal(spanPasses(graph, 6, DEFAULT_FILTER), true)
+})
+
+// The opponent count in `link` (D14). Full opponent answers are in tests/opponents.test.ts.
+
+test('link counts games as opponents with or without teammate spans, whatever the filter', () => {
+  const never = { spans: [], totalGames: 0, evidenceGameId: null }
+  const strangers = link(graph, 11, 19, DEFAULT_FILTER)
+  assert.ok(Result.isSuccess(strangers))
+  assert.deepEqual(strangers.success, { ...never, opposedGames: 1 })
+  const reverse = link(graph, 19, 11, filterWith({ competition: 'playoff' }))
+  assert.ok(Result.isSuccess(reverse))
+  assert.deepEqual(reverse.success, { ...never, opposedGames: 1 })
+  // 15-16 are teammates and opponents; the filter hides only the teammate spans.
+  const both = link(graph, 15, 16, filterWith({ competition: 'playoff' }))
+  assert.ok(Result.isSuccess(both))
+  assert.deepEqual(both.success, { ...never, opposedGames: 2 })
+  const unmet = link(graph, 11, 14, DEFAULT_FILTER)
+  assert.ok(Result.isSuccess(unmet))
+  assert.equal(unmet.success.opposedGames, 0)
+})
+
+test('without opponent arrays, link keeps opposedGames at 0 and opponents is HistoryUnavailable', () => {
+  const { oppA, oppB, oppGames, ...teammatesOnly } = MINI_ARRAYS
+  assert.ok(oppA !== undefined && oppB !== undefined && oppGames !== undefined)
+  const bare = makeGraph(teammatesOnly)
+  const result = link(bare, 15, 16, DEFAULT_FILTER)
+  assert.ok(Result.isSuccess(result))
+  assert.equal(result.success.opposedGames, 0)
+  const listed = opponents(bare, 16)
+  assert.ok(Result.isFailure(listed))
+  assert.ok(listed.failure instanceof HistoryUnavailable)
 })

@@ -1,8 +1,10 @@
 // Shortest teammate paths in D6 order (C-search). Pure, no I/O. The hot loop works on typed arrays only.
 import { Result } from 'effect'
+import type { HistoryUnavailable, UnsupportedFilter } from './contracts.ts'
 import { NoPath, UnknownPlayer } from './contracts.ts'
 import { evidenceSpan, hopKind, linkPassingGames, linkPasses } from './graph.ts'
 import type { TeammateGraph } from './graph.ts'
+import { findRelationPaths } from './relation-paths.ts'
 import { PATH_COUNT_CAP } from './shapes.ts'
 import type { Filter, GameType, PathResult, Relation, TeammateHop } from './shapes.ts'
 
@@ -225,17 +227,16 @@ export const enumerateChains = (
  * Shortest teammate paths from `from` to `to` (player IDs) in D6 order.
  * `relation: 'with'` returns up to `limit` distinct shortest chains in D6 order (the first is Q2's) and
  * `pathCount`, the number of tied shortest chains, saturating at `PATH_COUNT_CAP` (`pathCountCapped` when
- * the true count is `>=` the cap). Q7 adds `against` and `either`.
+ * the true count is `>=` the cap). `against` and `either` go to `findRelationPaths` (first chain only).
  */
 export const findPaths = (
   graph: TeammateGraph, from: number, to: number, filter: Filter, relation: Relation, limit: number,
-): Result.Result<PathResult, UnknownPlayer | NoPath> => {
+): Result.Result<PathResult, UnknownPlayer | NoPath | UnsupportedFilter | HistoryUnavailable> => {
   const fromIndex = graph.indexOf.get(from)
   if (fromIndex === undefined) return Result.fail(new UnknownPlayer({ playerId: from }))
   const toIndex = graph.indexOf.get(to)
   if (toIndex === undefined) return Result.fail(new UnknownPlayer({ playerId: to }))
-  // TODO(Q7): `against` and `either`. Placeholder until then: report no path rather than a wrong teammate path.
-  if (relation !== 'with') return Result.fail(new NoPath({ from, to }))
+  if (relation !== 'with') return findRelationPaths(graph, fromIndex, toIndex, filter, relation)
   const distanceToTarget = bfsDistances(graph, toIndex, filter, fromIndex)
   const distance = distanceToTarget[fromIndex]
   if (distance === UNREACHED) return Result.fail(new NoPath({ from, to }))

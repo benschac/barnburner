@@ -104,11 +104,6 @@ test('the same player is distance 0 with one empty path', () => {
   assert.deepEqual(result.paths, [[]])
 })
 
-test('against and either are placeholders until Q7', () => {
-  assert.ok(Result.isFailure(findPaths(MINI_GRAPH, 11, 14, DEFAULT_FILTER, 'against', 1)))
-  assert.ok(Result.isFailure(findPaths(MINI_GRAPH, 11, 14, DEFAULT_FILTER, 'either', 1)))
-})
-
 test('bfsDistances: a full sweep from 11 leaves 19 and 20 unreached', () => {
   const index = (id: number) => MINI_GRAPH.indexOf.get(id) ?? -1
   const distance = bfsDistances(MINI_GRAPH, index(11), DEFAULT_FILTER, -1)
