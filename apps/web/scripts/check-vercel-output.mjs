@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict'
-import { cp, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { Effect, Layer } from 'effect'
 import { FetchHttpClient } from 'effect/http'
+import { RpcClient, RpcSerialization } from 'effect/rpc'
+import { HistoryRpcs } from '@nhl-reddit-stats/history/rpc'
 import { SeasonSource, rpcSeasonSourceLayer } from '../src/season-source.ts'
 
+const HISTORY_FILE = 'apps/web/history-data/nhl-serve.sqlite'
 assert.ok(process.argv[2], 'Pass the standalone Vercel build output directory')
 const output = resolve(process.argv[2])
 const routes = JSON.parse(await readFile(join(output, 'config.json'), 'utf8')).routes
@@ -49,6 +52,34 @@ try {
     }
   }
   console.log('Isolated Vercel RPC and all three GET functions passed')
+
+  // The history function must carry its serving file and run on a Node that has node:sqlite.
+  const historyFunction = join(output, 'functions/api/history.func')
+  const config = JSON.parse(await readFile(join(historyFunction, '.vc-config.json'), 'utf8'))
+  const node = /^nodejs(\d+)/.exec(config.runtime)
+  assert.ok(node && Number(node[1]) >= 22, `history runtime ${config.runtime} must be Node 22.5 or newer for node:sqlite`)
+  const shipped = join(historyFunction, HISTORY_FILE)
+  const size = (await stat(shipped)).size
+  assert.ok(size > 0, `${HISTORY_FILE} is empty`)
+  const isolated = join(directory, 'history')
+  await cp(historyFunction, isolated, { recursive: true, dereference: true })
+  const entry = pathToFileURL(join(isolated, config.handler))
+  const previous = process.cwd()
+  process.chdir(isolated) // Vercel runs the function with its own root as the working directory; the handler reads it at import.
+  try {
+    const history = (await import(entry.href)).default
+    const fetch = FetchHttpClient.Fetch.of((input, init) => history.fetch(new Request(input, init)))
+    const found = await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const client = yield* RpcClient.make(HistoryRpcs)
+      return yield* client.SearchPlayers({ query: 'a', limit: 3 })
+    })).pipe(Effect.provide(RpcClient.layerProtocolHttp({ url: 'https://rinkside.example/api/history' }).pipe(
+      Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]),
+      Layer.provide(Layer.succeed(FetchHttpClient.Fetch, fetch)),
+    ))))
+    assert.ok(found.snapshotId.length > 0)
+    assert.ok(found.players.length > 0, 'SearchPlayers returned no rows from the packaged file')
+  } finally { process.chdir(previous) }
+  console.log(`Packaged history function (${config.runtime}) served SearchPlayers from ${HISTORY_FILE} (${size} bytes)`)
 } finally {
   await rm(directory, { recursive: true, force: true })
 }
