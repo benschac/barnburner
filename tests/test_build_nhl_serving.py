@@ -21,7 +21,14 @@ GAMES = [
 NAMES = {11: "Jean Béliveau"}
 
 
-def make_base(path):
+# Plan C-mini dressed goalies: listed on the box score, credited or not. 21 never played.
+DRESSED = [
+    (1951020001, 3, 16), (1951020001, 3, 17), (1951020002, 3, 16), (1951020002, 3, 17),
+    (1951020003, 3, 16), (1951020003, 3, 17), (1951030111, 3, 16), (1951030111, 3, 21),
+]
+
+
+def make_base(path, dressed=None):
     db = sqlite3.connect(path)
     db.executescript(SCHEMA)
     for season, kind, sha in [(19501951, 2, "bb"), (19511952, 2, "aa"), (19511952, 3, "cc")]:
@@ -44,6 +51,8 @@ def make_base(path):
                             None if player == 12 else player - 10))
     # A second role row for the same appearance must not duplicate it.
     db.execute("INSERT INTO appearances VALUES(19501951,2,1950020001,1,'T1',11,'Jean Béliveau','goalie','C',0)")
+    if dressed:
+        db.executemany("INSERT INTO dressed_goalies VALUES(?,?,?)", dressed)
     db.commit()
     db.close()
 
