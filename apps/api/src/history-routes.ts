@@ -1,10 +1,10 @@
-import { ByteSize, Context, Effect, Layer, Result } from 'effect'
+import { ByteSize, Context, Effect, Layer, Match, Result } from 'effect'
 import { HttpIncomingMessage, HttpRouter } from 'effect/http'
 import { RpcSerialization, RpcServer } from 'effect/rpc'
 import {
-  DEFAULT_FILTER, HistoryUnavailable, UnsupportedFilter, farthest, finalsCoverage, findPaths, hopKind, link, linkIdBetween, makeGraph,
+  DEFAULT_FILTER, HistoryUnavailable, farthest, finalsCoverage, findPaths, hopKind, link, linkIdBetween, makeGraph, opponents,
 } from '@nhl-reddit-stats/history'
-import type { HistoryStore, Hop, TeammateHop, PlayerRow, TeammateGraph } from '@nhl-reddit-stats/history'
+import type { Hop, HistoryStore, PathResult, PlayerRow, TeammateGraph, UnknownPlayer } from '@nhl-reddit-stats/history'
 import { HistoryRpcs } from '@nhl-reddit-stats/history/rpc'
 import { openHistoryStore } from './history-store.ts'
 
@@ -37,19 +37,32 @@ const summary = ({ playerId, name, position, firstSeason, lastSeason, games }: P
   { playerId, name, position, firstSeason, lastSeason, games }
 )
 
-/** A `with` path holds teammate hops only; A2d widens this when it enables the opponent relations. */
-const teammateOnly = (hop: Hop): TeammateHop => {
-  // defect: findPaths yields PlayedAgainst hops only for the against and either relations, which this handler rejects.
-  if (hop._tag === 'PlayedAgainst') throw new Error('A teammate path held a PlayedAgainst hop.')
-  return hop
-}
-
 /** The competition rule behind every Finals answer (plan D8). */
 export const FINALS_RULE = 'A teammate is anyone credited in the same NHL regular-season or playoff game for the same team; ' +
   'international games do not count. Cup Finals are flagged from the 1926-27 season (1927) on, when the Final became an NHL-only series.'
 
-// Placeholder: later tasks replace each of these with a real handler.
-const notImplemented = (rpc: string) => () => Effect.fail(new HistoryUnavailable({ message: `${rpc} is not implemented yet.` }))
+/** A hop as it goes on the wire: `PlayedAgainst` also carries `gameId`. */
+export type WireHop = Exclude<Hop, { readonly _tag: 'PlayedAgainst' }> | (Extract<Hop, { readonly _tag: 'PlayedAgainst' }> & { readonly gameId: number })
+export type WirePathResult = Omit<PathResult, 'paths'> & { readonly paths: ReadonlyArray<ReadonlyArray<WireHop>> }
+
+/** Fills every `PlayedAgainst` hop with the first game (earliest by date, then game ID) the pair played against each other. */
+export const fillOpponentHops = (store: HistoryStore, result: PathResult): Effect.Effect<WirePathResult, HistoryUnavailable | UnknownPlayer> =>
+  Effect.gen(function* () {
+    const fillHop = (hop: Hop): Effect.Effect<WireHop, HistoryUnavailable | UnknownPlayer> => Match.valueTags(hop, {
+      PlayedWith: (h) => Effect.succeed<WireHop>(h),
+      GoaliePartners: (h) => Effect.succeed<WireHop>(h),
+      PlayedAgainst: (h) => Effect.gen(function* () {
+        const games = yield* store.opposedGames(h.from, h.to)
+        const first = [...games].sort((x, y) => x.gameDate.localeCompare(y.gameDate) || x.gameId - y.gameId)[0]
+        if (first === undefined) {
+          return yield* new HistoryUnavailable({ message: `No opposed game on record for players ${h.from} and ${h.to}.` })
+        }
+        return { ...h, gameId: first.gameId } satisfies WireHop
+      }),
+    })
+    const paths = yield* Effect.forEach(result.paths, (path) => Effect.forEach(path, fillHop))
+    return { ...result, paths }
+  })
 
 const handlers = HistoryRpcs.toLayer(Effect.gen(function* () {
   const { store, graph: graphOf } = yield* History
@@ -65,7 +78,6 @@ const handlers = HistoryRpcs.toLayer(Effect.gen(function* () {
       const { points, teammates } = player
       return { snapshotId: opened.snapshotId, player: { ...summary(player), points, teammates }, stints }
     }),
-    // TODO(later tasks): GetRoster, GetLink, GetSharedGames, GetOpponents, GetOpposedGames, FindPath, GetFarthest, GetFinalsCoverage.
     GetRoster: ({ teamId, seasonId, gameType, focusPlayerId }) => Effect.gen(function* () {
       const opened = yield* store
       const rows = yield* opened.roster(teamId, seasonId, gameType)
@@ -99,17 +111,29 @@ const handlers = HistoryRpcs.toLayer(Effect.gen(function* () {
       const games = yield* opened.sharedGames(a, b, seasonId, gameType, teamId)
       return { snapshotId: opened.snapshotId, games }
     }),
-    GetOpponents: notImplemented('GetOpponents'),
-    GetOpposedGames: notImplemented('GetOpposedGames'),
-    // Teammate paths only; A2d enables `against` and `either` and fills opponent-hop games.
+    GetOpponents: ({ playerId, limit, offset }) => Effect.gen(function* () {
+      const opened = yield* store
+      const graph = yield* graphOf
+      yield* opened.player(playerId)
+      const found = opponents(graph, playerId)
+      if (Result.isFailure(found)) return yield* found.failure
+      const page = found.success.slice(offset, offset + limit)
+      const rows = yield* Effect.forEach(page, ({ playerId: id, games }) =>
+        Effect.map(opened.player(id), ({ player }) => ({ playerId: id, name: player.name, games })))
+      return { snapshotId: opened.snapshotId, total: found.success.length, opponents: rows }
+    }),
+    GetOpposedGames: ({ a, b }) => Effect.gen(function* () {
+      const opened = yield* store
+      const games = yield* opened.opposedGames(a, b)
+      return { snapshotId: opened.snapshotId, games }
+    }),
     FindPath: ({ from, to, filter, relation, limit }) => Effect.gen(function* () {
       const opened = yield* store
       const graph = yield* graphOf
-      if (relation !== 'with') return yield* new UnsupportedFilter({ relation })
       const result = findPaths(graph, from, to, filter, relation, limit)
       if (Result.isFailure(result)) return yield* result.failure
-      const paths = result.success.paths.map((chain) => chain.map(teammateOnly))
-      return { snapshotId: opened.snapshotId, ...result.success, paths }
+      const filled = yield* fillOpponentHops(opened, result.success)
+      return { snapshotId: opened.snapshotId, ...filled }
     }),
     GetFarthest: ({ playerId, filter }) => Effect.gen(function* () {
       const opened = yield* store

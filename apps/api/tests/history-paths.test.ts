@@ -48,11 +48,20 @@ test('FindPath fails with UnknownPlayer and NoPath', () => withFake(async (clien
   assert.ok((await flip(client.FindPath({ from: 11, to: 18, filter: NO_PARTNERS, relation: 'with', limit: 1 }))) instanceof NoPath)
 }))
 
-test('FindPath rejects the opponent relations for now', () => withFake(async (client) => {
-  const error = await flip(client.FindPath({ from: 11, to: 14, filter: DEFAULT, relation: 'against', limit: 1 }))
+test('FindPath serves the opponent relations and rejects their filters', () => withFake(async (client) => {
+  const error = await flip(client.FindPath({ from: 11, to: 14, filter: NO_PARTNERS, relation: 'against', limit: 1 }))
   assert.ok(error instanceof UnsupportedFilter)
   assert.equal(error.relation, 'against')
-  assert.ok((await flip(client.FindPath({ from: 11, to: 14, filter: DEFAULT, relation: 'either', limit: 1 }))) instanceof UnsupportedFilter)
+  assert.ok((await flip(client.FindPath({ from: 11, to: 14, filter: NO_PARTNERS, relation: 'either', limit: 1 }))) instanceof UnsupportedFilter)
+  const against = await Effect.runPromise(client.FindPath({ from: 11, to: 19, filter: DEFAULT, relation: 'against', limit: 1 }))
+  assert.equal(against.distance, 1)
+  assert.deepEqual(against.paths[0].map((hop) => hop._tag), ['PlayedAgainst'])
+  const either = await Effect.runPromise(client.FindPath({ from: 11, to: 18, filter: DEFAULT, relation: 'either', limit: 1 }))
+  assert.equal(either.distance, 2)
+  const [first, second] = either.paths[0]
+  assert.equal(first._tag, 'PlayedWith')
+  assert.equal(second._tag, 'PlayedAgainst')
+  assert.equal(second._tag === 'PlayedAgainst' ? second.gameId : 0, 1951020002)
 }))
 
 test('GetFarthest reports the farthest teammates and an example chain', () => withFake(async (client) => {
