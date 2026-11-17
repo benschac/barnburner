@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "season": 20262027,
+  "fetchedAt": "2026-11-16T15:10:53.212Z",
+  "sources": [
+    "https://api-web.nhle.com/v1/club-schedule-season/NJD/20262027",
+    "https://api-web.nhle.com/v1/club-schedule-season/WSH/20262027"
+  ],
+  "teams": [
+    {
+      "abbrev": "NJD",
+      "name": "New Jersey Devils",
+      "conference": "Eastern",
+      "division": "Metropolitan"
+    },
+    {
+      "abbrev": "WSH",
+      "name": "Washington Capitals",
+      "conference": "Eastern",
+      "division": "Metropolitan"
+    }
+  ],
+  "games": [
+    {
+      "id": 2026020121,
+      "season": 20262027,
+      "gameType": 2,
+      "date": "2026-10-17",
+      "startTimeUTC": "2026-10-17T17:00:00Z",
+      "state": "OFF",
+      "scheduleState": "OK",
+      "homeTeam": "WSH",
+      "awayTeam": "NJD",
+      "result": {
+        "homeScore": 4,
+        "awayScore": 2,
+        "decision": "REG"
+      }
+    },
+    {
+      "id": 2026020303,
+      "season": 20262027,
+      "gameType": 2,
+      "date": "2026-11-12",
+      "startTimeUTC": "2026-11-13T00:00:00Z",
+      "state": "OFF",
+      "scheduleState": "OK",
+      "homeTeam": "NJD",
+      "awayTeam": "WSH",
+      "result": {
+        "homeScore": 5,
+        "awayScore": 2,
+        "decision": "REG"
+      }
+    },
+    {
+      "id": 2026020318,
+      "season": 20262027,
+      "gameType": 2,
+      "date": "2026-11-14",
+      "startTimeUTC": "2026-11-15T00:00:00Z",
+      "state": "OFF",
+      "scheduleState": "OK",
+      "homeTeam": "WSH",
+      "awayTeam": "NJD",
+      "result": {
+        "homeScore": 4,
+        "awayScore": 7,
+        "decision": "REG"
+      }
+    },
+    {
+      "id": 2026020828,
+      "season": 20262027,
+      "gameType": 2,
+      "date": "2027-01-24",
+      "startTimeUTC": "2027-01-25T00:00:00Z",
+      "state": "FUT",
+      "scheduleState": "OK",
+      "homeTeam": "NJD",
+      "awayTeam": "WSH",
+      "result": null
+    }
+  ]
+}

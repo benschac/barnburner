@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "season": 20262027,
+  "fetchedAt": "2026-11-16T15:12:15.816Z",
+  "completedGameIds": [
+    2026020121,
+    2026020303,
+    2026020318
+  ],
+  "standings": [
+    {
+      "team": "NJD",
+      "date": "2026-11-15",
+      "divisionSequence": 2,
+      "wildcardSequence": 0,
+      "points": 30,
+      "played": 21
+    },
+    {
+      "team": "WSH",
+      "date": "2026-11-15",
+      "divisionSequence": 5,
+      "wildcardSequence": 4,
+      "points": 20,
+      "played": 18
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-10-17",
+      "standings": [
+        {
+          "team": "NJD",
+          "date": "2026-10-17",
+          "divisionSequence": 5,
+          "wildcardSequence": 5,
+          "points": 8,
+          "played": 8
+        },
+        {
+          "team": "WSH",
+          "date": "2026-10-17",
+          "divisionSequence": 3,
+          "wildcardSequence": 0,
+          "points": 10,
+          "played": 8
+        }
+      ]
+    },
+    {
+      "date": "2026-11-12",
+      "standings": [
+        {
+          "team": "NJD",
+          "date": "2026-11-12",
+          "divisionSequence": 2,
+          "wildcardSequence": 0,
+          "points": 28,
+          "played": 20
+        },
+        {
+          "team": "WSH",
+          "date": "2026-11-12",
+          "divisionSequence": 4,
+          "wildcardSequence": 3,
+          "points": 20,
+          "played": 17
+        }
+      ]
+    },
+    {
+      "date": "2026-11-14",
+      "standings": [
+        {
+          "team": "NJD",
+          "date": "2026-11-14",
+          "divisionSequence": 2,
+          "wildcardSequence": 0,
+          "points": 30,
+          "played": 21
+        },
+        {
+          "team": "WSH",
+          "date": "2026-11-14",
+          "divisionSequence": 5,
+          "wildcardSequence": 4,
+          "points": 20,
+          "played": 18
+        }
+      ]
+    }
+  ],
+  "clubs": [
+    {
+      "team": "NJD",
+      "specialTeams": [
+        {
+          "label": "POWER PLAY",
+          "rank": 19,
+          "value": 20.5882
+        },
+        {
+          "label": "PENALTY KILL",
+          "rank": 30,
+          "value": 65.9575
+        }
+      ],
+      "leaders": [
+        {
+          "label": "POINTS",
+          "name": "J. Hughes",
+          "portrait": "https://assets.nhle.com/mugs/nhl/20262027/NJD/8481559.png",
+          "detail": "10 goals, 17 assists",
+          "value": "27"
+        },
+        {
+          "label": "SHOTS ON GOAL",
+          "name": "J. Hughes",
+          "portrait": "https://assets.nhle.com/mugs/nhl/20262027/NJD/8481559.png",
+          "detail": "10 goals, 12.3% shooting",
+          "value": "81"
+        },
+        {
+          "label": "SAVE PERCENTAGE",
+          "name": "C. Hellebuyck",
+          "portrait": "https://assets.nhle.com/mugs/nhl/20262027/NJD/8476945.png",
+          "detail": "7 games, 2.25 GAA",
+          "value": ".916"
+        }
+      ]
+    },
+    {
+      "team": "WSH",
+      "specialTeams": [
+        {
+          "label": "POWER PLAY",
+          "rank": 22,
+          "value": 20
+        },
+        {
+          "label": "PENALTY KILL",
+          "rank": 20,
+          "value": 75.4099
+        }
+      ],
+      "leaders": [
+        {
+          "label": "POINTS",
+          "name": "D. Strome",
+          "portrait": "https://assets.nhle.com/mugs/nhl/20262027/WSH/8478440.png",
+          "detail": "3 goals, 13 assists",
+          "value": "16"
+        },
+        {
+          "label": "SHOTS ON GOAL",
+          "name": "J. Chychrun",
+          "portrait": "https://assets.nhle.com/mugs/nhl/20262027/WSH/8479345.png",
+          "detail": "2 goals, 3.6% shooting",
+          "value": "56"
+        },
+        {
+          "label": "SAVE PERCENTAGE",
+          "name": "L. Thompson",
+          "portrait": "https://assets.nhle.com/mugs/nhl/20262027/WSH/8480313.png",
+          "detail": "13 games, 3.17 GAA",
+          "value": ".888"
+        }
+      ]
+    }
+  ]
+}
