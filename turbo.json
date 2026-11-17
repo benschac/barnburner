@@ -1,6 +1,6 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
-  "globalDependencies": ["data/*.json", "lib/*.mjs"],
+  "globalDependencies": ["data/*.json", "lib/*.mjs", "data/history/serving.json"],
   "tasks": {
     "build": {
       "dependsOn": [
