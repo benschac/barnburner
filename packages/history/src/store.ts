@@ -1,7 +1,7 @@
 import type { Effect } from 'effect'
 import type { HistoryUnavailable, UnknownPlayer, UnknownRoster } from './contracts.ts'
 import type {
-  FinalRow, GameType, Graph, OpposedGameRow, PlayerDetail, PlayerRow, RosterRow, SharedGameRow,
+  FinalRow, GameType, Graph, LinkKind, OpposedGameRow, PlayerDetail, PlayerRow, RosterRow, SharedGameRow,
 } from './shapes.ts'
 
 /**
@@ -24,9 +24,14 @@ export type HistoryStore = {
   readonly roster: (
     teamId: number, seasonId: number, gameType: GameType,
   ) => Effect.Effect<ReadonlyArray<RosterRow>, HistoryUnavailable | UnknownRoster>
-  /** Games both were on the team's box score for the span, oldest first. */
+  /**
+   * Games of one span of the pair, oldest first. `PlayedWith`: both have an `appearances` row for the team
+   * in that season and game type. `GoaliePartners`: both are on the team's `dressed_goalies` rows for the
+   * game and not both credited; a file without that table returns an empty list. The same ID twice is not a
+   * pair: an empty list, never the player's own games.
+   */
   readonly sharedGames: (
-    a: number, b: number, seasonId: number, gameType: GameType, teamId: number,
+    a: number, b: number, seasonId: number, gameType: GameType, teamId: number, link: LinkKind,
   ) => Effect.Effect<ReadonlyArray<SharedGameRow>, HistoryUnavailable | UnknownPlayer>
   /** Every game on opposite sides, oldest first. */
   readonly opposedGames: (

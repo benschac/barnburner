@@ -2,7 +2,7 @@ import { ByteSize, Context, Effect, Layer, Match, Result } from 'effect'
 import { HttpIncomingMessage, HttpRouter } from 'effect/http'
 import { RpcSerialization, RpcServer } from 'effect/rpc'
 import {
-  DEFAULT_FILTER, HistoryUnavailable, farthest, finalsCoverage, findPaths, hopKind, link, linkIdBetween, makeGraph, opponents,
+  DEFAULT_FILTER, HistoryUnavailable, farthest, finalsCoverage, findPaths, link, linkKind, makeGraph, opponents,
 } from '@nhl-reddit-stats/history'
 import type { Hop, HistoryStore, PathResult, PlayerRow, TeammateGraph, UnknownPlayer } from '@nhl-reddit-stats/history'
 import { HistoryRpcs } from '@nhl-reddit-stats/history/rpc'
@@ -84,20 +84,15 @@ const handlers = HistoryRpcs.toLayer(Effect.gen(function* () {
       if (focusPlayerId === undefined) return { snapshotId: opened.snapshotId, teamId, seasonId, gameType, players: rows }
       const graph = yield* graphOf
       yield* opened.player(focusPlayerId)
-      const focusIndex = graph.indexOf.get(focusPlayerId)
       const players = rows.map((row) => {
-        const rowIndex = graph.indexOf.get(row.playerId)
-        const linkId = row.playerId === focusPlayerId || focusIndex === undefined || rowIndex === undefined
-          ? -1
-          : linkIdBetween(graph, focusIndex, rowIndex)
-        const kind = linkId < 0 ? null : hopKind(graph, linkId, DEFAULT_FILTER)
+        const kind = row.playerId === focusPlayerId ? null : linkKind(graph, focusPlayerId, row.playerId, DEFAULT_FILTER)
         const found = kind === null ? null : link(graph, focusPlayerId, row.playerId, DEFAULT_FILTER)
         if (kind === null || found === null || Result.isFailure(found) || found.success.evidenceGameId === null) {
           return { ...row, link: { _tag: 'NoLink' as const } }
         }
         return { ...row, link: { _tag: kind, games: found.success.totalGames, evidenceGameId: found.success.evidenceGameId } }
       })
-      return { snapshotId: opened.snapshotId, teamId, seasonId, gameType, players }
+      return { snapshotId: opened.snapshotId, teamId, seasonId, gameType, focusPlayerId, players }
     }),
     GetLink: ({ a, b, filter }) => Effect.gen(function* () {
       const opened = yield* store
@@ -106,9 +101,9 @@ const handlers = HistoryRpcs.toLayer(Effect.gen(function* () {
       if (Result.isFailure(result)) return yield* result.failure
       return { snapshotId: opened.snapshotId, ...result.success }
     }),
-    GetSharedGames: ({ a, b, seasonId, gameType, teamId }) => Effect.gen(function* () {
+    GetSharedGames: ({ a, b, seasonId, gameType, teamId, link: kind }) => Effect.gen(function* () {
       const opened = yield* store
-      const games = yield* opened.sharedGames(a, b, seasonId, gameType, teamId)
+      const games = yield* opened.sharedGames(a, b, seasonId, gameType, teamId, kind)
       return { snapshotId: opened.snapshotId, games }
     }),
     GetOpponents: ({ playerId, limit, offset }) => Effect.gen(function* () {

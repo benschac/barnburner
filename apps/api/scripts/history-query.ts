@@ -113,7 +113,7 @@ const makeNames = (store: HistoryStore): Names => {
     date: (hop) => {
       const games = hop._tag === 'PlayedAgainst'
         ? store.opposedGames(hop.from, hop.to)
-        : store.sharedGames(hop.from, hop.to, hop.seasonId, hop.gameType, hop.teamId)
+        : store.sharedGames(hop.from, hop.to, hop.seasonId, hop.gameType, hop.teamId, hop._tag)
       return games.pipe(
         Effect.map((rows) => rows.find((g) => g.gameId === hop.gameId)?.gameDate ?? '?'),
         Effect.catchTag('UnknownPlayer', () => Effect.succeed('?')),
