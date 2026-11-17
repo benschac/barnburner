@@ -13,25 +13,21 @@ export interface SqlDeps {
 const DEFAULT_TIMEOUT_MS = 10_000
 const DEFAULT_ROW_CAP = 200
 
-/** Guard, then run the query. Always resolves to text; failures become `ERROR: <reason>`. */
-export const runSql = (deps: SqlDeps, query: string): Promise<string> => {
+export const runSql = (deps: SqlDeps, query: string): Effect.Effect<string> => {
   const timeoutMs = deps.timeoutMs ?? DEFAULT_TIMEOUT_MS
   const rowCap = deps.rowCap ?? DEFAULT_ROW_CAP
-  return Effect.runPromise(
-    Effect.gen(function* () {
-      const verdict = yield* deps.guard(deps.db, query)
-      if (!verdict.ok) return `ERROR: ${verdict.reason}`
-      const result = yield* deps.db.queryCanonical(query, { timeoutMs, rowCap })
-      const rows = result.rows.slice(0, rowCap)
-      return toJson({
-        rows,
-        rowCount: result.rowCount,
-        truncated: result.rowCount > rows.length,
-      })
-    }).pipe(
-      Effect.catchTag('SqlError', (e) => Effect.succeed(`ERROR: ${e.message}`)),
-      Effect.catchCause((c) => Effect.succeed(`ERROR: ${String(c)}`)),
-    ),
+  return Effect.gen(function* () {
+    const verdict = yield* deps.guard(deps.db, query)
+    if (!verdict.ok) return `ERROR: ${verdict.reason}`
+    const result = yield* deps.db.queryCanonical(query, { timeoutMs, rowCap })
+    const rows = result.rows.slice(0, rowCap)
+    return toJson({
+      rows,
+      rowCount: result.rowCount,
+      truncated: result.rowCount > rows.length,
+    })
+  }).pipe(
+    Effect.catchTag('SqlError', (e) => Effect.succeed(`ERROR: ${e.message}`)),
   )
 }
 
@@ -45,5 +41,5 @@ export const makeSqlTool = (deps: SqlDeps) =>
       required: ['query'],
       additionalProperties: false,
     }),
-    execute: ({ query }) => runSql(deps, query),
+    execute: ({ query }, { abortSignal }) => Effect.runPromise(runSql(deps, query), { signal: abortSignal }),
   })

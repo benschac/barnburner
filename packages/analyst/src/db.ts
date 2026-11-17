@@ -110,6 +110,7 @@ export const openDb = (opts: OpenDbOpts): Effect.Effect<Db, DbError, Scope.Scope
 
     // One query at a time per connection, so an interrupt can only ever hit its own statement.
     let tail: Promise<unknown> = Promise.resolve()
+    yield* Effect.addFinalizer(() => Effect.promise(() => tail).pipe(Effect.asVoid))
     const serialised = <A>(work: () => Promise<A>): Promise<A> => {
       const result = tail.then(work, work)
       tail = result.catch(() => undefined)
@@ -117,8 +118,13 @@ export const openDb = (opts: OpenDbOpts): Effect.Effect<Db, DbError, Scope.Scope
     }
 
     const query = (sql: string, queryOpts?: QueryOpts): Effect.Effect<QueryResult, SqlError> =>
-      Effect.promise(() =>
-          serialised(async (): Promise<Result.Result<QueryResult, SqlError>> => {
+      Effect.callback<QueryResult, SqlError>((resume, signal) => {
+        let active = false
+        const cancel = () => { if (active) connection.interrupt() }
+        signal.addEventListener('abort', cancel, { once: true })
+        const pending = serialised(async (): Promise<Result.Result<QueryResult, SqlError>> => {
+            if (signal.aborted) return Result.fail(new SqlError({ message: 'query cancelled', sql }))
+            active = true
             const { timeoutMs, rowCap } = queryOpts ?? {}
             const started = Date.now()
             let timedOut = false
@@ -134,6 +140,7 @@ export const openDb = (opts: OpenDbOpts): Effect.Effect<Db, DbError, Scope.Scope
             try {
               const refusal = await singleSelectRefusal(sql)
               if (refusal !== undefined) return fail(timedOut ? timeout : refusal)
+              if (signal.aborted) return fail('query cancelled')
               const reader = await connection.runAndReadAll(sql)
               const total = reader.currentRowCount
               const keep = rowCap === undefined ? total : Math.min(total, Math.max(0, rowCap))
@@ -144,10 +151,18 @@ export const openDb = (opts: OpenDbOpts): Effect.Effect<Db, DbError, Scope.Scope
               // A driver exception is translated here; nothing else can reject this promise.
               return fail(timedOut ? timeout : error instanceof Error ? error.message : String(error))
             } finally {
+              active = false
+              signal.removeEventListener('abort', cancel)
               if (timer !== undefined) clearTimeout(timer)
             }
-          }),
-      ).pipe(Effect.flatMap(Effect.fromResult))
+          })
+        void pending.then((result) => resume(Effect.fromResult(result)))
+        return Effect.promise(async () => {
+          cancel()
+          await pending
+          signal.removeEventListener('abort', cancel)
+        })
+      })
 
     const queryCanonical = (sql: string, queryOpts?: QueryOpts): Effect.Effect<QueryResult, SqlError> =>
       query(`SELECT * FROM (\n${sql.trim().replace(/;(\s|--[^\n]*)*$/, '')}\n) ORDER BY ALL`, queryOpts)

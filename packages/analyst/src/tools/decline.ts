@@ -1,3 +1,4 @@
+import { Effect } from 'effect'
 import { tool, jsonSchema } from 'ai'
 
 export interface DeclineDeps {
@@ -17,12 +18,12 @@ export const checkDeclineInput = (raw: unknown): { ok: true; input: DeclineInput
 }
 
 // Returns "ok", or "ERROR: <reason>" when the arguments are invalid.
-export const runDecline = (deps: DeclineDeps, raw: unknown): string => {
+export const runDecline = (deps: DeclineDeps, raw: unknown): Effect.Effect<string> => Effect.sync(() => {
   const checked = checkDeclineInput(raw)
   if (!checked.ok) return `ERROR: ${checked.reason}`
   deps.onDecline(checked.input.reason)
   return 'ok'
-}
+})
 
 export const makeDeclineTool = (deps: DeclineDeps) =>
   tool({
@@ -44,5 +45,5 @@ export const makeDeclineTool = (deps: DeclineDeps) =>
         },
       },
     ),
-    execute: (input) => runDecline(deps, input),
+    execute: (input, { abortSignal }) => Effect.runPromise(runDecline(deps, input), { signal: abortSignal }),
   })

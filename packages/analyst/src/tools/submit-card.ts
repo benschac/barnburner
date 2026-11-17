@@ -115,5 +115,5 @@ export const makeSubmitCardTool = (deps: SubmitCardDeps) =>
     description:
       'Submit a draft insight card. The system runs the queries, fills in the evidence and verifies the card. Returns "ok" or the failed check.',
     inputSchema: draftInputSchema,
-    execute: (input: CardDraft) => Effect.runPromise(submitCardText(deps, input)),
+    execute: (input: CardDraft, { abortSignal }) => Effect.runPromise(abortSignal?.aborted ? Effect.interrupt : submitCardText(deps, input), { signal: abortSignal }),
   })
