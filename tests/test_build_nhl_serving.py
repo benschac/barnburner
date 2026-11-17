@@ -70,7 +70,7 @@ class ServingTest(unittest.TestCase):
             games = q("SELECT * FROM games")
             self.assertEqual(len(games), 8)
             self.assertEqual(games[0], (1950020001, 19501951, 2, "1950-11-01", None, 0))
-            self.assertEqual(games[6], (1951030111, 19511952, 3, "1950-11-07", 1, 0))
+            self.assertEqual(games[6], (1951030111, 19511952, 3, "1950-11-07", 1, 1))
             self.assertEqual(games[7][4], 1)
             self.assertEqual(q("SELECT COUNT(*) FROM appearances"), [(28,)])
             self.assertIn((12, 1951020001, 2), q("SELECT * FROM appearances"))
