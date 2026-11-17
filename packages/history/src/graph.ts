@@ -186,8 +186,8 @@ const buildOpponentAdjacency = (
   return { offsets, neighbours, games }
 }
 
-// Built on first use (3.27M pairs on the real graph) and cached per arrays object, so the teammate-only
-// callers never pay for it. Only a successful build is cached.
+// Built on first use (3.27M pairs on the real graph) and cached per arrays object. Only `opponents()` and the
+// `against`/`either` path search build it; `link` and the teammate paths never do. Only a successful build is cached.
 const opponentCache = new WeakMap<GraphArrays, OpponentAdjacency>()
 
 /** The opponent adjacency, built and cached on first use; undefined when the opponent arrays are absent. */
@@ -202,16 +202,23 @@ export const opponentAdjacency = (graph: Graph): OpponentAdjacency | undefined =
   return built
 }
 
-/** Games between player indexes as opponents: binary search over a's neighbours; 0 when they never met. */
-const opponentGamesBetween = (adjacency: OpponentAdjacency, a: number, b: number): number => {
-  const { offsets, neighbours, games } = adjacency
-  let low = offsets[a]
-  let high = offsets[a + 1] - 1
+/**
+ * Games between player indexes as opponents: binary search over the raw pair arrays, sorted by (a, b) with
+ * a < b, so it needs no adjacency. 0 when they never met, are the same player, or there are no opponent arrays.
+ */
+const opponentGamesBetween = (arrays: GraphArrays, x: number, y: number): number => {
+  const { oppA, oppB, oppGames } = arrays
+  if (oppA === undefined || oppB === undefined || oppGames === undefined || x === y) return 0
+  const a = Math.min(x, y)
+  const b = Math.max(x, y)
+  let low = 0
+  let high = oppA.length - 1
   while (low <= high) {
     const mid = (low + high) >>> 1
-    const value = neighbours[mid]
-    if (value === b) return games[mid]
-    if (value < b) low = mid + 1
+    const midA = oppA[mid]
+    const midB = oppB[mid]
+    if (midA === a && midB === b) return oppGames[mid]
+    if (midA < a || (midA === a && midB < b)) low = mid + 1
     else high = mid - 1
   }
   return 0
@@ -257,8 +264,7 @@ export const link = (
   if (ai === undefined) return Result.fail(new UnknownPlayer({ playerId: a }))
   const bi = graph.indexOf.get(b)
   if (bi === undefined) return Result.fail(new UnknownPlayer({ playerId: b }))
-  const adjacency = opponentAdjacency(graph)
-  const opposedGames = adjacency === undefined ? 0 : opponentGamesBetween(adjacency, ai, bi)
+  const opposedGames = opponentGamesBetween(graph.arrays, ai, bi)
   const linkId = linkIdBetween(graph, ai, bi)
   if (linkId < 0) return Result.succeed(noTeammateLink(opposedGames))
   const spans = [...passingSpans(graph, linkId, filter, 0), ...passingSpans(graph, linkId, filter, 1)]

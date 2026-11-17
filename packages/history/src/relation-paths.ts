@@ -1,12 +1,13 @@
 // Shortest paths over played-against links (D14, C-search): `against` walks opponent links only, `either`
 // walks teammate links (both kinds, default filter) and opponent links. Same shape as `paths.ts`: a
-// breadth-first sweep from the target, then a greedy walk from the start in D6 order. Pure, typed arrays only.
+// breadth-first sweep from the target, then a layer DP for the tied-chain count and a depth-first listing in D6
+// order. A pair linked both ways is ONE edge in `either`: a teammate link. Pure, typed arrays only.
 import { Result } from 'effect'
 import { HistoryUnavailable, NoPath, UnsupportedFilter } from './contracts.ts'
 import { linkIdBetween, linkPassingGames, opponentAdjacency } from './graph.ts'
 import type { OpponentAdjacency, TeammateGraph } from './graph.ts'
-import { UNREACHED, teammateHop } from './paths.ts'
-import { DEFAULT_FILTER } from './shapes.ts'
+import { UNREACHED, countChainsBy, enumerateBy, teammateHop } from './paths.ts'
+import { DEFAULT_FILTER, PATH_COUNT_CAP } from './shapes.ts'
 import type { Filter, Hop, PathResult, PlayedAgainst, Relation } from './shapes.ts'
 
 const isDefaultFilter = (filter: Filter): boolean =>
@@ -67,34 +68,59 @@ const opponentHop = (graph: TeammateGraph, from: number, to: number, games: numb
   games,
 })
 
+/** One step towards the target: a teammate link (`linkId >= 0`) or an opponent link (`linkId === -1`). */
+type Step = { readonly other: number; readonly games: number; readonly linkId: number }
+
 /**
- * The first shortest chain from `from` in D6 order: at each node the closer neighbour with the most games
- * on the link, then the lowest player ID. A pair linked both ways is a teammate link in `either` and
- * weighs its teammate games (the opponent link between them is not considered). Requires
- * `distanceToTarget[from] >= 0`, which guarantees a closer neighbour at every node above distance 0.
+ * Number of tied shortest chains, saturating at `PATH_COUNT_CAP`. A node's ways sum over its teammate
+ * neighbours one step closer and, for opponent neighbours one step closer, only those with no teammate link
+ * (a pair linked both ways is one edge in `either`).
  */
-const walkRelationPath = (
+const countRelationChains = (
   graph: TeammateGraph, opponents: OpponentAdjacency, withTeammates: boolean, distanceToTarget: Int32Array, from: number,
-): ReadonlyArray<Hop> => {
-  const hops: Hop[] = []
-  let node = from
-  while (distanceToTarget[node] > 0) {
+): { readonly count: number; readonly capped: boolean } => {
+  const cap = PATH_COUNT_CAP
+  const team = graph.adjacency
+  return countChainsBy(distanceToTarget, from, cap, (node, ways) => {
     const want = distanceToTarget[node] - 1
-    let bestOther = -1
-    let bestGames = 0
-    let bestLinkId = -1
+    let sum = 0
     if (withTeammates) {
-      const { offsets, neighbours, linkIds } = graph.adjacency
-      const end = offsets[node + 1]
-      for (let at = offsets[node]; at < end; at += 1) {
-        const other = neighbours[at]
+      const end = team.offsets[node + 1]
+      for (let at = team.offsets[node]; at < end && sum < cap; at += 1) {
+        if (distanceToTarget[team.neighbours[at]] === want) sum += ways[team.neighbours[at]]
+      }
+    }
+    const end = opponents.offsets[node + 1]
+    for (let at = opponents.offsets[node]; at < end && sum < cap; at += 1) {
+      const other = opponents.neighbours[at]
+      if (distanceToTarget[other] !== want) continue
+      if (withTeammates && linkIdBetween(graph, node, other) >= 0) continue
+      sum += ways[other]
+    }
+    return sum
+  })
+}
+
+/**
+ * Up to `limit` shortest chains in D6 order: at each node the closer neighbours (both lists merged) with the
+ * most games on the link first, then the lowest player ID. A pair linked both ways is a teammate link in
+ * `either` and weighs its teammate games (the opponent link between them is not considered).
+ */
+const enumerateRelationChains = (
+  graph: TeammateGraph, opponents: OpponentAdjacency, withTeammates: boolean, distanceToTarget: Int32Array,
+  from: number, limit: number,
+): ReadonlyArray<ReadonlyArray<Hop>> => {
+  const team = graph.adjacency
+  const candidates = (node: number): ReadonlyArray<Step> => {
+    const want = distanceToTarget[node] - 1
+    const found: Step[] = []
+    if (withTeammates) {
+      const end = team.offsets[node + 1]
+      for (let at = team.offsets[node]; at < end; at += 1) {
+        const other = team.neighbours[at]
         if (distanceToTarget[other] !== want) continue
-        const games = linkPassingGames(graph, linkIds[at], DEFAULT_FILTER)
-        if (games > bestGames || (games === bestGames && other < bestOther)) {
-          bestOther = other
-          bestGames = games
-          bestLinkId = linkIds[at]
-        }
+        const linkId = team.linkIds[at]
+        found.push({ other, games: linkPassingGames(graph, linkId, DEFAULT_FILTER), linkId })
       }
     }
     const end = opponents.offsets[node + 1]
@@ -102,32 +128,29 @@ const walkRelationPath = (
       const other = opponents.neighbours[at]
       if (distanceToTarget[other] !== want) continue
       if (withTeammates && linkIdBetween(graph, node, other) >= 0) continue
-      const games = opponents.games[at]
-      if (games > bestGames || (games === bestGames && other < bestOther)) {
-        bestOther = other
-        bestGames = games
-        bestLinkId = -1
-      }
+      found.push({ other, games: opponents.games[at], linkId: -1 })
     }
-    if (bestOther < 0) break
-    hops.push(
-      bestLinkId >= 0
-        ? teammateHop(graph, bestLinkId, node, bestOther, DEFAULT_FILTER)
-        : opponentHop(graph, node, bestOther, bestGames),
-    )
-    node = bestOther
+    // Player index ascends with player ID, so the tie-break on index is the lowest ID.
+    return found.sort((x, y) => y.games - x.games || x.other - y.other)
   }
-  return hops
+  return enumerateBy<Step, Hop>(
+    distanceToTarget, from, limit, candidates, (step) => step.other,
+    (step, source, to) =>
+      step.linkId >= 0
+        ? teammateHop(graph, step.linkId, source, to, DEFAULT_FILTER)
+        : opponentHop(graph, source, to, step.games),
+  )
 }
 
 /**
  * Shortest paths for `relation: 'against'` or `'either'` between player indexes. Only the default filter
  * is supported (D14: opponent links carry no season detail), anything else is `UnsupportedFilter`; a graph
- * without opponent arrays is `HistoryUnavailable`. Like Q2's `with` search this returns the first chain
- * only, with `pathCount` 1, whatever the requested limit.
+ * without opponent arrays is `HistoryUnavailable`. Like Q3's `with` search it returns up to `limit` tied
+ * shortest chains in D6 order and `pathCount`, the number of tied chains saturating at `PATH_COUNT_CAP`.
  */
 export const findRelationPaths = (
   graph: TeammateGraph, fromIndex: number, toIndex: number, filter: Filter, relation: Exclude<Relation, 'with'>,
+  limit: number,
 ): Result.Result<PathResult, UnsupportedFilter | HistoryUnavailable | NoPath> => {
   if (!isDefaultFilter(filter)) return Result.fail(new UnsupportedFilter({ relation }))
   const opponents = opponentAdjacency(graph)
@@ -141,6 +164,7 @@ export const findRelationPaths = (
     const { playerIds } = graph.arrays
     return Result.fail(new NoPath({ from: playerIds[fromIndex], to: playerIds[toIndex] }))
   }
-  const path = walkRelationPath(graph, opponents, withTeammates, distanceToTarget, fromIndex)
-  return Result.succeed({ distance, pathCount: 1, pathCountCapped: false, paths: [path] })
+  const { count, capped } = countRelationChains(graph, opponents, withTeammates, distanceToTarget, fromIndex)
+  const paths = enumerateRelationChains(graph, opponents, withTeammates, distanceToTarget, fromIndex, Math.max(limit, 1))
+  return Result.succeed({ distance, pathCount: count, pathCountCapped: capped, paths })
 }

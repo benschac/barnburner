@@ -192,3 +192,68 @@ test('unknown players fail before the filter is considered', () => {
   assert.ok(Result.isFailure(result))
   assert.ok(result.failure instanceof UnknownPlayer)
 })
+
+const manyPaths = (from: number, to: number, relation: Relation, limit: number): PathResult => {
+  const result = findPaths(MINI_GRAPH, from, to, DEFAULT_FILTER, relation, limit)
+  assert.ok(Result.isSuccess(result), `expected a ${relation} path ${from} to ${to}`)
+  return result.success
+}
+const chainSummary = (chain: PathResult['paths'][number]) => chain.map((hop) => [hop._tag, hop.from, hop.to, hop.games])
+
+test('against, 11 to 12: two tied chains (via 15 and via 16) in D6 order, lower ID first on equal games', () => {
+  // 11v15 and 11v16 are both 2 games, so the first hop ties and 15 comes first.
+  const result = manyPaths(11, 12, 'against', 2)
+  assert.equal(result.distance, 2)
+  assert.equal(result.pathCount, 2)
+  assert.equal(result.pathCountCapped, false)
+  assert.deepEqual(result.paths.map(chainSummary), [
+    [['PlayedAgainst', 11, 15, 2], ['PlayedAgainst', 15, 12, 2]],
+    [['PlayedAgainst', 11, 16, 2], ['PlayedAgainst', 16, 12, 3]],
+  ])
+  const first = manyPaths(11, 12, 'against', 1)
+  assert.equal(first.pathCount, 2)
+  assert.deepEqual(first.paths, [result.paths[0]])
+  assert.deepEqual(manyPaths(11, 12, 'against', 5).paths, result.paths)
+})
+
+test('against: an untied path counts one chain, and a player to himself counts one empty chain', () => {
+  const single = manyPaths(11, 19, 'against', 5)
+  assert.equal(single.pathCount, 1)
+  assert.equal(single.paths.length, 1)
+  const self = manyPaths(11, 11, 'against', 5)
+  assert.equal(self.pathCount, 1)
+  assert.deepEqual(self.paths, [[]])
+})
+
+test('either, 13 to 15: three tied chains via 11, 14 and 16; the pair 15-16 linked both ways counts once', () => {
+  const result = manyPaths(13, 15, 'either', 10)
+  assert.equal(result.distance, 2)
+  assert.equal(result.pathCount, 3)
+  assert.equal(result.pathCountCapped, false)
+  assert.deepEqual(result.paths.map((chain) => chain.map((hop) => [hop._tag, hop.to])), [
+    [['PlayedWith', 11], ['PlayedAgainst', 15]],
+    [['PlayedWith', 14], ['PlayedWith', 15]],
+    [['PlayedAgainst', 16], ['PlayedWith', 15]],
+  ])
+  // The 16-15 hop is the teammate link, weighed by its two teammate games.
+  assert.equal(result.paths[2][1].games, 2)
+  assert.equal(manyPaths(13, 15, 'either', 2).paths.length, 2)
+  assert.deepEqual(manyPaths(13, 15, 'either', 1).paths, [result.paths[0]])
+})
+
+test('link reads opposed games from the raw sorted pairs, symmetric, for every C-mini pair', () => {
+  const graph = makeGraph(MINI_ARRAYS)
+  for (const [a, b, games] of PAIRS) {
+    for (const [x, y] of [[a, b], [b, a]] as const) {
+      const result = link(graph, x, y, DEFAULT_FILTER)
+      assert.ok(Result.isSuccess(result))
+      assert.equal(result.success.opposedGames, games, `${x} against ${y}`)
+    }
+  }
+  const never = link(graph, 11, 12, DEFAULT_FILTER)
+  assert.ok(Result.isSuccess(never))
+  assert.equal(never.success.opposedGames, 0)
+  const same = link(graph, 11, 11, DEFAULT_FILTER)
+  assert.ok(Result.isSuccess(same))
+  assert.equal(same.success.opposedGames, 0)
+})
