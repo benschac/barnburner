@@ -1,0 +1,44 @@
+[
+  {
+    "id": "easy-njd-home-wins",
+    "team": "NJD",
+    "question": "How many home games have the New Jersey Devils won so far this season?",
+    "truthSql": "SELECT COUNT(*) AS value FROM team_games WHERE team = 'NJD' AND is_final AND home AND result = 'W'",
+    "expect": "value"
+  },
+  {
+    "id": "easy-wsh-away-wins",
+    "team": "WSH",
+    "question": "How many road wins do the Washington Capitals have so far this season?",
+    "truthSql": "SELECT COUNT(*) AS value FROM team_games WHERE team = 'WSH' AND is_final AND NOT home AND result = 'W'",
+    "expect": "value"
+  },
+  {
+    "id": "easy-tor-goals-for",
+    "team": "TOR",
+    "question": "How many goals have the Toronto Maple Leafs scored in their completed games this season?",
+    "truthSql": "SELECT COALESCE(SUM(gf), 0) AS value FROM team_games WHERE team = 'TOR' AND is_final",
+    "expect": "value"
+  },
+  {
+    "id": "easy-edm-goals-against",
+    "team": "EDM",
+    "question": "How many goals have the Edmonton Oilers allowed in their completed games this season?",
+    "truthSql": "SELECT COALESCE(SUM(ga), 0) AS value FROM team_games WHERE team = 'EDM' AND is_final",
+    "expect": "value"
+  },
+  {
+    "id": "easy-nyr-wins-vs-njd",
+    "team": "NYR",
+    "question": "How many times have the New York Rangers beaten the New Jersey Devils so far this season?",
+    "truthSql": "SELECT COUNT(*) AS value FROM team_games WHERE team = 'NYR' AND is_final AND opp = 'NJD' AND result = 'W'",
+    "expect": "value"
+  },
+  {
+    "id": "easy-bos-regulation-wins",
+    "team": "BOS",
+    "question": "How many of the Boston Bruins' wins this season came in regulation?",
+    "truthSql": "SELECT COUNT(*) AS value FROM team_games WHERE team = 'BOS' AND is_final AND result = 'W' AND decision = 'REG'",
+    "expect": "value"
+  }
+]
