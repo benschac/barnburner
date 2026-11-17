@@ -56,7 +56,7 @@ class HistoryTest(unittest.TestCase):
             self.assertEqual(build(root, db), 0)
             evidence = db.execute("SELECT player_id,reported_side,reported_date FROM source_disagreements")
             self.assertEqual(list(evidence), [(1, "R", "2023-12-03")])
-            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 3)
+            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 4)
             rows = db.execute("SELECT player_id,position,points FROM appearances ORDER BY game_id,player_id")
             self.assertEqual(list(rows), [(1, "C", 1), (3, "D", None), (4, "G", None), (2, "C", 2), (3, "D", None)])
             pairs = db.execute("""SELECT a.player_id,b.player_id FROM appearances a JOIN appearances b
@@ -161,7 +161,7 @@ class HistoryTest(unittest.TestCase):
                 self.assertIsNone(db.execute("SELECT 1 FROM sqlite_master").fetchone())
                 save("1917020001")
                 self.assertEqual(build(root, db), 2)
-                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 3)
+                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 4)
 
     def test_retry_refetches_recent_seasons_once(self):
         seasons = [19171918, 19181919, 19191920]

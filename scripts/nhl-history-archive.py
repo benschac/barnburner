@@ -14,7 +14,7 @@ import urllib.request
 RELEASE = "nhl-history-archive"
 KINDS = ("seasons", "dressed")
 GAME_TYPES = (2, 3)
-ENTRY_PATH = re.compile(r"^(seasons|dressed)/\d{8}-[23]\.json\.gz$")
+ENTRY_PATH = re.compile(r"(seasons|dressed)/\d{8}-[23]\.json\.gz")
 
 
 class ArchiveError(Exception):
@@ -34,8 +34,13 @@ def catalog_seasons(root):
     if not path.is_file():
         raise ArchiveError(f"season catalog is missing: {path}")
     try:
-        rows = json.loads(path.read_text())["data"]
-        seasons = sorted({int(row["id"]) for row in rows})
+        catalog = json.loads(path.read_text())
+        rows = catalog["data"]
+        ids = [row["id"] for row in rows]
+        if not (len(rows) == catalog["total"] == len(set(ids))
+                and all(isinstance(i, int) and not isinstance(i, bool) for i in ids)):
+            raise ValueError("row count must equal total with unique integer ids")
+        seasons = sorted(ids)
     except (ValueError, KeyError, TypeError) as error:
         raise ArchiveError(f"season catalog is unreadable: {path}: {error}") from error
     if len(seasons) < 3:
@@ -43,13 +48,19 @@ def catalog_seasons(root):
     return seasons
 
 
-def null_games(path):
+def incomplete_games(path, source):
+    try:
+        with gzip.open(source, "rt", encoding="utf-8") as handle:
+            expected = {str(row["gameId"]) for row in json.load(handle)["teams"]}
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        raise ArchiveError(f"unreadable game report {source}: {error}") from error
     try:
         with gzip.open(path, "rt", encoding="utf-8") as handle:
             games = json.load(handle)["games"]
     except (OSError, ValueError, KeyError, TypeError) as error:
         raise ArchiveError(f"unreadable dressed file {path}: {error}") from error
-    return sorted(str(game) for game, value in games.items() if value is None)
+    nulls = {str(game) for game, value in games.items() if value is None}
+    return sorted(nulls | {game for game in expected if str(game) not in games})
 
 
 def build_manifest(root):
@@ -64,8 +75,9 @@ def build_manifest(root):
                 if not path.is_file():
                     missing.append(f"{kind}/{name}")
                     continue
-                if kind == "dressed":
-                    pending += [f"dressed/{name}: {game}" for game in null_games(path)]
+                paired = root / "seasons" / name
+                if kind == "dressed" and paired.is_file():
+                    pending += [f"dressed/{name}: {game}" for game in incomplete_games(path, root / 'seasons' / name)]
                 files.append({
                     "asset": f"{kind}-{name}",
                     "path": f"{kind}/{name}",
@@ -75,7 +87,7 @@ def build_manifest(root):
     if missing:
         raise ArchiveError("incomplete inventory, missing: " + ", ".join(missing))
     if pending:
-        raise ArchiveError("dressed backfill unfinished, null games: " + ", ".join(pending))
+        raise ArchiveError("dressed backfill unfinished, null or missing games: " + ", ".join(pending))
     return {"release": RELEASE, "files": files}
 
 
@@ -98,7 +110,7 @@ def download(url):
 
 def checked_target(root, resolved_root, entry):
     relative = entry.get("path") if isinstance(entry, dict) else None
-    if not isinstance(relative, str) or not ENTRY_PATH.match(relative):
+    if not isinstance(relative, str) or not ENTRY_PATH.fullmatch(relative):
         raise ArchiveError(f"invalid manifest path: {relative!r}")
     target = root / relative
     if not target.resolve().is_relative_to(resolved_root):
