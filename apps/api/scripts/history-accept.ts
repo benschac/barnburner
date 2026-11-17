@@ -308,7 +308,7 @@ const evaluate = (store: HistoryStore, graph: TeammateGraph, truth: Truth, basel
     else {
       let found = 0
       for (const entry of truthCleghorn) {
-        const shared = yield* store.sharedGames(cleghorn, entry.teammate_id, CLEGHORN_SEASON, 2, entry.team_id)
+        const shared = yield* store.sharedGames(cleghorn, entry.teammate_id, CLEGHORN_SEASON, 2, entry.team_id, 'PlayedWith')
         if (shared.filter((g) => g.gameId === CLEGHORN_GAME).length === entry.shared_games) found += 1
       }
       verdict('Cleghorn in game 1918020026', found === truthCleghorn.length && (!baseline || truthCleghorn.length > 0),

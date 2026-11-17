@@ -87,15 +87,19 @@ test('every RPC input and output round-trips one value', () => {
   roundTrip(GetRosterInput, { teamId: 2, seasonId: 19511952, gameType: 2, focusPlayerId: 14 })
   roundTrip(GetRosterInput, { teamId: 2, seasonId: 19511952, gameType: 3 })
   roundTrip(GetRosterResult, {
-    snapshotId: MINI_SNAPSHOT_ID, teamId: 3, seasonId: 19511952, gameType: 2,
+    snapshotId: MINI_SNAPSHOT_ID, teamId: 3, seasonId: 19511952, gameType: 2, focusPlayerId: 17,
     players: [
       { playerId: 16, name: 'Goalie Sixteen', position: 'G', games: 2, link: { _tag: 'GoaliePartners', games: 3, evidenceGameId: 1951020001 } },
-      { playerId: 18, name: 'Player Eighteen', position: 'D', games: 1 },
+      { playerId: 18, name: 'Player Eighteen', position: 'D', games: 1, link: { _tag: 'NoLink' } },
     ],
+  })
+  roundTrip(GetRosterResult, {
+    snapshotId: MINI_SNAPSHOT_ID, teamId: 3, seasonId: 19511952, gameType: 2,
+    players: [{ playerId: 18, name: 'Player Eighteen', position: 'D', games: 1 }],
   })
   roundTrip(GetLinkInput, { a: 16, b: 17, filter })
   roundTrip(GetLinkResult, { snapshotId: MINI_SNAPSHOT_ID, ...link })
-  roundTrip(GetSharedGamesInput, { a: 16, b: 17, seasonId: 19511952, gameType: 2, teamId: 3 })
+  roundTrip(GetSharedGamesInput, { a: 16, b: 17, seasonId: 19511952, gameType: 2, teamId: 3, link: 'GoaliePartners' })
   roundTrip(GetSharedGamesResult, {
     snapshotId: MINI_SNAPSHOT_ID, games: [{ gameId: 1951020001, gameDate: '1951-10-10', link: 'GoaliePartners' }],
   })
@@ -113,6 +117,17 @@ test('every RPC input and output round-trips one value', () => {
   roundTrip(GetFarthestResult, { snapshotId: MINI_SNAPSHOT_ID, ...farthest })
   roundTrip(GetFinalsCoverageInput, { playerId: 14, fromYear: 1952, toYear: 1952 })
   roundTrip(GetFinalsCoverageResult, { snapshotId: MINI_SNAPSHOT_ID, rule: 'Teammates with a shared game only.', years: finalsYears })
+})
+
+test('a roster result rejects a focused row without a link and an unfocused row with one', () => {
+  const row = { playerId: 18, name: 'Player Eighteen', position: 'D', games: 1 } as const
+  const base = { snapshotId: MINI_SNAPSHOT_ID, teamId: 3, seasonId: 19511952, gameType: 2 } as const
+  const decode = Schema.decodeUnknownSync(GetRosterResult)
+  assert.throws(() => decode({ ...base, focusPlayerId: 17, players: [row] }))
+  assert.throws(() => decode({ ...base, focusPlayerId: 17, players: [{ ...row, link: { _tag: 'NoLink' } }, row] }))
+  assert.throws(() => decode({ ...base, players: [{ ...row, link: { _tag: 'NoLink' } }] }))
+  decode({ ...base, focusPlayerId: 17, players: [{ ...row, link: { _tag: 'NoLink' } }] })
+  decode({ ...base, players: [row] })
 })
 
 test('inputs reject values past the documented limits', () => {
@@ -239,6 +254,7 @@ test('the fake store agrees with the C-mini arrays', () => {
     for (let i = g.spanStart[e]; i < g.spanStart[e + 1]; i += 1) {
       const games = Effect.runSync(store.sharedGames(
         g.playerIds[g.edgeA[e]], g.playerIds[g.edgeB[e]], g.seasonIds[g.spanSeason[i]], g.spanKind[i] === 3 ? 3 : 2, g.teamIds[g.spanTeam[i]],
+        g.spanLink[i] === 1 ? 'GoaliePartners' : 'PlayedWith',
       ))
       assert.equal(games.length, g.spanGames[i], `span ${i} game count`)
       assert.equal(games[0].gameId, g.spanFirstGame[i], `span ${i} first game`)
@@ -258,6 +274,19 @@ test('the fake store agrees with the C-mini arrays', () => {
     }
   }
   assert.equal(pairs.size, 15)
+})
+
+test('sharedGames lists one span by kind, and the same player twice is no pair', () => {
+  const store = makeMiniStore()
+  const ids = (a: number, b: number, link: 'PlayedWith' | 'GoaliePartners') =>
+    Effect.runSync(store.sharedGames(a, b, 19511952, 2, 3, link)).map((r) => r.gameId)
+  assert.deepEqual(ids(16, 17, 'GoaliePartners'), [1951020001, 1951020002, 1951020003])
+  assert.deepEqual(ids(16, 17, 'PlayedWith'), [])
+  assert.deepEqual(ids(17, 18, 'PlayedWith'), [1951020002])
+  assert.deepEqual(ids(17, 18, 'GoaliePartners'), [])
+  assert.deepEqual(ids(16, 16, 'PlayedWith'), [])
+  assert.deepEqual(ids(16, 16, 'GoaliePartners'), [])
+  assert.equal(Effect.runSync(Effect.flip(store.sharedGames(99, 99, 19511952, 2, 3, 'PlayedWith')))._tag, 'UnknownPlayer')
 })
 
 test('the fake store follows the C-mini answers and never mentions goalie 21', () => {
@@ -287,7 +316,7 @@ test('the fake store follows the C-mini answers and never mentions goalie 21', (
   const opponents = Effect.runSync(Effect.forEach([11, 12, 13, 14, 15], (id) => store.opposedGames(16, id)))
   assert.deepEqual(opponents.map((games) => games.length), [2, 3, 1, 4, 2])
   // 15 and 16 are teammates (game A, B) and opponents (G, H).
-  assert.deepEqual(Effect.runSync(store.sharedGames(15, 16, 19501951, 2, 3)).map((r) => r.gameId), [1950020001, 1950020002])
+  assert.deepEqual(Effect.runSync(store.sharedGames(15, 16, 19501951, 2, 3, 'PlayedWith')).map((r) => r.gameId), [1950020001, 1950020002])
   assert.deepEqual(Effect.runSync(store.opposedGames(15, 16)).map((r) => r.gameId), [1951030111, 1951030112])
 
   // Games G and H stand in for the 1951-52 Final.

@@ -204,9 +204,11 @@ export const makeMiniStore = (): HistoryStore => {
       rows.sort((x, y) => y.games - x.games || x.playerId - y.playerId)
       return rows.length === 0 ? Effect.fail(new UnknownRoster({ teamId, seasonId, gameType })) : Effect.succeed(rows)
     },
-    sharedGames: (a, b, seasonId, gameType, teamId) => {
+    sharedGames: (a, b, seasonId, gameType, teamId, requested) => {
       const missing = [a, b].find((id) => !known(id))
       if (missing !== undefined) return Effect.fail(new UnknownPlayer({ playerId: missing }))
+      // The same ID twice is not a pair.
+      if (a === b) return Effect.succeed([])
       const rows: SharedGameRow[] = []
       for (const game of MINI_GAMES) {
         if (game.seasonId !== seasonId || game.gameType !== gameType) continue
@@ -216,7 +218,7 @@ export const makeMiniStore = (): HistoryStore => {
           if (!onBox.includes(a) || !onBox.includes(b)) continue
           const bothCredited = s.credited.includes(a) && s.credited.includes(b)
           const link: LinkKind | null = bothCredited ? 'PlayedWith' : isGoalie(a) && isGoalie(b) ? 'GoaliePartners' : null
-          if (link !== null) rows.push({ gameId: game.gameId, gameDate: game.gameDate, link })
+          if (link === requested) rows.push({ gameId: game.gameId, gameDate: game.gameDate, link })
         }
       }
       return Effect.succeed(rows)

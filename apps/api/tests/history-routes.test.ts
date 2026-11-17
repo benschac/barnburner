@@ -181,9 +181,18 @@ test('GetLink honors the goalie-partner filter and reports unknown players', () 
 }))
 
 test('GetSharedGames returns the shared games for 11-12', () => withFake(async (client) => {
-  const expected = Effect.runSync(fake.sharedGames(11, 12, 19501951, 2, 1))
+  const expected = Effect.runSync(fake.sharedGames(11, 12, 19501951, 2, 1, 'PlayedWith'))
   assert.ok(expected.length > 0)
-  const result = await Effect.runPromise(client.GetSharedGames({ a: 11, b: 12, seasonId: 19501951, gameType: 2, teamId: 1 }))
+  const result = await Effect.runPromise(client.GetSharedGames({ a: 11, b: 12, seasonId: 19501951, gameType: 2, teamId: 1, link: 'PlayedWith' }))
   assert.equal(result.snapshotId, MINI_SNAPSHOT_ID)
   assert.deepEqual(result.games, expected)
+}))
+
+test('GetSharedGames lists the span of the requested link kind', () => withFake(async (client) => {
+  const partners = await Effect.runPromise(client.GetSharedGames({ a: 16, b: 17, seasonId: 19511952, gameType: 2, teamId: 3, link: 'GoaliePartners' }))
+  assert.deepEqual(partners.games.map((g) => g.gameId), [1951020001, 1951020002, 1951020003])
+  const together = await Effect.runPromise(client.GetSharedGames({ a: 16, b: 17, seasonId: 19511952, gameType: 2, teamId: 3, link: 'PlayedWith' }))
+  assert.deepEqual(together.games, [])
+  const same = await Effect.runPromise(client.GetSharedGames({ a: 16, b: 16, seasonId: 19511952, gameType: 2, teamId: 3, link: 'PlayedWith' }))
+  assert.deepEqual(same.games, [])
 }))

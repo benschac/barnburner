@@ -25,6 +25,14 @@ const SERVE_TABLES = `
     first_game_id INTEGER, last_game_id INTEGER, PRIMARY KEY (player_id, season_id, game_type, team_id));
   CREATE TABLE graph_arrays (name TEXT PRIMARY KEY, bytes BLOB);
 `
+const DRESSED_TABLE = `
+  CREATE TABLE dressed_goalies (game_id INTEGER NOT NULL, team_id INTEGER NOT NULL, player_id INTEGER NOT NULL,
+    PRIMARY KEY (game_id, team_id, player_id)) WITHOUT ROWID;
+`
+// Goalies 16 and 17 are on team 3's box score in games E, D, and F (1951020001-3). Goalie 21 is dressed in
+// game G but has no credited game, so the serving build leaves him out.
+const DRESSED_ROWS: ReadonlyArray<readonly [number, number, number]> = [1951020001, 1951020002, 1951020003]
+  .flatMap((gameId) => [16, 17].map((playerId) => [gameId, 3, playerId] as const))
 
 const blobs: Record<string, ArrayBufferView> = {
   player_ids: MINI_ARRAYS.playerIds, season_ids: MINI_ARRAYS.seasonIds, team_ids: MINI_ARRAYS.teamIds,
@@ -35,9 +43,13 @@ const blobs: Record<string, ArrayBufferView> = {
 }
 
 /** Writes the C-mini serving database. Rows come from the in-memory fake so both sides share one source. */
-const writeMini = (path: string) => {
+const writeMini = (path: string, withDressed = true) => {
   const db = new DatabaseSync(path)
   db.exec(SERVE_TABLES)
+  if (withDressed) {
+    db.exec(DRESSED_TABLE)
+    for (const row of DRESSED_ROWS) db.prepare('INSERT INTO dressed_goalies VALUES (?, ?, ?)').run(...row)
+  }
   db.prepare('INSERT INTO meta VALUES (?, ?)').run('schema_version', '1')
   db.prepare('INSERT INTO meta VALUES (?, ?)').run('snapshot_id', MINI_SNAPSHOT_ID)
   const teams = new Map<number, [string, string]>()
@@ -77,9 +89,9 @@ const withDirectory = async (use: (directory: string) => Promise<void>) => {
   try { await use(directory) } finally { rmSync(directory, { recursive: true, force: true }) }
 }
 
-const withMini = (use: (store: Awaited<ReturnType<typeof openMini>>) => Promise<void>) => withDirectory(async (directory) => {
+const withMini = (use: (store: Awaited<ReturnType<typeof openMini>>) => Promise<void>, withDressed = true) => withDirectory(async (directory) => {
   const path = join(directory, 'nhl-serve.sqlite')
-  writeMini(path)
+  writeMini(path, withDressed)
   await use(await openMini(path))
 })
 const openMini = (path: string) => run(openHistoryStore(path))
@@ -127,22 +139,47 @@ test('roster lists stint players, and an empty one is UnknownRoster', () => with
   assert.deepEqual(await fail(store.roster(4, 19511952, 2)), new UnknownRoster({ teamId: 4, seasonId: 19511952, gameType: 2 }))
 }))
 
-test('sharedGames returns games both appear for the team, oldest first', () => withMini(async (store) => {
+test('sharedGames lists one span by kind, oldest first, and agrees with the fake', () => withMini(async (store) => {
   const cases: ReadonlyArray<readonly [number, number, number, 2 | 3, number]> = [
-    [11, 12, 19501951, 2, 1], [12, 14, 19511952, 2, 2], [14, 15, 19511952, 3, 2], [11, 12, 19511952, 2, 1], [15, 16, 19501951, 2, 3],
+    [11, 12, 19501951, 2, 1], [12, 14, 19511952, 2, 2], [14, 15, 19511952, 3, 2], [11, 12, 19511952, 2, 1],
+    [15, 16, 19501951, 2, 3], [16, 17, 19511952, 2, 3], [17, 18, 19511952, 2, 3], [16, 21, 19511952, 3, 3],
   ]
   for (const [a, b, season, type, team] of cases) {
-    assert.deepEqual(await run(store.sharedGames(a, b, season, type, team)), await run(fake.sharedGames(a, b, season, type, team)), `${a}-${b}`)
+    for (const kind of ['PlayedWith', 'GoaliePartners'] as const) {
+      const actual = await run(store.sharedGames(a, b, season, type, team, kind)).catch((error: unknown) => error)
+      const expected = await run(fake.sharedGames(a, b, season, type, team, kind)).catch((error: unknown) => error)
+      assert.deepEqual(actual, expected, `${a}-${b} ${kind}`)
+    }
   }
-  assert.deepEqual((await run(store.sharedGames(11, 12, 19501951, 2, 1))).map((row) => row.gameId), [1950020001, 1950020002])
-  assert.deepEqual(await fail(store.sharedGames(11, 99, 19501951, 2, 1)), new UnknownPlayer({ playerId: 99 }))
+  assert.deepEqual((await run(store.sharedGames(11, 12, 19501951, 2, 1, 'PlayedWith'))).map((row) => row.gameId), [1950020001, 1950020002])
+  assert.deepEqual(await run(store.sharedGames(11, 12, 19501951, 2, 1, 'GoaliePartners')), [])
+  assert.deepEqual(await fail(store.sharedGames(11, 99, 19501951, 2, 1, 'PlayedWith')), new UnknownPlayer({ playerId: 99 }))
 }))
 
-test('sharedGames has no goalie-partner games until the file carries dressed goalies', () => withMini(async (store) => {
-  // The fake returns the three 16-17 partner games; the serving file cannot yet.
-  assert.equal((await run(fake.sharedGames(16, 17, 19511952, 2, 3))).length, 3)
-  assert.deepEqual(await run(store.sharedGames(16, 17, 19511952, 2, 3)), [])
+test('sharedGames reads dressed goalies for partners, and 21 is in no pair', () => withMini(async (store) => {
+  const partners = await run(store.sharedGames(16, 17, 19511952, 2, 3, 'GoaliePartners'))
+  assert.deepEqual(partners.map((row) => row.gameId), [1951020001, 1951020002, 1951020003])
+  assert.ok(partners.every((row) => row.link === 'GoaliePartners'))
+  assert.deepEqual(await run(store.sharedGames(16, 17, 19511952, 2, 3, 'PlayedWith')), [])
+  // Game D has 17 credited and 16 dressed: partners, not teammates; 17 and 18 are credited together there.
+  assert.deepEqual(await run(store.sharedGames(17, 18, 19511952, 2, 3, 'GoaliePartners')), [])
+  assert.deepEqual(await run(store.sharedGames(16, 17, 19511952, 2, 4, 'GoaliePartners')), [])
+  assert.deepEqual(await fail(store.sharedGames(16, 21, 19511952, 3, 3, 'GoaliePartners')), new UnknownPlayer({ playerId: 21 }))
 }))
+
+test('sharedGames with the same known ID twice is an empty list', () => withMini(async (store) => {
+  for (const kind of ['PlayedWith', 'GoaliePartners'] as const) {
+    assert.deepEqual(await run(store.sharedGames(11, 11, 19501951, 2, 1, kind)), [], kind)
+    assert.deepEqual(await run(store.sharedGames(16, 16, 19511952, 2, 3, kind)), [], kind)
+    assert.deepEqual(await run(fake.sharedGames(16, 16, 19511952, 2, 3, kind)), [], kind)
+  }
+  assert.deepEqual(await fail(store.sharedGames(99, 99, 19501951, 2, 1, 'PlayedWith')), new UnknownPlayer({ playerId: 99 }))
+}))
+
+test('a serving file without dressed_goalies has no partner games but still lists shared ones', () => withMini(async (store) => {
+  assert.deepEqual(await run(store.sharedGames(16, 17, 19511952, 2, 3, 'GoaliePartners')), [])
+  assert.deepEqual((await run(store.sharedGames(15, 16, 19501951, 2, 3, 'PlayedWith'))).map((row) => row.gameId), [1950020001, 1950020002])
+}, false))
 
 test('opposedGames lists games on different teams with each side', () => withMini(async (store) => {
   for (const [a, b] of [[12, 16], [16, 12], [15, 16], [11, 19], [11, 12]] as const) {

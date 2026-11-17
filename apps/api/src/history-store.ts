@@ -99,16 +99,29 @@ export const openHistoryStore = (path: string): Effect.Effect<HistoryStore, Hist
      WHERE s.team_id = ? AND s.season_id = ? AND s.game_type = ? ORDER BY s.games DESC, p.player_id`,
   )
   const knownStatement = yield* prepare('SELECT 1 AS found FROM players WHERE player_id = ?')
-  // TODO: the serving file has no dressed-goalie table yet, so a game where a goalie partner sat on
-  // the box score with no credit appears nowhere. Until one exists and this query reads it,
-  // `sharedGames` returns only games where both players have an `appearances` row, as `PlayedWith`.
-  const sharedStatement = yield* prepare(
+  const tableStatement = yield* prepare("SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = ?")
+  const playedWithStatement = yield* prepare(
     `SELECT g.game_id AS gameId, g.game_date AS gameDate
      FROM games g
      JOIN appearances x ON x.game_id = g.game_id AND x.player_id = ? AND x.team_id = ?
      JOIN appearances y ON y.game_id = g.game_id AND y.player_id = ? AND y.team_id = ?
      WHERE g.season_id = ? AND g.game_type = ? ORDER BY g.game_date, g.game_id`,
   )
+  // Goalie partners (D2): both on the team's dressed-goalie rows, not both credited. The serving build
+  // writes `dressed_goalies`; a file without it has no partner games, so the statement is optional.
+  const hasDressed = (yield* rowsOf(tableStatement, 'dressed_goalies')).length > 0
+  const partnersStatement = hasDressed
+    ? yield* prepare(
+      `SELECT g.game_id AS gameId, g.game_date AS gameDate
+       FROM games g
+       JOIN dressed_goalies x ON x.game_id = g.game_id AND x.player_id = ? AND x.team_id = ?
+       JOIN dressed_goalies y ON y.game_id = g.game_id AND y.player_id = ? AND y.team_id = ?
+       WHERE g.season_id = ? AND g.game_type = ?
+         AND NOT (EXISTS (SELECT 1 FROM appearances c WHERE c.game_id = g.game_id AND c.player_id = x.player_id AND c.team_id = x.team_id)
+              AND EXISTS (SELECT 1 FROM appearances c WHERE c.game_id = g.game_id AND c.player_id = y.player_id AND c.team_id = y.team_id))
+       ORDER BY g.game_date, g.game_id`,
+    )
+    : null
   const opposedStatement = yield* prepare(
     `SELECT g.game_id AS gameId, g.game_date AS gameDate, x.team_id AS aTeamId, y.team_id AS bTeamId
      FROM games g
@@ -197,11 +210,15 @@ export const openHistoryStore = (path: string): Effect.Effect<HistoryStore, Hist
     return rows
   })
 
-  const sharedGames: HistoryStore['sharedGames'] = (a, b, seasonId, gameType, teamId) => Effect.gen(function* () {
+  const sharedGames: HistoryStore['sharedGames'] = (a, b, seasonId, gameType, teamId, requested) => Effect.gen(function* () {
     yield* requireKnown(a)
     yield* requireKnown(b)
-    const rows = yield* decodeRows(SharedRowSchema, yield* rowsOf(sharedStatement, a, teamId, b, teamId, seasonId, gameType))
-    return rows.map((row): SharedGameRow => ({ ...row, link: 'PlayedWith' }))
+    // The same ID twice is not a pair; the joins would otherwise return the player's own games.
+    if (a === b) return []
+    const statement = requested === 'PlayedWith' ? playedWithStatement : partnersStatement
+    if (statement === null) return []
+    const rows = yield* decodeRows(SharedRowSchema, yield* rowsOf(statement, a, teamId, b, teamId, seasonId, gameType))
+    return rows.map((row): SharedGameRow => ({ ...row, link: requested }))
   })
 
   const opposedGames: HistoryStore['opposedGames'] = (a, b) => Effect.gen(function* () {

@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { Result } from 'effect'
 import { HistoryUnavailable, UnknownPlayer } from '../src/contracts.ts'
 import {
-  evidenceSpan, hopKind, link, linkIdBetween, linkPassingGames, linkPasses, makeGraph, opponents, spanPasses,
+  evidenceSpan, hopKind, link, linkIdBetween, linkKind, linkPassingGames, linkPasses, makeGraph, opponents, spanPasses,
 } from '../src/graph.ts'
 import { DEFAULT_FILTER } from '../src/shapes.ts'
 import type { Filter, LinkResult } from '../src/shapes.ts'
@@ -255,4 +255,41 @@ test('without opponent arrays, link keeps opposedGames at 0 and opponents is His
   const listed = opponents(bare, 16)
   assert.ok(Result.isFailure(listed))
   assert.ok(listed.failure instanceof HistoryUnavailable)
+})
+
+test('linkKind takes player IDs and answers null for non-links, unknown IDs, and the same player', () => {
+  assert.equal(linkKind(MINI_GRAPH, 16, 17, DEFAULT_FILTER), 'GoaliePartners')
+  assert.equal(linkKind(MINI_GRAPH, 17, 16, filterWith({ goaliePartners: false })), null)
+  assert.equal(linkKind(MINI_GRAPH, 11, 12, DEFAULT_FILTER), 'PlayedWith')
+  assert.equal(linkKind(MINI_GRAPH, 11, 20, DEFAULT_FILTER), null)
+  assert.equal(linkKind(MINI_GRAPH, 11, 11, DEFAULT_FILTER), null)
+  assert.equal(linkKind(MINI_GRAPH, 11, 99, DEFAULT_FILTER), null)
+  assert.equal(linkKind(MINI_GRAPH, 11, 1.5, DEFAULT_FILTER), null)
+})
+
+test('a non-integer ID is an unknown player, not a thrown constructor error', () => {
+  for (const bad of [1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    const first = link(MINI_GRAPH, bad, 11, DEFAULT_FILTER)
+    assert.ok(Result.isFailure(first))
+    assert.equal(first.failure._tag, 'UnknownPlayer')
+    const second = link(MINI_GRAPH, 11, bad, DEFAULT_FILTER)
+    assert.ok(Result.isFailure(second))
+    assert.equal(second.failure._tag, 'UnknownPlayer')
+    const found = opponents(MINI_GRAPH, bad)
+    assert.ok(Result.isFailure(found))
+    assert.equal(found.failure._tag, 'UnknownPlayer')
+  }
+})
+
+test('every no-link result is a fresh object, so a caller cannot corrupt later answers', () => {
+  const first = link(MINI_GRAPH, 11, 20, DEFAULT_FILTER)
+  const second = link(MINI_GRAPH, 11, 20, DEFAULT_FILTER)
+  assert.ok(Result.isSuccess(first) && Result.isSuccess(second))
+  assert.notEqual(first.success, second.success)
+  assert.notEqual(first.success.spans, second.success.spans)
+  ;(first.success.spans as Array<unknown>).push('corrupt')
+  assert.deepEqual(second.success.spans, [])
+  const third = link(MINI_GRAPH, 11, 20, DEFAULT_FILTER)
+  assert.ok(Result.isSuccess(third))
+  assert.deepEqual(third.success.spans, [])
 })

@@ -247,7 +247,21 @@ export const opponents = (
   return Result.succeed(rows)
 }
 
+// A fresh object per call: `LinkResult` is not deeply readonly at runtime, so a shared one could be corrupted by a caller.
 const noTeammateLink = (opposedGames: number): LinkResult => ({ spans: [], totalGames: 0, evidenceGameId: null, opposedGames })
+
+/**
+ * The kind of tie between two players by ID under the filter, or null when no span passes (not teammates,
+ * the same player, an ID the graph does not hold, or a non-integer). The ID-based form of `hopKind` for
+ * callers outside the package, which must not handle player indexes.
+ */
+export const linkKind = (graph: TeammateGraph, a: number, b: number, filter: Filter): LinkKind | null => {
+  const ai = graph.indexOf.get(a)
+  const bi = graph.indexOf.get(b)
+  if (ai === undefined || bi === undefined) return null
+  const linkId = linkIdBetween(graph, ai, bi)
+  return linkId < 0 ? null : hopKind(graph, linkId, filter)
+}
 
 /**
  * The link between two players by ID: their teammate spans and the games they played against each other.

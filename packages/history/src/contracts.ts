@@ -8,8 +8,15 @@ export class HistoryUnavailable extends Schema.TaggedError<HistoryUnavailable, {
   message: Schema.String,
 }) {}
 
+/**
+ * No such player. `playerId` is any number, not only an integer: the pure search functions take raw
+ * numbers, and a non-integer ID (1.5, NaN) is simply a player the graph does not hold. An `Int` here
+ * would make the error constructor throw for exactly those inputs. Over the RPC the payload schemas
+ * already require integers.
+ */
 export class UnknownPlayer extends Schema.TaggedError<UnknownPlayer, { readonly brand: unique symbol }>()('UnknownPlayer', {
-  playerId: Schema.Int,
+  // @effect-diagnostics-next-line schemaNumber:off
+  playerId: Schema.Number,
 }) {}
 
 /** The team had no credited player in that season and competition. */
@@ -188,13 +195,23 @@ export const GetRosterInput = Schema.Struct({
   gameType: GameTypeSchema,
   focusPlayerId: Schema.optionalKey(Schema.Int),
 })
+/**
+ * A roster answer. `focusPlayerId` is echoed when the request carried one; then every row must carry a
+ * `link` (`NoLink` when the player has no tie), and without it no row may. One struct with a cross-field
+ * check keeps the wire shape flat; a result that breaks the rule fails to decode.
+ */
 export const GetRosterResult = Schema.Struct({
   snapshotId: Schema.String,
   teamId: Schema.Int,
   seasonId: Schema.Int,
   gameType: GameTypeSchema,
+  focusPlayerId: Schema.optionalKey(Schema.Int),
   players: Schema.Array(RosterEntrySchema),
-})
+}).check(Schema.makeFilter(
+  (result) => result.players.every((row) => (row.link !== undefined) === (result.focusPlayerId !== undefined))
+    ? undefined
+    : 'Roster rows carry a link exactly when a focus player is named.',
+))
 
 export const GetLinkInput = Schema.Struct({ a: Schema.Int, b: Schema.Int, filter: FilterSchema })
 export const GetLinkResult = Schema.Struct({ snapshotId: Schema.String, ...LinkResultSchema.fields })
@@ -205,6 +222,8 @@ export const GetSharedGamesInput = Schema.Struct({
   seasonId: Schema.Int,
   gameType: GameTypeSchema,
   teamId: Schema.Int,
+  /** Which span of the pair to list: a shared-game span and a partner span can share one season, type, and team. */
+  link: LinkKindSchema,
 })
 export const GetSharedGamesResult = Schema.Struct({
   snapshotId: Schema.String,
