@@ -3,7 +3,13 @@
     "plugins": [
       {
         "name": "@effect/language-service",
-        "ignoreEffectWarningsInTscExitCode": true
+        "ignoreEffectWarningsInTscExitCode": true,
+        "diagnosticSeverity": {
+          "extendsNativeError": "error",
+          "globalErrorInEffectFailure": "error",
+          "globalErrorInEffectCatch": "error",
+          "tryCatchInEffectGen": "error"
+        }
       }
     ],
     "target": "es2023",
