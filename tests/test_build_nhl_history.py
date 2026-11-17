@@ -64,13 +64,55 @@ class HistoryTest(unittest.TestCase):
             missing = data["skaters"].pop()
             save()
             with self.assertRaisesRegex(ValueError, "season reconciliation failed"):
-                build(root, db)
+                build(root, db, refetch=lambda *_: None)
             data["skaters"].append(missing)
             data["skaters"][0]["teamAbbrev"] = "BBB"
             save()
             with self.assertRaisesRegex(ValueError, "side mismatch"):
                 build(root, db)
             self.assertEqual(db.execute("SELECT COUNT(*) FROM appearances").fetchone()[0], 5)
+
+    def test_retry_refetches_recent_seasons_once(self):
+        seasons = [19171918, 19181919, 19191920]
+
+        def setup(root, wrong_season):
+            (root / "seasons").mkdir()
+            (root / "seasons.json").write_text(json.dumps({"data": [{"id": s} for s in seasons], "total": 3}))
+            for s in seasons:
+                for k in (2, 3):
+                    data = dict(seasonId=s, gameType=k, fetchedAt="t", sources=["u"], teams=[], skaters=[], goalies=[])
+                    (root / "seasons" / f"{s}-{k}.json.gz").write_bytes(gzip.compress(json.dumps(data).encode()))
+            write_totals(root, wrong_season)
+
+        def write_totals(root, wrong_season):
+            reports = [[s, k, r, [[9, 1]] if s == wrong_season and (k, r) == (2, "skater") else []]
+                       for s in seasons for k in (2, 3) for r in ("skater", "goalie")]
+            totals = dict(fetchedAt="t", seasons=seasons, reports=reports)
+            (root / "season-totals.json.gz").write_bytes(gzip.compress(json.dumps(totals).encode()))
+
+        for wrong, expected_calls in [(19191920, [[19181919, 19191920]]), (19171918, [])]:
+            with tempfile.TemporaryDirectory() as tmp, sqlite3.connect(":memory:") as db:
+                root, calls = Path(tmp), []
+                setup(root, wrong)
+
+                def refetch(path, recent):
+                    calls.append(list(recent))
+                    write_totals(path, None)
+
+                if expected_calls:
+                    build(root, db, refetch=refetch)
+                else:
+                    with self.assertRaisesRegex(ValueError, "season reconciliation failed"):
+                        build(root, db, refetch=refetch)
+                self.assertEqual(calls, expected_calls)
+
+    def test_refetch_recent_archives_and_totals(self):
+        module = runpy.run_path(str(Path(__file__).resolve().parents[1] / "scripts/build-nhl-history.py"))
+        archived, totalled = [], []
+        module["refetch_recent"](Path("/x"), [2, 3], archive=lambda s, k: archived.append((s, k)) or "ok",
+                                 totals=lambda path, seasons: totalled.append((path.name, seasons)))
+        self.assertEqual(archived, [(2, 2), (2, 3), (3, 2), (3, 3)])
+        self.assertEqual(totalled, [("season-totals.json.gz", [2, 3])])
 
     def test_goalie_position_and_old_version(self):
         with tempfile.TemporaryDirectory() as tmp:
