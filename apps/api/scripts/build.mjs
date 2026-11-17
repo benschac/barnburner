@@ -1,5 +1,10 @@
+import { spawnSync } from 'node:child_process'
 import { readdirSync, rmSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+
+// The history serving file ships inside the history function, so a failed fetch fails the build.
+const fetchHistory = spawnSync(process.execPath, [fileURLToPath(new URL('./fetch-history.mjs', import.meta.url))], { stdio: 'inherit' })
+if (fetchHistory.status !== 0) process.exit(1)
 
 const archiveDirectory = fileURLToPath(new URL('../../../data/boxscores/20262027/', import.meta.url))
 const outdir = fileURLToPath(new URL('../dist', import.meta.url))
