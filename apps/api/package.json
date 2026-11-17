@@ -7,18 +7,26 @@
     "./web-handler": {
       "types": "./src/web-handler.ts",
       "default": "./dist/web-handler.js"
+    },
+    "./history-handler": {
+      "types": "./src/history-handler.ts",
+      "default": "./dist/history-handler.js"
     }
   },
   "scripts": {
     "dev": "node --watch src/main.ts",
     "build": "bun scripts/build.mjs",
     "start": "node src/main.ts",
+    "history:accept": "node scripts/history-accept.ts",
+    "history:fetch": "node scripts/fetch-history.mjs",
+    "history:query": "node scripts/history-query.ts",
     "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.json",
     "lint": "effect-tsgo --tsrs-lint oxlint src tests",
     "test": "bun run build && node --test tests/*.test.ts"
   },
   "dependencies": {
     "@effect/platform-node": "4.1.2",
+    "@nhl-reddit-stats/history": "workspace:*",
     "@nhl-reddit-stats/season": "0.0.0",
     "effect": "4.1.2"
   },

@@ -29,3 +29,14 @@ if (!result.success) {
   process.exit(1)
 }
 console.log(`Bundled web handler with ${ids.length} lazily loaded box scores`)
+
+// The history function is its own bundle: it reads one serving file and needs no snapshot JSON or archive.
+const history = await Bun.build({
+  entrypoints: [fileURLToPath(new URL('../src/history-handler.ts', import.meta.url))],
+  outdir, target: 'node', format: 'esm', splitting: false,
+})
+if (!history.success) {
+  for (const log of history.logs) console.error(log)
+  process.exit(1)
+}
+console.log('Bundled history handler')
