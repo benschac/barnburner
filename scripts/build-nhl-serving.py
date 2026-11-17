@@ -27,15 +27,23 @@ STEPS = [
 
 
 def build(base_path, out_path):
-    base = sqlite3.connect(f"file:{Path(base_path).resolve()}?mode=ro", uri=True)
     out_path = Path(out_path)
+    same = out_path.resolve() == Path(base_path).resolve()
+    if same or (out_path.exists() and os.path.samefile(base_path, out_path)):
+        raise ValueError(f"--out {out_path} is the same file as --base")
+    base = sqlite3.connect(Path(base_path).resolve().as_uri() + "?mode=ro", uri=True)
+    base.isolation_level = None
     fd, temp = tempfile.mkstemp(suffix=".sqlite", dir=out_path.parent)
     os.close(fd)
     try:
         out = sqlite3.connect(temp)
+        # One read transaction for the whole build: the snapshot ID names the data served.
+        base.execute("BEGIN")
+        base.execute("SELECT COUNT(*) FROM sqlite_master").fetchone()  # take the snapshot now
         for name in STEPS:
             importlib.import_module(name).run(base, out)
             out.commit()
+        base.execute("COMMIT")
         out.execute("VACUUM")
         out.close()
         base.close()

@@ -49,9 +49,11 @@ def run(base, out):
 
     # Latest abbreviation and name per team ID.
     out.executemany("INSERT INTO teams VALUES(?,?,?)", base.execute("""
-        SELECT team_id, team, team_name FROM game_sides s
-        WHERE game_id = (SELECT MAX(game_id) FROM game_sides WHERE team_id = s.team_id)
-        ORDER BY team_id"""))
+        SELECT s.team_id, MIN(s.team), MIN(s.team_name)
+        FROM game_sides s
+        JOIN (SELECT team_id, MAX(game_id) AS game_id FROM game_sides GROUP BY team_id) m
+          ON m.team_id = s.team_id AND m.game_id = s.game_id
+        GROUP BY s.team_id ORDER BY s.team_id"""))
 
     out.executemany("INSERT INTO games VALUES(?,?,?,?,?,0)", base.execute("""
         SELECT game_id, MIN(season_id), MIN(game_type), MIN(game_date),
@@ -74,13 +76,27 @@ def run(base, out):
             "SELECT player_id, position, COUNT(*) FROM appearances GROUP BY 1, 2"):
         if position in POSITIONS:
             counts.setdefault(player, {})[position] = n
+    # Points count once per (player, game): a player credited as both skater and
+    # goalie in one game keeps the larger of the two role rows, then rows are summed.
+    # The name comes from the player's latest game (alphabetical among that game's rows).
     rows = []
     for player, name, first, last, games, points in base.execute("""
-            SELECT player_id,
-                   (SELECT name FROM appearances a WHERE a.player_id = p.player_id
-                    ORDER BY game_id DESC LIMIT 1),
-                   MIN(season_id), MAX(season_id), COUNT(DISTINCT game_id), SUM(COALESCE(points, 0))
-            FROM appearances p GROUP BY player_id ORDER BY player_id"""):
+            WITH per_game AS (
+                SELECT player_id, game_id, MIN(season_id) AS season_id,
+                       MAX(COALESCE(points, 0)) AS points
+                FROM appearances GROUP BY player_id, game_id),
+            totals AS (
+                SELECT player_id, MIN(season_id) AS first_season, MAX(season_id) AS last_season,
+                       COUNT(*) AS games, SUM(points) AS points, MAX(game_id) AS last_game
+                FROM per_game GROUP BY player_id),
+            latest AS (
+                SELECT a.player_id, MIN(a.name) AS name
+                FROM appearances a JOIN totals t
+                  ON t.player_id = a.player_id AND t.last_game = a.game_id
+                GROUP BY a.player_id)
+            SELECT t.player_id, l.name, t.first_season, t.last_season, t.games, t.points
+            FROM totals t JOIN latest l ON l.player_id = t.player_id
+            ORDER BY t.player_id"""):
         by = counts.get(player, {})
         position = min(by, key=lambda p: (-by[p], p)) if by else ""
         rows.append((player, name, fold(name), position, first, last, games, points, 0))

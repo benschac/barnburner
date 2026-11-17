@@ -99,6 +99,55 @@ class ServingTest(unittest.TestCase):
             self.assertEqual(players[14][3:7], ("D", 19511952, 19511952, 5))
             self.assertEqual([players[i][8] for i in range(11, 21)], [2, 2, 2, 3, 2, 1, 1, 1, 1, 1])
 
+    def test_points_count_once_per_player_game(self):
+        # Player 13 has 3 points in each of two games; a goalie row with 5 points in the
+        # first game replaces (max, not sum) that game's 3: 5 + 3 = 8, not 11.
+        with tempfile.TemporaryDirectory() as tmp:
+            base, out = Path(tmp) / "base.sqlite", Path(tmp) / "out.sqlite"
+            make_base(base)
+            db = sqlite3.connect(base)
+            db.execute("INSERT INTO appearances VALUES(19501951,2,1950020003,1,'T1',13,'Player 13','goalie','G',5)")
+            db.commit()
+            db.close()
+            build(base, out)
+            row = sqlite3.connect(out).execute("SELECT games, points FROM players WHERE player_id=13").fetchone()
+            self.assertEqual(row, (2, 8))
+
+    def test_out_same_file_as_base_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp) / "base.sqlite"
+            make_base(base)
+            before = base.read_bytes()
+            with self.assertRaisesRegex(ValueError, "same file"):
+                build(base, base)
+            with self.assertRaisesRegex(ValueError, "same file"):
+                build(base, Path(tmp) / "." / "base.sqlite")
+            self.assertEqual(base.read_bytes(), before)
+
+    def test_base_is_one_read_only_transaction(self):
+        probes = []
+
+        class Probe:
+            @staticmethod
+            def run(base, out):
+                probes.append(base.in_transaction)
+                try:
+                    base.execute("CREATE TABLE x (y)")
+                except sqlite3.OperationalError:
+                    probes.append("read-only")
+
+        sys.modules["probe_step"] = Probe
+        steps = runpy.run_path(str(ROOT / "scripts/build-nhl-serving.py"))
+        steps["STEPS"][:] = ["probe_step", "probe_step"]
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                base, out = Path(tmp) / "base.sqlite", Path(tmp) / "out.sqlite"
+                make_base(base)
+                steps["build"](base, out)
+        finally:
+            del sys.modules["probe_step"]
+        self.assertEqual(probes, [True, "read-only", True, "read-only"])
+
 
 if __name__ == "__main__":
     unittest.main()

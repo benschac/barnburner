@@ -46,13 +46,31 @@ class OpponentsTest(unittest.TestCase):
             self.assertEqual(struct.unpack("<15H", blobs["opp_games"]), tuple(n for _, _, n in PAIRS))
             self.assertEqual(db.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='opp_game_team'").fetchone(), (0,))
 
-    def test_count_over_limit_fails(self):
+    def test_player_count_over_limit_fails(self):
         old = nhl_serving_opponents.LIMIT
         nhl_serving_opponents.LIMIT = 3
         try:
             with tempfile.TemporaryDirectory() as tmp:
-                with self.assertRaises(ValueError):
+                with self.assertRaisesRegex(ValueError, "players exceed"):
                     self.build(tmp)
+        finally:
+            nhl_serving_opponents.LIMIT = old
+
+    def test_pair_games_over_limit_fails(self):
+        # Two players face each other 12 times; the player count (2) stays under the limit.
+        out = sqlite3.connect(":memory:")
+        out.executescript("""
+            CREATE TABLE players (player_id INTEGER PRIMARY KEY);
+            CREATE TABLE appearances (player_id INTEGER, game_id INTEGER, team_id INTEGER);
+            INSERT INTO players VALUES (1), (2);""")
+        for game in range(12):
+            out.execute("INSERT INTO appearances VALUES (1, ?, 10)", (game,))
+            out.execute("INSERT INTO appearances VALUES (2, ?, 20)", (game,))
+        old = nhl_serving_opponents.LIMIT
+        nhl_serving_opponents.LIMIT = 10
+        try:
+            with self.assertRaisesRegex(ValueError, "opponent pair 1v2 has 12 games"):
+                nhl_serving_opponents.run(None, out)
         finally:
             nhl_serving_opponents.LIMIT = old
 
