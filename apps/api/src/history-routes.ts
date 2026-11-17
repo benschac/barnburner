@@ -1,8 +1,10 @@
 import { ByteSize, Context, Effect, Layer, Result } from 'effect'
 import { HttpIncomingMessage, HttpRouter } from 'effect/http'
 import { RpcSerialization, RpcServer } from 'effect/rpc'
-import { DEFAULT_FILTER, HistoryUnavailable, hopKind, link, linkIdBetween, makeGraph } from '@nhl-reddit-stats/history'
-import type { HistoryStore, PlayerRow, TeammateGraph } from '@nhl-reddit-stats/history'
+import {
+  DEFAULT_FILTER, HistoryUnavailable, UnsupportedFilter, farthest, findPaths, hopKind, link, linkIdBetween, makeGraph,
+} from '@nhl-reddit-stats/history'
+import type { HistoryStore, Hop, TeammateHop, PlayerRow, TeammateGraph } from '@nhl-reddit-stats/history'
 import { HistoryRpcs } from '@nhl-reddit-stats/history/rpc'
 import { openHistoryStore } from './history-store.ts'
 
@@ -34,6 +36,13 @@ export class History extends Context.Service<History, HistoryValue>()('glanceboa
 const summary = ({ playerId, name, position, firstSeason, lastSeason, games }: PlayerRow) => (
   { playerId, name, position, firstSeason, lastSeason, games }
 )
+
+/** A `with` path holds teammate hops only; A2d widens this when it enables the opponent relations. */
+const teammateOnly = (hop: Hop): TeammateHop => {
+  // defect: findPaths yields PlayedAgainst hops only for the against and either relations, which this handler rejects.
+  if (hop._tag === 'PlayedAgainst') throw new Error('A teammate path held a PlayedAgainst hop.')
+  return hop
+}
 
 // Placeholder: later tasks replace each of these with a real handler.
 const notImplemented = (rpc: string) => () => Effect.fail(new HistoryUnavailable({ message: `${rpc} is not implemented yet.` }))
@@ -88,8 +97,23 @@ const handlers = HistoryRpcs.toLayer(Effect.gen(function* () {
     }),
     GetOpponents: notImplemented('GetOpponents'),
     GetOpposedGames: notImplemented('GetOpposedGames'),
-    FindPath: notImplemented('FindPath'),
-    GetFarthest: notImplemented('GetFarthest'),
+    // Teammate paths only; A2d enables `against` and `either` and fills opponent-hop games.
+    FindPath: ({ from, to, filter, relation, limit }) => Effect.gen(function* () {
+      const opened = yield* store
+      const graph = yield* graphOf
+      if (relation !== 'with') return yield* new UnsupportedFilter({ relation })
+      const result = findPaths(graph, from, to, filter, relation, limit)
+      if (Result.isFailure(result)) return yield* result.failure
+      const paths = result.success.paths.map((chain) => chain.map(teammateOnly))
+      return { snapshotId: opened.snapshotId, ...result.success, paths }
+    }),
+    GetFarthest: ({ playerId, filter }) => Effect.gen(function* () {
+      const opened = yield* store
+      const graph = yield* graphOf
+      const result = farthest(graph, playerId, filter)
+      if (Result.isFailure(result)) return yield* result.failure
+      return { snapshotId: opened.snapshotId, ...result.success }
+    }),
     GetFinalsCoverage: notImplemented('GetFinalsCoverage'),
   }
 }))
