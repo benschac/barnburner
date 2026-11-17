@@ -16,7 +16,12 @@ import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-STEPS = ["nhl_serving_tables", "nhl_serving_finals"]
+STEPS = [
+    "nhl_serving_tables",
+    "nhl_serving_finals",
+    "nhl_serving_graph",
+    "nhl_serving_graph_pack",
+]
 
 
 def build(base_path, out_path):

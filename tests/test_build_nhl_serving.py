@@ -82,13 +82,13 @@ class ServingTest(unittest.TestCase):
             self.assertEqual(q("SELECT 1 FROM players WHERE player_id=21"), [])
             players = {r[0]: r for r in q("SELECT * FROM players")}
             self.assertEqual(sorted(players), list(range(11, 21)))
-            self.assertEqual(players[11], (11, "Jean Béliveau", "jean beliveau", "C", 19501951, 19501951, 3, 3, 0))
+            self.assertEqual(players[11], (11, "Jean Béliveau", "jean beliveau", "C", 19501951, 19501951, 3, 3, 2))
             self.assertEqual(players[12][7], 0)
             self.assertEqual(players[16][3], "G")
             self.assertEqual(players[16][6:8], (6, 36))
             # Player 14: D in odd game ids (3 of 5 games), C otherwise.
             self.assertEqual(players[14][3:7], ("D", 19511952, 19511952, 5))
-            self.assertTrue(all(p[8] == 0 for p in players.values()))
+            self.assertEqual([players[i][8] for i in range(11, 21)], [2, 2, 2, 3, 2, 1, 1, 1, 1, 1])
 
 
 if __name__ == "__main__":
