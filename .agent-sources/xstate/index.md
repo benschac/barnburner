@@ -6,6 +6,6 @@ Line ranges refer to [docs.txt](docs.txt). Read [the source guide](../README.md)
 
 | Topic | Start line | End line |
 | --- | ---: | ---: |
-| docs | 1 | 276 |
-| Complete page index | 277 | 338 |
-| Optional | 339 | 341 |
+| docs | 1 | 278 |
+| Complete page index | 279 | 342 |
+| Optional | 343 | 345 |

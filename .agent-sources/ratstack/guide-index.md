@@ -7,19 +7,20 @@ Line ranges refer to [guide.txt](guide.txt). Read [the source guide](../README.m
 | Topic | Start line | End line |
 | --- | ---: | ---: |
 | ratstack.sh | 1 | 8 |
-| Read this repo | 9 | 73 |
-| Connect with MCP | 74 | 92 |
-| Run code: one program instead of several calls | 93 | 115 |
-| Choose the next action | 116 | 131 |
-| Suggest a CAFE entry through your agent | 132 | 141 |
-| Fields | 142 | 147 |
-| File the approved issue | 148 | 161 |
-| Source files | 162 | 178 |
-| Lore | 179 | 180 |
-| Idea | 181 | 234 |
-| Concept | 235 | 298 |
-| Source | 299 | 322 |
-| Person | 323 | 335 |
-| Systems | 336 | 355 |
-| Skills | 356 | 381 |
-| Lore on this page | 382 | 396 |
+| Smallest useful floor | 9 | 24 |
+| Read this repo | 25 | 149 |
+| Connect with MCP | 150 | 168 |
+| Run code: one program instead of several calls | 169 | 191 |
+| Choose the next action | 192 | 207 |
+| Suggest a CAFE entry through your agent | 208 | 217 |
+| Fields | 218 | 223 |
+| File the approved issue | 224 | 237 |
+| Source files | 238 | 255 |
+| Lore | 256 | 257 |
+| Idea | 258 | 312 |
+| Concept | 313 | 377 |
+| Source | 378 | 401 |
+| Person | 402 | 414 |
+| Systems | 415 | 436 |
+| Skills | 437 | 462 |
+| Lore on this page | 463 | 477 |

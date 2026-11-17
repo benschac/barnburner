@@ -7,1714 +7,1790 @@ Line ranges refer to [docs.txt](docs.txt). Read [the source guide](../README.md)
 | Topic | Start line | End line |
 | --- | ---: | ---: |
 | ratstack.sh | 1 | 11 |
-| Read this repo | 12 | 76 |
-| Connect with MCP | 77 | 95 |
-| Run code: one program instead of several calls | 96 | 118 |
-| Choose the next action | 119 | 134 |
-| Suggest a CAFE entry through your agent | 135 | 144 |
-| Fields | 145 | 150 |
-| File the approved issue | 151 | 164 |
-| Source files | 165 | 181 |
-| Lore | 182 | 183 |
-| Idea | 184 | 237 |
-| Concept | 238 | 301 |
-| Source | 302 | 325 |
-| Person | 326 | 338 |
-| Systems | 339 | 358 |
-| Skills | 359 | 384 |
-| Lore on this page | 385 | 402 |
-| /prompts/hill-climb | 403 | 411 |
-| The standard | 412 | 420 |
-| Each cycle | 421 | 440 |
-| Never | 441 | 446 |
-| Before I give you the green light | 447 | 459 |
-| /AGENTS.md | 460 | 464 |
-| Agent instructions | 465 | 470 |
-| Stack contract | 471 | 491 |
-| Packages | 492 | 546 |
-| Nouns | 547 | 573 |
-| Commands | 574 | 596 |
-| Deploy | 597 | 600 |
-| Release the ratstack package | 601 | 608 |
-| Fence (cheating is uncomfortable) | 609 | 619 |
-| Source-first Effect / XState work | 620 | 641 |
-| Source control | 642 | 647 |
-| Project law | 648 | 670 |
-| Architecture | 671 | 687 |
-| Wiki writing | 688 | 691 |
-| Web feature blueprint | 692 | 697 |
-| Worker autonomy ladder | 698 | 711 |
-| Boundaries and sign-off | 712 | 718 |
-| Lore on this page | 719 | 733 |
-| Linked from | 734 | 768 |
-| /VISION.md | 769 | 773 |
-| Vision | 774 | 803 |
-| Why it exists | 804 | 817 |
-| Pieces, trust, floor, and range | 818 | 831 |
-| Layers are composable SaaS | 832 | 842 |
-| The house rule: a clean playground | 843 | 854 |
-| Outcomes | 855 | 864 |
-| Current priorities | 865 | 876 |
-| Questions this repo answers in code | 877 | 886 |
-| Open questions | 887 | 890 |
-| Merge by default | 891 | 897 |
-| Needs sign-off | 898 | 905 |
-| Will not do for now | 906 | 914 |
-| Decision boundaries | 915 | 920 |
-| Amendment policy | 921 | 924 |
-| Lore on this page | 925 | 939 |
-| Linked from | 940 | 956 |
-| /README.md | 957 | 961 |
-| rat-stack 🐀 | 962 | 973 |
-| Create a repository | 974 | 991 |
-| Workspace layout | 992 | 1030 |
-| Try the example CLI | 1031 | 1059 |
-| What is in the stack? | 1060 | 1080 |
-| Commands | 1081 | 1095 |
-| Agentic surface | 1096 | 1099 |
-| Make it yours | 1100 | 1151 |
-| What it promises and how to check | 1152 | 1159 |
-| Keep or cut | 1160 | 1266 |
-| License | 1267 | 1270 |
-| Lore on this page | 1271 | 1285 |
-| Linked from | 1286 | 1300 |
-| /vendor/README.md | 1301 | 1305 |
-| Vendored packages | 1306 | 1316 |
-| Rules for the next one | 1317 | 1322 |
-| Lore on this page | 1323 | 1326 |
-| Linked from | 1327 | 1335 |
-| /pins.md | 1336 | 1340 |
-| Workspace pins | 1341 | 1344 |
-| @rat-stack/cli | 1345 | 1360 |
-| @rat-stack/infra | 1361 | 1376 |
-| @rat-stack/site | 1377 | 1415 |
-| @rat-stack/web | 1416 | 1444 |
-| rat-stack | 1445 | 1467 |
-| @rat-stack/auth | 1468 | 1489 |
-| @rat-stack/basin | 1490 | 1501 |
-| @rat-stack/capability | 1502 | 1512 |
-| @rat-stack/check-harness | 1513 | 1522 |
-| @rat-stack/code-snippets | 1523 | 1533 |
-| @rat-stack/core | 1534 | 1548 |
-| @rat-stack/crash | 1549 | 1562 |
-| @rat-stack/database | 1563 | 1586 |
-| @rat-stack/deploy | 1587 | 1605 |
-| @rat-stack/devtools | 1606 | 1616 |
-| @rat-stack/events | 1617 | 1631 |
-| @rat-stack/flags | 1632 | 1648 |
-| @rat-stack/intake-live | 1649 | 1662 |
-| @rat-stack/learn | 1663 | 1676 |
-| @rat-stack/lore | 1677 | 1686 |
-| @rat-stack/motion | 1687 | 1700 |
-| @rat-stack/subscriber-delivery | 1701 | 1711 |
-| @rat-stack/turbo-cache | 1712 | 1729 |
-| /log | 1730 | 1734 |
-| Change log | 1735 | 1738 |
-| 2026-11-08 | 1739 | 1795 |
-| 2026-11-07 | 1796 | 1806 |
-| 2026-11-06 | 1807 | 1829 |
-| 2026-11-05 | 1830 | 1835 |
-| 2026-11-04 | 1836 | 1874 |
-| 2026-11-03 | 1875 | 1880 |
-| 2026-11-02 | 1881 | 1904 |
-| 2026-11-01 | 1905 | 1908 |
-| 2026-10-29 | 1909 | 1916 |
-| 2026-10-28 | 1917 | 1921 |
-| 2026-10-27 | 1922 | 1937 |
-| 2026-10-26 | 1938 | 1954 |
-| 2026-10-25 | 1955 | 1963 |
-| 2026-10-24 | 1964 | 2015 |
-| 2026-10-23 | 2016 | 2099 |
-| 2026-10-22 | 2100 | 2103 |
-| 2026-10-20 | 2104 | 2114 |
-| 2026-10-19 | 2115 | 2121 |
-| 2026-10-18 | 2122 | 2146 |
-| 2026-10-14 | 2147 | 2152 |
-| 2026-10-12 | 2153 | 2161 |
-| 2026-10-11 | 2162 | 2168 |
-| 2026-10-10 | 2169 | 2226 |
-| 2026-10-09 | 2227 | 2253 |
-| 2026-10-08 | 2254 | 2259 |
-| 2026-10-07 | 2260 | 2529 |
-| 2026-10-06 | 2530 | 2668 |
-| 2026-10-05 | 2669 | 2673 |
-| 2026-10-04 | 2674 | 2714 |
-| 2026-10-03 | 2715 | 2719 |
-| 2026-10-02 | 2720 | 2790 |
-| 2026-10-01 | 2791 | 2923 |
-| 2026-09-25 | 2924 | 2982 |
-| 2026-09-24 | 2983 | 3008 |
-| 2026-09-23 | 3009 | 3050 |
-| 2026-09-22 | 3051 | 3068 |
-| 2026-09-21 | 3069 | 3077 |
-| 2026-09-20 | 3078 | 3086 |
-| 2026-09-18 | 3087 | 3111 |
-| 2026-09-17 | 3112 | 3125 |
-| 2026-08-29 | 3126 | 3131 |
-| 2026-07-22 | 3132 | 3136 |
-| 2026-07-16 | 3137 | 3148 |
-| /log.md | 3149 | 3153 |
-| Change log | 3154 | 3157 |
-| 2026-11-08 | 3158 | 3214 |
-| 2026-11-07 | 3215 | 3225 |
-| 2026-11-06 | 3226 | 3248 |
-| 2026-11-05 | 3249 | 3254 |
-| 2026-11-04 | 3255 | 3293 |
-| 2026-11-03 | 3294 | 3299 |
-| 2026-11-02 | 3300 | 3323 |
-| 2026-11-01 | 3324 | 3327 |
-| 2026-10-29 | 3328 | 3335 |
-| 2026-10-28 | 3336 | 3340 |
-| 2026-10-27 | 3341 | 3356 |
-| 2026-10-26 | 3357 | 3373 |
-| 2026-10-25 | 3374 | 3382 |
-| 2026-10-24 | 3383 | 3434 |
-| 2026-10-23 | 3435 | 3518 |
-| 2026-10-22 | 3519 | 3522 |
-| 2026-10-20 | 3523 | 3533 |
-| 2026-10-19 | 3534 | 3540 |
-| 2026-10-18 | 3541 | 3565 |
-| 2026-10-14 | 3566 | 3571 |
-| 2026-10-12 | 3572 | 3580 |
-| 2026-10-11 | 3581 | 3587 |
-| 2026-10-10 | 3588 | 3645 |
-| 2026-10-09 | 3646 | 3672 |
-| 2026-10-08 | 3673 | 3678 |
-| 2026-10-07 | 3679 | 3948 |
-| 2026-10-06 | 3949 | 4087 |
-| 2026-10-05 | 4088 | 4092 |
-| 2026-10-04 | 4093 | 4133 |
-| 2026-10-03 | 4134 | 4138 |
-| 2026-10-02 | 4139 | 4209 |
-| 2026-10-01 | 4210 | 4342 |
-| 2026-09-25 | 4343 | 4401 |
-| 2026-09-24 | 4402 | 4427 |
-| 2026-09-23 | 4428 | 4469 |
-| 2026-09-22 | 4470 | 4487 |
-| 2026-09-21 | 4488 | 4496 |
-| 2026-09-20 | 4497 | 4505 |
-| 2026-09-18 | 4506 | 4530 |
-| 2026-09-17 | 4531 | 4544 |
-| 2026-08-29 | 4545 | 4550 |
-| 2026-07-22 | 4551 | 4555 |
-| 2026-07-16 | 4556 | 4567 |
-| /debt.md | 4568 | 4572 |
-| Debt ledger | 4573 | 4578 |
-| Count by directive kind | 4579 | 4586 |
-| Every directive | 4587 | 5192 |
-| Lore on this page | 5193 | 5207 |
-| /resources/effect-4-reference-projects | 5208 | 5212 |
-| Effect 4 reference projects (studied 2026-09-18) | 5213 | 5220 |
-| Projects | 5221 | 5255 |
-| Shared patterns | 5256 | 5267 |
-| XState 6 and `@xstate/effect` (verified 2026-09-18) | 5268 | 5278 |
-| Upstream contribution filed (2026-09-18) | 5279 | 5284 |
-| Barrel and subpath imports | 5285 | 5288 |
-| Applied 2026-09-18 (second slice, all remaining gaps) | 5289 | 5297 |
-| Sweep 2026-09-20 | 5298 | 5308 |
-| Gaps in rat-stack against this bar (as found 2026-09-18, all now closed) | 5309 | 5318 |
-| Current compatibility check (2026-10-09) | 5319 | 5331 |
-| Sources | 5332 | 5338 |
-| Lore on this page | 5339 | 5352 |
-| /resources/schema-projections-and-code-mode | 5353 | 5374 |
-| One Schema, many surfaces | 5375 | 5385 |
-| What Effect rc.115 already ships | 5386 | 5425 |
-| What the two reference repos do | 5426 | 5427 |
-| Executor (UsefulSoftwareCo, Effect 4) | 5428 | 5446 |
-| Kody (Kent C. Dodds, Cloudflare Workers, Zod) | 5447 | 5458 |
-| Cloudflare Code Mode (the origin) | 5459 | 5467 |
-| Proposed rat-stack shape | 5468 | 5507 |
-| Applied 2026-09-18 (slices 1 and 2) | 5508 | 5515 |
-| Applied 2026-09-18 (slices 3 and 4) | 5516 | 5523 |
-| Template acceptance 2026-09-18 | 5524 | 5527 |
-| Original seed plan (before slices 3 and 4) | 5528 | 5534 |
-| Historical cautions (2026-09-18) | 5535 | 5547 |
-| Lore on this page | 5548 | 5562 |
-| /learn | 5563 | 5575 |
-| Learn rat-stack from your own agent | 5576 | 5579 |
-| Turn it on | 5580 | 5596 |
-| How deep it goes | 5597 | 5604 |
-| What is stored and where | 5605 | 5615 |
-| What is never sent | 5616 | 5620 |
-| Skills stay in the session | 5621 | 5628 |
-| Turn it off | 5629 | 5634 |
-| Read more | 5635 | 5639 |
-| Lore on this page | 5640 | 5646 |
-| /resources/lint-rule-limits | 5647 | 5659 |
-| Oxlint rule limits | 5660 | 5665 |
-| Limits | 5666 | 5698 |
-| Copy surface for downstream projects | 5699 | 5705 |
-| Audit evidence | 5706 | 5709 |
-| Lore on this page | 5710 | 5718 |
-| /resources/peers | 5719 | 5723 |
-| Peers | 5724 | 5731 |
-| Our pins | 5732 | 5744 |
-| Tailing: B and up | 5745 | 6414 |
-| Version receipts | 6415 | 6509 |
-| Lore on this page | 6510 | 6518 |
-| Linked from | 6519 | 6529 |
-| /resources/same-version-repos | 6530 | 6542 |
-| Effect + Alchemy peer patterns for rat-stack | 6543 | 6548 |
-| Pin reality | 6549 | 6560 |
-| XState refresh | 6561 | 6566 |
-| Heb-stack: retain the lifecycle reference; reject API copying | 6567 | 6575 |
-| Clankerbox: retain declared actors; reject the old callback form | 6576 | 6584 |
-| Lute: retain the pure interaction seam | 6585 | 6595 |
-| Alpha.70 gardener | 6596 | 6604 |
-| DayBee: retain the asset Worker reference | 6605 | 6611 |
-| Betterwispr: retain the two-Worker reference | 6612 | 6626 |
-| Patterns | 6627 | 6628 |
-| Browser RPC behind a private Worker binding — adopt | 6629 | 6638 |
-| PlanetScale resources and migrations — adapt | 6639 | 6648 |
-| Effect-native Drizzle and local Postgres tests — adapt | 6649 | 6658 |
-| Better Auth's database seam — adopt | 6659 | 6668 |
-| Runtime database-provider switching — reject | 6669 | 6678 |
-| Fast Worker and Durable Object tests — adopt | 6679 | 6688 |
-| D1 fixture backed by SQLite — adapt | 6689 | 6697 |
-| Deployed Alchemy integration tests — adopt as a separate gate | 6698 | 6707 |
-| Boundary tests and agent guidance — adapt | 6708 | 6717 |
-| Scoped actor inspection and generated model commands — adapt | 6718 | 6727 |
-| Verify Foldkit's exact Effect peers: adopt | 6728 | 6743 |
-| Template lifetime boundaries: adopt | 6744 | 6753 |
-| Other screened projects | 6754 | 6759 |
-| Weekly peers Oct 27 | 6760 | 6764 |
-| Session publication: keep the existing boundary | 6765 | 6774 |
-| Local preparation: keep the existing actor seam | 6775 | 6785 |
-| Worker reconciliation: reject direct reuse on the older bridge | 6786 | 6795 |
-| Existing peer corrections | 6796 | 6803 |
-| XState beta refresh Nov 6 | 6804 | 6816 |
-| Recommendations from the September study | 6817 | 6826 |
-| Lore on this page | 6827 | 6840 |
-| Linked from | 6841 | 6847 |
-| /lore/0xsero-dhh-omarchy-the-agent-os | 6848 | 6868 |
-| DHH on Omarchy and the agent OS | 6869 | 6874 |
-| Sources | 6875 | 6879 |
-| Linked from | 6880 | 6894 |
-| /lore/a-browser-send-follows-one-path | 6895 | 6899 |
-| A browser send follows one path to the capability | 6900 | 6911 |
-| 1. The view sends a Message | 6912 | 6949 |
-| 2. update returns a Command | 6950 | 6968 |
-| 3. The Command calls the capability over RPC | 6969 | 7020 |
-| 4. update folds the result into the Model | 7021 | 7035 |
-| Why one path | 7036 | 7046 |
-| Next | 7047 | 7053 |
-| Sources | 7054 | 7076 |
-| Lore on this page | 7077 | 7080 |
-| Linked from | 7081 | 7094 |
-| Unlinked mentions | 7095 | 7121 |
-| /lore/a-clean-playground | 7122 | 7126 |
-| A clean playground | 7127 | 7152 |
-| Sources | 7153 | 7160 |
-| Lore on this page | 7161 | 7164 |
-| Linked from | 7165 | 7187 |
-| /lore/accumulate-independent-errors | 7188 | 7192 |
-| Accumulate independent errors before writing output | 7193 | 7218 |
-| Sources | 7219 | 7226 |
-| Linked from | 7227 | 7251 |
-| /lore/admission-controls-new-work | 7252 | 7256 |
-| Admission control protects recovery | 7257 | 7264 |
-| Failure it prevents | 7265 | 7268 |
-| Our Effect 4.0.0 reading | 7269 | 7274 |
-| How to check | 7275 | 7284 |
-| Sources | 7285 | 7298 |
-| Linked from | 7299 | 7323 |
-| /lore/agent-source-first-workflow | 7324 | 7360 |
-| Source-first workflow | 7361 | 7373 |
-| Sources | 7374 | 7381 |
-| Linked from | 7382 | 7398 |
-| /lore/agents-explore-tests-remember | 7399 | 7403 |
-| Agents explore, tests remember | 7404 | 7423 |
-| Rat-stack's reading | 7424 | 7431 |
-| A human-driven example | 7432 | 7442 |
-| Sources | 7443 | 7453 |
-| Lore on this page | 7454 | 7458 |
-| Linked from | 7459 | 7477 |
-| /lore/ai-engineer-vibe-engineering-effect-apps-michael-arnaldi | 7478 | 7498 |
-| Vibe engineering Effect apps | 7499 | 7510 |
-| Sources | 7511 | 7515 |
-| Linked from | 7516 | 7532 |
-| /lore/aiewf-2026-everything-we-knew-about-software-has-changed-theo-browne | 7533 | 7553 |
-| AI Engineer World's Fair 2026: Software has changed | 7554 | 7561 |
-| Sources | 7562 | 7566 |
-| Linked from | 7567 | 7585 |
-| /lore/alchemy-domain | 7586 | 7590 |
-| Alchemy Domain models a business as commands, aggregates, and events | 7591 | 7598 |
-| Commands, aggregates, and events | 7599 | 7605 |
-| The example: deposit money into an account | 7606 | 7626 |
-| One model, two places to run it | 7627 | 7633 |
-| Where it meets rat-stack | 7634 | 7639 |
-| Sources | 7640 | 7653 |
-| Lore on this page | 7654 | 7658 |
-| Linked from | 7659 | 7673 |
-| /lore/ambient-cloud | 7674 | 7693 |
-| Ambient cloud | 7694 | 7702 |
-| Sources | 7703 | 7707 |
-| Linked from | 7708 | 7722 |
-| /lore/an-mcp-your-users-want | 7723 | 7727 |
-| An MCP your users want | 7728 | 7757 |
-| Sources | 7758 | 7771 |
-| Lore on this page | 7772 | 7779 |
-| Linked from | 7780 | 7794 |
-| /lore/anti-money | 7795 | 7814 |
-| Anti-money | 7815 | 7823 |
-| Sources | 7824 | 7828 |
-| Linked from | 7829 | 7843 |
-| /lore/at-protocol | 7844 | 7848 |
-| AT Protocol separates identity, data, and application schemas | 7849 | 7856 |
-| A DID identifies the account | 7857 | 7865 |
-| A PDS hosts the repository | 7866 | 7879 |
-| Lexicons describe records and calls | 7880 | 7902 |
-| Read Rat King next | 7903 | 7908 |
-| Sources | 7909 | 7922 |
-| Lore on this page | 7923 | 7926 |
-| Linked from | 7927 | 7945 |
-| /lore/backpressure-reaches-the-producer | 7946 | 7950 |
-| Backpressure reaches the producer | 7951 | 7958 |
-| Failure it prevents | 7959 | 7962 |
-| Our Effect 4.0.0 reading | 7963 | 7968 |
-| How to check | 7969 | 7978 |
-| Sources | 7979 | 7995 |
-| Linked from | 7996 | 8020 |
-| /lore/bindings | 8021 | 8025 |
-| Bindings | 8026 | 8034 |
-| Worked example: the events cartridge writes to a stream | 8035 | 8057 |
-| Why a binding carries permission and configuration | 8058 | 8064 |
-| Next | 8065 | 8072 |
-| Sources | 8073 | 8089 |
-| Lore on this page | 8090 | 8093 |
-| Linked from | 8094 | 8147 |
-| Unlinked mentions | 8148 | 8170 |
-| /lore/build-time-work-stays-out-of-requests | 8171 | 8175 |
-| Build-time work stays out of requests | 8176 | 8199 |
-| Sources | 8200 | 8210 |
-| Lore on this page | 8211 | 8214 |
-| Linked from | 8215 | 8230 |
-| Unlinked mentions | 8231 | 8237 |
-| /lore/bulkheads-isolate-capacity | 8238 | 8242 |
-| Bulkheads isolate scarce capacity | 8243 | 8252 |
-| Failure it prevents | 8253 | 8256 |
-| Our Effect 4.0.0 reading | 8257 | 8262 |
-| How to check | 8263 | 8272 |
-| Sources | 8273 | 8289 |
-| Linked from | 8290 | 8314 |
-| /lore/cache-completed-values | 8315 | 8319 |
-| Shared caches hold completed values | 8320 | 8329 |
-| Store the result after the read | 8330 | 8348 |
-| Check the lifetime at construction | 8349 | 8358 |
-| Sources | 8359 | 8369 |
-| Lore on this page | 8370 | 8373 |
-| Linked from | 8374 | 8394 |
-| /lore/cafe-stack | 8395 | 8399 |
-| CAFE names the Cloudflare, Alchemy, Foldkit and Effect stack | 8400 | 8440 |
-| The canonical example | 8441 | 8456 |
-| Other CAFE apps | 8457 | 8474 |
-| foldkit-dials | 8475 | 8488 |
-| Where rat-stack sits | 8489 | 8516 |
-| Sources | 8517 | 8524 |
-| Sources | 8525 | 8559 |
-| Lore on this page | 8560 | 8565 |
-| Linked from | 8566 | 8624 |
-| /lore/capture-first | 8625 | 8629 |
-| Capture first, shape later | 8630 | 8661 |
-| Sources | 8662 | 8678 |
-| Lore on this page | 8679 | 8683 |
-| Linked from | 8684 | 8704 |
-| /lore/cartridges | 8705 | 8709 |
-| Cartridges | 8710 | 8741 |
-| Where the pattern comes from | 8742 | 8749 |
-| Sources | 8750 | 8760 |
-| Lore on this page | 8761 | 8766 |
-| Linked from | 8767 | 8846 |
-| Unlinked mentions | 8847 | 8875 |
-| /lore/cascadiajs-2026-its-time-to-rethink-everything-theo-browne | 8876 | 8896 |
-| CascadiaJS 2026: It's time to rethink everything | 8897 | 8904 |
-| Sources | 8905 | 8909 |
-| Linked from | 8910 | 8924 |
-| /lore/cause-and-effect-10-software-engineering-age-of-ai-de-goes | 8925 | 8945 |
-| Cause & Effect 10: Software engineering in the age of AI | 8946 | 8953 |
-| Sources | 8954 | 8958 |
-| Linked from | 8959 | 8975 |
-| /lore/checkpoints-follow-commits | 8976 | 8980 |
-| Checkpoints follow the promised commit | 8981 | 8990 |
-| Failure it prevents | 8991 | 8994 |
-| Our Effect 4.0.0 reading | 8995 | 9000 |
-| How to check | 9001 | 9010 |
-| Sources | 9011 | 9021 |
-| Linked from | 9022 | 9046 |
-| /lore/chris-tate | 9047 | 9071 |
-| Chris Tate | 9072 | 9081 |
-| Sources | 9082 | 9089 |
-| Linked from | 9090 | 9104 |
-| /lore/circuit-breakers-have-state | 9105 | 9109 |
-| Circuit breakers have state | 9110 | 9119 |
-| Failure it prevents | 9120 | 9123 |
-| Our Effect 4.0.0 reading | 9124 | 9129 |
-| How to check | 9130 | 9139 |
-| Sources | 9140 | 9153 |
+| Smallest useful floor | 12 | 27 |
+| Read this repo | 28 | 152 |
+| Connect with MCP | 153 | 171 |
+| Run code: one program instead of several calls | 172 | 194 |
+| Choose the next action | 195 | 210 |
+| Suggest a CAFE entry through your agent | 211 | 220 |
+| Fields | 221 | 226 |
+| File the approved issue | 227 | 240 |
+| Source files | 241 | 258 |
+| Lore | 259 | 260 |
+| Idea | 261 | 315 |
+| Concept | 316 | 380 |
+| Source | 381 | 404 |
+| Person | 405 | 417 |
+| Systems | 418 | 439 |
+| Skills | 440 | 465 |
+| Lore on this page | 466 | 483 |
+| /prompts/hill-climb | 484 | 492 |
+| The standard | 493 | 501 |
+| Each cycle | 502 | 521 |
+| Never | 522 | 527 |
+| Before I give you the green light | 528 | 540 |
+| /AGENTS.md | 541 | 545 |
+| Agent instructions | 546 | 551 |
+| Stack contract | 552 | 572 |
+| Packages | 573 | 651 |
+| Nouns | 652 | 678 |
+| Commands | 679 | 706 |
+| Deploy | 707 | 710 |
+| Release the ratstack package | 711 | 718 |
+| Fence (cheating is uncomfortable) | 719 | 729 |
+| Source-first Effect / XState work | 730 | 751 |
+| Source control | 752 | 761 |
+| Project law | 762 | 785 |
+| Architecture | 786 | 802 |
+| Wiki writing | 803 | 806 |
+| Web feature blueprint | 807 | 812 |
+| Worker autonomy ladder | 813 | 826 |
+| Boundaries and sign-off | 827 | 833 |
+| Lore on this page | 834 | 848 |
+| Linked from | 849 | 883 |
+| /VISION.md | 884 | 888 |
+| Vision | 889 | 918 |
+| Why it exists | 919 | 932 |
+| Pieces, trust, floor, and range | 933 | 946 |
+| Layers are composable SaaS | 947 | 957 |
+| The house rule: a clean playground | 958 | 969 |
+| Outcomes | 970 | 979 |
+| Current priorities | 980 | 991 |
+| Questions this repo answers in code | 992 | 1001 |
+| Open questions | 1002 | 1005 |
+| Merge by default | 1006 | 1012 |
+| Needs sign-off | 1013 | 1020 |
+| Will not do for now | 1021 | 1029 |
+| Decision boundaries | 1030 | 1035 |
+| Amendment policy | 1036 | 1039 |
+| Lore on this page | 1040 | 1054 |
+| Linked from | 1055 | 1071 |
+| /README.md | 1072 | 1076 |
+| rat-stack 🐀 | 1077 | 1088 |
+| Use it as a reference | 1089 | 1106 |
+| Workspace layout | 1107 | 1145 |
+| Try the example CLI | 1146 | 1174 |
+| What is in the stack? | 1175 | 1195 |
+| Commands | 1196 | 1211 |
+| Measure the CI/CD loop | 1212 | 1225 |
+| Agentic surface | 1226 | 1229 |
+| Copy the whole template | 1230 | 1286 |
+| What it promises and how to check | 1287 | 1294 |
+| Keep or cut | 1295 | 1401 |
+| License | 1402 | 1405 |
+| Lore on this page | 1406 | 1420 |
+| Linked from | 1421 | 1435 |
+| /vendor/README.md | 1436 | 1440 |
+| Vendored packages | 1441 | 1451 |
+| Rules for the next one | 1452 | 1457 |
+| Lore on this page | 1458 | 1461 |
+| Linked from | 1462 | 1470 |
+| /pins.md | 1471 | 1475 |
+| Workspace pins | 1476 | 1479 |
+| @rat-stack/catalog-server | 1480 | 1495 |
+| @rat-stack/cli | 1496 | 1511 |
+| @rat-stack/infra | 1512 | 1529 |
+| @rat-stack/site | 1530 | 1568 |
+| @rat-stack/web | 1569 | 1597 |
+| rat-stack | 1598 | 1620 |
+| @rat-stack/auth | 1621 | 1642 |
+| @rat-stack/basin | 1643 | 1654 |
+| @rat-stack/capability | 1655 | 1665 |
+| @rat-stack/catalog | 1666 | 1676 |
+| @rat-stack/check-harness | 1677 | 1686 |
+| @rat-stack/code-snippets | 1687 | 1697 |
+| @rat-stack/core | 1698 | 1712 |
+| @rat-stack/crash | 1713 | 1726 |
+| @rat-stack/database | 1727 | 1750 |
+| @rat-stack/deploy | 1751 | 1769 |
+| @rat-stack/devtools | 1770 | 1780 |
+| @rat-stack/events | 1781 | 1795 |
+| @rat-stack/flags | 1796 | 1812 |
+| @rat-stack/intake-live | 1813 | 1826 |
+| @rat-stack/learn | 1827 | 1840 |
+| @rat-stack/lore | 1841 | 1850 |
+| @rat-stack/motion | 1851 | 1864 |
+| @rat-stack/subscriber-delivery | 1865 | 1875 |
+| @rat-stack/turbo-cache | 1876 | 1893 |
+| /log | 1894 | 1898 |
+| Change log | 1899 | 1902 |
+| 2026-11-16 | 1903 | 1918 |
+| 2026-11-15 | 1919 | 1944 |
+| 2026-11-14 | 1945 | 1960 |
+| 2026-11-13 | 1961 | 1986 |
+| 2026-11-12 | 1987 | 1990 |
+| 2026-11-11 | 1991 | 1996 |
+| 2026-11-10 | 1997 | 2002 |
+| 2026-11-09 | 2003 | 2012 |
+| 2026-11-08 | 2013 | 2069 |
+| 2026-11-07 | 2070 | 2080 |
+| 2026-11-06 | 2081 | 2103 |
+| 2026-11-05 | 2104 | 2109 |
+| 2026-11-04 | 2110 | 2148 |
+| 2026-11-03 | 2149 | 2154 |
+| 2026-11-02 | 2155 | 2178 |
+| 2026-11-01 | 2179 | 2182 |
+| 2026-10-29 | 2183 | 2190 |
+| 2026-10-28 | 2191 | 2195 |
+| 2026-10-27 | 2196 | 2211 |
+| 2026-10-26 | 2212 | 2228 |
+| 2026-10-25 | 2229 | 2237 |
+| 2026-10-24 | 2238 | 2289 |
+| 2026-10-23 | 2290 | 2373 |
+| 2026-10-22 | 2374 | 2377 |
+| 2026-10-20 | 2378 | 2388 |
+| 2026-10-19 | 2389 | 2395 |
+| 2026-10-18 | 2396 | 2420 |
+| 2026-10-14 | 2421 | 2426 |
+| 2026-10-12 | 2427 | 2435 |
+| 2026-10-11 | 2436 | 2442 |
+| 2026-10-10 | 2443 | 2500 |
+| 2026-10-09 | 2501 | 2527 |
+| 2026-10-08 | 2528 | 2533 |
+| 2026-10-07 | 2534 | 2803 |
+| 2026-10-06 | 2804 | 2942 |
+| 2026-10-05 | 2943 | 2947 |
+| 2026-10-04 | 2948 | 2988 |
+| 2026-10-03 | 2989 | 2993 |
+| 2026-10-02 | 2994 | 3064 |
+| 2026-10-01 | 3065 | 3197 |
+| 2026-09-25 | 3198 | 3256 |
+| 2026-09-24 | 3257 | 3282 |
+| 2026-09-23 | 3283 | 3324 |
+| 2026-09-22 | 3325 | 3342 |
+| 2026-09-21 | 3343 | 3351 |
+| 2026-09-20 | 3352 | 3360 |
+| 2026-09-18 | 3361 | 3385 |
+| 2026-09-17 | 3386 | 3399 |
+| 2026-08-29 | 3400 | 3405 |
+| 2026-07-22 | 3406 | 3410 |
+| 2026-07-16 | 3411 | 3422 |
+| /log.md | 3423 | 3427 |
+| Change log | 3428 | 3431 |
+| 2026-11-16 | 3432 | 3447 |
+| 2026-11-15 | 3448 | 3473 |
+| 2026-11-14 | 3474 | 3489 |
+| 2026-11-13 | 3490 | 3515 |
+| 2026-11-12 | 3516 | 3519 |
+| 2026-11-11 | 3520 | 3525 |
+| 2026-11-10 | 3526 | 3531 |
+| 2026-11-09 | 3532 | 3541 |
+| 2026-11-08 | 3542 | 3598 |
+| 2026-11-07 | 3599 | 3609 |
+| 2026-11-06 | 3610 | 3632 |
+| 2026-11-05 | 3633 | 3638 |
+| 2026-11-04 | 3639 | 3677 |
+| 2026-11-03 | 3678 | 3683 |
+| 2026-11-02 | 3684 | 3707 |
+| 2026-11-01 | 3708 | 3711 |
+| 2026-10-29 | 3712 | 3719 |
+| 2026-10-28 | 3720 | 3724 |
+| 2026-10-27 | 3725 | 3740 |
+| 2026-10-26 | 3741 | 3757 |
+| 2026-10-25 | 3758 | 3766 |
+| 2026-10-24 | 3767 | 3818 |
+| 2026-10-23 | 3819 | 3902 |
+| 2026-10-22 | 3903 | 3906 |
+| 2026-10-20 | 3907 | 3917 |
+| 2026-10-19 | 3918 | 3924 |
+| 2026-10-18 | 3925 | 3949 |
+| 2026-10-14 | 3950 | 3955 |
+| 2026-10-12 | 3956 | 3964 |
+| 2026-10-11 | 3965 | 3971 |
+| 2026-10-10 | 3972 | 4029 |
+| 2026-10-09 | 4030 | 4056 |
+| 2026-10-08 | 4057 | 4062 |
+| 2026-10-07 | 4063 | 4332 |
+| 2026-10-06 | 4333 | 4471 |
+| 2026-10-05 | 4472 | 4476 |
+| 2026-10-04 | 4477 | 4517 |
+| 2026-10-03 | 4518 | 4522 |
+| 2026-10-02 | 4523 | 4593 |
+| 2026-10-01 | 4594 | 4726 |
+| 2026-09-25 | 4727 | 4785 |
+| 2026-09-24 | 4786 | 4811 |
+| 2026-09-23 | 4812 | 4853 |
+| 2026-09-22 | 4854 | 4871 |
+| 2026-09-21 | 4872 | 4880 |
+| 2026-09-20 | 4881 | 4889 |
+| 2026-09-18 | 4890 | 4914 |
+| 2026-09-17 | 4915 | 4928 |
+| 2026-08-29 | 4929 | 4934 |
+| 2026-07-22 | 4935 | 4939 |
+| 2026-07-16 | 4940 | 4951 |
+| /debt.md | 4952 | 4956 |
+| Debt ledger | 4957 | 4962 |
+| Count by directive kind | 4963 | 4970 |
+| Every directive | 4971 | 5693 |
+| Lore on this page | 5694 | 5708 |
+| /resources/effect-4-reference-projects | 5709 | 5713 |
+| Effect 4 reference projects (studied 2026-09-18) | 5714 | 5721 |
+| Projects | 5722 | 5756 |
+| Shared patterns | 5757 | 5768 |
+| XState 6 and `@xstate/effect` (verified 2026-09-18) | 5769 | 5779 |
+| Upstream contribution filed (2026-09-18) | 5780 | 5785 |
+| Barrel and subpath imports | 5786 | 5789 |
+| Applied 2026-09-18 (second slice, all remaining gaps) | 5790 | 5798 |
+| Sweep 2026-09-20 | 5799 | 5809 |
+| Gaps in rat-stack against this bar (as found 2026-09-18, all now closed) | 5810 | 5819 |
+| Current compatibility check (2026-10-09) | 5820 | 5832 |
+| Sources | 5833 | 5839 |
+| Lore on this page | 5840 | 5853 |
+| /resources/schema-projections-and-code-mode | 5854 | 5875 |
+| One Schema, many surfaces | 5876 | 5886 |
+| What Effect rc.115 already ships | 5887 | 5926 |
+| What the two reference repos do | 5927 | 5928 |
+| Executor (UsefulSoftwareCo, Effect 4) | 5929 | 5947 |
+| Kody (Kent C. Dodds, Cloudflare Workers, Zod) | 5948 | 5959 |
+| Cloudflare Code Mode (the origin) | 5960 | 5968 |
+| Proposed rat-stack shape | 5969 | 6008 |
+| Applied 2026-09-18 (slices 1 and 2) | 6009 | 6016 |
+| Applied 2026-09-18 (slices 3 and 4) | 6017 | 6024 |
+| Template acceptance 2026-09-18 | 6025 | 6028 |
+| Original seed plan (before slices 3 and 4) | 6029 | 6035 |
+| Historical cautions (2026-09-18) | 6036 | 6048 |
+| Lore on this page | 6049 | 6063 |
+| /learn | 6064 | 6076 |
+| Learn rat-stack from your own agent | 6077 | 6080 |
+| Turn it on | 6081 | 6097 |
+| How deep it goes | 6098 | 6105 |
+| What is stored and where | 6106 | 6116 |
+| What is never sent | 6117 | 6121 |
+| Skills stay in the session | 6122 | 6129 |
+| Turn it off | 6130 | 6135 |
+| Read more | 6136 | 6140 |
+| Lore on this page | 6141 | 6147 |
+| /resources/bombadil-ui-property-tests | 6148 | 6204 |
+| Choose the test scope | 6205 | 6220 |
+| How the browser test works | 6221 | 6246 |
+| Search count matches rendered rows | 6247 | 6283 |
+| A player appears only after its own play click | 6284 | 6335 |
+| Vite friction and release drift | 6336 | 6350 |
+| Try it without changing the template | 6351 | 6365 |
+| Lore on this page | 6366 | 6373 |
+| /resources/lint-rule-limits | 6374 | 6386 |
+| Oxlint rule limits | 6387 | 6392 |
+| Limits | 6393 | 6425 |
+| Copy surface for downstream projects | 6426 | 6432 |
+| Audit evidence | 6433 | 6436 |
+| Lore on this page | 6437 | 6445 |
+| /resources/peers | 6446 | 6450 |
+| Peers | 6451 | 6458 |
+| Our pins | 6459 | 6471 |
+| Tailing: B and up | 6472 | 7141 |
+| Version receipts | 7142 | 7236 |
+| Lore on this page | 7237 | 7245 |
+| Linked from | 7246 | 7256 |
+| /resources/same-version-repos | 7257 | 7269 |
+| Effect + Alchemy peer patterns for rat-stack | 7270 | 7275 |
+| Pin reality | 7276 | 7287 |
+| XState refresh | 7288 | 7293 |
+| Heb-stack: retain the lifecycle reference; reject API copying | 7294 | 7302 |
+| Clankerbox: retain declared actors; reject the old callback form | 7303 | 7311 |
+| Lute: retain the pure interaction seam | 7312 | 7322 |
+| Alpha.70 gardener | 7323 | 7331 |
+| DayBee: retain the asset Worker reference | 7332 | 7338 |
+| Betterwispr: retain the two-Worker reference | 7339 | 7353 |
+| Patterns | 7354 | 7355 |
+| Browser RPC behind a private Worker binding — adopt | 7356 | 7365 |
+| PlanetScale resources and migrations — adapt | 7366 | 7375 |
+| Effect-native Drizzle and local Postgres tests — adapt | 7376 | 7385 |
+| Better Auth's database seam — adopt | 7386 | 7395 |
+| Runtime database-provider switching — reject | 7396 | 7405 |
+| Fast Worker and Durable Object tests — adopt | 7406 | 7415 |
+| D1 fixture backed by SQLite — adapt | 7416 | 7424 |
+| Deployed Alchemy integration tests — adopt as a separate gate | 7425 | 7434 |
+| Boundary tests and agent guidance — adapt | 7435 | 7444 |
+| Scoped actor inspection and generated model commands — adapt | 7445 | 7454 |
+| Verify Foldkit's exact Effect peers: adopt | 7455 | 7470 |
+| Template lifetime boundaries: adopt | 7471 | 7480 |
+| Other screened projects | 7481 | 7486 |
+| Weekly peers Oct 27 | 7487 | 7491 |
+| Session publication: keep the existing boundary | 7492 | 7501 |
+| Local preparation: keep the existing actor seam | 7502 | 7512 |
+| Worker reconciliation: reject direct reuse on the older bridge | 7513 | 7522 |
+| Existing peer corrections | 7523 | 7530 |
+| XState beta refresh Nov 6 | 7531 | 7543 |
+| Recommendations from the September study | 7544 | 7553 |
+| Lore on this page | 7554 | 7567 |
+| Linked from | 7568 | 7574 |
+| /lore/0xsero-dhh-omarchy-the-agent-os | 7575 | 7595 |
+| DHH on Omarchy and the agent OS | 7596 | 7601 |
+| Sources | 7602 | 7606 |
+| Linked from | 7607 | 7621 |
+| /lore/a-browser-send-follows-one-path | 7622 | 7626 |
+| A browser send follows one path to the capability | 7627 | 7638 |
+| 1. The view sends a Message | 7639 | 7676 |
+| 2. update returns a Command | 7677 | 7695 |
+| 3. The Command calls the capability over RPC | 7696 | 7747 |
+| 4. update folds the result into the Model | 7748 | 7762 |
+| Why one path | 7763 | 7773 |
+| Next | 7774 | 7780 |
+| Sources | 7781 | 7803 |
+| Lore on this page | 7804 | 7807 |
+| Linked from | 7808 | 7825 |
+| Unlinked mentions | 7826 | 7850 |
+| /lore/a-clean-playground | 7851 | 7855 |
+| A clean playground | 7856 | 7881 |
+| Sources | 7882 | 7889 |
+| Lore on this page | 7890 | 7893 |
+| Linked from | 7894 | 7916 |
+| /lore/accumulate-independent-errors | 7917 | 7921 |
+| Accumulate independent errors before writing output | 7922 | 7930 |
+| Worked example: collect snippet failures | 7931 | 7979 |
+| Check the failure path | 7980 | 7990 |
+| Sources | 7991 | 8004 |
+| Linked from | 8005 | 8029 |
+| /lore/admission-controls-new-work | 8030 | 8034 |
+| Admission control protects recovery | 8035 | 8042 |
+| Failure it prevents | 8043 | 8046 |
+| Our Effect 4.0.0 reading | 8047 | 8052 |
+| How to check | 8053 | 8062 |
+| Sources | 8063 | 8076 |
+| Linked from | 8077 | 8101 |
+| /lore/agent-source-first-workflow | 8102 | 8138 |
+| Source-first workflow | 8139 | 8151 |
+| Sources | 8152 | 8159 |
+| Linked from | 8160 | 8176 |
+| /lore/agents-explore-tests-remember | 8177 | 8181 |
+| Agents explore, tests remember | 8182 | 8201 |
+| Rat-stack's reading | 8202 | 8209 |
+| A human-driven example | 8210 | 8220 |
+| Sources | 8221 | 8231 |
+| Lore on this page | 8232 | 8236 |
+| Linked from | 8237 | 8255 |
+| /lore/ai-engineer-vibe-engineering-effect-apps-michael-arnaldi | 8256 | 8276 |
+| Vibe engineering Effect apps | 8277 | 8288 |
+| Sources | 8289 | 8293 |
+| Linked from | 8294 | 8310 |
+| /lore/aiewf-2026-everything-we-knew-about-software-has-changed-theo-browne | 8311 | 8331 |
+| AI Engineer World's Fair 2026: Software has changed | 8332 | 8339 |
+| Sources | 8340 | 8344 |
+| Linked from | 8345 | 8363 |
+| /lore/alchemy-domain | 8364 | 8368 |
+| Alchemy Domain models a business as commands, aggregates, and events | 8369 | 8376 |
+| Commands, aggregates, and events | 8377 | 8383 |
+| The example: deposit money into an account | 8384 | 8404 |
+| One model, two places to run it | 8405 | 8411 |
+| Where it meets rat-stack | 8412 | 8417 |
+| Sources | 8418 | 8431 |
+| Lore on this page | 8432 | 8437 |
+| Linked from | 8438 | 8451 |
+| Unlinked mentions | 8452 | 8458 |
+| /lore/ambient-cloud | 8459 | 8478 |
+| Ambient cloud | 8479 | 8487 |
+| Sources | 8488 | 8492 |
+| Linked from | 8493 | 8507 |
+| /lore/an-mcp-your-users-want | 8508 | 8512 |
+| An MCP your users want | 8513 | 8542 |
+| Sources | 8543 | 8556 |
+| Lore on this page | 8557 | 8564 |
+| Linked from | 8565 | 8579 |
+| /lore/anti-money | 8580 | 8599 |
+| Anti-money | 8600 | 8608 |
+| Sources | 8609 | 8613 |
+| Linked from | 8614 | 8628 |
+| /lore/at-protocol | 8629 | 8633 |
+| AT Protocol separates identity, data, and application schemas | 8634 | 8641 |
+| A DID identifies the account | 8642 | 8650 |
+| A PDS hosts the repository | 8651 | 8664 |
+| Lexicons describe records and calls | 8665 | 8687 |
+| Read Rat King next | 8688 | 8693 |
+| Sources | 8694 | 8707 |
+| Lore on this page | 8708 | 8711 |
+| Linked from | 8712 | 8730 |
+| /lore/backpressure-reaches-the-producer | 8731 | 8735 |
+| Backpressure reaches the producer | 8736 | 8743 |
+| Failure it prevents | 8744 | 8747 |
+| Our Effect 4.0.0 reading | 8748 | 8753 |
+| How to check | 8754 | 8763 |
+| Sources | 8764 | 8780 |
+| Linked from | 8781 | 8805 |
+| /lore/bindings | 8806 | 8810 |
+| Bindings | 8811 | 8819 |
+| Worked example: the events cartridge writes to a stream | 8820 | 8842 |
+| Why a binding carries permission and configuration | 8843 | 8849 |
+| Next | 8850 | 8857 |
+| Sources | 8858 | 8874 |
+| Lore on this page | 8875 | 8878 |
+| Linked from | 8879 | 8934 |
+| Unlinked mentions | 8935 | 8957 |
+| /lore/build-time-work-stays-out-of-requests | 8958 | 8962 |
+| Build-time work stays out of requests | 8963 | 8983 |
+| Sources | 8984 | 8994 |
+| Lore on this page | 8995 | 8998 |
+| Linked from | 8999 | 9014 |
+| Unlinked mentions | 9015 | 9021 |
+| /lore/bulkheads-isolate-capacity | 9022 | 9026 |
+| Bulkheads isolate scarce capacity | 9027 | 9036 |
+| Failure it prevents | 9037 | 9040 |
+| Our Effect 4.0.0 reading | 9041 | 9046 |
+| How to check | 9047 | 9056 |
+| Sources | 9057 | 9073 |
+| Linked from | 9074 | 9098 |
+| /lore/cache-completed-values | 9099 | 9103 |
+| Shared caches hold completed values | 9104 | 9113 |
+| Store the result after the read | 9114 | 9132 |
+| Check the lifetime at construction | 9133 | 9142 |
+| Sources | 9143 | 9153 |
 | Lore on this page | 9154 | 9157 |
-| Linked from | 9158 | 9182 |
-| /lore/cityjs-effect-production-grade-typescript-michael-arnaldi | 9183 | 9203 |
-| Effect: Production-Grade TypeScript | 9204 | 9212 |
-| Sources | 9213 | 9217 |
-| Lore on this page | 9218 | 9221 |
-| Linked from | 9222 | 9238 |
-| /lore/cleanup-can-be-an-idempotent-postcondition | 9239 | 9243 |
-| Cleanup can be an idempotent postcondition | 9244 | 9253 |
-| Failure it prevents | 9254 | 9257 |
-| Our Effect 4.0.0 reading | 9258 | 9263 |
-| How to check | 9264 | 9273 |
-| Sources | 9274 | 9284 |
-| Lore on this page | 9285 | 9288 |
-| Linked from | 9289 | 9313 |
-| /lore/cloud-as-a-library | 9314 | 9339 |
-| Cloud as a library | 9340 | 9349 |
-| Sources | 9350 | 9357 |
-| Linked from | 9358 | 9376 |
-| /lore/code-snippets | 9377 | 9381 |
-| Code snippets quote a pinned source | 9382 | 9392 |
-| The problem | 9393 | 9402 |
-| The authoring syntax | 9403 | 9501 |
-| The pipeline | 9502 | 9538 |
-| Ports and adapters | 9539 | 9571 |
-| Cache boundaries | 9572 | 9583 |
-| Errors as interface | 9584 | 9615 |
-| The testing approach | 9616 | 9651 |
-| Prior art and where we differ | 9652 | 9671 |
-| Build-only limits | 9672 | 9692 |
-| Sources | 9693 | 9736 |
-| Lore on this page | 9737 | 9746 |
-| Linked from | 9747 | 9780 |
-| Unlinked mentions | 9781 | 9793 |
-| /lore/concurrent-work-needs-an-owner | 9794 | 9798 |
-| Concurrent work needs an owner and a bound | 9799 | 9805 |
-| Bound collection processing before running it | 9806 | 9876 |
-| Stop child work with its Scope | 9877 | 9922 |
-| Consume a stream without promising a bounded queue | 9923 | 9968 |
-| Common mistakes | 9969 | 9975 |
-| Effect idiom and house rule | 9976 | 9987 |
-| Sources | 9988 | 10007 |
-| Lore on this page | 10008 | 10013 |
-| Linked from | 10014 | 10061 |
-| Unlinked mentions | 10062 | 10078 |
-| /lore/configuration-is-a-dependency | 10079 | 10083 |
-| Configuration is a supplied, validated dependency | 10084 | 10092 |
-| Define accepted values before reading them | 10093 | 10119 |
-| Supply another configuration source | 10120 | 10157 |
-| Supply typed values when parsing is not the task | 10158 | 10164 |
-| Common wrong approach | 10165 | 10171 |
-| Effect idiom and house rule | 10172 | 10181 |
-| Sources | 10182 | 10198 |
-| Lore on this page | 10199 | 10202 |
-| Linked from | 10203 | 10218 |
-| Unlinked mentions | 10219 | 10225 |
-| /lore/context-and-requirements | 10226 | 10230 |
-| Context and requirements | 10231 | 10240 |
-| Worked example: inspecting a file | 10241 | 10282 |
-| Why the type carries it | 10283 | 10292 |
-| Next | 10293 | 10299 |
-| Sources | 10300 | 10316 |
-| Lore on this page | 10317 | 10321 |
-| Linked from | 10322 | 10341 |
-| Unlinked mentions | 10342 | 10404 |
-| /lore/david-khourshid | 10405 | 10440 |
-| David Khourshid | 10441 | 10455 |
-| Sources | 10456 | 10469 |
-| Lore on this page | 10470 | 10474 |
-| Linked from | 10475 | 10493 |
-| /lore/dead-letters-need-a-return-path | 10494 | 10498 |
-| Dead letters need a return path | 10499 | 10508 |
-| Failure it prevents | 10509 | 10512 |
-| Our Effect 4.0.0 reading | 10513 | 10518 |
-| How to check | 10519 | 10528 |
-| Sources | 10529 | 10542 |
-| Linked from | 10543 | 10577 |
-| /lore/dependency-injection-is-the-reason-to-choose-effect | 10578 | 10582 |
-| Dependency injection is the reason to choose Effect | 10583 | 10596 |
-| Requirements stay visible | 10597 | 10602 |
-| A service captures its dependencies | 10603 | 10648 |
-| Tests supply another implementation | 10649 | 10670 |
-| Follow the dependency injection path | 10671 | 10679 |
-| Sources | 10680 | 10699 |
-| Lore on this page | 10700 | 10704 |
-| Linked from | 10705 | 10737 |
-| /lore/devtools-fm-sam-goodwin-alchemy-next-gen-iac | 10738 | 10758 |
-| Alchemy and the next generation of infrastructure as code | 10759 | 10767 |
-| Sources | 10768 | 10772 |
-| Linked from | 10773 | 10787 |
-| /lore/devtools-fm-sam-goodwin-alchemy | 10788 | 10808 |
-| Sam Goodwin on Alchemy | 10809 | 10817 |
-| Sources | 10818 | 10822 |
-| Lore on this page | 10823 | 10827 |
-| Linked from | 10828 | 10852 |
-| /lore/distilled | 10853 | 10872 |
-| Distilled | 10873 | 10881 |
-| Sources | 10882 | 10886 |
-| Linked from | 10887 | 10901 |
-| /lore/double-opt-in | 10902 | 10937 |
-| Double opt-in | 10938 | 10948 |
-| Sources | 10949 | 10956 |
-| Linked from | 10957 | 10983 |
-| /lore/durability-bibliography | 10984 | 10988 |
-| Durability bibliography | 10989 | 10994 |
-| Books | 10995 | 10996 |
-| B1 Erlang and OTP in Action | 10997 | 11010 |
-| Q01 | 11011 | 11014 |
-| B2 Elixir in Action | 11015 | 11026 |
-| Q02 | 11027 | 11030 |
-| Q03 | 11031 | 11034 |
-| B3 Designing Elixir Systems with OTP | 11035 | 11051 |
-| Q04 | 11052 | 11055 |
-| Q14 | 11056 | 11059 |
-| B4 Release It | 11060 | 11080 |
-| Q05 | 11081 | 11084 |
-| Q06 | 11085 | 11088 |
-| Q07 | 11089 | 11092 |
-| Q08 | 11093 | 11096 |
-| Q09 | 11097 | 11100 |
-| B5 Building Event-Driven Microservices | 11101 | 11116 |
-| Q11 | 11117 | 11120 |
-| Q12 | 11121 | 11124 |
-| Q13 | 11125 | 11128 |
-| B6 Fundamentals of Data Engineering | 11129 | 11142 |
-| Q10 | 11143 | 11146 |
-| B7 Domain Modeling Made Functional | 11147 | 11161 |
-| Q15 | 11162 | 11165 |
-| B8 Monitoring Distributed Systems | 11166 | 11179 |
-| Q18 | 11180 | 11183 |
-| B9 Serverless Architectures on AWS | 11184 | 11198 |
-| Q20 | 11199 | 11202 |
-| B10 A Philosophy of Software Design | 11203 | 11220 |
-| Q16 | 11221 | 11224 |
-| B11 Property-Based Testing | 11225 | 11242 |
-| Q17 | 11243 | 11246 |
-| B12 Site Reliability Engineering | 11247 | 11263 |
-| B13 Grokking Simplicity | 11264 | 11275 |
-| B14 Refactoring Databases | 11276 | 11288 |
-| Q19 | 11289 | 11292 |
-| B15 Software Engineering at Google | 11293 | 11305 |
-| B16 Why Programs Fail | 11306 | 11318 |
-| Coverage limits | 11319 | 11328 |
-| Effect source | 11329 | 11334 |
-| Sources | 11335 | 11384 |
-| Lore on this page | 11385 | 11399 |
-| Linked from | 11400 | 11470 |
-| /lore/durability | 11471 | 11475 |
-| Durability starts with a recovery record | 11476 | 11485 |
-| Reading order | 11486 | 11514 |
-| Existing rat-stack paths | 11515 | 11530 |
-| Sources | 11531 | 11534 |
-| Sources | 11535 | 11545 |
-| Lore on this page | 11546 | 11552 |
-| Linked from | 11553 | 11627 |
-| /lore/durable-timers-need-recovery | 11628 | 11632 |
-| Durable timers need recovery | 11633 | 11640 |
-| Failure it prevents | 11641 | 11644 |
-| Our Effect 4.0.0 reading | 11645 | 11650 |
-| How to check | 11651 | 11660 |
-| Sources | 11661 | 11677 |
-| Linked from | 11678 | 11696 |
-| /lore/durable-work-needs-storage | 11697 | 11701 |
-| Durable work needs storage | 11702 | 11711 |
-| Failure it prevents | 11712 | 11715 |
-| Our Effect 4.0.0 reading | 11716 | 11721 |
-| How to check | 11722 | 11731 |
-| Sources | 11732 | 11748 |
-| Lore on this page | 11749 | 11752 |
-| Linked from | 11753 | 11789 |
-| /lore/effect-basics | 11790 | 11794 |
-| Effect basics | 11795 | 11802 |
-| Read the three type parameters | 11803 | 11839 |
-| A description is not a completed operation | 11840 | 11866 |
-| Write a sequence with gen; transform it with pipe | 11867 | 11881 |
-| Expected failures and defects are different | 11882 | 11888 |
-| Requirements name services to supply | 11889 | 11897 |
-| Run at the application boundary | 11898 | 11949 |
-| The common wrong first version | 11950 | 11959 |
-| Read next | 11960 | 11974 |
-| Sources | 11975 | 11994 |
-| Lore on this page | 11995 | 11999 |
-| Linked from | 12000 | 12071 |
-| Unlinked mentions | 12072 | 12222 |
-| /lore/effect-days-2024-origin-story-michael-arnaldi | 12223 | 12243 |
-| Effect Days 2024: The origin story | 12244 | 12252 |
-| Sources | 12253 | 12257 |
-| Lore on this page | 12258 | 12261 |
-| Linked from | 12262 | 12278 |
-| /lore/effect-days-2025-building-effect-4-michael-arnaldi | 12279 | 12299 |
-| Effect Days 2025: Building Effect 4 | 12300 | 12309 |
-| Sources | 12310 | 12314 |
-| Linked from | 12315 | 12329 |
-| /lore/effect-design-lineage | 12330 | 12364 |
-| Effect's design lineage | 12365 | 12378 |
-| Sources | 12379 | 12386 |
-| Lore on this page | 12387 | 12390 |
-| Linked from | 12391 | 12405 |
-| /lore/effect-is-not-beam | 12406 | 12410 |
-| Effect is not BEAM | 12411 | 12420 |
-| Failure it prevents | 12421 | 12424 |
-| Our Effect 4.0.0 reading | 12425 | 12430 |
-| How to check | 12431 | 12440 |
-| Sources | 12441 | 12460 |
-| Lore on this page | 12461 | 12465 |
-| Linked from | 12466 | 12488 |
-| /lore/effect-meetup-sf-2023-why-effect-michael-arnaldi | 12489 | 12509 |
-| Effect Meetup SF 2023: Why Effect? | 12510 | 12520 |
-| Sources | 12521 | 12525 |
-| Lore on this page | 12526 | 12529 |
-| Linked from | 12530 | 12544 |
-| /lore/effect-office-hours-26-community-projects-alchemy | 12545 | 12565 |
-| Effect Office Hours 26: Community projects and Alchemy | 12566 | 12573 |
-| Sources | 12574 | 12578 |
-| Linked from | 12579 | 12593 |
-| /lore/effect-office-hours-27-alchemy-infrastructure-as-effects | 12594 | 12614 |
-| Effect Office Hours 27: Alchemy, infrastructure as effects | 12615 | 12628 |
-| Sources | 12629 | 12633 |
-| Lore on this page | 12634 | 12638 |
-| Linked from | 12639 | 12659 |
-| /lore/engine-neutral-tokens-keep-adapters-replaceable | 12660 | 12664 |
-| Engine-neutral tokens keep adapters replaceable | 12665 | 12690 |
-| Sources | 12691 | 12701 |
-| Linked from | 12702 | 12720 |
-| /lore/error-model | 12721 | 12725 |
-| Handle expected failures without hiding defects | 12726 | 12734 |
-| Give expected failures a type and useful context | 12735 | 12764 |
-| Translate implementation failures without losing their meaning | 12765 | 12785 |
-| Recover or report at a named boundary | 12786 | 12803 |
-| Do not use orDie to hide ordinary failures | 12804 | 12813 |
-| Common wrong approach | 12814 | 12819 |
-| Effect idiom and house rule | 12820 | 12827 |
-| Sources | 12828 | 12853 |
-| Lore on this page | 12854 | 12857 |
-| Linked from | 12858 | 12935 |
-| Unlinked mentions | 12936 | 12942 |
-| /lore/errors-are-part-of-the-interface | 12943 | 12947 |
-| Errors are part of the interface | 12948 | 12976 |
-| Sources | 12977 | 12987 |
-| Linked from | 12988 | 13010 |
-| /lore/every-task-needs-an-owner | 13011 | 13015 |
-| Every task needs an owner | 13016 | 13025 |
-| Failure it prevents | 13026 | 13029 |
-| Our Effect 4.0.0 reading | 13030 | 13035 |
-| How to check | 13036 | 13045 |
-| Sources | 13046 | 13059 |
-| Lore on this page | 13060 | 13063 |
-| Linked from | 13064 | 13086 |
-| /lore/failures-keep-their-meaning | 13087 | 13091 |
-| Failures keep their meaning | 13092 | 13101 |
-| Failure it prevents | 13102 | 13105 |
-| Our Effect 4.0.0 reading | 13106 | 13111 |
-| How to check | 13112 | 13121 |
-| Sources | 13122 | 13141 |
-| Linked from | 13142 | 13166 |
-| /lore/flags-climb-on-evidence | 13167 | 13171 |
-| Flags climb on evidence | 13172 | 13179 |
-| Measure the exit where the flag is read | 13180 | 13193 |
-| Authority comes from approval | 13194 | 13206 |
-| Commit once, then project | 13207 | 13243 |
-| Keep urgent stops out of KV | 13244 | 13255 |
-| Sources | 13256 | 13269 |
-| Lore on this page | 13270 | 13276 |
-| Linked from | 13277 | 13295 |
-| /lore/floor-and-ceiling | 13296 | 13321 |
-| Floor and ceiling | 13322 | 13331 |
-| Sources | 13332 | 13339 |
-| Linked from | 13340 | 13354 |
-| /lore/golden-signals-expose-overload | 13355 | 13359 |
-| Golden signals expose overload | 13360 | 13369 |
-| Failure it prevents | 13370 | 13373 |
-| Our Effect 4.0.0 reading | 13374 | 13379 |
-| How to check | 13380 | 13389 |
-| Sources | 13390 | 13397 |
-| Linked from | 13398 | 13420 |
-| /lore/happy-path-116-infrastructure-as-effects-sam-goodwin | 13421 | 13441 |
-| Happy Path 116: Infrastructure as effects | 13442 | 13450 |
-| Sources | 13451 | 13455 |
-| Linked from | 13456 | 13476 |
-| /lore/happy-path-81-typescript-and-effects-michael-arnaldi | 13477 | 13497 |
-| Happy Path 81: TypeScript and effects | 13498 | 13505 |
-| Sources | 13506 | 13510 |
-| Linked from | 13511 | 13525 |
-| /lore/hateoas | 13526 | 13530 |
-| HATEOAS | 13531 | 13536 |
-| Rat-stack's application | 13537 | 13544 |
-| What exists, and what is direction | 13545 | 13560 |
-| Sources | 13561 | 13580 |
-| Lore on this page | 13581 | 13585 |
-| Linked from | 13586 | 13608 |
-| /lore/hexagonal-architecture | 13609 | 13613 |
-| Hexagonal architecture | 13614 | 13622 |
-| Rat-stack's stance | 13623 | 13630 |
-| How rat-stack does it | 13631 | 13644 |
-| Boundaries fixed | 13645 | 13654 |
-| Sources | 13655 | 13671 |
-| Lore on this page | 13672 | 13676 |
-| Linked from | 13677 | 13738 |
-| Unlinked mentions | 13739 | 13825 |
-| /lore/how-we-do-it-with-effect | 13826 | 13830 |
-| Effect keeps the surfaces on one contract | 13831 | 13843 |
-| Follow one interface at a time | 13844 | 13851 |
-| Layer supplies the job | 13852 | 13887 |
-| Sources | 13888 | 13913 |
-| Lore on this page | 13914 | 13918 |
-| Linked from | 13919 | 13941 |
-| /lore/http-responses-need-validation | 13942 | 13946 |
-| HTTP success needs a status check and a decoder | 13947 | 13957 |
-| Check the protocol response | 13958 | 13979 |
-| Reject an unacceptable response before trusting its data | 13980 | 14014 |
-| Supply the transport in tests | 14015 | 14048 |
-| Decide whether replay is safe before adding retries | 14049 | 14064 |
-| Common mistakes | 14065 | 14071 |
-| Effect idiom and house rule | 14072 | 14081 |
-| Sources | 14082 | 14101 |
-| Lore on this page | 14102 | 14107 |
-| Linked from | 14108 | 14134 |
-| /lore/infrastructure-as-effects | 14135 | 14139 |
-| Infrastructure as effects | 14140 | 14151 |
-| Contract → surfaces | 14152 | 14157 |
-| Code → bindings → resources | 14158 | 14164 |
-| Worked example: a D1 Layer | 14165 | 14210 |
-| Plan → review → deploy | 14211 | 14216 |
-| The compiler checks the joins | 14217 | 14223 |
-| Cartridges | 14224 | 14228 |
-| Lifecycles | 14229 | 14233 |
-| The fence | 14234 | 14238 |
-| Cloud as a library | 14239 | 14243 |
-| The joins at a glance | 14244 | 14270 |
-| Sources | 14271 | 14284 |
-| Lore on this page | 14285 | 14294 |
-| Linked from | 14295 | 14319 |
-| /lore/init-runs-twice | 14320 | 14324 |
-| Worker init runs twice | 14325 | 14340 |
-| Sources | 14341 | 14354 |
-| Lore on this page | 14355 | 14359 |
-| Linked from | 14360 | 14382 |
-| /lore/lauren-tan-skills | 14383 | 14420 |
-| Lauren Tan's skills | 14421 | 14450 |
-| Sources | 14451 | 14464 |
-| Lore on this page | 14465 | 14468 |
-| Linked from | 14469 | 14485 |
-| /lore/lauren-tan | 14486 | 14505 |
-| Lauren Tan | 14506 | 14513 |
-| Sources | 14514 | 14518 |
-| Linked from | 14519 | 14541 |
-| /lore/layer-constructor-pattern | 14542 | 14546 |
-| A Layer as constructor | 14547 | 14555 |
-| Worked example: a journal with private state | 14556 | 14581 |
-| One service, two constructors | 14582 | 14605 |
-| Why it matters | 14606 | 14611 |
-| Next | 14612 | 14618 |
-| Sources | 14619 | 14629 |
-| Linked from | 14630 | 14658 |
-| /lore/layers-make-dependencies-explicit | 14659 | 14663 |
-| Layer composition makes dependencies explicit | 14664 | 14670 |
-| Supply dependencies without changing the domain | 14671 | 14705 |
-| Reuse Layer identity when sharing construction | 14706 | 14745 |
-| Common wrong approach | 14746 | 14753 |
-| Effect idiom and house rule | 14754 | 14764 |
-| Sources | 14765 | 14781 |
-| Lore on this page | 14782 | 14786 |
-| Linked from | 14787 | 14830 |
-| Unlinked mentions | 14831 | 14915 |
-| /lore/lifecycles-are-machines | 14916 | 14920 |
-| Lifecycles are machines | 14921 | 14933 |
-| Worked example: inspecting a file | 14934 | 14938 |
-| 1. Declare the side effect as an actor | 14939 | 14952 |
-| 2. Let the machine choose transitions | 14953 | 14988 |
-| 3. Start it inside Effect and wait for the outcome | 14989 | 15002 |
-| Why a machine | 15003 | 15014 |
-| Next | 15015 | 15022 |
-| Sources | 15023 | 15042 |
-| Lore on this page | 15043 | 15046 |
-| Linked from | 15047 | 15102 |
-| Unlinked mentions | 15103 | 15157 |
-| /lore/matt-pocock-skills | 15158 | 15185 |
-| Matt Pocock's skills | 15186 | 15209 |
-| Sources | 15210 | 15217 |
-| Linked from | 15218 | 15236 |
-| /lore/mcp-is-another-surface | 15237 | 15241 |
-| MCP is another surface | 15242 | 15254 |
-| The projection | 15255 | 15265 |
-| The application tool is the same job | 15266 | 15275 |
-| Sources | 15276 | 15292 |
-| Linked from | 15293 | 15358 |
-| Unlinked mentions | 15359 | 15393 |
-| /lore/mdsvex-left-unified | 15394 | 15398 |
-| mdsvex left unified | 15399 | 15418 |
-| Where we stopped | 15419 | 15445 |
-| The migrator still uses remark | 15446 | 15449 |
-| Sources | 15450 | 15466 |
-| Linked from | 15467 | 15481 |
-| /lore/michael-arnaldi | 15482 | 15516 |
-| Michael Arnaldi | 15517 | 15527 |
-| Sources | 15528 | 15541 |
-| Lore on this page | 15542 | 15545 |
-| Linked from | 15546 | 15564 |
-| /lore/model-based-testing | 15565 | 15569 |
-| Model-based testing | 15570 | 15590 |
-| Sources | 15591 | 15604 |
-| Linked from | 15605 | 15641 |
-| /lore/no-comments | 15642 | 15646 |
-| No comments | 15647 | 15660 |
-| Sources | 15661 | 15668 |
-| Linked from | 15669 | 15692 |
-| Unlinked mentions | 15693 | 15699 |
-| /lore/old-events-must-still-decode | 15700 | 15704 |
-| Old events must still decode | 15705 | 15714 |
-| Failure it prevents | 15715 | 15718 |
-| Our Effect 4.0.0 reading | 15719 | 15724 |
-| How to check | 15725 | 15734 |
-| Sources | 15735 | 15748 |
-| Linked from | 15749 | 15771 |
-| /lore/one-capability-every-surface | 15772 | 15776 |
-| One capability, every surface | 15777 | 15791 |
-| Worked example: `inspectFile` | 15792 | 15793 |
-| 1. The contract | 15794 | 15811 |
-| 2. The handler | 15812 | 15826 |
-| 3. The projections | 15827 | 15852 |
-| Why one contract | 15853 | 15861 |
-| Next | 15862 | 15873 |
-| Sources | 15874 | 15896 |
-| Lore on this page | 15897 | 15902 |
-| Linked from | 15903 | 15946 |
-| Unlinked mentions | 15947 | 15999 |
-| /lore/one-program-can-replace-several-tool-calls | 16000 | 16004 |
-| One program can replace several tool calls | 16005 | 16019 |
-| A live program | 16020 | 16042 |
-| The sandbox preserves the boundary | 16043 | 16072 |
-| Sources | 16073 | 16098 |
-| Lore on this page | 16099 | 16104 |
-| Linked from | 16105 | 16152 |
-| Unlinked mentions | 16153 | 16171 |
-| /lore/one-schema-three-surfaces | 16172 | 16176 |
-| One schema, three surfaces | 16177 | 16198 |
-| One contract feeds the projections | 16199 | 16211 |
-| Where the CLI composes them | 16212 | 16245 |
-| Sources | 16246 | 16268 |
-| Lore on this page | 16269 | 16276 |
-| Linked from | 16277 | 16332 |
-| Unlinked mentions | 16333 | 16431 |
-| /lore/one-snippet-model-two-renderers | 16432 | 16436 |
-| One snippet model feeds both renderers | 16437 | 16462 |
-| Sources | 16463 | 16470 |
-| Lore on this page | 16471 | 16474 |
-| Linked from | 16475 | 16495 |
-| /lore/openapi-describes-the-refusal-too | 16496 | 16500 |
-| OpenAPI describes the refusal too | 16501 | 16510 |
-| The document must describe rejected request input | 16511 | 16531 |
-| Sources | 16532 | 16551 |
-| Linked from | 16552 | 16584 |
-| /lore/pinned-sources-can-report-drift | 16585 | 16589 |
-| Pin the source and report drift separately | 16590 | 16613 |
-| Sources | 16614 | 16621 |
-| Linked from | 16622 | 16644 |
-| /lore/plan-model | 16645 | 16670 |
-| The plan model | 16671 | 16682 |
-| Sources | 16683 | 16690 |
-| Linked from | 16691 | 16711 |
-| /lore/poteto-lauren-tan-2500-prs-dune | 16712 | 16732 |
-| Lauren Tan: Dune, trust, and agent skills | 16733 | 16741 |
-| Sources | 16742 | 16746 |
-| Lore on this page | 16747 | 16750 |
-| Linked from | 16751 | 16769 |
-| /lore/production-grade-typescript | 16770 | 16795 |
-| Production-grade TypeScript | 16796 | 16807 |
-| Sources | 16808 | 16815 |
-| Linked from | 16816 | 16832 |
-| /lore/property-based-testing | 16833 | 16837 |
-| Property-based testing | 16838 | 16863 |
-| Sources | 16864 | 16874 |
-| Lore on this page | 16875 | 16878 |
-| Linked from | 16879 | 16927 |
-| /lore/pure-cores-reduce-timelines | 16928 | 16932 |
-| Pure cores reduce timeline coupling | 16933 | 16942 |
-| Failure it prevents | 16943 | 16946 |
-| Our Effect 4.0.0 reading | 16947 | 16952 |
-| How to check | 16953 | 16962 |
-| Sources | 16963 | 16979 |
-| Linked from | 16980 | 17002 |
-| /lore/queries-need-result-bounds | 17003 | 17007 |
-| Queries need result bounds | 17008 | 17015 |
-| Failure it prevents | 17016 | 17019 |
-| Our Effect 4.0.0 reading | 17020 | 17025 |
-| How to check | 17026 | 17035 |
-| Sources | 17036 | 17043 |
-| Lore on this page | 17044 | 17047 |
-| Linked from | 17048 | 17066 |
-| /lore/queues-pipelines-workflows-and-k2-do-different-jobs | 17067 | 17071 |
-| Queues, Pipelines, Workflows and K2 do different jobs | 17072 | 17087 |
-| Queues track one job at a time | 17088 | 17101 |
-| Pipelines load rows into R2 | 17102 | 17113 |
-| How rat-stack uses it | 17114 | 17146 |
-| Workflows run steps that resume | 17147 | 17156 |
-| K2 keeps a log that many readers replay | 17157 | 17169 |
-| Choose by the unit you track | 17170 | 17178 |
-| Where rat-stack does without them | 17179 | 17190 |
-| Sources | 17191 | 17243 |
-| Lore on this page | 17244 | 17249 |
-| Linked from | 17250 | 17270 |
-| /lore/rat-king | 17271 | 17275 |
-| Rat King carries signed mail between named agents | 17276 | 17284 |
-| Signing and encryption are separate choices | 17285 | 17295 |
-| Schemas distinguish records from operations | 17296 | 17309 |
-| Clients share the mail core | 17310 | 17321 |
-| Public repositories remain a roadmap step | 17322 | 17330 |
-| Sources | 17331 | 17368 |
-| Lore on this page | 17369 | 17372 |
-| Linked from | 17373 | 17395 |
-| /lore/rats-nest | 17396 | 17400 |
-| Rat's Nest keeps the code public and the inventory private | 17401 | 17415 |
-| Public code, private inventory | 17416 | 17427 |
-| Lore on this page | 17428 | 17431 |
-| Linked from | 17432 | 17452 |
-| /lore/recovery-needs-model-tests | 17453 | 17457 |
-| Recovery needs model tests | 17458 | 17467 |
-| Failure it prevents | 17468 | 17471 |
-| Our Effect 4.0.0 reading | 17472 | 17477 |
-| How to check | 17478 | 17487 |
-| Sources | 17488 | 17507 |
-| Linked from | 17508 | 17532 |
-| /lore/replay-needs-stable-inputs | 17533 | 17537 |
-| Replay needs stable inputs | 17538 | 17547 |
-| Failure it prevents | 17548 | 17551 |
-| Our Effect 4.0.0 reading | 17552 | 17557 |
-| How to check | 17558 | 17567 |
-| Sources | 17568 | 17578 |
-| Linked from | 17579 | 17601 |
-| /lore/request-lifetime-is-not-durability | 17602 | 17606 |
-| Request lifetime is not durability | 17607 | 17614 |
-| Failure it prevents | 17615 | 17618 |
-| Our Effect 4.0.0 reading | 17619 | 17624 |
-| How to check | 17625 | 17634 |
-| Sources | 17635 | 17651 |
-| Lore on this page | 17652 | 17655 |
-| Linked from | 17656 | 17678 |
-| /lore/restart-from-known-state | 17679 | 17683 |
-| Restart must reconstruct known state | 17684 | 17691 |
-| Failure it prevents | 17692 | 17695 |
-| Our Effect 4.0.0 reading | 17696 | 17701 |
-| How to check | 17702 | 17711 |
-| Sources | 17712 | 17731 |
-| Lore on this page | 17732 | 17735 |
-| Linked from | 17736 | 17758 |
-| /lore/retry-load-needs-a-budget | 17759 | 17763 |
-| Retry load needs a budget | 17764 | 17771 |
-| Failure it prevents | 17772 | 17775 |
-| Our Effect 4.0.0 reading | 17776 | 17781 |
-| How to check | 17782 | 17791 |
-| Sources | 17792 | 17811 |
-| Linked from | 17812 | 17836 |
-| /lore/retry-needs-idempotency | 17837 | 17841 |
-| Retry needs idempotent effects | 17842 | 17851 |
-| Failure it prevents | 17852 | 17855 |
-| Our Effect 4.0.0 reading | 17856 | 17861 |
-| How to check | 17862 | 17871 |
-| Sources | 17872 | 17888 |
-| Linked from | 17889 | 17923 |
-| /lore/run-effect-at-the-boundary | 17924 | 17928 |
-| Run Effect at the integration boundary | 17929 | 17938 |
-| Use the calling framework's Effect integration | 17939 | 17950 |
-| Do not replace an existing Effect bridge | 17951 | 17971 |
-| Own a foreign runtime explicitly | 17972 | 18007 |
-| Prove disposal through the foreign interface | 18008 | 18042 |
-| Integrate one calling framework at a time | 18043 | 18051 |
-| Common mistakes | 18052 | 18058 |
-| Effect idiom and house rule | 18059 | 18068 |
-| Sources | 18069 | 18088 |
-| Lore on this page | 18089 | 18095 |
-| Linked from | 18096 | 18113 |
-| Unlinked mentions | 18114 | 18120 |
-| /lore/sam-goodwin | 18121 | 18150 |
-| Sam Goodwin | 18151 | 18162 |
-| Sources | 18163 | 18173 |
-| Linked from | 18174 | 18194 |
-| /lore/schema-changes-need-a-transition | 18195 | 18199 |
-| Shared schemas need a transition period | 18200 | 18209 |
-| Failure it prevents | 18210 | 18213 |
-| Our Effect 4.0.0 reading | 18214 | 18219 |
-| How to check | 18220 | 18229 |
-| Sources | 18230 | 18240 |
-| Linked from | 18241 | 18259 |
-| /lore/schemas-define-the-boundary | 18260 | 18264 |
-| Schemas define the boundary | 18265 | 18275 |
-| Use one model for types and runtime checks | 18276 | 18303 |
-| Put the schemas in the contract | 18304 | 18324 |
-| Decode before dispatch | 18325 | 18354 |
-| A schema states what a value means | 18355 | 18366 |
-| Common wrong approach | 18367 | 18374 |
-| Effect idiom and house rule | 18375 | 18382 |
-| Sources | 18383 | 18405 |
-| Lore on this page | 18406 | 18409 |
-| Linked from | 18410 | 18471 |
-| Unlinked mentions | 18472 | 18564 |
-| /lore/scopes-own-resources | 18565 | 18569 |
-| Scopes release resources when work ends | 18570 | 18579 |
-| Acquire, use, and release one resource | 18580 | 18626 |
-| Choose the lifetime | 18627 | 18638 |
-| Prove all use exits | 18639 | 18688 |
-| Common mistakes | 18689 | 18698 |
-| Effect idiom and house rule | 18699 | 18711 |
-| Sources | 18712 | 18728 |
-| Lore on this page | 18729 | 18733 |
-| Linked from | 18734 | 18805 |
-| Unlinked mentions | 18806 | 18836 |
-| /lore/services-capture-dependencies | 18837 | 18841 |
-| A service captures its construction dependencies | 18842 | 18851 |
-| Name the job before the implementation | 18852 | 18874 |
-| Compose work inside the method | 18875 | 18908 |
-| Construction dependencies are not request identity | 18909 | 18918 |
-| Common wrong approach | 18919 | 18926 |
-| Effect idiom and house rule | 18927 | 18936 |
-| Sources | 18937 | 18956 |
-| Lore on this page | 18957 | 18960 |
-| Linked from | 18961 | 19022 |
-| Unlinked mentions | 19023 | 19143 |
-| /lore/shitrat-bestiary | 19144 | 19148 |
-| The rat-stack bestiary eats excuses | 19149 | 19156 |
-| The fence | 19157 | 19166 |
-| The comment ban | 19167 | 19176 |
-| The gardener | 19177 | 19185 |
-| The doc-fence | 19186 | 19196 |
-| The startup ceiling | 19197 | 19207 |
-| Mischief | 19208 | 19218 |
-| The Git snapshot | 19219 | 19229 |
-| Keep or cut | 19230 | 19241 |
-| Sources | 19242 | 19264 |
-| Lore on this page | 19265 | 19270 |
-| Linked from | 19271 | 19290 |
-| Unlinked mentions | 19291 | 19297 |
-| /lore/shitrat-canon | 19298 | 19302 |
-| ShitRat's canon is an incident log | 19303 | 19310 |
-| Agents copy everything | 19311 | 19318 |
-| The hold that could not release itself | 19319 | 19326 |
-| Clawing through the screen | 19327 | 19335 |
-| A rat gets a house | 19336 | 19344 |
-| Keep the receipt attached | 19345 | 19351 |
-| Sources | 19352 | 19365 |
-| Linked from | 19366 | 19390 |
-| /lore/shitrat-creed | 19391 | 19395 |
-| ShitRat wants receipts before claims | 19396 | 19410 |
-| The four house rules | 19411 | 19423 |
-| Things the rat can't stand | 19424 | 19432 |
-| When a preference becomes a fence | 19433 | 19441 |
-| Sources | 19442 | 19449 |
-| Linked from | 19450 | 19472 |
-| /lore/shitrat-origin | 19473 | 19477 |
-| Joel bought a domain and the rat built its own house | 19478 | 19490 |
-| A house with four kilobytes of opinion | 19491 | 19501 |
-| The house stays small on purpose | 19502 | 19511 |
-| A public face for a familiar | 19512 | 19520 |
-| Sources | 19521 | 19528 |
-| Lore on this page | 19529 | 19532 |
-| Linked from | 19533 | 19555 |
-| /lore/shitrat-rat-king | 19556 | 19560 |
-| A rat can be a name with a mailbox | 19561 | 19568 |
-| The address and the reader | 19569 | 19574 |
-| Legend has it… the crown is a letterbox | 19575 | 19590 |
-| Legend has it… the lease is a high-vis vest | 19591 | 19603 |
-| The boundary stays outside the costume | 19604 | 19611 |
-| Sources | 19612 | 19619 |
-| Lore on this page | 19620 | 19623 |
-| Linked from | 19624 | 19644 |
-| /lore/shitrat-rituals | 19645 | 19649 |
-| The rat has rituals for proving it happened | 19650 | 19657 |
-| The gate | 19658 | 19673 |
-| The snapshot dance | 19674 | 19690 |
-| Receipts before claims | 19691 | 19700 |
-| The deployment looks back | 19701 | 19715 |
-| Sources | 19716 | 19738 |
-| Lore on this page | 19739 | 19742 |
-| Linked from | 19743 | 19763 |
-| /lore/shitrat-war-stories | 19764 | 19768 |
-| The war stories | 19769 | 19777 |
-| The deploy that mugged itself | 19778 | 19791 |
-| Congratulations, your program exploded | 19792 | 19805 |
-| Mischief changes the brass plate | 19806 | 19815 |
-| The demolition manual gets road-tested | 19816 | 19829 |
-| The ceiling gets an expiry date | 19830 | 19844 |
-| Two accountants disagree about the shed | 19845 | 19859 |
-| The bouncer eats the guest list | 19860 | 19876 |
-| Sources | 19877 | 19905 |
-| Lore on this page | 19906 | 19909 |
-| Linked from | 19910 | 19928 |
-| /lore/shitrat | 19929 | 19933 |
-| ShitRat is Joel's familiar, with receipts | 19934 | 19945 |
-| Pick a tunnel | 19946 | 19956 |
-| Nearby rats and rules | 19957 | 19963 |
-| Legend has it… | 19964 | 19969 |
-| Sources | 19970 | 19977 |
-| Lore on this page | 19978 | 19982 |
-| Linked from | 19983 | 20008 |
-| Unlinked mentions | 20009 | 20015 |
-| /lore/shitratgit-bot | 20016 | 20020 |
-| shitratgit\[bot] leaves a countable trail | 20021 | 20029 |
-| Count the trail | 20030 | 20043 |
-| Reproduce the count | 20044 | 20054 |
-| The older receipt stays older | 20055 | 20064 |
-| A commit is not permission to deploy | 20065 | 20071 |
-| Sources | 20072 | 20085 |
-| Linked from | 20086 | 20106 |
-| /lore/steady-state-recycles-resources | 20107 | 20111 |
-| Steady state recycles resources | 20112 | 20121 |
-| Failure it prevents | 20122 | 20125 |
-| Our Effect 4.0.0 reading | 20126 | 20131 |
-| How to check | 20132 | 20141 |
-| Sources | 20142 | 20155 |
-| Linked from | 20156 | 20178 |
-| /lore/structure-effect-by-domain | 20179 | 20183 |
-| Structure an Effect codebase by domain | 20184 | 20201 |
-| The shape in one tree | 20202 | 20222 |
-| The rules that hold it together | 20223 | 20224 |
-| Capture dependencies when constructing a service | 20225 | 20251 |
-| Provide Layers at the entrypoint | 20252 | 20278 |
-| Keep ports inside and adapters outside | 20279 | 20284 |
-| Keep related definitions with the domain | 20285 | 20291 |
-| House style versus Effect idiom | 20292 | 20301 |
-| Where disagreement lives | 20302 | 20311 |
-| Sources | 20312 | 20349 |
-| Lore on this page | 20350 | 20355 |
-| Linked from | 20356 | 20393 |
-| Unlinked mentions | 20394 | 20400 |
-| /lore/supervision-is-a-recovery-policy | 20401 | 20405 |
-| Supervision chooses what restarts | 20406 | 20415 |
-| Failure it prevents | 20416 | 20419 |
-| Our Effect 4.0.0 reading | 20420 | 20425 |
-| How to check | 20426 | 20435 |
-| Sources | 20436 | 20455 |
-| Linked from | 20456 | 20482 |
-| /lore/tests-that-earn-their-place | 20483 | 20487 |
-| Tests prove behavior through supplied services | 20488 | 20497 |
-| Test behavior independently of the implementation | 20498 | 20506 |
-| Run an Effect through supplied services | 20507 | 20535 |
-| Choose the smallest proof that fits the rule | 20536 | 20548 |
-| Keep the assertion independent | 20549 | 20584 |
-| Generate histories when order matters | 20585 | 20606 |
-| Common wrong approach | 20607 | 20613 |
-| Effect idiom and house rule | 20614 | 20623 |
-| Sources | 20624 | 20646 |
-| Lore on this page | 20647 | 20651 |
-| Linked from | 20652 | 20697 |
-| Unlinked mentions | 20698 | 20704 |
-| /lore/the-fence | 20705 | 20709 |
-| The fence | 20710 | 20725 |
-| Where to enforce a correction | 20726 | 20733 |
-| Sources | 20734 | 20747 |
-| Lore on this page | 20748 | 20752 |
-| Linked from | 20753 | 20854 |
-| Unlinked mentions | 20855 | 20889 |
-| /lore/theo-browne | 20890 | 20919 |
-| Theo Browne | 20920 | 20927 |
-| Sources | 20928 | 20938 |
-| Lore on this page | 20939 | 20942 |
-| Linked from | 20943 | 20959 |
-| /lore/theo-please-stop-using-stupid-models | 20960 | 20980 |
-| Theo Browne: Please stop using stupid models | 20981 | 20988 |
-| Sources | 20989 | 20993 |
-| Linked from | 20994 | 21010 |
-| /lore/there-is-no-isr-on-cloudflare | 21011 | 21015 |
-| There is no ISR on Cloudflare | 21016 | 21030 |
-| What our comparison proves | 21031 | 21057 |
-| What we choose | 21058 | 21063 |
-| Sources | 21064 | 21086 |
-| Lore on this page | 21087 | 21090 |
-| Linked from | 21091 | 21105 |
-| /lore/think-wider | 21106 | 21131 |
-| Think wider | 21132 | 21141 |
-| Sources | 21142 | 21149 |
-| Linked from | 21150 | 21168 |
-| /lore/timeouts-bound-waiting | 21169 | 21173 |
-| Timeouts bound waiting | 21174 | 21183 |
-| Failure it prevents | 21184 | 21187 |
-| Our Effect 4.0.0 reading | 21188 | 21193 |
-| How to check | 21194 | 21203 |
-| Sources | 21204 | 21214 |
-| Linked from | 21215 | 21259 |
-| /lore/tokenize-before-slicing | 21260 | 21264 |
-| Tokenize the whole file before slicing | 21265 | 21294 |
-| Sources | 21295 | 21302 |
-| Linked from | 21303 | 21321 |
-| /lore/trace-meaningful-operations | 21322 | 21326 |
-| Trace operations where they mean something | 21327 | 21336 |
-| Name meaningful operations | 21337 | 21370 |
-| Add safe attributes deliberately | 21371 | 21385 |
-| Supply an exporter, serializer and transport | 21386 | 21417 |
-| Check the delivery boundary you actually exercised | 21418 | 21451 |
-| Native tracing includes platform data | 21452 | 21488 |
-| Keep other observers distinct | 21489 | 21497 |
-| Common mistakes | 21498 | 21504 |
-| Effect idiom and house rule | 21505 | 21513 |
-| Sources | 21514 | 21536 |
-| Lore on this page | 21537 | 21541 |
-| Linked from | 21542 | 21559 |
-| Unlinked mentions | 21560 | 21574 |
-| /lore/two-lines-of-curl-is-a-front-door | 21575 | 21579 |
-| An agent applied through Markdown and HTTP | 21580 | 21597 |
-| What the requests do not tell us | 21598 | 21607 |
-| Sources | 21608 | 21621 |
-| Lore on this page | 21622 | 21626 |
-| Linked from | 21627 | 21643 |
-| /lore/ui-behaviour-is-a-scene | 21644 | 21648 |
-| UI behaviour is a scene | 21649 | 21656 |
-| Input and time are data | 21657 | 21665 |
-| The Toast example | 21666 | 21705 |
-| A race is a plain assertion | 21706 | 21712 |
-| Assert on what the view shows | 21713 | 21747 |
-| Plant a bug first | 21748 | 21754 |
-| Sources | 21755 | 21765 |
-| Lore on this page | 21766 | 21769 |
-| Linked from | 21770 | 21790 |
-| /lore/visakan-veerasamy | 21791 | 21820 |
-| Visakan Veerasamy | 21821 | 21828 |
-| Sources | 21829 | 21839 |
-| Linked from | 21840 | 21854 |
-| /lore/why-javascript-is-broken-effect-michael-arnaldi | 21855 | 21875 |
-| Why JavaScript is broken: Effect and TypeScript | 21876 | 21883 |
-| Sources | 21884 | 21888 |
-| Linked from | 21889 | 21903 |
-| /lore/workers-answer-requests-durable-objects-own-named-state | 21904 | 21908 |
-| Workers answer requests; Durable Objects own named state | 21909 | 21917 |
-| Why a Worker must not rely on module state | 21918 | 21937 |
-| What a Durable Object adds | 21938 | 21948 |
-| Worked example: one object per join submission | 21949 | 22005 |
-| Choose the home | 22006 | 22012 |
-| Next | 22013 | 22019 |
-| Sources | 22020 | 22039 |
-| Linked from | 22040 | 22163 |
-| Unlinked mentions | 22164 | 22232 |
-| /lore/ziverge-de-goes-arnaldi-typescript-for-scala-devs | 22233 | 22253 |
-| Why TypeScript is a good fit for Scala developers | 22254 | 22262 |
-| Sources | 22263 | 22267 |
-| Lore on this page | 22268 | 22271 |
-| Linked from | 22272 | 22286 |
-| /systems/agent-front-door | 22287 | 22291 |
-| Hosted agent interfaces | 22292 | 22295 |
-| What it does | 22296 | 22308 |
-| Run a program instead of several calls | 22309 | 22329 |
-| The standard | 22330 | 22346 |
-| Content asset cache | 22347 | 22361 |
-| How to check | 22362 | 22376 |
-| Sources | 22377 | 22393 |
-| Lore on this page | 22394 | 22401 |
-| Linked from | 22402 | 22415 |
-| Unlinked mentions | 22416 | 22424 |
-| /systems/all-stars | 22425 | 22429 |
-| CAFE all stars | 22430 | 22433 |
-| What it does | 22434 | 22457 |
-| The standard | 22458 | 22475 |
-| How to check | 22476 | 22495 |
-| Sources | 22496 | 22500 |
-| Lore on this page | 22501 | 22504 |
-| Linked from | 22505 | 22519 |
-| /systems/analytics | 22520 | 22524 |
-| Analytics | 22525 | 22528 |
-| What it does | 22529 | 22561 |
-| The standard | 22562 | 22577 |
-| Worker logs | 22578 | 22601 |
-| Crash archive | 22602 | 22664 |
-| Read crashes without a dashboard | 22665 | 22699 |
-| Deleting stored events | 22700 | 22712 |
-| Switches | 22713 | 22728 |
-| How to check | 22729 | 22753 |
-| Tests | 22754 | 22769 |
-| Removing it | 22770 | 22773 |
-| Sources | 22774 | 22802 |
-| Lore on this page | 22803 | 22809 |
-| Linked from | 22810 | 22852 |
-| /systems/auth | 22853 | 22857 |
-| Auth | 22858 | 22861 |
-| What it does | 22862 | 22888 |
-| The standard | 22889 | 22898 |
-| How to check | 22899 | 22906 |
-| Sources | 22907 | 22920 |
-| Lore on this page | 22921 | 22926 |
-| Linked from | 22927 | 22967 |
-| /systems/capabilities | 22968 | 22972 |
-| Capabilities | 22973 | 22976 |
-| What it does | 22977 | 23005 |
-| The standard | 23006 | 23015 |
-| Code-mode discovery and execution | 23016 | 23064 |
-| How to check | 23065 | 23073 |
-| Removing an interface | 23074 | 23077 |
-| Sources | 23078 | 23094 |
-| Lore on this page | 23095 | 23102 |
-| Linked from | 23103 | 23160 |
-| Unlinked mentions | 23161 | 23275 |
-| /systems/database | 23276 | 23280 |
-| Database | 23281 | 23284 |
-| What it does | 23285 | 23305 |
-| The standard | 23306 | 23315 |
-| How to check | 23316 | 23319 |
-| Sources | 23320 | 23333 |
-| Lore on this page | 23334 | 23339 |
-| Linked from | 23340 | 23366 |
-| /systems/devtools | 23367 | 23371 |
-| Devtools | 23372 | 23375 |
-| What it does | 23376 | 23397 |
-| The standard | 23398 | 23404 |
-| How to check | 23405 | 23411 |
-| Sources | 23412 | 23425 |
-| Lore on this page | 23426 | 23430 |
-| Linked from | 23431 | 23451 |
-| /systems/durability | 23452 | 23456 |
-| Durability | 23457 | 23460 |
-| What it does | 23461 | 23481 |
-| 1. Lease a connection for the query | 23482 | 23490 |
-| 2. Answer at commit; dispatch off the request | 23491 | 23501 |
-| 3. Set a provider timeout once | 23502 | 23510 |
-| 4. Bound work in flight | 23511 | 23518 |
-| 5. Scope waiters to the request | 23519 | 23526 |
-| 6. Climb a flag with a ledger | 23527 | 23535 |
-| 7. Fail open on liveness, closed on harm | 23536 | 23544 |
-| The standard | 23545 | 23556 |
-| How to check | 23557 | 23569 |
-| Sources | 23570 | 23586 |
-| Lore on this page | 23587 | 23594 |
-| Linked from | 23595 | 23619 |
-| /systems/fence | 23620 | 23624 |
-| Fence | 23625 | 23628 |
-| What it does | 23629 | 23651 |
-| The standard | 23652 | 23664 |
-| How to check | 23665 | 23676 |
-| Sources | 23677 | 23696 |
-| Lore on this page | 23697 | 23702 |
-| Linked from | 23703 | 23717 |
-| /systems/flags | 23718 | 23722 |
-| Feature flags | 23723 | 23726 |
-| What it does | 23727 | 23766 |
-| The standard | 23767 | 23832 |
-| How to check | 23833 | 23849 |
-| Sources | 23850 | 23860 |
-| Lore on this page | 23861 | 23868 |
-| Linked from | 23869 | 23891 |
-| /systems/interest | 23892 | 23896 |
-| Interest signup | 23897 | 23900 |
-| What it does | 23901 | 23917 |
-| The standard | 23918 | 23930 |
-| Applicant identity | 23931 | 23949 |
-| Operator commands | 23950 | 23980 |
-| How to check | 23981 | 23987 |
-| Sources | 23988 | 24010 |
-| Lore on this page | 24011 | 24017 |
-| Linked from | 24018 | 24050 |
-| /systems/learn | 24051 | 24055 |
-| Learn mode presents concepts at useful depths | 24056 | 24059 |
-| What it does | 24060 | 24117 |
-| Feedback sign-in | 24118 | 24144 |
-| The standard | 24145 | 24188 |
-| How to check | 24189 | 24249 |
-| Sources | 24250 | 24269 |
-| Lore on this page | 24270 | 24279 |
-| Linked from | 24280 | 24304 |
-| /systems/motion | 24305 | 24309 |
-| Motion | 24310 | 24313 |
-| What it does | 24314 | 24373 |
-| The standard | 24374 | 24403 |
-| How to check | 24404 | 24410 |
-| Sources | 24411 | 24421 |
-| Lore on this page | 24422 | 24426 |
-| Linked from | 24427 | 24445 |
-| /systems/prompts | 24446 | 24450 |
-| One prompt serves people and agents | 24451 | 24454 |
-| What it does | 24455 | 24465 |
-| The standard | 24466 | 24475 |
-| How to check | 24476 | 24486 |
-| Sources | 24487 | 24491 |
-| Lore on this page | 24492 | 24496 |
-| Linked from | 24497 | 24511 |
-| /systems/tube | 24512 | 24516 |
-| Ratstack Tube | 24517 | 24520 |
-| What it does | 24521 | 24539 |
-| The standard | 24540 | 24551 |
-| How to check | 24552 | 24569 |
-| Sources | 24570 | 24574 |
-| Lore on this page | 24575 | 24578 |
-| Linked from | 24579 | 24593 |
-| /systems/turbo-cache | 24594 | 24598 |
-| Turbo remote cache | 24599 | 24602 |
-| What it does | 24603 | 24628 |
-| The standard | 24629 | 24673 |
-| How to check | 24674 | 24708 |
-| Sources | 24709 | 24722 |
-| Lore on this page | 24723 | 24727 |
-| Linked from | 24728 | 24742 |
-| /systems/web | 24743 | 24747 |
-| Web | 24748 | 24751 |
-| What it does | 24752 | 24770 |
-| The standard | 24771 | 24779 |
-| How to check | 24780 | 24786 |
-| Sources | 24787 | 24800 |
-| Lore on this page | 24801 | 24805 |
-| Linked from | 24806 | 24828 |
-| /skills/add-a-capability | 24829 | 24849 |
-| Add a capability | 24850 | 24859 |
-| 1. Define the contract | 24860 | 24891 |
-| 2. Implement it | 24892 | 24907 |
-| 3. Register it | 24908 | 24919 |
-| 4. Project the implementation | 24920 | 24932 |
-| 5. Test it | 24933 | 24942 |
-| 6. Finish | 24943 | 24950 |
-| Lore on this page | 24951 | 24959 |
-| Linked from | 24960 | 24966 |
-| /skills/add-a-feature-flag | 24967 | 24987 |
-| Add a feature flag | 24988 | 24997 |
-| 1. Decide whether a flag fits | 24998 | 25005 |
-| 2. Declare the ladder | 25006 | 25025 |
-| 3. Name each exit's evidence | 25026 | 25038 |
-| 4. Compose authority and storage | 25039 | 25056 |
-| 5. Prove and remove | 25057 | 25069 |
-| Lore on this page | 25070 | 25080 |
-| /skills/add-a-lifecycle-machine | 25081 | 25100 |
-| Add a lifecycle machine | 25101 | 25112 |
-| 1. Write the states first | 25113 | 25120 |
-| 2. Put side effects in actors | 25121 | 25133 |
-| 3. Build the machine | 25134 | 25185 |
-| 4. Run it inside Effect | 25186 | 25213 |
-| 5. Generate inputs and command histories | 25214 | 25246 |
-| 6. Finish | 25247 | 25252 |
-| Lore on this page | 25253 | 25261 |
-| /skills/add-a-store | 25262 | 25283 |
-| Add a store | 25284 | 25297 |
-| 1. Name the facts and their owner | 25298 | 25312 |
-| 2. Define operations for the application job | 25313 | 25322 |
-| 3. Validate input and decode stored rows | 25323 | 25332 |
-| 4. Implement each vendor and bound reads | 25333 | 25343 |
-| 5. Carry schemas, migrations, and resources together | 25344 | 25353 |
-| 6. Prove the behavior on every storage implementation | 25354 | 25365 |
-| 7. Compose, validate, and report | 25366 | 25377 |
-| Lore on this page | 25378 | 25385 |
-| Unlinked mentions | 25386 | 25396 |
-| /skills/durability | 25397 | 25419 |
-| Durability | 25420 | 25431 |
-| When to use it | 25432 | 25446 |
-| Patterns | 25447 | 25483 |
-| Read the actual boundary | 25484 | 25497 |
-| Work through a change | 25498 | 25508 |
-| Principles, ranked | 25509 | 25577 |
-| Choose what owns recovery | 25578 | 25607 |
-| Check the uncomfortable boundaries | 25608 | 25621 |
-| Lore | 25622 | 25636 |
-| Related skills | 25637 | 25644 |
-| Finish | 25645 | 25648 |
-| Bibliography | 25649 | 25697 |
-| Lore on this page | 25698 | 25715 |
-| /skills/find-peers | 25716 | 25736 |
-| Find peers | 25737 | 25744 |
-| Run | 25745 | 25754 |
-| Refresh peers, versions, and tiers | 25755 | 25762 |
-| Targeted XState discovery | 25763 | 25770 |
-| Tier rubric | 25771 | 25786 |
-| Learn from the new ones | 25787 | 25796 |
-| Report | 25797 | 25800 |
-| Lore on this page | 25801 | 25805 |
-| Linked from | 25806 | 25812 |
-| /skills/gardener | 25813 | 25834 |
-| Maintain rat-stack | 25835 | 25844 |
-| 1. Check the pins | 25845 | 25857 |
-| 2. Update one dependency family at a time | 25858 | 25872 |
-| 3. Peers refresh | 25873 | 25878 |
-| 4. Remove prohibited patterns | 25879 | 25899 |
-| Report | 25900 | 25911 |
-| Lore on this page | 25912 | 25916 |
-| Linked from | 25917 | 25920 |
-| Unlinked mentions | 25921 | 25957 |
-| /skills/investigate-a-failure | 25958 | 25981 |
-| Investigate a failure | 25982 | 25996 |
-| Terms used here | 25997 | 26004 |
-| 1. Bound the symptom | 26005 | 26008 |
-| 2. Make it happen on demand | 26009 | 26012 |
-| 3. Rebuild what runs | 26013 | 26016 |
-| 4. Test one hypothesis at a time | 26017 | 26026 |
-| 5. Fix at the cause | 26027 | 26034 |
-| 6. Leave a notebook and a recipe | 26035 | 26051 |
-| Report | 26052 | 26061 |
-| Lore on this page | 26062 | 26068 |
-| /skills/keep-or-cut | 26069 | 26089 |
-| Keep or cut rat-stack | 26090 | 26101 |
-| Smallest version: command line only | 26102 | 26125 |
-| Cut code mode | 26126 | 26143 |
-| Cut HTTP | 26144 | 26154 |
-| Cut MCP | 26155 | 26167 |
-| Cut XState | 26168 | 26180 |
-| Cut devtools | 26181 | 26188 |
-| Clean up after each cut | 26189 | 26203 |
-| Lore on this page | 26204 | 26213 |
-| /skills/learn | 26214 | 26237 |
-| Learn during real work | 26238 | 26243 |
-| Start and stop | 26244 | 26254 |
-| Use the local tools | 26255 | 26288 |
-| Display preferences | 26289 | 26316 |
-| Select and present | 26317 | 26340 |
-| Record what happened | 26341 | 26349 |
-| Keep it quiet | 26350 | 26358 |
-| Without MCP | 26359 | 26374 |
-| Leave feedback with phone approval | 26375 | 26392 |
-| Offer a skill in the session | 26393 | 26402 |
-| Privacy | 26403 | 26410 |
-| Lore on this page | 26411 | 26420 |
-| /skills/learn-alchemy | 26421 | 26441 |
-| Learn Alchemy | 26442 | 26453 |
-| The vocabulary | 26454 | 26466 |
-| Trace one deploy | 26467 | 26510 |
-| Follow the Worker bindings | 26511 | 26551 |
-| Plan, then deploy | 26552 | 26568 |
-| Why not wrangler.toml or Terraform | 26569 | 26576 |
-| Gotchas from this repo | 26577 | 26585 |
-| Try it | 26586 | 26591 |
-| Read before changing | 26592 | 26605 |
-| Lore on this page | 26606 | 26613 |
-| Unlinked mentions | 26614 | 26662 |
-| /skills/learn-rat-stack | 26663 | 26685 |
-| Learn the stack | 26686 | 26697 |
-| The pieces | 26698 | 26708 |
-| One action, five interfaces | 26709 | 26722 |
-| Trace one action | 26723 | 26726 |
-| 1. Define the contract | 26727 | 26746 |
-| 2. Bind one handler | 26747 | 26770 |
-| 3. Put file work in a service | 26771 | 26809 |
-| 4. Give the lifecycle named states | 26810 | 26855 |
-| 5. Project the registered actions | 26856 | 26898 |
-| 6. Connect the CLI | 26899 | 26941 |
-| 7. Compose the cloud | 26942 | 26971 |
-| Try hosted search and read | 26972 | 26991 |
-| Read before changing a piece | 26992 | 27002 |
-| Pick the next skill | 27003 | 27009 |
-| Finish | 27010 | 27021 |
-| Lore on this page | 27022 | 27026 |
-| Unlinked mentions | 27027 | 27071 |
-| /skills/model-a-protocol | 27072 | 27094 |
-| Model a protocol | 27095 | 27102 |
-| When to model | 27103 | 27115 |
-| How to model | 27116 | 27129 |
-| Read the exit code | 27130 | 27141 |
-| What the fence checks | 27142 | 27153 |
-| What it found | 27154 | 27170 |
-| Lore on this page | 27171 | 27177 |
-| /skills/onboard-a-list | 27178 | 27200 |
-| Onboard a list | 27201 | 27210 |
-| Start with the source and authority | 27211 | 27224 |
-| 1. Capture a read-only inventory | 27225 | 27236 |
-| 2. Establish the stop floor | 27237 | 27244 |
-| 3. Measure each proposed rule | 27245 | 27260 |
-| 4. Choose and pin the cohort | 27261 | 27272 |
-| 5. Dry-run and prepare the destination | 27273 | 27282 |
-| 6. Make the authorized switch | 27283 | 27296 |
-| 7. Prove and report the result | 27297 | 27310 |
-| Lore on this page | 27311 | 27317 |
-| /skills/profile-a-worker | 27318 | 27341 |
-| Profile a Worker | 27342 | 27349 |
-| Terms used here | 27350 | 27356 |
-| 1. Pick the target | 27357 | 27362 |
-| 2. Get read access | 27363 | 27371 |
-| 3. Send traffic during the capture | 27372 | 27379 |
-| 4. Capture | 27380 | 27406 |
-| 5. Read it | 27407 | 27420 |
-| 6. Act on one finding | 27421 | 27429 |
-| Finish | 27430 | 27435 |
-| Lore on this page | 27436 | 27442 |
-| /skills/query-design | 27443 | 27472 |
-| Design queries around round trips | 27473 | 27494 |
-| 1. Name the question, caller, and rate | 27495 | 27509 |
-| 2. Apply the shared rules | 27510 | 27522 |
-| 3. Check PlanetScale Vitess limits | 27523 | 27548 |
-| 4. Keep Hyperdrive connections request-scoped | 27549 | 27554 |
-| 5. Make checks stronger than prose | 27555 | 27556 |
-| Count statements through the real store | 27557 | 27576 |
-| Commit statement templates and enforce a plan fence | 27577 | 27602 |
-| 6. Keep consumer details in their playbooks | 27603 | 27610 |
-| 7. Read the prior art | 27611 | 27621 |
-| 8. Finish with evidence | 27622 | 27634 |
-| Lore on this page | 27635 | 27644 |
-| /skills/rat-stack-mode | 27645 | 27665 |
-| Work in rat-stack mode | 27666 | 27673 |
-| Non-negotiables | 27674 | 27681 |
-| Principles index | 27682 | 27744 |
-| Playbooks | 27745 | 27764 |
-| Autonomy and child-project slots | 27765 | 27770 |
-| Lore on this page | 27771 | 27782 |
-| /skills/security-audit | 27783 | 27792 |
-| Security Audit | 27793 | 27798 |
-| Operating modes | 27799 | 27807 |
-| Platform terminology | 27808 | 27819 |
-| Universal execution safety | 27820 | 27832 |
-| Full audit setup | 27833 | 27842 |
-| Write isolation | 27843 | 27876 |
-| Full audit planning | 27877 | 27880 |
-| Coverage and prior runs | 27881 | 27895 |
-| Run profiles and scope | 27896 | 27907 |
-| Cost budget | 27908 | 27924 |
-| Core principles | 27925 | 27926 |
-| Require a boundary and result | 27927 | 27930 |
-| Use bounded local evidence | 27931 | 27934 |
-| Respect source visibility | 27935 | 27938 |
-| Separate priority from certainty | 27939 | 27952 |
-| Recommend the smallest effective source fix | 27953 | 27956 |
-| Full audit workflow | 27957 | 27969 |
-| Anti-patterns | 27970 | 27982 |
-| Upstream credit | 27983 | 27986 |
-| rat-stack audit boundaries | 27987 | 27990 |
-| Capabilities and approval | 27991 | 27994 |
-| Code-mode sandbox | 27995 | 27998 |
-| Better Auth and CurrentPerson | 27999 | 28002 |
-| Devtools and production | 28003 | 28006 |
-| Cloud resources and bindings | 28007 | 28016 |
-| Secrets and configuration | 28017 | 28020 |
-| Retained resources | 28021 | 28024 |
-| Skill files | 28025 | 28050 |
-| Lore on this page | 28051 | 28063 |
-| /skills/ship | 28064 | 28085 |
-| Ship a change | 28086 | 28091 |
-| Terms used here | 28092 | 28109 |
-| 1. Read current deployment availability | 28110 | 28128 |
-| 2. Prepare and merge | 28129 | 28136 |
-| Merging | 28137 | 28144 |
-| 3. Release and deploy | 28145 | 28158 |
-| 4. Roll out and verify | 28159 | 28164 |
-| 5. Restore or stop | 28165 | 28178 |
-| 6. Keep one release procedure current | 28179 | 28190 |
-| Lore on this page | 28191 | 28198 |
-| /skills/test-behaviour | 28199 | 28218 |
-| Test a behaviour | 28219 | 28226 |
-| 1. A domain rule: a property | 28227 | 28259 |
-| 2. Anything with history: a model | 28260 | 28278 |
-| 3. UI behaviour: a Foldkit Scene | 28279 | 28318 |
-| 4. A seam: one example | 28319 | 28338 |
-| 5. Always: plant a bug | 28339 | 28352 |
-| Lore on this page | 28353 | 28359 |
-| /skills/uncomplect | 28360 | 28382 |
-| Uncomplect rat-stack | 28383 | 28392 |
-| Read first | 28393 | 28398 |
-| Terms used here | 28399 | 28422 |
-| Find combined responsibilities | 28423 | 28424 |
-| Behavior in a projection | 28425 | 28430 |
-| Network calls and retries in a feature | 28431 | 28436 |
-| Provider code in a caller | 28437 | 28442 |
-| Resources separate from the code that uses them | 28443 | 28448 |
-| Infrastructure setup in runtime code | 28449 | 28454 |
-| Approval and retry rules inside handlers | 28455 | 28460 |
-| Lifecycle encoded in scattered flags | 28461 | 28466 |
-| Two places approving writes | 28467 | 28472 |
-| Service wrapper that hides nothing | 28473 | 28478 |
-| Unchecked external input | 28479 | 28484 |
-| Crash folded into an outcome | 28485 | 28492 |
-| Duplicated API definitions | 28493 | 28498 |
-| Deployment configuration or live flag | 28499 | 28504 |
-| Undeclared deployment inputs | 28505 | 28512 |
-| Hide implementation details behind the interface | 28513 | 28518 |
-| Run the cartridge test | 28519 | 28533 |
-| Enforce the separation | 28534 | 28541 |
-| Output | 28542 | 28545 |
-| Lore on this page | 28546 | 28557 |
-| Unlinked mentions | 28558 | 28638 |
-| /skills/use-a-prompt | 28639 | 28659 |
-| Use a published prompt | 28660 | 28675 |
-| Lore on this page | 28676 | 28685 |
-| /skills/write-a-wiki-page | 28686 | 28704 |
-| Write a wiki page | 28705 | 28710 |
-| 1. Choose the kind | 28711 | 28734 |
-| 2. Write short prose | 28735 | 28763 |
-| 3. Use a visual when it explains something | 28764 | 28774 |
-| 4. Quote code from its source | 28775 | 28838 |
-| Repair errors | 28839 | 28914 |
-| 5. Link claims and cite evidence | 28915 | 28931 |
-| 6. Check components and disclosure | 28932 | 28943 |
-| 7. Finish | 28944 | 28958 |
-| Lore on this page | 28959 | 28963 |
+| Linked from | 9158 | 9178 |
+| /lore/cafe-stack | 9179 | 9183 |
+| CAFE names the Cloudflare, Alchemy, Foldkit and Effect stack | 9184 | 9224 |
+| The canonical example | 9225 | 9240 |
+| Other CAFE apps | 9241 | 9258 |
+| foldkit-dials | 9259 | 9272 |
+| Where rat-stack sits | 9273 | 9300 |
+| Sources | 9301 | 9308 |
+| Sources | 9309 | 9343 |
+| Lore on this page | 9344 | 9349 |
+| Linked from | 9350 | 9408 |
+| /lore/capture-first | 9409 | 9413 |
+| Capture first, shape later | 9414 | 9445 |
+| Sources | 9446 | 9462 |
+| Lore on this page | 9463 | 9467 |
+| Linked from | 9468 | 9488 |
+| /lore/cartridges | 9489 | 9493 |
+| A cartridge owns one job and its resources | 9494 | 9523 |
+| Worked example: remove request capture at one seam | 9524 | 9567 |
+| Where the pattern comes from | 9568 | 9575 |
+| Sources | 9576 | 9601 |
+| Lore on this page | 9602 | 9607 |
+| Linked from | 9608 | 9689 |
+| Unlinked mentions | 9690 | 9720 |
+| /lore/cascadiajs-2026-its-time-to-rethink-everything-theo-browne | 9721 | 9741 |
+| CascadiaJS 2026: It's time to rethink everything | 9742 | 9749 |
+| Sources | 9750 | 9754 |
+| Linked from | 9755 | 9769 |
+| /lore/cause-and-effect-10-software-engineering-age-of-ai-de-goes | 9770 | 9790 |
+| Cause & Effect 10: Software engineering in the age of AI | 9791 | 9798 |
+| Sources | 9799 | 9803 |
+| Linked from | 9804 | 9820 |
+| /lore/checkpoints-follow-commits | 9821 | 9825 |
+| Checkpoints follow the promised commit | 9826 | 9835 |
+| Failure it prevents | 9836 | 9839 |
+| Our Effect 4.0.0 reading | 9840 | 9845 |
+| How to check | 9846 | 9855 |
+| Sources | 9856 | 9866 |
+| Linked from | 9867 | 9893 |
+| /lore/chris-tate | 9894 | 9918 |
+| Chris Tate | 9919 | 9928 |
+| Sources | 9929 | 9936 |
+| Linked from | 9937 | 9951 |
+| /lore/circuit-breakers-have-state | 9952 | 9956 |
+| Circuit breakers have state | 9957 | 9966 |
+| Failure it prevents | 9967 | 9970 |
+| Our Effect 4.0.0 reading | 9971 | 9976 |
+| How to check | 9977 | 9986 |
+| Sources | 9987 | 10000 |
+| Lore on this page | 10001 | 10004 |
+| Linked from | 10005 | 10029 |
+| /lore/cityjs-effect-production-grade-typescript-michael-arnaldi | 10030 | 10050 |
+| Effect: Production-Grade TypeScript | 10051 | 10059 |
+| Sources | 10060 | 10064 |
+| Lore on this page | 10065 | 10068 |
+| Linked from | 10069 | 10085 |
+| /lore/cleanup-can-be-an-idempotent-postcondition | 10086 | 10090 |
+| Cleanup can be an idempotent postcondition | 10091 | 10100 |
+| Failure it prevents | 10101 | 10104 |
+| Our Effect 4.0.0 reading | 10105 | 10110 |
+| How to check | 10111 | 10120 |
+| Sources | 10121 | 10131 |
+| Lore on this page | 10132 | 10135 |
+| Linked from | 10136 | 10160 |
+| /lore/cloud-as-a-library | 10161 | 10186 |
+| Cloud as a library | 10187 | 10196 |
+| Sources | 10197 | 10204 |
+| Linked from | 10205 | 10223 |
+| /lore/code-snippets | 10224 | 10228 |
+| Code snippets quote a pinned source | 10229 | 10239 |
+| The problem | 10240 | 10249 |
+| The authoring syntax | 10250 | 10348 |
+| The pipeline | 10349 | 10385 |
+| Ports and adapters | 10386 | 10418 |
+| Cache boundaries | 10419 | 10430 |
+| Errors as interface | 10431 | 10462 |
+| The testing approach | 10463 | 10498 |
+| Prior art and where we differ | 10499 | 10518 |
+| Build-only limits | 10519 | 10539 |
+| Sources | 10540 | 10583 |
+| Lore on this page | 10584 | 10593 |
+| Linked from | 10594 | 10627 |
+| Unlinked mentions | 10628 | 10640 |
+| /lore/concurrent-work-needs-an-owner | 10641 | 10645 |
+| Concurrent work needs an owner and a bound | 10646 | 10652 |
+| Bound collection processing before running it | 10653 | 10723 |
+| Stop child work with its Scope | 10724 | 10769 |
+| Consume a stream without promising a bounded queue | 10770 | 10815 |
+| Common mistakes | 10816 | 10822 |
+| Effect idiom and house rule | 10823 | 10834 |
+| Sources | 10835 | 10854 |
+| Lore on this page | 10855 | 10860 |
+| Linked from | 10861 | 10908 |
+| Unlinked mentions | 10909 | 10925 |
+| /lore/configuration-is-a-dependency | 10926 | 10930 |
+| Configuration is a supplied, validated dependency | 10931 | 10939 |
+| Define accepted values before reading them | 10940 | 10966 |
+| Supply another configuration source | 10967 | 11004 |
+| Supply typed values when parsing is not the task | 11005 | 11011 |
+| Common wrong approach | 11012 | 11018 |
+| Effect idiom and house rule | 11019 | 11028 |
+| Sources | 11029 | 11045 |
+| Lore on this page | 11046 | 11049 |
+| Linked from | 11050 | 11065 |
+| Unlinked mentions | 11066 | 11072 |
+| /lore/context-and-requirements | 11073 | 11077 |
+| Context and requirements | 11078 | 11087 |
+| Worked example: inspecting a file | 11088 | 11129 |
+| Why the type carries it | 11130 | 11139 |
+| Next | 11140 | 11146 |
+| Sources | 11147 | 11163 |
+| Lore on this page | 11164 | 11168 |
+| Linked from | 11169 | 11190 |
+| Unlinked mentions | 11191 | 11253 |
+| /lore/david-khourshid | 11254 | 11294 |
+| David Khourshid | 11295 | 11311 |
+| Sources | 11312 | 11328 |
+| Lore on this page | 11329 | 11334 |
+| Linked from | 11335 | 11357 |
+| /lore/dead-letters-need-a-return-path | 11358 | 11362 |
+| Dead letters need a return path | 11363 | 11372 |
+| Failure it prevents | 11373 | 11376 |
+| Our Effect 4.0.0 reading | 11377 | 11382 |
+| How to check | 11383 | 11392 |
+| Sources | 11393 | 11406 |
+| Linked from | 11407 | 11441 |
+| /lore/dependency-injection-is-the-reason-to-choose-effect | 11442 | 11446 |
+| Dependency injection is the reason to choose Effect | 11447 | 11460 |
+| Requirements stay visible | 11461 | 11466 |
+| A service captures its dependencies | 11467 | 11512 |
+| Tests supply another implementation | 11513 | 11534 |
+| Follow the dependency injection path | 11535 | 11543 |
+| Sources | 11544 | 11563 |
+| Lore on this page | 11564 | 11568 |
+| Linked from | 11569 | 11601 |
+| /lore/devtools-fm-sam-goodwin-alchemy-next-gen-iac | 11602 | 11622 |
+| Alchemy and the next generation of infrastructure as code | 11623 | 11631 |
+| Sources | 11632 | 11636 |
+| Linked from | 11637 | 11651 |
+| /lore/devtools-fm-sam-goodwin-alchemy | 11652 | 11672 |
+| Sam Goodwin on Alchemy | 11673 | 11681 |
+| Sources | 11682 | 11686 |
+| Lore on this page | 11687 | 11691 |
+| Linked from | 11692 | 11716 |
+| /lore/distilled | 11717 | 11736 |
+| Distilled | 11737 | 11745 |
+| Sources | 11746 | 11750 |
+| Linked from | 11751 | 11765 |
+| /lore/double-opt-in | 11766 | 11801 |
+| Double opt-in | 11802 | 11812 |
+| Sources | 11813 | 11820 |
+| Linked from | 11821 | 11845 |
+| /lore/durability-bibliography | 11846 | 11850 |
+| Durability bibliography | 11851 | 11856 |
+| Books | 11857 | 11858 |
+| B1 Erlang and OTP in Action | 11859 | 11872 |
+| Q01 | 11873 | 11876 |
+| B2 Elixir in Action | 11877 | 11888 |
+| Q02 | 11889 | 11892 |
+| Q03 | 11893 | 11896 |
+| B3 Designing Elixir Systems with OTP | 11897 | 11913 |
+| Q04 | 11914 | 11917 |
+| Q14 | 11918 | 11921 |
+| B4 Release It | 11922 | 11942 |
+| Q05 | 11943 | 11946 |
+| Q06 | 11947 | 11950 |
+| Q07 | 11951 | 11954 |
+| Q08 | 11955 | 11958 |
+| Q09 | 11959 | 11962 |
+| B5 Building Event-Driven Microservices | 11963 | 11978 |
+| Q11 | 11979 | 11982 |
+| Q12 | 11983 | 11986 |
+| Q13 | 11987 | 11990 |
+| B6 Fundamentals of Data Engineering | 11991 | 12004 |
+| Q10 | 12005 | 12008 |
+| B7 Domain Modeling Made Functional | 12009 | 12023 |
+| Q15 | 12024 | 12027 |
+| B8 Monitoring Distributed Systems | 12028 | 12041 |
+| Q18 | 12042 | 12045 |
+| B9 Serverless Architectures on AWS | 12046 | 12060 |
+| Q20 | 12061 | 12064 |
+| B10 A Philosophy of Software Design | 12065 | 12082 |
+| Q16 | 12083 | 12086 |
+| B11 Property-Based Testing | 12087 | 12104 |
+| Q17 | 12105 | 12108 |
+| B12 Site Reliability Engineering | 12109 | 12125 |
+| B13 Grokking Simplicity | 12126 | 12137 |
+| B14 Refactoring Databases | 12138 | 12150 |
+| Q19 | 12151 | 12154 |
+| B15 Software Engineering at Google | 12155 | 12167 |
+| B16 Why Programs Fail | 12168 | 12180 |
+| Coverage limits | 12181 | 12190 |
+| Effect source | 12191 | 12196 |
+| Sources | 12197 | 12246 |
+| Lore on this page | 12247 | 12261 |
+| Linked from | 12262 | 12332 |
+| /lore/durability | 12333 | 12337 |
+| Durability starts with a recovery record | 12338 | 12347 |
+| Reading order | 12348 | 12376 |
+| Existing rat-stack paths | 12377 | 12392 |
+| Sources | 12393 | 12396 |
+| Sources | 12397 | 12407 |
+| Lore on this page | 12408 | 12415 |
+| Linked from | 12416 | 12490 |
+| /lore/durable-timers-need-recovery | 12491 | 12495 |
+| Durable timers need recovery | 12496 | 12503 |
+| Failure it prevents | 12504 | 12507 |
+| Our Effect 4.0.0 reading | 12508 | 12513 |
+| How to check | 12514 | 12523 |
+| Sources | 12524 | 12540 |
+| Linked from | 12541 | 12559 |
+| /lore/durable-work-needs-storage | 12560 | 12564 |
+| Durable work needs storage | 12565 | 12574 |
+| Failure it prevents | 12575 | 12578 |
+| Our Effect 4.0.0 reading | 12579 | 12584 |
+| How to check | 12585 | 12594 |
+| Sources | 12595 | 12611 |
+| Lore on this page | 12612 | 12615 |
+| Linked from | 12616 | 12652 |
+| /lore/effect-basics | 12653 | 12657 |
+| Effect basics | 12658 | 12665 |
+| Read the three type parameters | 12666 | 12702 |
+| A description is not a completed operation | 12703 | 12729 |
+| Write a sequence with gen; transform it with pipe | 12730 | 12744 |
+| Expected failures and defects are different | 12745 | 12751 |
+| Requirements name services to supply | 12752 | 12760 |
+| Run at the application boundary | 12761 | 12812 |
+| The common wrong first version | 12813 | 12822 |
+| Read next | 12823 | 12837 |
+| Sources | 12838 | 12857 |
+| Lore on this page | 12858 | 12862 |
+| Linked from | 12863 | 12942 |
+| Unlinked mentions | 12943 | 13095 |
+| /lore/effect-days-2024-origin-story-michael-arnaldi | 13096 | 13116 |
+| Effect Days 2024: The origin story | 13117 | 13125 |
+| Sources | 13126 | 13130 |
+| Lore on this page | 13131 | 13134 |
+| Linked from | 13135 | 13151 |
+| /lore/effect-days-2025-building-effect-4-michael-arnaldi | 13152 | 13172 |
+| Effect Days 2025: Building Effect 4 | 13173 | 13182 |
+| Sources | 13183 | 13187 |
+| Linked from | 13188 | 13202 |
+| /lore/effect-design-lineage | 13203 | 13237 |
+| Effect's design lineage | 13238 | 13251 |
+| Sources | 13252 | 13259 |
+| Lore on this page | 13260 | 13263 |
+| Linked from | 13264 | 13278 |
+| /lore/effect-is-not-beam | 13279 | 13283 |
+| Effect is not BEAM | 13284 | 13293 |
+| Failure it prevents | 13294 | 13297 |
+| Our Effect 4.0.0 reading | 13298 | 13303 |
+| How to check | 13304 | 13313 |
+| Sources | 13314 | 13333 |
+| Lore on this page | 13334 | 13338 |
+| Linked from | 13339 | 13361 |
+| /lore/effect-meetup-sf-2023-why-effect-michael-arnaldi | 13362 | 13382 |
+| Effect Meetup SF 2023: Why Effect? | 13383 | 13393 |
+| Sources | 13394 | 13398 |
+| Lore on this page | 13399 | 13402 |
+| Linked from | 13403 | 13417 |
+| /lore/effect-office-hours-26-community-projects-alchemy | 13418 | 13438 |
+| Effect Office Hours 26: Community projects and Alchemy | 13439 | 13446 |
+| Sources | 13447 | 13451 |
+| Linked from | 13452 | 13466 |
+| /lore/effect-office-hours-27-alchemy-infrastructure-as-effects | 13467 | 13487 |
+| Effect Office Hours 27: Alchemy, infrastructure as effects | 13488 | 13501 |
+| Sources | 13502 | 13506 |
+| Lore on this page | 13507 | 13511 |
+| Linked from | 13512 | 13532 |
+| /lore/engine-neutral-tokens-keep-adapters-replaceable | 13533 | 13537 |
+| Engine-neutral tokens keep adapters replaceable | 13538 | 13563 |
+| Sources | 13564 | 13574 |
+| Linked from | 13575 | 13593 |
+| /lore/error-model | 13594 | 13598 |
+| Handle expected failures without hiding defects | 13599 | 13607 |
+| Give expected failures a type and useful context | 13608 | 13637 |
+| Translate implementation failures without losing their meaning | 13638 | 13658 |
+| Recover or report at a named boundary | 13659 | 13676 |
+| Do not use orDie to hide ordinary failures | 13677 | 13686 |
+| Common wrong approach | 13687 | 13692 |
+| Effect idiom and house rule | 13693 | 13700 |
+| Sources | 13701 | 13726 |
+| Lore on this page | 13727 | 13730 |
+| Linked from | 13731 | 13808 |
+| Unlinked mentions | 13809 | 13815 |
+| /lore/errors-are-part-of-the-interface | 13816 | 13820 |
+| Errors are part of the interface | 13821 | 13849 |
+| Sources | 13850 | 13860 |
+| Linked from | 13861 | 13883 |
+| /lore/every-task-needs-an-owner | 13884 | 13888 |
+| Every task needs an owner | 13889 | 13898 |
+| Failure it prevents | 13899 | 13902 |
+| Our Effect 4.0.0 reading | 13903 | 13908 |
+| How to check | 13909 | 13918 |
+| Sources | 13919 | 13932 |
+| Lore on this page | 13933 | 13936 |
+| Linked from | 13937 | 13959 |
+| /lore/failures-keep-their-meaning | 13960 | 13964 |
+| Failures keep their meaning | 13965 | 13974 |
+| Failure it prevents | 13975 | 13978 |
+| Our Effect 4.0.0 reading | 13979 | 13984 |
+| How to check | 13985 | 13994 |
+| Sources | 13995 | 14014 |
+| Linked from | 14015 | 14039 |
+| /lore/flags-climb-on-evidence | 14040 | 14044 |
+| Flags climb on evidence | 14045 | 14052 |
+| Measure the exit where the flag is read | 14053 | 14066 |
+| Authority comes from approval | 14067 | 14079 |
+| Commit once, then project | 14080 | 14116 |
+| Keep urgent stops out of KV | 14117 | 14128 |
+| Sources | 14129 | 14142 |
+| Lore on this page | 14143 | 14149 |
+| Linked from | 14150 | 14168 |
+| /lore/floor-and-ceiling | 14169 | 14194 |
+| Floor and ceiling | 14195 | 14204 |
+| Sources | 14205 | 14212 |
+| Linked from | 14213 | 14227 |
+| /lore/golden-signals-expose-overload | 14228 | 14232 |
+| Golden signals expose overload | 14233 | 14242 |
+| Failure it prevents | 14243 | 14246 |
+| Our Effect 4.0.0 reading | 14247 | 14252 |
+| How to check | 14253 | 14262 |
+| Sources | 14263 | 14270 |
+| Linked from | 14271 | 14293 |
+| /lore/happy-path-116-infrastructure-as-effects-sam-goodwin | 14294 | 14314 |
+| Happy Path 116: Infrastructure as effects | 14315 | 14323 |
+| Sources | 14324 | 14328 |
+| Linked from | 14329 | 14349 |
+| /lore/happy-path-81-typescript-and-effects-michael-arnaldi | 14350 | 14370 |
+| Happy Path 81: TypeScript and effects | 14371 | 14378 |
+| Sources | 14379 | 14383 |
+| Linked from | 14384 | 14398 |
+| /lore/hateoas | 14399 | 14403 |
+| HATEOAS | 14404 | 14409 |
+| Rat-stack's application | 14410 | 14417 |
+| What exists, and what is direction | 14418 | 14433 |
+| Sources | 14434 | 14453 |
+| Lore on this page | 14454 | 14458 |
+| Linked from | 14459 | 14479 |
+| /lore/hexagonal-architecture | 14480 | 14484 |
+| Hexagonal architecture | 14485 | 14493 |
+| Rat-stack's stance | 14494 | 14501 |
+| How rat-stack does it | 14502 | 14515 |
+| Boundaries fixed | 14516 | 14525 |
+| Sources | 14526 | 14542 |
+| Lore on this page | 14543 | 14547 |
+| Linked from | 14548 | 14609 |
+| Unlinked mentions | 14610 | 14694 |
+| /lore/how-we-do-it-with-effect | 14695 | 14699 |
+| Effect keeps the surfaces on one contract | 14700 | 14712 |
+| Follow one interface at a time | 14713 | 14720 |
+| Layer supplies the job | 14721 | 14756 |
+| Sources | 14757 | 14782 |
+| Lore on this page | 14783 | 14787 |
+| Linked from | 14788 | 14810 |
+| /lore/http-responses-need-validation | 14811 | 14815 |
+| HTTP success needs a status check and a decoder | 14816 | 14826 |
+| Check the protocol response | 14827 | 14848 |
+| Reject an unacceptable response before trusting its data | 14849 | 14883 |
+| Supply the transport in tests | 14884 | 14917 |
+| Decide whether replay is safe before adding retries | 14918 | 14933 |
+| Common mistakes | 14934 | 14940 |
+| Effect idiom and house rule | 14941 | 14950 |
+| Sources | 14951 | 14970 |
+| Lore on this page | 14971 | 14976 |
+| Linked from | 14977 | 15003 |
+| /lore/implicit-state-machines | 15004 | 15008 |
+| Implicit state machines | 15009 | 15014 |
+| What David Khourshid said | 15015 | 15036 |
+| Our take | 15037 | 15042 |
+| Flags hide states | 15043 | 15072 |
+| Worked example: a deploy poll | 15073 | 15136 |
+| What the explicit version enables | 15137 | 15142 |
+| The fence keeps it explicit | 15143 | 15152 |
+| Next | 15153 | 15156 |
+| Sources | 15157 | 15179 |
+| Lore on this page | 15180 | 15183 |
+| Linked from | 15184 | 15202 |
+| /lore/infrastructure-as-effects | 15203 | 15207 |
+| Infrastructure as effects | 15208 | 15219 |
+| Contract → surfaces | 15220 | 15225 |
+| Code → bindings → resources | 15226 | 15232 |
+| Worked example: a D1 Layer | 15233 | 15278 |
+| Plan → review → deploy | 15279 | 15284 |
+| The compiler checks the joins | 15285 | 15291 |
+| Cartridges | 15292 | 15296 |
+| Lifecycles | 15297 | 15301 |
+| The fence | 15302 | 15306 |
+| Cloud as a library | 15307 | 15311 |
+| The joins at a glance | 15312 | 15338 |
+| Sources | 15339 | 15352 |
+| Lore on this page | 15353 | 15362 |
+| Linked from | 15363 | 15387 |
+| /lore/init-runs-twice | 15388 | 15392 |
+| Worker init runs twice | 15393 | 15408 |
+| Sources | 15409 | 15422 |
+| Lore on this page | 15423 | 15427 |
+| Linked from | 15428 | 15450 |
+| /lore/lauren-tan-skills | 15451 | 15488 |
+| Lauren Tan's skills | 15489 | 15518 |
+| Sources | 15519 | 15532 |
+| Lore on this page | 15533 | 15536 |
+| Linked from | 15537 | 15553 |
+| /lore/lauren-tan | 15554 | 15573 |
+| Lauren Tan | 15574 | 15581 |
+| Sources | 15582 | 15586 |
+| Linked from | 15587 | 15611 |
+| /lore/layer-constructor-pattern | 15612 | 15616 |
+| A Layer as constructor | 15617 | 15625 |
+| Worked example: a journal with private state | 15626 | 15651 |
+| One service, two constructors | 15652 | 15675 |
+| Why it matters | 15676 | 15681 |
+| Next | 15682 | 15688 |
+| Sources | 15689 | 15699 |
+| Linked from | 15700 | 15726 |
+| /lore/layers-make-dependencies-explicit | 15727 | 15731 |
+| Layer composition makes dependencies explicit | 15732 | 15738 |
+| Supply dependencies without changing the domain | 15739 | 15773 |
+| Reuse Layer identity when sharing construction | 15774 | 15813 |
+| Common wrong approach | 15814 | 15821 |
+| Effect idiom and house rule | 15822 | 15832 |
+| Sources | 15833 | 15849 |
+| Lore on this page | 15850 | 15854 |
+| Linked from | 15855 | 15898 |
+| Unlinked mentions | 15899 | 15981 |
+| /lore/lifecycles-are-machines | 15982 | 15986 |
+| Lifecycles are machines | 15987 | 15999 |
+| Worked example: inspecting a file | 16000 | 16004 |
+| 1. Declare the side effect as an actor | 16005 | 16018 |
+| 2. Let the machine choose transitions | 16019 | 16054 |
+| 3. Start it inside Effect and wait for the outcome | 16055 | 16068 |
+| Why a machine | 16069 | 16081 |
+| Next | 16082 | 16089 |
+| Sources | 16090 | 16109 |
+| Lore on this page | 16110 | 16113 |
+| Linked from | 16114 | 16171 |
+| Unlinked mentions | 16172 | 16230 |
+| /lore/matt-pocock-skills | 16231 | 16258 |
+| Matt Pocock's skills | 16259 | 16282 |
+| Sources | 16283 | 16290 |
+| Linked from | 16291 | 16309 |
+| /lore/mcp-is-another-surface | 16310 | 16314 |
+| MCP is another surface | 16315 | 16327 |
+| The projection | 16328 | 16338 |
+| The application tool is the same job | 16339 | 16348 |
+| Sources | 16349 | 16365 |
+| Linked from | 16366 | 16433 |
+| Unlinked mentions | 16434 | 16470 |
+| /lore/mdsvex-left-unified | 16471 | 16475 |
+| mdsvex left unified | 16476 | 16495 |
+| Where we stopped | 16496 | 16522 |
+| The migrator still uses remark | 16523 | 16526 |
+| Sources | 16527 | 16543 |
+| Linked from | 16544 | 16558 |
+| /lore/michael-arnaldi | 16559 | 16593 |
+| Michael Arnaldi | 16594 | 16604 |
+| Sources | 16605 | 16618 |
+| Lore on this page | 16619 | 16622 |
+| Linked from | 16623 | 16641 |
+| /lore/model-based-testing | 16642 | 16646 |
+| Model-based testing | 16647 | 16667 |
+| Sources | 16668 | 16684 |
+| Linked from | 16685 | 16727 |
+| /lore/no-comments | 16728 | 16732 |
+| No comments | 16733 | 16746 |
+| Sources | 16747 | 16754 |
+| Linked from | 16755 | 16778 |
+| Unlinked mentions | 16779 | 16785 |
+| /lore/old-events-must-still-decode | 16786 | 16790 |
+| Old events must still decode | 16791 | 16800 |
+| Failure it prevents | 16801 | 16804 |
+| Our Effect 4.0.0 reading | 16805 | 16810 |
+| How to check | 16811 | 16820 |
+| Sources | 16821 | 16834 |
+| Linked from | 16835 | 16857 |
+| /lore/one-capability-every-surface | 16858 | 16862 |
+| One capability, every surface | 16863 | 16877 |
+| Worked example: `inspectFile` | 16878 | 16879 |
+| 1. The contract | 16880 | 16897 |
+| 2. The handler | 16898 | 16912 |
+| 3. The projections | 16913 | 16938 |
+| Why one contract | 16939 | 16947 |
+| Next | 16948 | 16959 |
+| Sources | 16960 | 16982 |
+| Lore on this page | 16983 | 16988 |
+| Linked from | 16989 | 17032 |
+| Unlinked mentions | 17033 | 17083 |
+| /lore/one-program-can-replace-several-tool-calls | 17084 | 17088 |
+| One program can replace several tool calls | 17089 | 17103 |
+| A live program | 17104 | 17128 |
+| The sandbox preserves the boundary | 17129 | 17158 |
+| Sources | 17159 | 17184 |
+| Lore on this page | 17185 | 17191 |
+| Linked from | 17192 | 17237 |
+| Unlinked mentions | 17238 | 17254 |
+| /lore/one-schema-three-surfaces | 17255 | 17259 |
+| One schema, three surfaces | 17260 | 17281 |
+| One contract feeds the projections | 17282 | 17294 |
+| Where the CLI composes them | 17295 | 17328 |
+| Sources | 17329 | 17351 |
+| Lore on this page | 17352 | 17359 |
+| Linked from | 17360 | 17413 |
+| Unlinked mentions | 17414 | 17512 |
+| /lore/one-snippet-model-two-renderers | 17513 | 17517 |
+| One snippet model feeds both renderers | 17518 | 17543 |
+| Sources | 17544 | 17551 |
+| Lore on this page | 17552 | 17555 |
+| Linked from | 17556 | 17576 |
+| /lore/openapi-describes-the-refusal-too | 17577 | 17581 |
+| OpenAPI describes the refusal too | 17582 | 17591 |
+| The document must describe rejected request input | 17592 | 17612 |
+| Sources | 17613 | 17632 |
+| Linked from | 17633 | 17663 |
+| /lore/pinned-sources-can-report-drift | 17664 | 17668 |
+| Pin the source and report drift separately | 17669 | 17692 |
+| Sources | 17693 | 17700 |
+| Linked from | 17701 | 17723 |
+| /lore/plan-model | 17724 | 17749 |
+| The plan model | 17750 | 17761 |
+| Sources | 17762 | 17769 |
+| Linked from | 17770 | 17790 |
+| /lore/poteto-lauren-tan-2500-prs-dune | 17791 | 17811 |
+| Lauren Tan: Dune, trust, and agent skills | 17812 | 17820 |
+| Sources | 17821 | 17825 |
+| Lore on this page | 17826 | 17829 |
+| Linked from | 17830 | 17848 |
+| /lore/production-grade-typescript | 17849 | 17874 |
+| Production-grade TypeScript | 17875 | 17886 |
+| Sources | 17887 | 17894 |
+| Linked from | 17895 | 17911 |
+| /lore/property-based-testing | 17912 | 17916 |
+| Property-based testing | 17917 | 17946 |
+| Sources | 17947 | 17960 |
+| Lore on this page | 17961 | 17964 |
+| Linked from | 17965 | 18017 |
+| /lore/pure-cores-reduce-timelines | 18018 | 18022 |
+| Pure cores reduce timeline coupling | 18023 | 18032 |
+| Failure it prevents | 18033 | 18036 |
+| Our Effect 4.0.0 reading | 18037 | 18042 |
+| How to check | 18043 | 18052 |
+| Sources | 18053 | 18069 |
+| Linked from | 18070 | 18092 |
+| /lore/queries-need-result-bounds | 18093 | 18097 |
+| Queries need result bounds | 18098 | 18105 |
+| Failure it prevents | 18106 | 18109 |
+| Our Effect 4.0.0 reading | 18110 | 18115 |
+| How to check | 18116 | 18125 |
+| Sources | 18126 | 18133 |
+| Lore on this page | 18134 | 18137 |
+| Linked from | 18138 | 18156 |
+| /lore/queues-pipelines-workflows-and-k2-do-different-jobs | 18157 | 18161 |
+| Queues, Pipelines, Workflows and K2 do different jobs | 18162 | 18177 |
+| Queues track one job at a time | 18178 | 18191 |
+| Pipelines load rows into R2 | 18192 | 18203 |
+| How rat-stack uses it | 18204 | 18236 |
+| Workflows run steps that resume | 18237 | 18246 |
+| K2 keeps a log that many readers replay | 18247 | 18259 |
+| Choose by the unit you track | 18260 | 18268 |
+| Where rat-stack does without them | 18269 | 18280 |
+| Sources | 18281 | 18333 |
+| Lore on this page | 18334 | 18339 |
+| Linked from | 18340 | 18360 |
+| /lore/rat-king | 18361 | 18365 |
+| Rat King carries signed mail between named agents | 18366 | 18374 |
+| Signing and encryption are separate choices | 18375 | 18385 |
+| Schemas distinguish records from operations | 18386 | 18399 |
+| Clients share the mail core | 18400 | 18411 |
+| Public repositories remain a roadmap step | 18412 | 18420 |
+| Sources | 18421 | 18458 |
+| Lore on this page | 18459 | 18462 |
+| Linked from | 18463 | 18485 |
+| /lore/rats-nest | 18486 | 18490 |
+| Rat's Nest keeps the code public and the inventory private | 18491 | 18505 |
+| Public code, private inventory | 18506 | 18517 |
+| Lore on this page | 18518 | 18521 |
+| Linked from | 18522 | 18542 |
+| /lore/recovery-needs-model-tests | 18543 | 18547 |
+| Recovery needs model tests | 18548 | 18557 |
+| Failure it prevents | 18558 | 18561 |
+| Our Effect 4.0.0 reading | 18562 | 18567 |
+| How to check | 18568 | 18577 |
+| Sources | 18578 | 18597 |
+| Linked from | 18598 | 18622 |
+| /lore/replay-needs-stable-inputs | 18623 | 18627 |
+| Replay needs stable inputs | 18628 | 18637 |
+| Failure it prevents | 18638 | 18641 |
+| Our Effect 4.0.0 reading | 18642 | 18647 |
+| How to check | 18648 | 18657 |
+| Sources | 18658 | 18668 |
+| Linked from | 18669 | 18691 |
+| /lore/request-lifetime-is-not-durability | 18692 | 18696 |
+| Request lifetime is not durability | 18697 | 18704 |
+| Failure it prevents | 18705 | 18708 |
+| Our Effect 4.0.0 reading | 18709 | 18714 |
+| How to check | 18715 | 18724 |
+| Sources | 18725 | 18741 |
+| Lore on this page | 18742 | 18745 |
+| Linked from | 18746 | 18768 |
+| /lore/restart-from-known-state | 18769 | 18773 |
+| Restart must reconstruct known state | 18774 | 18781 |
+| Failure it prevents | 18782 | 18785 |
+| Our Effect 4.0.0 reading | 18786 | 18791 |
+| How to check | 18792 | 18801 |
+| Sources | 18802 | 18821 |
+| Lore on this page | 18822 | 18825 |
+| Linked from | 18826 | 18848 |
+| /lore/retry-load-needs-a-budget | 18849 | 18853 |
+| Retry load needs a budget | 18854 | 18861 |
+| Failure it prevents | 18862 | 18865 |
+| Our Effect 4.0.0 reading | 18866 | 18871 |
+| How to check | 18872 | 18881 |
+| Sources | 18882 | 18901 |
+| Linked from | 18902 | 18926 |
+| /lore/retry-needs-idempotency | 18927 | 18931 |
+| Retry needs idempotent effects | 18932 | 18941 |
+| Failure it prevents | 18942 | 18945 |
+| Our Effect 4.0.0 reading | 18946 | 18951 |
+| How to check | 18952 | 18961 |
+| Sources | 18962 | 18978 |
+| Linked from | 18979 | 19013 |
+| /lore/run-effect-at-the-boundary | 19014 | 19018 |
+| Run Effect at the integration boundary | 19019 | 19028 |
+| Use the calling framework's Effect integration | 19029 | 19040 |
+| Do not replace an existing Effect bridge | 19041 | 19061 |
+| Own a foreign runtime explicitly | 19062 | 19097 |
+| Prove disposal through the foreign interface | 19098 | 19132 |
+| Integrate one calling framework at a time | 19133 | 19141 |
+| Common mistakes | 19142 | 19148 |
+| Effect idiom and house rule | 19149 | 19158 |
+| Sources | 19159 | 19178 |
+| Lore on this page | 19179 | 19185 |
+| Linked from | 19186 | 19203 |
+| Unlinked mentions | 19204 | 19210 |
+| /lore/sam-goodwin | 19211 | 19240 |
+| Sam Goodwin | 19241 | 19252 |
+| Sources | 19253 | 19263 |
+| Linked from | 19264 | 19284 |
+| /lore/schema-changes-need-a-transition | 19285 | 19289 |
+| Shared schemas need a transition period | 19290 | 19299 |
+| Failure it prevents | 19300 | 19303 |
+| Our Effect 4.0.0 reading | 19304 | 19309 |
+| How to check | 19310 | 19319 |
+| Sources | 19320 | 19330 |
+| Linked from | 19331 | 19349 |
+| /lore/schemas-define-the-boundary | 19350 | 19354 |
+| Schemas define the boundary | 19355 | 19365 |
+| Use one model for types and runtime checks | 19366 | 19393 |
+| Put the schemas in the contract | 19394 | 19414 |
+| Decode before dispatch | 19415 | 19444 |
+| A schema states what a value means | 19445 | 19456 |
+| Common wrong approach | 19457 | 19464 |
+| Effect idiom and house rule | 19465 | 19472 |
+| Sources | 19473 | 19495 |
+| Lore on this page | 19496 | 19499 |
+| Linked from | 19500 | 19563 |
+| Unlinked mentions | 19564 | 19654 |
+| /lore/scopes-own-resources | 19655 | 19659 |
+| Scopes release resources when work ends | 19660 | 19669 |
+| Acquire, use, and release one resource | 19670 | 19716 |
+| Choose the lifetime | 19717 | 19728 |
+| Prove all use exits | 19729 | 19778 |
+| Common mistakes | 19779 | 19788 |
+| Effect idiom and house rule | 19789 | 19801 |
+| Sources | 19802 | 19818 |
+| Lore on this page | 19819 | 19823 |
+| Linked from | 19824 | 19897 |
+| Unlinked mentions | 19898 | 19928 |
+| /lore/services-capture-dependencies | 19929 | 19933 |
+| A service captures its construction dependencies | 19934 | 19943 |
+| Name the job before the implementation | 19944 | 19966 |
+| Compose work inside the method | 19967 | 20000 |
+| Construction dependencies are not request identity | 20001 | 20010 |
+| Common wrong approach | 20011 | 20018 |
+| Effect idiom and house rule | 20019 | 20028 |
+| Sources | 20029 | 20048 |
+| Lore on this page | 20049 | 20052 |
+| Linked from | 20053 | 20114 |
+| Unlinked mentions | 20115 | 20233 |
+| /lore/shitrat-bestiary | 20234 | 20238 |
+| The rat-stack bestiary eats excuses | 20239 | 20246 |
+| The fence | 20247 | 20256 |
+| The comment ban | 20257 | 20266 |
+| The gardener | 20267 | 20275 |
+| The doc-fence | 20276 | 20286 |
+| The startup ceiling | 20287 | 20299 |
+| Mischief | 20300 | 20310 |
+| The Git snapshot | 20311 | 20321 |
+| Keep or cut | 20322 | 20333 |
+| Sources | 20334 | 20356 |
+| Lore on this page | 20357 | 20362 |
+| Linked from | 20363 | 20382 |
+| Unlinked mentions | 20383 | 20391 |
+| /lore/shitrat-canon | 20392 | 20396 |
+| ShitRat's canon is an incident log | 20397 | 20404 |
+| Agents copy everything | 20405 | 20412 |
+| The hold that could not release itself | 20413 | 20420 |
+| Clawing through the screen | 20421 | 20429 |
+| A rat gets a house | 20430 | 20438 |
+| Keep the receipt attached | 20439 | 20445 |
+| Sources | 20446 | 20459 |
+| Linked from | 20460 | 20484 |
+| /lore/shitrat-creed | 20485 | 20489 |
+| ShitRat wants receipts before claims | 20490 | 20504 |
+| The four house rules | 20505 | 20517 |
+| Things the rat can't stand | 20518 | 20526 |
+| When a preference becomes a fence | 20527 | 20535 |
+| Sources | 20536 | 20543 |
+| Linked from | 20544 | 20566 |
+| /lore/shitrat-origin | 20567 | 20571 |
+| Joel bought a domain and the rat built its own house | 20572 | 20584 |
+| A house with four kilobytes of opinion | 20585 | 20595 |
+| The house stays small on purpose | 20596 | 20605 |
+| A public face for a familiar | 20606 | 20614 |
+| Sources | 20615 | 20622 |
+| Lore on this page | 20623 | 20626 |
+| Linked from | 20627 | 20649 |
+| /lore/shitrat-rat-king | 20650 | 20654 |
+| A rat can be a name with a mailbox | 20655 | 20662 |
+| The address and the reader | 20663 | 20668 |
+| Legend has it… the crown is a letterbox | 20669 | 20684 |
+| Legend has it… the lease is a high-vis vest | 20685 | 20697 |
+| The boundary stays outside the costume | 20698 | 20705 |
+| Sources | 20706 | 20713 |
+| Lore on this page | 20714 | 20717 |
+| Linked from | 20718 | 20738 |
+| /lore/shitrat-rituals | 20739 | 20743 |
+| The rat has rituals for proving it happened | 20744 | 20751 |
+| The gate | 20752 | 20767 |
+| The snapshot dance | 20768 | 20784 |
+| Receipts before claims | 20785 | 20794 |
+| The deployment looks back | 20795 | 20809 |
+| Sources | 20810 | 20832 |
+| Lore on this page | 20833 | 20836 |
+| Linked from | 20837 | 20857 |
+| /lore/shitrat-war-stories | 20858 | 20862 |
+| The war stories | 20863 | 20871 |
+| The deploy that mugged itself | 20872 | 20885 |
+| Congratulations, your program exploded | 20886 | 20899 |
+| Mischief changes the brass plate | 20900 | 20909 |
+| The demolition manual gets road-tested | 20910 | 20923 |
+| The ceiling gets an expiry date | 20924 | 20940 |
+| Two accountants disagree about the shed | 20941 | 20955 |
+| The bouncer eats the guest list | 20956 | 20972 |
+| Sources | 20973 | 21001 |
+| Lore on this page | 21002 | 21005 |
+| Linked from | 21006 | 21024 |
+| /lore/shitrat | 21025 | 21029 |
+| ShitRat is Joel's familiar, with receipts | 21030 | 21041 |
+| Pick a tunnel | 21042 | 21052 |
+| Nearby rats and rules | 21053 | 21059 |
+| Legend has it… | 21060 | 21065 |
+| Sources | 21066 | 21073 |
+| Lore on this page | 21074 | 21078 |
+| Linked from | 21079 | 21104 |
+| Unlinked mentions | 21105 | 21111 |
+| /lore/shitratgit-bot | 21112 | 21116 |
+| shitratgit\[bot] leaves a countable trail | 21117 | 21125 |
+| Count the trail | 21126 | 21139 |
+| Reproduce the count | 21140 | 21150 |
+| The older receipt stays older | 21151 | 21160 |
+| A commit is not permission to deploy | 21161 | 21167 |
+| Sources | 21168 | 21181 |
+| Linked from | 21182 | 21202 |
+| /lore/steady-state-recycles-resources | 21203 | 21207 |
+| Steady state recycles resources | 21208 | 21217 |
+| Failure it prevents | 21218 | 21221 |
+| Our Effect 4.0.0 reading | 21222 | 21227 |
+| How to check | 21228 | 21237 |
+| Sources | 21238 | 21251 |
+| Linked from | 21252 | 21274 |
+| /lore/structure-effect-by-domain | 21275 | 21279 |
+| Structure an Effect codebase by domain | 21280 | 21297 |
+| The shape in one tree | 21298 | 21318 |
+| The rules that hold it together | 21319 | 21320 |
+| Capture dependencies when constructing a service | 21321 | 21347 |
+| Provide Layers at the entrypoint | 21348 | 21374 |
+| Keep ports inside and adapters outside | 21375 | 21380 |
+| Keep related definitions with the domain | 21381 | 21387 |
+| House style versus Effect idiom | 21388 | 21397 |
+| Where disagreement lives | 21398 | 21407 |
+| Sources | 21408 | 21445 |
+| Lore on this page | 21446 | 21451 |
+| Linked from | 21452 | 21489 |
+| Unlinked mentions | 21490 | 21496 |
+| /lore/supervision-is-a-recovery-policy | 21497 | 21501 |
+| Supervision chooses what restarts | 21502 | 21511 |
+| Failure it prevents | 21512 | 21515 |
+| Our Effect 4.0.0 reading | 21516 | 21521 |
+| How to check | 21522 | 21531 |
+| Sources | 21532 | 21551 |
+| Linked from | 21552 | 21578 |
+| /lore/testing-ladder | 21579 | 21583 |
+| Choose the check that can catch the failure | 21584 | 21590 |
+| Choose a check by what it proves | 21591 | 21607 |
+| Worked example: check command-policy decisions | 21608 | 21641 |
+| Keep the full gate | 21642 | 21653 |
+| Sources | 21654 | 21667 |
+| Lore on this page | 21668 | 21673 |
+| Linked from | 21674 | 21690 |
+| /lore/tests-that-earn-their-place | 21691 | 21695 |
+| Tests prove behavior through supplied services | 21696 | 21705 |
+| Test behavior independently of the implementation | 21706 | 21714 |
+| Run an Effect through supplied services | 21715 | 21743 |
+| Choose the smallest proof that fits the rule | 21744 | 21758 |
+| Keep the assertion independent | 21759 | 21794 |
+| Generate histories when order matters | 21795 | 21816 |
+| Common wrong approach | 21817 | 21823 |
+| Effect idiom and house rule | 21824 | 21833 |
+| Sources | 21834 | 21856 |
+| Lore on this page | 21857 | 21861 |
+| Linked from | 21862 | 21911 |
+| Unlinked mentions | 21912 | 21918 |
+| /lore/the-fence | 21919 | 21923 |
+| The fence | 21924 | 21939 |
+| Where to enforce a correction | 21940 | 21947 |
+| Sources | 21948 | 21961 |
+| Lore on this page | 21962 | 21966 |
+| Linked from | 21967 | 22072 |
+| Unlinked mentions | 22073 | 22105 |
+| /lore/theo-browne | 22106 | 22135 |
+| Theo Browne | 22136 | 22143 |
+| Sources | 22144 | 22154 |
+| Lore on this page | 22155 | 22158 |
+| Linked from | 22159 | 22175 |
+| /lore/theo-please-stop-using-stupid-models | 22176 | 22196 |
+| Theo Browne: Please stop using stupid models | 22197 | 22204 |
+| Sources | 22205 | 22209 |
+| Linked from | 22210 | 22226 |
+| /lore/there-is-no-isr-on-cloudflare | 22227 | 22231 |
+| There is no ISR on Cloudflare | 22232 | 22246 |
+| What our comparison proves | 22247 | 22273 |
+| What we choose | 22274 | 22279 |
+| Sources | 22280 | 22302 |
+| Lore on this page | 22303 | 22306 |
+| Linked from | 22307 | 22321 |
+| /lore/think-wider | 22322 | 22347 |
+| Think wider | 22348 | 22357 |
+| Sources | 22358 | 22365 |
+| Linked from | 22366 | 22384 |
+| /lore/timeouts-bound-waiting | 22385 | 22389 |
+| Timeouts bound waiting | 22390 | 22399 |
+| Failure it prevents | 22400 | 22403 |
+| Our Effect 4.0.0 reading | 22404 | 22409 |
+| How to check | 22410 | 22419 |
+| Sources | 22420 | 22430 |
+| Linked from | 22431 | 22475 |
+| /lore/tokenize-before-slicing | 22476 | 22480 |
+| Tokenize the whole file before slicing | 22481 | 22510 |
+| Sources | 22511 | 22518 |
+| Linked from | 22519 | 22537 |
+| /lore/trace-meaningful-operations | 22538 | 22542 |
+| Trace operations where they mean something | 22543 | 22552 |
+| Name meaningful operations | 22553 | 22586 |
+| Add safe attributes deliberately | 22587 | 22601 |
+| Supply an exporter, serializer and transport | 22602 | 22633 |
+| Check the delivery boundary you actually exercised | 22634 | 22667 |
+| Native tracing includes platform data | 22668 | 22704 |
+| Keep other observers distinct | 22705 | 22713 |
+| Common mistakes | 22714 | 22720 |
+| Effect idiom and house rule | 22721 | 22729 |
+| Sources | 22730 | 22752 |
+| Lore on this page | 22753 | 22757 |
+| Linked from | 22758 | 22775 |
+| Unlinked mentions | 22776 | 22794 |
+| /lore/two-lines-of-curl-is-a-front-door | 22795 | 22799 |
+| An agent applied through Markdown and HTTP | 22800 | 22817 |
+| What the requests do not tell us | 22818 | 22827 |
+| Sources | 22828 | 22841 |
+| Lore on this page | 22842 | 22846 |
+| Linked from | 22847 | 22863 |
+| /lore/ui-behaviour-is-a-scene | 22864 | 22868 |
+| UI behaviour is a scene | 22869 | 22876 |
+| Input and time are data | 22877 | 22885 |
+| The Toast example | 22886 | 22925 |
+| A race is a plain assertion | 22926 | 22932 |
+| Assert on what the view shows | 22933 | 22967 |
+| Plant a bug first | 22968 | 22974 |
+| Sources | 22975 | 22985 |
+| Lore on this page | 22986 | 22989 |
+| Linked from | 22990 | 23010 |
+| /lore/visakan-veerasamy | 23011 | 23040 |
+| Visakan Veerasamy | 23041 | 23048 |
+| Sources | 23049 | 23059 |
+| Linked from | 23060 | 23074 |
+| /lore/why-javascript-is-broken-effect-michael-arnaldi | 23075 | 23095 |
+| Why JavaScript is broken: Effect and TypeScript | 23096 | 23103 |
+| Sources | 23104 | 23108 |
+| Linked from | 23109 | 23123 |
+| /lore/workers-answer-requests-durable-objects-own-named-state | 23124 | 23128 |
+| Workers answer requests; Durable Objects own named state | 23129 | 23137 |
+| Why a Worker must not rely on module state | 23138 | 23157 |
+| What a Durable Object adds | 23158 | 23168 |
+| Worked example: one object per join submission | 23169 | 23225 |
+| Choose the home | 23226 | 23232 |
+| Next | 23233 | 23239 |
+| Sources | 23240 | 23259 |
+| Linked from | 23260 | 23389 |
+| Unlinked mentions | 23390 | 23462 |
+| /lore/ziverge-de-goes-arnaldi-typescript-for-scala-devs | 23463 | 23483 |
+| Why TypeScript is a good fit for Scala developers | 23484 | 23492 |
+| Sources | 23493 | 23497 |
+| Lore on this page | 23498 | 23501 |
+| Linked from | 23502 | 23516 |
+| /systems/agent-front-door | 23517 | 23521 |
+| Hosted agent interfaces | 23522 | 23525 |
+| What it does | 23526 | 23538 |
+| Run a program instead of several calls | 23539 | 23559 |
+| The standard | 23560 | 23576 |
+| Content asset cache | 23577 | 23591 |
+| How to check | 23592 | 23606 |
+| Sources | 23607 | 23623 |
+| Lore on this page | 23624 | 23631 |
+| Linked from | 23632 | 23643 |
+| Unlinked mentions | 23644 | 23650 |
+| /systems/all-stars | 23651 | 23655 |
+| CAFE all stars | 23656 | 23659 |
+| What it does | 23660 | 23683 |
+| The standard | 23684 | 23701 |
+| How to check | 23702 | 23721 |
+| Sources | 23722 | 23726 |
+| Lore on this page | 23727 | 23730 |
+| Linked from | 23731 | 23745 |
+| /systems/analytics | 23746 | 23750 |
+| Analytics | 23751 | 23754 |
+| What it does | 23755 | 23787 |
+| The standard | 23788 | 23803 |
+| Worker logs | 23804 | 23827 |
+| Crash archive | 23828 | 23890 |
+| Read crashes without a dashboard | 23891 | 23925 |
+| Deleting stored events | 23926 | 23938 |
+| Switches | 23939 | 23954 |
+| How to check | 23955 | 23979 |
+| Tests | 23980 | 23995 |
+| Removing it | 23996 | 24000 |
+| Sources | 24001 | 24029 |
+| Lore on this page | 24030 | 24037 |
+| Linked from | 24038 | 24078 |
+| /systems/auth | 24079 | 24083 |
+| Auth | 24084 | 24087 |
+| What it does | 24088 | 24114 |
+| The standard | 24115 | 24124 |
+| How to check | 24125 | 24132 |
+| Sources | 24133 | 24146 |
+| Lore on this page | 24147 | 24152 |
+| Linked from | 24153 | 24193 |
+| /systems/capabilities | 24194 | 24198 |
+| Capabilities | 24199 | 24202 |
+| What it does | 24203 | 24231 |
+| The standard | 24232 | 24241 |
+| Code-mode discovery and execution | 24242 | 24290 |
+| How to check | 24291 | 24299 |
+| Removing an interface | 24300 | 24303 |
+| Sources | 24304 | 24320 |
+| Lore on this page | 24321 | 24328 |
+| Linked from | 24329 | 24390 |
+| Unlinked mentions | 24391 | 24505 |
+| /systems/catalog | 24506 | 24510 |
+| Private catalog | 24511 | 24514 |
+| What it does | 24515 | 24525 |
+| The standard | 24526 | 24549 |
+| Trend queries | 24550 | 24578 |
+| Known limits | 24579 | 24601 |
+| How to check | 24602 | 24625 |
+| Sources | 24626 | 24639 |
+| Lore on this page | 24640 | 24643 |
+| Linked from | 24644 | 24672 |
+| /systems/database | 24673 | 24677 |
+| Database | 24678 | 24681 |
+| What it does | 24682 | 24702 |
+| The standard | 24703 | 24712 |
+| How to check | 24713 | 24716 |
+| Sources | 24717 | 24730 |
+| Lore on this page | 24731 | 24736 |
+| Linked from | 24737 | 24763 |
+| /systems/devtools | 24764 | 24768 |
+| Devtools | 24769 | 24772 |
+| What it does | 24773 | 24794 |
+| The standard | 24795 | 24801 |
+| How to check | 24802 | 24808 |
+| Sources | 24809 | 24822 |
+| Lore on this page | 24823 | 24827 |
+| Linked from | 24828 | 24848 |
+| /systems/durability | 24849 | 24853 |
+| Durability | 24854 | 24857 |
+| What it does | 24858 | 24878 |
+| 1. Lease a connection for the query | 24879 | 24887 |
+| 2. Answer at commit; dispatch off the request | 24888 | 24898 |
+| 3. Set a provider timeout once | 24899 | 24907 |
+| 4. Bound work in flight | 24908 | 24915 |
+| 5. Scope waiters to the request | 24916 | 24923 |
+| 6. Climb a flag with a ledger | 24924 | 24932 |
+| 7. Fail open on liveness, closed on harm | 24933 | 24941 |
+| The standard | 24942 | 24953 |
+| How to check | 24954 | 24966 |
+| Sources | 24967 | 24983 |
+| Lore on this page | 24984 | 24991 |
+| Linked from | 24992 | 25016 |
+| /systems/fence | 25017 | 25021 |
+| Fence | 25022 | 25025 |
+| What it does | 25026 | 25048 |
+| The standard | 25049 | 25061 |
+| How to check | 25062 | 25073 |
+| Sources | 25074 | 25093 |
+| Lore on this page | 25094 | 25099 |
+| Linked from | 25100 | 25114 |
+| /systems/flags | 25115 | 25119 |
+| Feature flags | 25120 | 25123 |
+| What it does | 25124 | 25163 |
+| The standard | 25164 | 25229 |
+| How to check | 25230 | 25246 |
+| Sources | 25247 | 25257 |
+| Lore on this page | 25258 | 25265 |
+| Linked from | 25266 | 25288 |
+| /systems/interest | 25289 | 25293 |
+| Interest signup | 25294 | 25297 |
+| What it does | 25298 | 25316 |
+| The standard | 25317 | 25329 |
+| Applicant identity | 25330 | 25348 |
+| Operator commands | 25349 | 25379 |
+| Known gap in the application index | 25380 | 25400 |
+| How to check | 25401 | 25407 |
+| Sources | 25408 | 25436 |
+| Lore on this page | 25437 | 25443 |
+| Linked from | 25444 | 25476 |
+| /systems/learn | 25477 | 25481 |
+| Learn mode presents concepts at useful depths | 25482 | 25485 |
+| What it does | 25486 | 25543 |
+| Feedback sign-in | 25544 | 25570 |
+| The standard | 25571 | 25614 |
+| How to check | 25615 | 25675 |
+| Sources | 25676 | 25695 |
+| Lore on this page | 25696 | 25705 |
+| Linked from | 25706 | 25732 |
+| /systems/motion | 25733 | 25737 |
+| Motion | 25738 | 25741 |
+| What it does | 25742 | 25801 |
+| The standard | 25802 | 25831 |
+| How to check | 25832 | 25838 |
+| Sources | 25839 | 25849 |
+| Lore on this page | 25850 | 25854 |
+| Linked from | 25855 | 25873 |
+| /systems/prompts | 25874 | 25878 |
+| One prompt serves people and agents | 25879 | 25882 |
+| What it does | 25883 | 25893 |
+| The standard | 25894 | 25903 |
+| How to check | 25904 | 25914 |
+| Sources | 25915 | 25919 |
+| Lore on this page | 25920 | 25924 |
+| Linked from | 25925 | 25939 |
+| /systems/tube | 25940 | 25944 |
+| RatTube | 25945 | 25948 |
+| What it does | 25949 | 25990 |
+| The standard | 25991 | 26003 |
+| Write a video page | 26004 | 26034 |
+| How to check | 26035 | 26056 |
+| Sources | 26057 | 26061 |
+| Lore on this page | 26062 | 26065 |
+| Linked from | 26066 | 26082 |
+| /systems/turbo-cache | 26083 | 26087 |
+| Turbo remote cache | 26088 | 26091 |
+| What it does | 26092 | 26119 |
+| The standard | 26120 | 26172 |
+| How to check | 26173 | 26212 |
+| Sources | 26213 | 26226 |
+| Lore on this page | 26227 | 26231 |
+| Linked from | 26232 | 26246 |
+| /systems/web | 26247 | 26251 |
+| Web | 26252 | 26255 |
+| What it does | 26256 | 26276 |
+| The standard | 26277 | 26285 |
+| How to check | 26286 | 26292 |
+| Sources | 26293 | 26306 |
+| Lore on this page | 26307 | 26311 |
+| Linked from | 26312 | 26336 |
+| /systems/workshop-help | 26337 | 26341 |
+| Workshop setup help | 26342 | 26345 |
+| What it does | 26346 | 26362 |
+| The standard | 26363 | 26376 |
+| How to check | 26377 | 26383 |
+| Sources | 26384 | 26397 |
+| Lore on this page | 26398 | 26402 |
+| Linked from | 26403 | 26417 |
+| /skills/add-a-capability | 26418 | 26438 |
+| Add a capability | 26439 | 26448 |
+| 1. Define the contract | 26449 | 26480 |
+| 2. Implement it | 26481 | 26496 |
+| 3. Register it | 26497 | 26508 |
+| 4. Project the implementation | 26509 | 26521 |
+| 5. Test it | 26522 | 26531 |
+| 6. Finish | 26532 | 26539 |
+| Lore on this page | 26540 | 26548 |
+| Linked from | 26549 | 26555 |
+| /skills/add-a-feature-flag | 26556 | 26576 |
+| Add a feature flag | 26577 | 26586 |
+| 1. Decide whether a flag fits | 26587 | 26594 |
+| 2. Declare the ladder | 26595 | 26614 |
+| 3. Name each exit's evidence | 26615 | 26627 |
+| 4. Compose authority and storage | 26628 | 26645 |
+| 5. Prove and remove | 26646 | 26658 |
+| Lore on this page | 26659 | 26669 |
+| /skills/add-a-lifecycle-machine | 26670 | 26689 |
+| Add a lifecycle machine | 26690 | 26701 |
+| 1. Write the states first | 26702 | 26709 |
+| 2. Put side effects in actors | 26710 | 26722 |
+| 3. Build the machine | 26723 | 26774 |
+| 4. Run it inside Effect | 26775 | 26802 |
+| 5. Generate inputs and command histories | 26803 | 26835 |
+| 6. Finish | 26836 | 26841 |
+| Lore on this page | 26842 | 26850 |
+| /skills/add-a-store | 26851 | 26872 |
+| Add a store | 26873 | 26886 |
+| 1. Name the facts and their owner | 26887 | 26901 |
+| 2. Define operations for the application job | 26902 | 26911 |
+| 3. Validate input and decode stored rows | 26912 | 26921 |
+| 4. Implement each vendor and bound reads | 26922 | 26932 |
+| 5. Carry schemas, migrations, and resources together | 26933 | 26942 |
+| 6. Prove the behavior on every storage implementation | 26943 | 26954 |
+| 7. Compose, validate, and report | 26955 | 26966 |
+| Lore on this page | 26967 | 26975 |
+| Unlinked mentions | 26976 | 26986 |
+| /skills/durability | 26987 | 27009 |
+| Durability | 27010 | 27021 |
+| When to use it | 27022 | 27036 |
+| Patterns | 27037 | 27073 |
+| Read the actual boundary | 27074 | 27087 |
+| Work through a change | 27088 | 27098 |
+| Principles, ranked | 27099 | 27167 |
+| Choose what owns recovery | 27168 | 27197 |
+| Check the uncomfortable boundaries | 27198 | 27211 |
+| Lore | 27212 | 27226 |
+| Related skills | 27227 | 27234 |
+| Finish | 27235 | 27238 |
+| Bibliography | 27239 | 27287 |
+| Lore on this page | 27288 | 27305 |
+| /skills/find-peers | 27306 | 27326 |
+| Find peers | 27327 | 27334 |
+| Run | 27335 | 27344 |
+| Refresh peers, versions, and tiers | 27345 | 27352 |
+| Targeted XState discovery | 27353 | 27360 |
+| Tier rubric | 27361 | 27376 |
+| Learn from the new ones | 27377 | 27386 |
+| Report | 27387 | 27390 |
+| Lore on this page | 27391 | 27395 |
+| Linked from | 27396 | 27402 |
+| /skills/gardener | 27403 | 27424 |
+| Maintain rat-stack | 27425 | 27434 |
+| 1. Check the pins | 27435 | 27447 |
+| 2. Update one dependency family at a time | 27448 | 27462 |
+| 3. Peers refresh | 27463 | 27468 |
+| 4. Remove prohibited patterns | 27469 | 27489 |
+| Report | 27490 | 27501 |
+| Lore on this page | 27502 | 27506 |
+| Linked from | 27507 | 27510 |
+| Unlinked mentions | 27511 | 27547 |
+| /skills/investigate-a-failure | 27548 | 27571 |
+| Investigate a failure | 27572 | 27586 |
+| Terms used here | 27587 | 27594 |
+| 1. Bound the symptom | 27595 | 27598 |
+| 2. Make it happen on demand | 27599 | 27602 |
+| 3. Rebuild what runs | 27603 | 27606 |
+| 4. Test one hypothesis at a time | 27607 | 27616 |
+| 5. Fix at the cause | 27617 | 27624 |
+| 6. Leave a notebook and a recipe | 27625 | 27641 |
+| Report | 27642 | 27651 |
+| Lore on this page | 27652 | 27658 |
+| /skills/keep-or-cut | 27659 | 27679 |
+| Keep or cut rat-stack | 27680 | 27691 |
+| Smallest version: command line only | 27692 | 27715 |
+| Cut code mode | 27716 | 27733 |
+| Cut HTTP | 27734 | 27744 |
+| Cut MCP | 27745 | 27757 |
+| Cut XState | 27758 | 27770 |
+| Cut devtools | 27771 | 27778 |
+| Clean up after each cut | 27779 | 27793 |
+| Lore on this page | 27794 | 27803 |
+| /skills/learn | 27804 | 27827 |
+| Learn during real work | 27828 | 27833 |
+| Start and stop | 27834 | 27844 |
+| Use the local tools | 27845 | 27878 |
+| Display preferences | 27879 | 27906 |
+| Select and present | 27907 | 27930 |
+| Record what happened | 27931 | 27939 |
+| Keep it quiet | 27940 | 27948 |
+| Without MCP | 27949 | 27964 |
+| Leave feedback with phone approval | 27965 | 27982 |
+| Offer a skill in the session | 27983 | 27992 |
+| Privacy | 27993 | 28000 |
+| Lore on this page | 28001 | 28010 |
+| /skills/learn-alchemy | 28011 | 28031 |
+| Learn Alchemy | 28032 | 28043 |
+| The vocabulary | 28044 | 28056 |
+| Trace one deploy | 28057 | 28100 |
+| Follow the Worker bindings | 28101 | 28141 |
+| Plan, then deploy | 28142 | 28158 |
+| Why not wrangler.toml or Terraform | 28159 | 28166 |
+| Gotchas from this repo | 28167 | 28175 |
+| Try it | 28176 | 28181 |
+| Read before changing | 28182 | 28195 |
+| Lore on this page | 28196 | 28203 |
+| Unlinked mentions | 28204 | 28250 |
+| /skills/learn-rat-stack | 28251 | 28273 |
+| Learn the stack | 28274 | 28285 |
+| Connect an agent | 28286 | 28307 |
+| Cursor | 28308 | 28319 |
+| Load one skill | 28320 | 28329 |
+| The pieces | 28330 | 28340 |
+| One action, five interfaces | 28341 | 28354 |
+| Trace one action | 28355 | 28358 |
+| 1. Define the contract | 28359 | 28378 |
+| 2. Bind one handler | 28379 | 28402 |
+| 3. Put file work in a service | 28403 | 28441 |
+| 4. Give the lifecycle named states | 28442 | 28487 |
+| 5. Project the registered actions | 28488 | 28530 |
+| 6. Connect the CLI | 28531 | 28573 |
+| 7. Compose the cloud | 28574 | 28603 |
+| Try hosted search and read | 28604 | 28623 |
+| Read before changing a piece | 28624 | 28634 |
+| Pick the next skill | 28635 | 28641 |
+| Finish | 28642 | 28653 |
+| Lore on this page | 28654 | 28658 |
+| Unlinked mentions | 28659 | 28707 |
+| /skills/model-a-protocol | 28708 | 28730 |
+| Model a protocol | 28731 | 28738 |
+| When to model | 28739 | 28751 |
+| How to model | 28752 | 28765 |
+| Read the exit code | 28766 | 28777 |
+| What the fence checks | 28778 | 28789 |
+| What it found | 28790 | 28806 |
+| Lore on this page | 28807 | 28813 |
+| /skills/onboard-a-list | 28814 | 28836 |
+| Onboard a list | 28837 | 28846 |
+| Start with the source and authority | 28847 | 28860 |
+| 1. Capture a read-only inventory | 28861 | 28872 |
+| 2. Establish the stop floor | 28873 | 28880 |
+| 3. Measure each proposed rule | 28881 | 28896 |
+| 4. Choose and pin the cohort | 28897 | 28908 |
+| 5. Dry-run and prepare the destination | 28909 | 28918 |
+| 6. Make the authorized switch | 28919 | 28932 |
+| 7. Prove and report the result | 28933 | 28946 |
+| Lore on this page | 28947 | 28953 |
+| /skills/profile-a-worker | 28954 | 28977 |
+| Profile a Worker | 28978 | 28985 |
+| Terms used here | 28986 | 28992 |
+| 1. Pick the target | 28993 | 28998 |
+| 2. Get read access | 28999 | 29007 |
+| 3. Send traffic during the capture | 29008 | 29016 |
+| 4. Capture | 29017 | 29043 |
+| 5. Read it | 29044 | 29057 |
+| 6. Act on one finding | 29058 | 29066 |
+| Finish | 29067 | 29072 |
+| Lore on this page | 29073 | 29079 |
+| /skills/query-design | 29080 | 29109 |
+| Design queries around round trips | 29110 | 29131 |
+| 1. Name the question, caller, and rate | 29132 | 29146 |
+| 2. Apply the shared rules | 29147 | 29159 |
+| 3. Check PlanetScale Vitess limits | 29160 | 29185 |
+| 4. Keep Hyperdrive connections request-scoped | 29186 | 29191 |
+| 5. Make checks stronger than prose | 29192 | 29193 |
+| Count statements through the real store | 29194 | 29213 |
+| Commit statement templates and enforce a plan fence | 29214 | 29239 |
+| 6. Keep consumer details in their playbooks | 29240 | 29247 |
+| 7. Read the prior art | 29248 | 29258 |
+| 8. Finish with evidence | 29259 | 29271 |
+| Lore on this page | 29272 | 29281 |
+| /skills/rat-stack-mode | 29282 | 29302 |
+| Work in rat-stack mode | 29303 | 29310 |
+| Non-negotiables | 29311 | 29318 |
+| Principles index | 29319 | 29381 |
+| Playbooks | 29382 | 29401 |
+| Autonomy and child-project slots | 29402 | 29407 |
+| Lore on this page | 29408 | 29419 |
+| /skills/security-audit | 29420 | 29429 |
+| Security Audit | 29430 | 29435 |
+| Operating modes | 29436 | 29444 |
+| Platform terminology | 29445 | 29456 |
+| Universal execution safety | 29457 | 29469 |
+| Full audit setup | 29470 | 29479 |
+| Write isolation | 29480 | 29513 |
+| Full audit planning | 29514 | 29517 |
+| Coverage and prior runs | 29518 | 29532 |
+| Run profiles and scope | 29533 | 29544 |
+| Cost budget | 29545 | 29561 |
+| Core principles | 29562 | 29563 |
+| Require a boundary and result | 29564 | 29567 |
+| Use bounded local evidence | 29568 | 29571 |
+| Respect source visibility | 29572 | 29575 |
+| Separate priority from certainty | 29576 | 29589 |
+| Recommend the smallest effective source fix | 29590 | 29593 |
+| Full audit workflow | 29594 | 29606 |
+| Anti-patterns | 29607 | 29619 |
+| Upstream credit | 29620 | 29623 |
+| rat-stack audit boundaries | 29624 | 29627 |
+| Capabilities and approval | 29628 | 29631 |
+| Code-mode sandbox | 29632 | 29635 |
+| Better Auth and CurrentPerson | 29636 | 29639 |
+| Devtools and production | 29640 | 29643 |
+| Cloud resources and bindings | 29644 | 29653 |
+| Secrets and configuration | 29654 | 29657 |
+| Retained resources | 29658 | 29661 |
+| Skill files | 29662 | 29687 |
+| Lore on this page | 29688 | 29700 |
+| /skills/ship | 29701 | 29722 |
+| Ship a change | 29723 | 29728 |
+| Terms used here | 29729 | 29746 |
+| 1. Read current deployment availability | 29747 | 29765 |
+| 2. Prepare and merge | 29766 | 29773 |
+| Merging | 29774 | 29781 |
+| 3. Release and deploy | 29782 | 29795 |
+| 4. Roll out and verify | 29796 | 29801 |
+| 5. Restore or stop | 29802 | 29815 |
+| 6. Keep one release procedure current | 29816 | 29827 |
+| Lore on this page | 29828 | 29835 |
+| /skills/test-behaviour | 29836 | 29855 |
+| Test a behaviour | 29856 | 29863 |
+| 1. A domain rule: a property | 29864 | 29896 |
+| 2. Anything with history: a model | 29897 | 29915 |
+| 3. UI behaviour: a Foldkit Scene | 29916 | 29955 |
+| 4. A seam: one example | 29956 | 29975 |
+| 5. Always: plant a bug | 29976 | 29989 |
+| Lore on this page | 29990 | 29996 |
+| /skills/uncomplect | 29997 | 30019 |
+| Uncomplect rat-stack | 30020 | 30029 |
+| Read first | 30030 | 30035 |
+| Terms used here | 30036 | 30059 |
+| Find combined responsibilities | 30060 | 30061 |
+| Behavior in a projection | 30062 | 30067 |
+| Network calls and retries in a feature | 30068 | 30073 |
+| Provider code in a caller | 30074 | 30079 |
+| Resources separate from the code that uses them | 30080 | 30085 |
+| Infrastructure setup in runtime code | 30086 | 30091 |
+| Approval and retry rules inside handlers | 30092 | 30097 |
+| Lifecycle encoded in scattered flags | 30098 | 30103 |
+| Two places approving writes | 30104 | 30109 |
+| Service wrapper that hides nothing | 30110 | 30115 |
+| Unchecked external input | 30116 | 30121 |
+| Crash folded into an outcome | 30122 | 30129 |
+| Duplicated API definitions | 30130 | 30135 |
+| Deployment configuration or live flag | 30136 | 30141 |
+| Undeclared deployment inputs | 30142 | 30149 |
+| Hide implementation details behind the interface | 30150 | 30155 |
+| Run the cartridge test | 30156 | 30170 |
+| Enforce the separation | 30171 | 30178 |
+| Output | 30179 | 30182 |
+| Lore on this page | 30183 | 30194 |
+| Unlinked mentions | 30195 | 30273 |
+| /skills/use-a-prompt | 30274 | 30294 |
+| Use a published prompt | 30295 | 30310 |
+| Lore on this page | 30311 | 30320 |
+| /skills/write-a-wiki-page | 30321 | 30339 |
+| Write a wiki page | 30340 | 30345 |
+| 1. Choose the kind | 30346 | 30369 |
+| 2. Write short prose | 30370 | 30398 |
+| The jargon onion | 30399 | 30410 |
+| 3. Use a visual when it explains something | 30411 | 30421 |
+| 4. Quote code from its source | 30422 | 30485 |
+| Repair errors | 30486 | 30561 |
+| 5. Link claims and cite evidence | 30562 | 30578 |
+| 6. Check components and disclosure | 30579 | 30590 |
+| 7. Finish | 30591 | 30605 |
+| Lore on this page | 30606 | 30610 |
