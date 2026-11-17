@@ -1,4 +1,4 @@
-import { ByteSize, Context, Effect, Layer, Match, Result } from 'effect'
+import { ByteSize, Context, Effect, Layer, Match, Result, Scope } from 'effect'
 import { HttpIncomingMessage, HttpRouter } from 'effect/http'
 import { RpcSerialization, RpcServer } from 'effect/rpc'
 import {
@@ -6,7 +6,7 @@ import {
 } from '@nhl-reddit-stats/history'
 import type { Hop, HistoryStore, PathResult, PlayerRow, TeammateGraph, UnknownPlayer } from '@nhl-reddit-stats/history'
 import { HistoryRpcs } from '@nhl-reddit-stats/history/rpc'
-import { openHistoryStore } from './history-store.ts'
+import { openScopedHistoryStore } from './history-store.ts'
 
 type HistoryValue = {
   readonly store: Effect.Effect<HistoryStore, HistoryUnavailable>
@@ -14,8 +14,10 @@ type HistoryValue = {
   readonly graph: Effect.Effect<TeammateGraph, HistoryUnavailable>
 }
 
-const fromStoreEffect = (store: Effect.Effect<HistoryStore, HistoryUnavailable>) => Effect.gen(function* () {
-  const cachedStore = yield* Effect.cached(store)
+/** `open` runs on first use inside the layer's scope, so closing the layer (a handler `dispose`) releases the store. */
+const fromStoreEffect = (open: Effect.Effect<HistoryStore, HistoryUnavailable, Scope.Scope>) => Effect.gen(function* () {
+  const scope = yield* Effect.scope
+  const cachedStore = yield* Effect.cached(Scope.provide(open, scope))
   const graph = yield* Effect.cached(Effect.map(cachedStore, (opened) => makeGraph(opened.graph.arrays)))
   return { store: cachedStore, graph } satisfies HistoryValue
 })
@@ -23,11 +25,9 @@ const fromStoreEffect = (store: Effect.Effect<HistoryStore, HistoryUnavailable>)
 /** The history store, opened once per warm function. A missing or invalid file fails each call as `HistoryUnavailable`. */
 export class History extends Context.Service<History, HistoryValue>()('glanceboard/History') {
   /** Opens the serving file on first use and reuses the result, success or failure, for the process lifetime. */
-  static layer = (path: string | undefined) => Layer.effect(History, fromStoreEffect(
-    path === undefined || path === ''
-      ? Effect.fail(new HistoryUnavailable({ message: 'No history serving file is configured.' }))
-      : openHistoryStore(path),
-  ))
+  static layer = (path: string | undefined) => Layer.effect(History, path === undefined || path === ''
+    ? fromStoreEffect(Effect.fail(new HistoryUnavailable({ message: 'No history serving file is configured.' })))
+    : fromStoreEffect(openScopedHistoryStore(path)))
 
   /** Serves an already-open store (tests use the in-memory fake). */
   static fromStore = (store: HistoryStore) => Layer.effect(History, fromStoreEffect(Effect.succeed(store)))

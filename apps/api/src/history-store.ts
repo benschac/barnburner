@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite'
 import type { StatementSync } from 'node:sqlite'
 import { Effect, Schema } from 'effect'
+import type { Scope } from 'effect'
 import { HistoryUnavailable, UnknownPlayer, UnknownRoster } from '@nhl-reddit-stats/history'
 import type {
   FinalParticipant, FinalRow, Graph, GraphArrays, HistoryStore, OpposedGameRow, PlayerDetail,
@@ -61,13 +62,15 @@ const aligned = (bytes: Uint8Array): ArrayBuffer => {
   return copy.buffer
 }
 
+const openDatabase = (path: string) =>
+  attempt(() => new DatabaseSync(path, { readOnly: true }), 'The history serving file could not be opened.')
+
 /**
- * Opens the serving file read-only. `snapshotId` and the teammate arrays load here; the opponent
- * arrays load on the first read of `graph.arrays.oppA`, `oppB`, or `oppGames`. A missing file, a
- * missing table, a wrong `schema_version`, or a malformed blob is `HistoryUnavailable`.
+ * Builds the store over an open database. `snapshotId` and the teammate arrays load here; the opponent
+ * arrays load on the first read of `graph.arrays.oppA`, `oppB`, or `oppGames`. A missing table, a wrong
+ * `schema_version`, or a malformed blob is `HistoryUnavailable`.
  */
-export const openHistoryStore = (path: string): Effect.Effect<HistoryStore, HistoryUnavailable> => Effect.gen(function* () {
-  const db = yield* attempt(() => new DatabaseSync(path, { readOnly: true }), 'The history serving file could not be opened.')
+const buildHistoryStore = (db: DatabaseSync): Effect.Effect<HistoryStore, HistoryUnavailable> => Effect.gen(function* () {
   const prepare = (sql: string) => attempt(() => db.prepare(sql), 'The history serving file is missing a table.')
   const rowsOf = (statement: StatementSync, ...params: Array<string | number>) =>
     attempt(() => statement.all(...params), 'The history query failed.')
@@ -250,3 +253,20 @@ export const openHistoryStore = (path: string): Effect.Effect<HistoryStore, Hist
 
   return { snapshotId, graph, searchPlayers, player, roster, sharedGames, opposedGames, finals } satisfies HistoryStore
 })
+
+/**
+ * Opens the serving file read-only and never closes it (scripts that live as long as the process).
+ * A missing file, a missing table, a wrong `schema_version`, or a malformed blob is `HistoryUnavailable`.
+ */
+export const openHistoryStore = (path: string): Effect.Effect<HistoryStore, HistoryUnavailable> =>
+  openDatabase(path).pipe(Effect.flatMap(buildHistoryStore))
+
+/**
+ * Like `openHistoryStore`, but the connection closes when the surrounding scope closes, including after a
+ * failed build. The store must not be used after that.
+ */
+export const openScopedHistoryStore = (path: string): Effect.Effect<HistoryStore, HistoryUnavailable, Scope.Scope> =>
+  Effect.acquireRelease(
+    openDatabase(path),
+    (db) => Effect.try({ try: () => db.close(), catch: () => unavailable('The history serving file could not be closed.') }).pipe(Effect.ignore),
+  ).pipe(Effect.flatMap(buildHistoryStore))

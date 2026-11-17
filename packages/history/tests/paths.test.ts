@@ -3,7 +3,8 @@ import { test } from 'node:test'
 import { Result } from 'effect'
 import { NoPath, UnknownPlayer } from '../src/contracts.ts'
 import { makeGraph } from '../src/graph.ts'
-import { UNREACHED, bfsDistances, countShortestChains, findPaths } from '../src/paths.ts'
+import { UNREACHED, bfsDistances, countChainsBy, countShortestChains, findPaths } from '../src/paths.ts'
+import { findRelationPaths } from '../src/relation-paths.ts'
 import { DEFAULT_FILTER, PATH_COUNT_CAP } from '../src/shapes.ts'
 import type { Filter, GraphArrays, PathResult } from '../src/shapes.ts'
 import { MINI_GRAPH } from './fakes.ts'
@@ -215,4 +216,49 @@ test('equal games tie-break to the lower player ID, for limit 1 and in tied-chai
   assert.ok(Result.isSuccess(two))
   assert.equal(two.success.pathCount, 8)
   assert.deepEqual(two.success.paths.map(chainIds), [149, 150, 151, 152, 153, 154, 155, 156].map((id) => [148, id, 157]))
+})
+
+// Start 0, target 7. Chains 0-1-{2,3}-7 (two tied) and 0-1-... Off-path players 4, 5, 6 hang off the target
+// and each other at distance 1 and 2 from it, closer to the target than the start but on no chain from it.
+const withOffPath = () => {
+  const edges: ReadonlyArray<readonly [number, number]> = [[0, 1], [1, 2], [1, 3], [2, 7], [3, 7], [4, 7], [5, 7], [4, 6], [5, 6]]
+  const m = edges.length
+  return makeGraph({
+    playerIds: Uint32Array.from({ length: 8 }, (_, i) => 100 + i),
+    seasonIds: Uint32Array.of(19501951),
+    teamIds: Uint32Array.of(1),
+    edgeA: Uint16Array.from(edges.map(([x]) => x)),
+    edgeB: Uint16Array.from(edges.map(([, y]) => y)),
+    spanStart: Uint32Array.from({ length: m + 1 }, (_, i) => i),
+    spanSeason: new Uint8Array(m),
+    spanKind: new Uint8Array(m).fill(2),
+    spanTeam: new Uint8Array(m),
+    spanLink: new Uint8Array(m),
+    spanGames: new Uint16Array(m).fill(1),
+    spanFirstGame: new Uint32Array(m).fill(1950020001),
+  })
+}
+
+test('counting visits only players on a shortest chain from the start, not closer off-path players', () => {
+  const graph = withOffPath()
+  const distance = bfsDistances(graph, 7, DEFAULT_FILTER, 0)
+  assert.deepEqual(Array.from(distance), [3, 2, 1, 1, 1, 1, 2, 0])
+  const { offsets, neighbours } = graph.adjacency
+  const expanded: number[] = []
+  const counted = countChainsBy(distance, 0, PATH_COUNT_CAP, (node, visit) => {
+    expanded.push(node)
+    for (let at = offsets[node]; at < offsets[node + 1]; at += 1) {
+      if (distance[neighbours[at]] === distance[node] - 1) visit(neighbours[at])
+    }
+  })
+  assert.deepEqual(counted, { count: 2, capped: false })
+  assert.deepEqual([...expanded].sort((x, y) => x - y), [0, 1, 2, 3])
+  assert.deepEqual(countShortestChains(graph, distance, 0, DEFAULT_FILTER, PATH_COUNT_CAP), { count: 2, capped: false })
+})
+
+test('findRelationPaths defaults limit to one chain', () => {
+  const index = (id: number) => MINI_GRAPH.indexOf.get(id) ?? -1
+  const result = findRelationPaths(MINI_GRAPH, index(11), index(16), DEFAULT_FILTER, 'either')
+  assert.ok(Result.isSuccess(result))
+  assert.equal(result.success.paths.length, 1)
 })

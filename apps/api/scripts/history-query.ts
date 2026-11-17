@@ -3,10 +3,11 @@ import { parseArgs } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import { Effect, Match, Result, Schema } from 'effect'
 import {
-  DEFAULT_FILTER, HistoryUnavailable, farthest, finalsCoverage, findPaths, link, opponents,
+  DEFAULT_FILTER, HistoryUnavailable, farthest, finalsCoverage, findPaths, link, makeGraph, opponents,
 } from '@nhl-reddit-stats/history'
 import type { Filter, FinalsYear, HistoryStore, PlayerRow, Relation, StintRow } from '@nhl-reddit-stats/history'
-import { History, fillOpponentHops } from '../src/history-routes.ts'
+import { fillOpponentHops } from '../src/history-routes.ts'
+import { openHistoryStore } from '../src/history-store.ts'
 import type { WireHop } from '../src/history-routes.ts'
 
 // Query the history serving file from the terminal. It runs the same package functions as the API
@@ -180,9 +181,9 @@ const program = (argv: ReadonlyArray<string>) => Effect.gen(function* () {
     fromSeason, toSeason, goaliePartners: values['no-partners'] !== true,
   }
 
-  const history = yield* Effect.gen(function* () { return yield* History }).pipe(Effect.provide(History.layer(values.db ?? defaultDb())))
-  const store = yield* history.store
-  const graph = yield* history.graph
+  // A one-shot command: the store stays open until the process exits.
+  const store = yield* openHistoryStore(values.db ?? defaultDb())
+  const graph = makeGraph(store.graph.arrays)
   const names = makeNames(store)
   const [a, b] = yield* Effect.forEach(args, (text) => resolve(store, text))
 
