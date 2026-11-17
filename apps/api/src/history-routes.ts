@@ -2,7 +2,7 @@ import { ByteSize, Context, Effect, Layer, Result } from 'effect'
 import { HttpIncomingMessage, HttpRouter } from 'effect/http'
 import { RpcSerialization, RpcServer } from 'effect/rpc'
 import {
-  DEFAULT_FILTER, HistoryUnavailable, UnsupportedFilter, farthest, findPaths, hopKind, link, linkIdBetween, makeGraph,
+  DEFAULT_FILTER, HistoryUnavailable, UnsupportedFilter, farthest, finalsCoverage, findPaths, hopKind, link, linkIdBetween, makeGraph,
 } from '@nhl-reddit-stats/history'
 import type { HistoryStore, Hop, TeammateHop, PlayerRow, TeammateGraph } from '@nhl-reddit-stats/history'
 import { HistoryRpcs } from '@nhl-reddit-stats/history/rpc'
@@ -43,6 +43,10 @@ const teammateOnly = (hop: Hop): TeammateHop => {
   if (hop._tag === 'PlayedAgainst') throw new Error('A teammate path held a PlayedAgainst hop.')
   return hop
 }
+
+/** The competition rule behind every Finals answer (plan D8). */
+export const FINALS_RULE = 'A teammate is anyone credited in the same NHL regular-season or playoff game for the same team; ' +
+  'international games do not count. Cup Finals are flagged from the 1926-27 season (1927) on, when the Final became an NHL-only series.'
 
 // Placeholder: later tasks replace each of these with a real handler.
 const notImplemented = (rpc: string) => () => Effect.fail(new HistoryUnavailable({ message: `${rpc} is not implemented yet.` }))
@@ -114,7 +118,12 @@ const handlers = HistoryRpcs.toLayer(Effect.gen(function* () {
       if (Result.isFailure(result)) return yield* result.failure
       return { snapshotId: opened.snapshotId, ...result.success }
     }),
-    GetFinalsCoverage: notImplemented('GetFinalsCoverage'),
+    GetFinalsCoverage: ({ playerId, fromYear, toYear }) => Effect.gen(function* () {
+      const opened = yield* store
+      const graph = yield* graphOf
+      const years = yield* finalsCoverage(graph, opened, playerId, fromYear, toYear)
+      return { snapshotId: opened.snapshotId, years, rule: FINALS_RULE }
+    }),
   }
 }))
 
