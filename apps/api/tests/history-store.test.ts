@@ -1,0 +1,181 @@
+import assert from 'node:assert/strict'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { test } from 'node:test'
+import { DatabaseSync } from 'node:sqlite'
+import { Effect } from 'effect'
+import { HistoryUnavailable, UnknownPlayer, UnknownRoster } from '@nhl-reddit-stats/history'
+import type { GraphArrays } from '@nhl-reddit-stats/history'
+import { MINI_ARRAYS, MINI_GAMES, MINI_SNAPSHOT_ID, makeMiniStore } from '../../../packages/history/tests/fakes.ts'
+import { openHistoryStore } from '../src/history-store.ts'
+
+const fake = makeMiniStore()
+const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect)
+const fail = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(Effect.flip(effect))
+
+const SERVE_TABLES = `
+  CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+  CREATE TABLE players (player_id INTEGER PRIMARY KEY, name TEXT, search_name TEXT, position TEXT, first_season INTEGER,
+    last_season INTEGER, games INTEGER, points INTEGER, teammates INTEGER);
+  CREATE TABLE teams (team_id INTEGER PRIMARY KEY, abbrev TEXT, name TEXT);
+  CREATE TABLE games (game_id INTEGER PRIMARY KEY, season_id INTEGER, game_type INTEGER, game_date TEXT, playoff_round INTEGER, cup_final INTEGER);
+  CREATE TABLE appearances (player_id INTEGER, game_id INTEGER, team_id INTEGER, PRIMARY KEY (player_id, game_id)) WITHOUT ROWID;
+  CREATE TABLE stints (player_id INTEGER, season_id INTEGER, game_type INTEGER, team_id INTEGER, games INTEGER,
+    first_game_id INTEGER, last_game_id INTEGER, PRIMARY KEY (player_id, season_id, game_type, team_id));
+  CREATE TABLE graph_arrays (name TEXT PRIMARY KEY, bytes BLOB);
+`
+
+const blobs: Record<string, ArrayBufferView> = {
+  player_ids: MINI_ARRAYS.playerIds, season_ids: MINI_ARRAYS.seasonIds, team_ids: MINI_ARRAYS.teamIds,
+  edge_a: MINI_ARRAYS.edgeA, edge_b: MINI_ARRAYS.edgeB, span_start: MINI_ARRAYS.spanStart,
+  span_season: MINI_ARRAYS.spanSeason, span_kind: MINI_ARRAYS.spanKind, span_team: MINI_ARRAYS.spanTeam,
+  span_link: MINI_ARRAYS.spanLink, span_games: MINI_ARRAYS.spanGames, span_first_game: MINI_ARRAYS.spanFirstGame,
+  opp_a: MINI_ARRAYS.oppA!, opp_b: MINI_ARRAYS.oppB!, opp_games: MINI_ARRAYS.oppGames!,
+}
+
+/** Writes the C-mini serving database. Rows come from the in-memory fake so both sides share one source. */
+const writeMini = (path: string) => {
+  const db = new DatabaseSync(path)
+  db.exec(SERVE_TABLES)
+  db.prepare('INSERT INTO meta VALUES (?, ?)').run('schema_version', '1')
+  db.prepare('INSERT INTO meta VALUES (?, ?)').run('snapshot_id', MINI_SNAPSHOT_ID)
+  const teams = new Map<number, [string, string]>()
+  for (let id = 11; id <= 20; id += 1) {
+    const { player, stints } = Effect.runSync(fake.player(id))
+    db.prepare('INSERT INTO players VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+      player.playerId, player.name, player.searchName, player.position, player.firstSeason, player.lastSeason,
+      player.games, player.points, player.teammates,
+    )
+    for (const s of stints) {
+      teams.set(s.teamId, [s.teamAbbrev, s.teamName])
+      db.prepare('INSERT INTO stints VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+        player.playerId, s.seasonId, s.gameType, s.teamId, s.games, s.firstGameId, s.lastGameId,
+      )
+    }
+  }
+  for (const [teamId, [abbrev, name]] of teams) db.prepare('INSERT INTO teams VALUES (?, ?, ?)').run(teamId, abbrev, name)
+  for (const game of MINI_GAMES) {
+    // The fake treats the two playoff games as the Final (decision D8 flag).
+    db.prepare('INSERT INTO games VALUES (?, ?, ?, ?, ?, ?)').run(
+      game.gameId, game.seasonId, game.gameType, game.gameDate, game.gameType === 3 ? 1 : null, game.gameType === 3 ? 1 : 0,
+    )
+    for (const side of game.sides) {
+      for (const playerId of side.credited) {
+        db.prepare('INSERT INTO appearances VALUES (?, ?, ?)').run(playerId, game.gameId, side.teamId)
+      }
+    }
+  }
+  for (const [name, view] of Object.entries(blobs)) {
+    db.prepare('INSERT INTO graph_arrays VALUES (?, ?)').run(name, new Uint8Array(view.buffer, view.byteOffset, view.byteLength))
+  }
+  db.close()
+}
+
+const withDirectory = async (use: (directory: string) => Promise<void>) => {
+  const directory = mkdtempSync(join(tmpdir(), 'history-store-'))
+  try { await use(directory) } finally { rmSync(directory, { recursive: true, force: true }) }
+}
+
+const withMini = (use: (store: Awaited<ReturnType<typeof openMini>>) => Promise<void>) => withDirectory(async (directory) => {
+  const path = join(directory, 'nhl-serve.sqlite')
+  writeMini(path)
+  await use(await openMini(path))
+})
+const openMini = (path: string) => run(openHistoryStore(path))
+
+const plain = (view: ArrayLike<number>) => Array.from(view)
+const teammateKeys = [
+  'playerIds', 'seasonIds', 'teamIds', 'edgeA', 'edgeB', 'spanStart', 'spanSeason', 'spanKind', 'spanTeam', 'spanLink',
+  'spanGames', 'spanFirstGame',
+] as const satisfies ReadonlyArray<keyof GraphArrays>
+
+test('loads the snapshot id and teammate arrays equal to the fixture', () => withMini(async (store) => {
+  assert.equal(store.snapshotId, MINI_SNAPSHOT_ID)
+  for (const key of teammateKeys) {
+    assert.deepEqual(plain(store.graph.arrays[key]), plain(MINI_ARRAYS[key]), key)
+    assert.equal(store.graph.arrays[key].byteOffset, 0, `${key} is aligned`)
+  }
+  assert.equal(store.graph.indexOf.get(15), 4)
+  assert.equal(store.graph.indexOf.get(21), undefined)
+}))
+
+test('opponent arrays load lazily and match the fixture', () => withMini(async (store) => {
+  assert.deepEqual(plain(store.graph.arrays.oppA!), plain(MINI_ARRAYS.oppA!))
+  assert.deepEqual(plain(store.graph.arrays.oppB!), plain(MINI_ARRAYS.oppB!))
+  assert.deepEqual(plain(store.graph.arrays.oppGames!), plain(MINI_ARRAYS.oppGames!))
+  assert.equal(store.graph.arrays.oppA, store.graph.arrays.oppA)
+}))
+
+test('searchPlayers folds accents and orders by games then id', () => withMini(async (store) => {
+  for (const [query, limit] of [['dvorak', 10], ['PLAYER', 10], ['player', 2], ['  ', 5], ['nobody', 5]] as const) {
+    assert.deepEqual(await run(store.searchPlayers(query, limit)), await run(fake.searchPlayers(query, limit)), query)
+  }
+  assert.deepEqual((await run(store.searchPlayers('dvorak', 5))).map((row) => row.playerId), [19])
+}))
+
+test('player returns the row and ordered stints, and unknown ids fail', () => withMini(async (store) => {
+  for (const id of [11, 14, 16, 19]) assert.deepEqual(await run(store.player(id)), await run(fake.player(id)), String(id))
+  assert.equal((await run(store.player(14))).stints.length, 2)
+  assert.deepEqual(await fail(store.player(21)), new UnknownPlayer({ playerId: 21 }))
+}))
+
+test('roster lists stint players, and an empty one is UnknownRoster', () => withMini(async (store) => {
+  for (const [team, season, type] of [[1, 19501951, 2], [3, 19511952, 2], [2, 19511952, 3]] as const) {
+    assert.deepEqual(await run(store.roster(team, season, type)), await run(fake.roster(team, season, type)))
+  }
+  assert.deepEqual(await fail(store.roster(4, 19511952, 2)), new UnknownRoster({ teamId: 4, seasonId: 19511952, gameType: 2 }))
+}))
+
+test('sharedGames returns games both appear for the team, oldest first', () => withMini(async (store) => {
+  const cases: ReadonlyArray<readonly [number, number, number, 2 | 3, number]> = [
+    [11, 12, 19501951, 2, 1], [12, 14, 19511952, 2, 2], [14, 15, 19511952, 3, 2], [11, 12, 19511952, 2, 1], [15, 16, 19501951, 2, 3],
+  ]
+  for (const [a, b, season, type, team] of cases) {
+    assert.deepEqual(await run(store.sharedGames(a, b, season, type, team)), await run(fake.sharedGames(a, b, season, type, team)), `${a}-${b}`)
+  }
+  assert.deepEqual((await run(store.sharedGames(11, 12, 19501951, 2, 1))).map((row) => row.gameId), [1950020001, 1950020002])
+  assert.deepEqual(await fail(store.sharedGames(11, 99, 19501951, 2, 1)), new UnknownPlayer({ playerId: 99 }))
+}))
+
+test('sharedGames has no goalie-partner games until the file carries dressed goalies', () => withMini(async (store) => {
+  // The fake returns the three 16-17 partner games; the serving file cannot yet.
+  assert.equal((await run(fake.sharedGames(16, 17, 19511952, 2, 3))).length, 3)
+  assert.deepEqual(await run(store.sharedGames(16, 17, 19511952, 2, 3)), [])
+}))
+
+test('opposedGames lists games on different teams with each side', () => withMini(async (store) => {
+  for (const [a, b] of [[12, 16], [16, 12], [15, 16], [11, 19], [11, 12]] as const) {
+    assert.deepEqual(await run(store.opposedGames(a, b)), await run(fake.opposedGames(a, b)), `${a}v${b}`)
+  }
+  assert.equal((await run(store.opposedGames(14, 16))).length, 4)
+  assert.deepEqual(await fail(store.opposedGames(21, 16)), new UnknownPlayer({ playerId: 21 }))
+}))
+
+test('finals groups flagged games by season with participants', () => withMini(async (store) => {
+  assert.deepEqual(await run(store.finals(1900, 2100)), await run(fake.finals(1900, 2100)))
+  assert.deepEqual(await run(store.finals(1952, 1952)), await run(fake.finals(1952, 1952)))
+  assert.deepEqual(await run(store.finals(1953, 2000)), [])
+  const [final] = await run(store.finals(1952, 1952))
+  assert.deepEqual(final.participants.map((p) => p.playerId), [14, 15, 16])
+}))
+
+test('a missing file is HistoryUnavailable', () => withDirectory(async (directory) => {
+  assert.ok((await fail(openHistoryStore(join(directory, 'absent.sqlite')))) instanceof HistoryUnavailable)
+}))
+
+test('a wrong schema version, a missing table, and a missing blob are HistoryUnavailable', () => withDirectory(async (directory) => {
+  const mutate = async (name: string, change: (db: DatabaseSync) => void) => {
+    const path = join(directory, `${name}.sqlite`)
+    writeMini(path)
+    const db = new DatabaseSync(path)
+    change(db)
+    db.close()
+    assert.ok((await fail(openHistoryStore(path))) instanceof HistoryUnavailable, name)
+  }
+  await mutate('version', (db) => db.exec("UPDATE meta SET value = '2' WHERE key = 'schema_version'"))
+  await mutate('no-snapshot', (db) => db.exec("DELETE FROM meta WHERE key = 'snapshot_id'"))
+  await mutate('no-table', (db) => db.exec('DROP TABLE stints'))
+  await mutate('no-blob', (db) => db.exec("DELETE FROM graph_arrays WHERE name = 'edge_a'"))
+  await mutate('odd-blob', (db) => db.exec("UPDATE graph_arrays SET bytes = x'010203' WHERE name = 'span_games'"))
+}))
