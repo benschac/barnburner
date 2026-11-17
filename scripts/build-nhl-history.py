@@ -8,7 +8,9 @@ import json
 from pathlib import Path
 import sqlite3
 
-from check_nhl_history import check
+import importlib.util
+
+from check_nhl_history import check, check_with_retry, refetch_totals
 
 
 SCHEMA = """
@@ -131,7 +133,25 @@ def project(db, data, season, kind):
                        appearances(data[role + "s"], role))
 
 
-def build(root, db):
+def load_archiver(root):
+    path = Path(__file__).with_name("import-nhl-history.py")
+    spec = importlib.util.spec_from_file_location("import_nhl_history", path)
+    importer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(importer)
+    importer.ROOT = root
+    return importer.archive
+
+
+def refetch_recent(root, seasons, archive=None, totals=refetch_totals):
+    """Re-archive game reports and re-fetch summary totals for the given seasons."""
+    archive = archive or load_archiver(root)
+    for season in seasons:
+        for kind in (2, 3):
+            print(archive(season, kind), flush=True)
+    totals(root / "season-totals.json.gz", seasons)
+
+
+def build(root, db, refetch=refetch_recent):
     version = db.execute("PRAGMA user_version").fetchone()[0]
     has_tables = db.execute("SELECT 1 FROM sqlite_master WHERE type='table'").fetchone()
     require(version == SCHEMA_VERSION or (version == 0 and not has_tables),
@@ -149,26 +169,30 @@ def build(root, db):
     changed = 0
     with db:
         db.execute("BEGIN IMMEDIATE")
-        existing = {(s, k): h for s, k, h in db.execute("SELECT season_id,game_type,sha256 FROM partitions")}
-        require(not existing.keys() - archives.keys(), "database contains seasons outside the catalog")
-        for (season, kind), path in sorted(archives.items()):
-            contents = path.read_bytes()
-            digest = hashlib.sha256(contents).hexdigest()
-            if existing.get((season, kind)) == digest:
-                continue
-            try:
-                data = json.loads(gzip.decompress(contents))
-                require((data["seasonId"], data["gameType"]) == (season, kind), "partition mismatch")
-                require(isinstance(data["sources"], list) and data["sources"], "missing source URLs")
-                db.execute("DELETE FROM partitions WHERE season_id=? AND game_type=?", (season, kind))
-                db.execute("INSERT INTO partitions VALUES(?,?,?,?,?)",
-                           (season, kind, digest, data["fetchedAt"], json.dumps(data["sources"])))
-                project(db, data, season, kind)
-            except (KeyError, ValueError, sqlite3.Error) as exc:
-                raise ValueError(f"{path.name}: {exc}") from exc
-            changed += 1
-        with gzip.open(root / "season-totals.json.gz", "rt") as stream:
-            report = check(db, json.load(stream))
+        def load_and_check():
+            nonlocal changed
+            existing = {(s, k): h for s, k, h in db.execute("SELECT season_id,game_type,sha256 FROM partitions")}
+            require(not existing.keys() - archives.keys(), "database contains seasons outside the catalog")
+            for (season, kind), path in sorted(archives.items()):
+                contents = path.read_bytes()
+                digest = hashlib.sha256(contents).hexdigest()
+                if existing.get((season, kind)) == digest:
+                    continue
+                try:
+                    data = json.loads(gzip.decompress(contents))
+                    require((data["seasonId"], data["gameType"]) == (season, kind), "partition mismatch")
+                    require(isinstance(data["sources"], list) and data["sources"], "missing source URLs")
+                    db.execute("DELETE FROM partitions WHERE season_id=? AND game_type=?", (season, kind))
+                    db.execute("INSERT INTO partitions VALUES(?,?,?,?,?)",
+                               (season, kind, digest, data["fetchedAt"], json.dumps(data["sources"])))
+                    project(db, data, season, kind)
+                except (KeyError, ValueError, sqlite3.Error) as exc:
+                    raise ValueError(f"{path.name}: {exc}") from exc
+                changed += 1
+            with gzip.open(root / "season-totals.json.gz", "rt") as stream:
+                return check(db, json.load(stream))
+
+        report = check_with_retry(load_and_check, lambda recent: refetch(root, recent), sorted(ids))
         issues = {key: value[:12] for key, value in report.items()
                   if key in ("differences", "duplicates", "missingPartitions", "unexpectedPartitions") and value}
         require(not issues, f"NHL season reconciliation failed: {issues}")

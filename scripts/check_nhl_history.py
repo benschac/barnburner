@@ -103,6 +103,34 @@ def check(db, snapshot):
                 dualRoleAppearances=dual_roles, zeroGameSummaryRows=zero_game_reports, differences=differences, duplicates=duplicates)
 
 
+def recent_only(report, seasons):
+    """True when every difference falls in the two most recent seasons."""
+    recent = set(sorted(seasons)[-2:])
+    return bool(report["differences"]) and all(row["season"] in recent for row in report["differences"])
+
+
+def check_with_retry(run_check, refetch, seasons):
+    """Run the check; if differences are confined to the two latest seasons
+    (a game finished mid-refresh), call refetch(recent_seasons) once and check again."""
+    report = run_check()
+    if recent_only(report, seasons):
+        refetch(sorted(seasons)[-2:])
+        report = run_check()
+    return report
+
+
+def refetch_totals(path, seasons):
+    """Re-fetch summary totals for the given seasons and rewrite the snapshot."""
+    with gzip.open(path, "rt") as stream:
+        snapshot = json.load(stream)
+    keep = [r for r in snapshot["reports"] if r[0] not in seasons]
+    fresh = [season_totals(p) for p in partitions(seasons)]
+    snapshot.update(reports=keep + fresh, fetchedAt=datetime.now(timezone.utc).isoformat())
+    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as tmp:
+        tmp.write(gzip.compress(json.dumps(snapshot, separators=(",", ":")).encode(), mtime=0))
+    Path(tmp.name).replace(path)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("database", type=Path, nargs="?")
@@ -115,11 +143,17 @@ def main():
         if args.fetch:
             return 0
         parser.error("provide a database to check")
+
+    def run_check():
+        with gzip.open(args.totals, "rt") as stream:
+            snapshot = json.load(stream)
+        with sqlite3.connect(args.database.resolve().as_uri() + "?mode=ro", uri=True) as db:
+            db.execute("BEGIN")
+            return check(db, snapshot)
+
     with gzip.open(args.totals, "rt") as stream:
-        snapshot = json.load(stream)
-    with sqlite3.connect(args.database.resolve().as_uri() + "?mode=ro", uri=True) as db:
-        db.execute("BEGIN")
-        report = check(db, snapshot)
+        seasons = json.load(stream)["seasons"]
+    report = check_with_retry(run_check, lambda recent: refetch_totals(args.totals, recent) if args.fetch else None, seasons)
     print(json.dumps(report, indent=2))
     return int(any(report[key] for key in ("differences", "duplicates", "missingPartitions", "unexpectedPartitions")))
 

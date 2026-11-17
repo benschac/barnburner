@@ -48,3 +48,17 @@ class HistoryCheck(unittest.TestCase):
     def test_skipped_historical_season(self):
         with self.assertRaises(ValueError):
             checker["verify_seasons"]([19171918, 19191920])
+
+    def test_retry_only_when_differences_are_recent(self):
+        seasons = [19171918, 19181919, 19191920]
+        def run(diff_season):
+            calls = []
+            reports = iter([dict(differences=[dict(season=diff_season)]), dict(differences=[])])
+            result = checker["check_with_retry"](lambda: next(reports), calls.append, seasons)
+            return calls, result
+        calls, result = run(19191920)
+        self.assertEqual(calls, [[19181919, 19191920]])
+        self.assertEqual(result["differences"], [])
+        calls, result = run(19171918)
+        self.assertEqual(calls, [])
+        self.assertEqual(result["differences"], [dict(season=19171918)])
