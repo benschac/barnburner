@@ -29,8 +29,9 @@ export const findViolations = (text) => {
   return violations
 }
 
+// Accepts a directory to walk or a single source file.
 const sourceFiles = (dir) =>
-  readdirSync(dir).flatMap((name) => {
+  !statSync(dir).isDirectory() ? [dir] : readdirSync(dir).flatMap((name) => {
     const path = join(dir, name)
     if (statSync(path).isDirectory()) return sourceFiles(path)
     return /\.(ts|tsx|mts)$/.test(name) && !/\.(test|d)\.(ts|tsx|mts)$/.test(name) ? [path] : []
@@ -39,7 +40,7 @@ const sourceFiles = (dir) =>
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const dirs = process.argv.slice(2)
   if (dirs.length === 0) {
-    console.error('usage: node scripts/check-error-model.mjs <dir> [<dir> ...]')
+    console.error('usage: node scripts/check-error-model.mjs <dir or file> [<dir or file> ...]')
     process.exit(2)
   }
   let count = 0

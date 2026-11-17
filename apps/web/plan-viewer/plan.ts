@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { Result, Schema } from 'effect'
 
 const tableRows = (text: string) => text.split('\n')
   .filter((line) => line.startsWith('|'))
@@ -20,50 +21,91 @@ const prerequisiteTitles: Record<string, string> = {
   'P-rights': 'Confirm data rights',
 }
 
-export const parseAnalystPlan = (source: string) => {
-  const sourceHash = createHash('sha256').update(source).digest('hex')
-  const section = (name: string) => {
-    const part = source.split('\n## ' + name + '\n')[1]
-    if (part === undefined) throw new Error('Missing source section: ' + name)
-    return part.split('\n## ')[0].trim()
+// The plan document does not have the structure the viewer needs. `subject` names the section,
+// card, or task at fault.
+export class PlanParseError extends Schema.TaggedError<PlanParseError, { readonly brand: unique symbol }>()('PlanParseError', {
+  reason: Schema.String,
+  subject: Schema.String,
+}) {
+  override get message(): string {
+    return `${this.reason}: ${this.subject}`
   }
-  const cardText = section('Task cards')
+}
+
+interface PlanCard {
+  readonly heading: string
+  readonly body: string
+  readonly ids: string[]
+  readonly group: string
+}
+
+interface PlanTask {
+  readonly id: string
+  readonly group: string
+  readonly category: string
+  readonly model: string
+  readonly needs: string[]
+  readonly branch: string
+  readonly pr: string
+  readonly status: string
+  readonly notes: string
+  readonly title: string
+  readonly heading: string
+  readonly body: string
+  readonly parent: string | null
+}
+
+const refuse = (reason: string, subject: string) => Result.fail(new PlanParseError({ reason, subject }))
+
+export const parseAnalystPlan = (source: string) => Result.gen(function* () {
+  const sourceHash = createHash('sha256').update(source).digest('hex')
+  const section = (name: string): Result.Result<string, PlanParseError> => {
+    const part = source.split('\n## ' + name + '\n')[1]
+    return part === undefined ? refuse('Missing source section', name) : Result.succeed(part.split('\n## ')[0].trim())
+  }
+  const cardText = yield* section('Task cards')
   const groups = [...cardText.matchAll(/^### (.+)$/gm)].map((match) => match[1])
-  const cards = [...cardText.matchAll(/^#### (.+)\n([\s\S]*?)(?=^### |^#### |$(?![\s\S]))/gm)].map((match) => {
+  const cards: PlanCard[] = []
+  for (const match of cardText.matchAll(/^#### (.+)\n([\s\S]*?)(?=^### |^#### |$(?![\s\S]))/gm)) {
     const group = [...cardText.slice(0, match.index).matchAll(/^### (.+)$/gm)].at(-1)?.[1]
-    if (!group) throw new Error('Task card has no workstream: ' + match[1])
-    return { heading: match[1], body: match[2].trim(), ids: expandIds(match[1].split(' · ')[0]), group }
-  })
-  const tasks = tableRows(section('Ledger')).slice(1).flatMap(([ledgerId, model, needs, branch, pr, status, notes]) => expandIds(ledgerId).map((id) => {
-    if (!/^[A-Za-z][A-Za-z0-9-]*$/.test(id)) throw new Error('Invalid task ID: ' + id)
-    const card = id.startsWith('P-')
-      ? { heading: 'Prerequisites (you)', group: groups[0], body: cardText.split('\n').find((line) => line.startsWith('- **' + id + ':**')), ids: [id] }
-      : cards.find((item) => item.ids.includes(id))
-    if (!card?.body || !card.group) throw new Error('No task card for ' + id)
-    const evalRow = card.ids.length > 1 && id.startsWith('E') ? tableRows(card.body).find((row) => row[0] === id) : undefined
-    let title = id.startsWith('P-') ? prerequisiteTitles[id] : card.heading.split(' · ')[1]?.split(' (')[0]
-    if (!title) throw new Error('No task title for ' + id)
-    if (evalRow) title += ' / ' + evalRow[2].split('/').at(-1)?.replaceAll('`', '').replace('.json', '')
-    if (card.ids.length > 1 && id.startsWith('X')) title += ' / ' + card.body.match(new RegExp('\\*\\*' + id + ', ([^:*]+)'))?.[1]
-    return {
-      id, group: card.ids.length > 1 ? card.heading.split(' · ')[0] : id,
-      category: card.group, model: evalRow?.[1] ?? model,
-      needs: needs === '–' ? [] : needs.split(',').flatMap((need) => expandIds(need.trim())),
-      branch, pr, status, notes, title, heading: card.heading, body: card.body,
-      parent: card.body.match(/\*\*Stack on:\*\* ([A-Z]+\d+[a-z]?)/)?.[1] ?? null,
+    if (!group) return yield* refuse('Task card has no workstream', match[1])
+    cards.push({ heading: match[1], body: match[2].trim(), ids: expandIds(match[1].split(' · ')[0]), group })
+  }
+  const tasks: PlanTask[] = []
+  for (const [ledgerId, model, needs, branch, pr, status, notes] of tableRows(yield* section('Ledger')).slice(1)) {
+    for (const id of expandIds(ledgerId)) {
+      if (!/^[A-Za-z][A-Za-z0-9-]*$/.test(id)) return yield* refuse('Invalid task ID', id)
+      const card = id.startsWith('P-')
+        ? { heading: 'Prerequisites (you)', group: groups[0], body: cardText.split('\n').find((line) => line.startsWith('- **' + id + ':**')), ids: [id] }
+        : cards.find((item) => item.ids.includes(id))
+      if (!card?.body || !card.group) return yield* refuse('No task card for', id)
+      const evalRow = card.ids.length > 1 && id.startsWith('E') ? tableRows(card.body).find((row) => row[0] === id) : undefined
+      let title = id.startsWith('P-') ? prerequisiteTitles[id] : card.heading.split(' · ')[1]?.split(' (')[0]
+      if (!title) return yield* refuse('No task title for', id)
+      if (evalRow) title += ' / ' + evalRow[2].split('/').at(-1)?.replaceAll('`', '').replace('.json', '')
+      if (card.ids.length > 1 && id.startsWith('X')) title += ' / ' + card.body.match(new RegExp('\\*\\*' + id + ', ([^:*]+)'))?.[1]
+      tasks.push({
+        id, group: card.ids.length > 1 ? card.heading.split(' · ')[0] : id,
+        category: card.group, model: evalRow?.[1] ?? model,
+        needs: needs === '–' ? [] : needs.split(',').flatMap((need) => expandIds(need.trim())),
+        branch, pr, status, notes, title, heading: card.heading, body: card.body,
+        parent: card.body.match(/\*\*Stack on:\*\* ([A-Z]+\d+[a-z]?)/)?.[1] ?? null,
+      })
     }
-  }))
-  if (new Set(tasks.map((task) => task.id)).size !== tasks.length) throw new Error('Duplicate ledger task IDs')
+  }
+  const taskIds = tasks.map((task) => task.id)
+  const duplicate = taskIds.find((id, index) => taskIds.indexOf(id) !== index)
+  if (duplicate !== undefined) return yield* refuse('Duplicate ledger task ID', duplicate)
   for (const card of cards) {
-    for (const id of card.ids) if (!tasks.some((task) => task.id === id)) throw new Error('Task card missing from ledger: ' + id)
+    for (const id of card.ids) if (!taskIds.includes(id)) return yield* refuse('Task card missing from ledger', id)
   }
   for (const task of tasks) {
-    if (!task.status) throw new Error('Missing ledger status: ' + task.id)
+    if (!task.status) return yield* refuse('Missing ledger status', task.id)
     for (const dependency of [...task.needs, ...(task.parent ? [task.parent] : [])]) {
-      if (!tasks.some((item) => item.id === dependency)) throw new Error('Unknown dependency for ' + task.id + ': ' + dependency)
+      if (!taskIds.includes(dependency)) return yield* refuse('Unknown dependency for ' + task.id, dependency)
     }
   }
-  const contracts = section('Contracts').split('\n### ').slice(1).map((part) => {
+  const contracts = (yield* section('Contracts')).split('\n### ').slice(1).map((part) => {
     const [title, ...body] = part.split('\n')
     return { title, body: body.join('\n').trim() }
   })
@@ -82,10 +124,10 @@ export const parseAnalystPlan = (source: string) => {
   }))
   return {
     tasks, groups: groups.map((title, number) => ({ number, title })), contracts,
-    decisions: tableRows(section('Decisions (changes from the spec)')).slice(1).map(([id, decision, reason]) => ({ id, decision, reason })),
-    record: section('System of record (Ratstack)'),
-    routing: section('Orchestration').split('\nDispatch sketch')[0].trim(),
-    criticalPath: section('Critical path'),
+    decisions: tableRows(yield* section('Decisions (changes from the spec)')).slice(1).map(([id, decision, reason]) => ({ id, decision, reason })),
+    record: yield* section('System of record (Ratstack)'),
+    routing: (yield* section('Orchestration')).split('\nDispatch sketch')[0].trim(),
+    criticalPath: yield* section('Critical path'),
     sourceHash,
     hash: sourceHash.slice(0, 12),
     status: source.match(/^Status: (.+)$/m)?.[1] ?? 'See source plan',
@@ -93,4 +135,4 @@ export const parseAnalystPlan = (source: string) => {
     dependencyDiagrams,
     pipelineDiagram: 'flowchart TD\nsource["Source snapshots"] --> db["Read-only DuckDB tables"]\ndb --> candidates["Detectors or generator"]\ncandidates --> verify["Canonical query evidence and verifier"]\nverify --> pending["Rank and store pending"]\npending --> human["Human review"]\nhuman --> approved["Approved API and poster"]\nhuman --> rejected["Rejected"]\napproved --> recheck["Recheck after refresh"]\nrecheck --> valid["Assertion holds: keep approved"]\nrecheck --> stale["Assertion fails or query errors: stale"]',
   }
-}
+})
