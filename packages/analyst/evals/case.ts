@@ -13,8 +13,9 @@ export type EvalCase = typeof EvalCase.Type
 
 export const EvalCases = Schema.Array(EvalCase)
 
+// Tagged so graders branch with Match and a new answer kind fails to compile until handled.
 export type EvalAnswer =
-  | { readonly value: number; readonly coverage?: { readonly archived: number; readonly finals: number } | undefined }
-  | { readonly declined: true; readonly reason?: string | undefined }
+  | { readonly _tag: 'Answered'; readonly value: number; readonly coverage?: { readonly archived: number; readonly finals: number } | undefined }
+  | { readonly _tag: 'Declined'; readonly reason?: string | undefined }
 
 export type Grade = { readonly pass: true } | { readonly pass: false; readonly reason: string }

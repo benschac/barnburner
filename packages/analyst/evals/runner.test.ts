@@ -24,18 +24,18 @@ test('runEvals grades, flags invalid cases, and survives answerer failures', asy
     'sql-throw': [{ value: 1 }],
   })
   const scripted: Record<string, () => Effect.Effect<EvalAnswer>> = {
-    ok: () => Effect.succeed({ value: 5 }),
-    wrong: () => Effect.succeed({ value: 6 }),
+    ok: () => Effect.succeed({ _tag: 'Answered', value: 5 }),
+    wrong: () => Effect.succeed({ _tag: 'Answered', value: 6 }),
     fail: () => Effect.die(new Error('boom')),
     throw: () => {
       throw new Error('sync boom')
     },
-    dec: () => Effect.succeed({ declined: true }),
+    dec: () => Effect.succeed({ _tag: 'Declined' }),
   }
   const out = await Effect.runPromise(
     runEvals({
       db,
-      answerer: (e) => (scripted[e.id] ?? (() => Effect.succeed({ value: 0 })))(),
+      answerer: (e) => (scripted[e.id] ?? (() => Effect.succeed({ _tag: 'Answered', value: 0 })))(),
       cases: [
         c('ok'),
         c('wrong'),
@@ -82,6 +82,6 @@ test('runEvals grades a typed answerer failure as a failed case', async () => {
 })
 
 test('runEvals on no cases scores zero', async () => {
-  const out = await Effect.runPromise(runEvals({ cases: [], db: fakeDb({}), answerer: () => Effect.succeed({ value: 1 }) }))
+  const out = await Effect.runPromise(runEvals({ cases: [], db: fakeDb({}), answerer: () => Effect.succeed({ _tag: 'Answered', value: 1 }) }))
   assert.equal(out.score, 0)
 })
