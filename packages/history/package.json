@@ -1,0 +1,21 @@
+{
+  "name": "@nhl-reddit-stats/history",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./rpc": "./src/contracts.ts"
+  },
+  "scripts": {
+    "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.json",
+    "lint": "effect-tsgo --tsrs-lint oxlint src tests && node ../../scripts/check-error-model.mjs src && node ../../scripts/test-union-rules.mjs .",
+    "test": "node --test \"tests/*.test.ts\""
+  },
+  "dependencies": {
+    "effect": "4.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2"
+  }
+}

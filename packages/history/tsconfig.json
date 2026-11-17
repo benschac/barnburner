@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "ignoreEffectWarningsInTscExitCode": true,
+        "overrides": [
+          {
+            "include": ["src/**/*.ts"],
+            "options": {
+              "diagnosticSeverity": {
+                "floatingEffect": "error",
+                "globalJson": "error",
+                "globalJsonInEffect": "error"
+              }
+            }
+          }
+        ],
+        "diagnosticSeverity": {
+          "extendsNativeError": "error",
+          "globalErrorInEffectFailure": "error",
+          "globalErrorInEffectCatch": "error",
+          "tryCatchInEffectGen": "error"
+        }
+      }
+    ],
+    "target": "es2023",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true
+  },
+  "include": ["src", "tests"]
+}

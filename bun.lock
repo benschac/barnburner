@@ -65,6 +65,16 @@
         "@types/node": "^24.19.2",
       },
     },
+    "packages/history": {
+      "name": "@nhl-reddit-stats/history",
+      "version": "0.0.0",
+      "dependencies": {
+        "effect": "4.1.2",
+      },
+      "devDependencies": {
+        "@types/node": "^24.19.2",
+      },
+    },
     "packages/season": {
       "name": "@nhl-reddit-stats/season",
       "version": "0.0.0",
@@ -345,6 +355,8 @@
     "@nhl-reddit-stats/analyst": ["@nhl-reddit-stats/analyst@workspace:packages/analyst"],
 
     "@nhl-reddit-stats/api": ["@nhl-reddit-stats/api@workspace:apps/api"],
+
+    "@nhl-reddit-stats/history": ["@nhl-reddit-stats/history@workspace:packages/history"],
 
     "@nhl-reddit-stats/season": ["@nhl-reddit-stats/season@workspace:packages/season"],
 
