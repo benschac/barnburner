@@ -26,7 +26,7 @@ Graph = dict[int, dict[int, int]]
 @dataclass(slots=True)
 class Span:
     games: int
-    first: tuple[str, int]
+    first: int  # lowest game ID, not the earliest date
 
 
 @dataclass
@@ -89,14 +89,17 @@ def add_game(counts, spans, pair, season, kind, team, evidence):
 
 def collect_relations(db, players):
     relations = Relations()
-    relations.dressed_available = db.execute(
+    has_table = db.execute(
         "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'dressed_goalies'"
     ).fetchone() is not None
+    # Coverage means the base has dressed rows; an empty table is missing data, not zeros.
+    relations.dressed_available = has_table and db.execute(
+        "SELECT 1 FROM dressed_goalies LIMIT 1").fetchone() is not None
     rows = """
         SELECT game_id, team_id, player_id, 0 AS dressed
         FROM appearances WHERE game_type IN (2, 3)
     """
-    if relations.dressed_available:
+    if has_table:
         rows += """
             UNION ALL
             SELECT game_id, team_id, player_id, 1 AS dressed FROM dressed_goalies
@@ -122,7 +125,7 @@ def collect_relations(db, players):
                     credited.add(player)
                 elif player in players:
                     dressed.add(player)
-            evidence = (date, game)
+            evidence = game
             for pair in combinations(sorted(credited), 2):
                 add_game(relations.shared, relations.shared_spans, pair,
                          season, kind, team, evidence)
@@ -292,21 +295,49 @@ def sampled_answers(graph_off, graph_on, seed, count):
     return answers
 
 
-def pair_report(relations, a, b):
+def pair_seasons(db, a, b):
+    return sorted(season for (season,) in db.execute(
+        """SELECT DISTINCT season_id FROM appearances
+           WHERE player_id IN (?, ?) AND game_type IN (2, 3)""", (a, b)))
+
+
+def dressed_seasons(db, seasons):
+    """Seasons among `seasons` that have at least one dressed-goalie row."""
+    if not db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'dressed_goalies'"
+    ).fetchone():
+        return []
+    return sorted(
+        season for season in seasons
+        if db.execute(
+            """SELECT 1 FROM dressed_goalies AS d
+               JOIN game_sides AS g USING (game_id, team_id)
+               WHERE g.season_id = ? LIMIT 1""", (season,)).fetchone()
+    )
+
+
+def pair_report(db, relations, a, b):
+    """Pair answers. Partner values are None, with a `coverage` note, when none of the
+    seasons either player appeared in has dressed-goalie rows (missing, not zero)."""
     if a is None or b is None:
         return None
     pair = pair_key(a, b)
-    spans = [
+    seasons = pair_seasons(db, a, b)
+    report = {"shared_games": relations.shared[pair]}
+    if not dressed_seasons(db, seasons):
+        report.update(
+            partner_games=None, partner_spans=None,
+            coverage=f"no dressed_goalies rows for seasons {seasons}",
+        )
+        return report
+    report["partner_games"] = relations.partners[pair]
+    report["partner_spans"] = [
         {"season_id": season, "game_type": kind, "team_id": team,
-         "games": span.games, "first_game_id": span.first[1]}
+         "games": span.games, "first_game_id": span.first}
         for (players, season, kind, team), span in sorted(relations.partner_spans.items())
         if players == pair
     ]
-    return {
-        "shared_games": relations.shared[pair],
-        "partner_games": relations.partners[pair],
-        "partner_spans": spans if relations.dressed_available else None,
-    }
+    return report
 
 
 def build_truth(db, seed=0, pairs=200, skip_diameter=False):
@@ -379,8 +410,8 @@ def build_truth(db, seed=0, pairs=200, skip_diameter=False):
         ),
         "johansen_jones_2015_16_shared_games": johansen_jones_games,
         "cleghorn_1918020026": cleghorn_games,
-        "hill_samsonov": pair_report(relations, names["Adin Hill"], names["Ilya Samsonov"]),
-        "ranford_joseph": pair_report(relations, names["Bill Ranford"], names["Curtis Joseph"]),
+        "hill_samsonov": pair_report(db, relations, names["Adin Hill"], names["Ilya Samsonov"]),
+        "ranford_joseph": pair_report(db, relations, names["Bill Ranford"], names["Curtis Joseph"]),
         "jagr_teammates": len(graph_off[jagr]) if jagr is not None else None,
         "jagr_finals_1980_2026": (
             finals_coverage(db, graph_off[jagr], final_teams, final_games)

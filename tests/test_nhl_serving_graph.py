@@ -47,7 +47,7 @@ EXPECTED = {
 def read_blobs(path):
     db = sqlite3.connect(path)
     try:
-        return dict(db.execute("SELECT name, bytes FROM graph_arrays WHERE name NOT LIKE 'opp\_%' ESCAPE '\\'"))
+        return dict(db.execute("SELECT name, bytes FROM graph_arrays WHERE name NOT GLOB 'opp_*'"))
     finally:
         db.close()
 

@@ -83,6 +83,40 @@ class FinalsTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             nhl_serving_finals.run(base, out)
 
+    def test_in_progress_season_flags_only_when_highest_round_is_the_final(self):
+        previous = [(1951030411, 19511952, 3, 4), (1951030111, 19511952, 3, 1)]
+        conference_final = [(1961030311, 19611962, 3, 3), (1961030111, 19611962, 3, 1)]
+        everything = [g for g, *_ in previous + conference_final]
+        base, out = make_inputs(previous + conference_final, two_teams(*everything))
+        nhl_serving_finals.run(base, out)
+        self.assertEqual(self.flagged(out), [1951030411])
+        # Once the Final starts, the latest season is flagged too.
+        final = previous + conference_final + [(1961030411, 19611962, 3, 4)]
+        base, out = make_inputs(final, two_teams(*[g for g, *_ in final]))
+        nhl_serving_finals.run(base, out)
+        self.assertEqual(self.flagged(out), [1951030411, 1961030411])
+
+    def test_older_seasons_keep_highest_round_rule(self):
+        games = [(1951030311, 19511952, 3, 3), (1961030411, 19611962, 3, 4),
+                 (1971030411, 19711972, 3, 4)]
+        base, out = make_inputs(games, two_teams(*[g for g, *_ in games]))
+        nhl_serving_finals.run(base, out)
+        self.assertEqual(self.flagged(out), [1951030311, 1961030411, 1971030411])
+
+    def test_season_team_union_must_be_two(self):
+        games = [(1951030411, 19511952, 3, 4), (1951030412, 19511952, 3, 4)]
+        sides = [(1951030411, 1), (1951030411, 2), (1951030412, 1), (1951030412, 3)]
+        base, out = make_inputs(games, sides)
+        with self.assertRaisesRegex(ValueError, "distinct teams"):
+            nhl_serving_finals.run(base, out)
+
+    def test_season_team_union_includes_suspended_override(self):
+        games = [(1987030811, 19871988, 3, 8), (1987030999, 19871988, 3, 9)]
+        sides = [(1987030811, 1), (1987030811, 2), (1987030999, 1), (1987030999, 3)]
+        base, out = make_inputs(games, sides)
+        with self.assertRaisesRegex(ValueError, "distinct teams"):
+            nhl_serving_finals.run(base, out)
+
 
 if __name__ == "__main__":
     unittest.main()

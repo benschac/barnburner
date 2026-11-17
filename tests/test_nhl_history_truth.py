@@ -101,11 +101,11 @@ class MiniLeagueTest(unittest.TestCase):
             pair: games for (pair, _, _, _), (games, _) in expected.items()
         })
         self.assertEqual({
-            key: (span.games, span.first[1]) for key, span in self.relations.shared_spans.items()
+            key: (span.games, span.first) for key, span in self.relations.shared_spans.items()
         }, expected)
         self.assertEqual(self.relations.partners, {(16, 17): 3})
         self.assertEqual({
-            key: (span.games, span.first[1]) for key, span in self.relations.partner_spans.items()
+            key: (span.games, span.first) for key, span in self.relations.partner_spans.items()
         }, {((16, 17), 19511952, 2, 3): (3, E)})
 
     def test_opponent_pairs(self):
@@ -250,8 +250,24 @@ class HistoricalCasesTest(unittest.TestCase):
             })
             db.execute("DROP TABLE dressed_goalies")
             self.assertEqual(truth.build_truth(db, pairs=0)["hill_samsonov"], {
-                "shared_games": 0, "partner_games": 0, "partner_spans": None,
+                "shared_games": 0, "partner_games": None, "partner_spans": None,
+                "coverage": "no dressed_goalies rows for seasons [20242025]",
             })
+            # An empty table is missing coverage too, not a confirmed zero.
+            db.execute("CREATE TABLE dressed_goalies (game_id INTEGER, team_id INTEGER, player_id INTEGER)")
+            empty = truth.build_truth(db, pairs=0)
+            self.assertFalse(empty["dressed_goalies_available"])
+            self.assertIsNone(empty["ranford_joseph"]["partner_games"])
+
+    def test_span_first_game_is_lowest_id_not_earliest_date(self):
+        with closing(sqlite3.connect(":memory:")) as db:
+            db.executescript(SCHEMA)
+            # Game 2024020002 was played before 2024020001.
+            for game, date in ((2024020001, "2025-02-01"), (2024020002, "2025-01-01")):
+                add_game(db, game, date, ((1, [(1, "Player 1"), (2, "Player 2")]), (2, [(3, "Player 3")])))
+            relations = truth.collect_relations(db, {1, 2, 3})
+            (span,) = relations.shared_spans.values()
+            self.assertEqual((span.games, span.first), (2, 2024020001))
 
     def test_name_resolution_finals_and_coverage(self):
         with closing(sqlite3.connect(":memory:")) as db:
