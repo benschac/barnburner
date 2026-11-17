@@ -22,6 +22,7 @@ export interface EvalRun {
 }
 
 const describe = (e: unknown): string => {
+  // foreign: e is whatever an answerer or driver raised
   if (typeof e === 'object' && e !== null && 'message' in e) return String((e as { message: unknown }).message)
   return String(e)
 }

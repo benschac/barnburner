@@ -43,6 +43,7 @@ const scan = (node: Json, scope: ReadonlySet<string>, state: Scan): void => {
   }
 
   // A table reference carries both `alias` and `sample`; every one must be a known-safe kind.
+  // foreign: node is DuckDB's serialized SQL tree, which has no tag for table references
   if ('sample' in node && 'alias' in node && typeof node.type === 'string') {
     if (!SAFE_REF_TYPES.has(node.type)) {
       state.reason = `source not allowed: ${node.type}`

@@ -1,4 +1,4 @@
-import { Effect, Result, Schema } from 'effect'
+import { Array, Effect, Result, Schema } from 'effect'
 import type { LanguageModel } from 'ai'
 import { Llm } from './llm.ts'
 import type { LlmError } from './llm.ts'
@@ -77,14 +77,14 @@ interface RenderedCard {
   readonly body: string
 }
 
-const renderCard = (card: InsightCard): RenderedCard | DroppedCard => {
+const renderCard = (card: InsightCard): Result.Result<RenderedCard, DroppedCard> => {
   const rows = card.evidence.result as unknown as Row[]
-  const dropped = (error: RenderError): DroppedCard => ({ id: card.id, reason: `render failed: ${error.message}` })
+  const dropped = (error: RenderError) => Result.fail<DroppedCard>({ id: card.id, reason: `render failed: ${error.message}` })
   const headline = render(card.headline, card.bindings, rows)
   if (Result.isFailure(headline)) return dropped(headline.failure)
   const body = render(card.body, card.bindings, rows)
   if (Result.isFailure(body)) return dropped(body.failure)
-  return { card, headline: headline.success, body: body.success }
+  return Result.succeed({ card, headline: headline.success, body: body.success })
 }
 
 const buildPrompt = (cards: ReadonlyArray<RenderedCard>, posterFacts: ReadonlyArray<string>) =>
@@ -131,9 +131,7 @@ export interface RankInput {
 
 export const rank = (input: RankInput): Effect.Effect<RankResult, RankError | LlmError, Llm> =>
   Effect.gen(function* () {
-    const rendered = dedupeCards(input.cards).map(renderCard)
-    const dropped = rendered.filter((r): r is DroppedCard => 'reason' in r)
-    const renderedCards = rendered.filter((r): r is RenderedCard => 'card' in r)
+    const [renderedCards, dropped] = Array.partition(dedupeCards(input.cards), renderCard)
     const cards = renderedCards.map((r) => r.card)
     if (cards.length === 0) return { ranked: [], dropped }
     const llm = yield* Llm

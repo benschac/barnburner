@@ -77,7 +77,7 @@ export const runAnswer = async (deps: AnswerDeps, raw: unknown): Promise<string>
     coverage = found
   }
 
-  deps.onAnswer({ value, query: input.query, ...(coverage === undefined ? {} : { coverage }) })
+  deps.onAnswer({ _tag: 'Answered', value, query: input.query, ...(coverage === undefined ? {} : { coverage }) })
   return 'ok'
 }
 

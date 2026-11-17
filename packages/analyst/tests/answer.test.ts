@@ -33,13 +33,13 @@ const setup = (
 test('returns the named cell and records it without coverage', async () => {
   const { deps, answers } = setup({ [query]: rows })
   assert.equal(await runAnswer(deps, { query, row: 0, column: 'wins' }), 'ok')
-  assert.deepEqual(answers, [{ value: 10, query }])
+  assert.deepEqual(answers, [{ _tag: 'Answered', value: 10, query }])
 })
 
 test('a null cell is a valid answer', async () => {
   const { deps, answers } = setup({ [query]: rows })
   assert.equal(await runAnswer(deps, { query, row: 1, column: 'wins' }), 'ok')
-  assert.deepEqual(answers, [{ value: null, query }])
+  assert.deepEqual(answers, [{ _tag: 'Answered', value: null, query }])
 })
 
 test('guard rejection returns ERROR text and records nothing', async () => {
@@ -82,7 +82,7 @@ test('touching box scores attaches coverage from the fixed SQL text', async () =
     fakeGuard({ ok: true, touchesBoxscores: true }),
   )
   assert.equal(await runAnswer(deps, { query: boxQuery, row: 0, column: 'wins' }), 'ok')
-  assert.deepEqual(answers, [{ value: 10, query: boxQuery, coverage: { archived: 4, finals: 6 } }])
+  assert.deepEqual(answers, [{ _tag: 'Answered', value: 10, query: boxQuery, coverage: { archived: 4, finals: 6 } }])
 })
 
 test('the coverage SQL is exactly the documented text', () => {

@@ -32,6 +32,14 @@ Adopt the stack incrementally through concrete features. Preserve this project's
 - Read `/lore/error-model` through `.agent-sources/ratstack/index.md` before adding an error. House examples: `packages/season/src/contracts.ts` and `packages/analyst/src/render.ts`.
 - `packages/analyst` enforces this in `bun run lint` with `scripts/check-error-model.mjs`. Add the check to a package's `lint` script when that package adopts the rule.
 
+# Union model
+
+- Give every member of a union of object shapes a `_tag`. Branch on it with `Match.valueTags` or `Match.tagsExhaustive`, so a new member fails to compile until it is handled.
+- A boolean literal such as `ok: true` / `ok: false` is an accepted discriminant for two-way outcomes; prefer `Result` for new ones.
+- Do not narrow with `'key' in value`. For untyped external data, put a `// foreign: <reason>` comment on the line above.
+- Keep plain guard chains over numbers and strings as `if` statements; `Match` is for unions.
+- `packages/analyst` enforces this in `bun run lint` with `lint/union-model-plugin.mjs` (`unions/discriminated`, `unions/no-in-narrowing`) and proves the rules with `scripts/test-union-rules.mjs`. Add the plugin to a package's `.oxlintrc.json` when that package adopts the rule. House example: `packages/analyst/evals/grade.ts`.
+
 # Design-system enforcement
 
 For web UI changes, follow [the enforced design contract](apps/web/design/README.md). Run `bun run lint` and `bun run check:tamagui`; use the shared contract rather than inventing literal style values or disabling design rules.
