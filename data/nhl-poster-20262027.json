@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "season": 20262027,
-  "fetchedAt": "2026-11-16T15:12:15.816Z",
+  "fetchedAt": "2026-11-17T15:57:20.943Z",
   "completedGameIds": [
     2026020001,
     2026020002,
@@ -332,12 +332,14 @@
     2026020327,
     2026020328,
     2026020329,
-    2026020330
+    2026020330,
+    2026020331,
+    2026020332
   ],
   "standings": [
     {
       "team": "ANA",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 3,
       "wildcardSequence": 0,
       "points": 23,
@@ -345,7 +347,7 @@
     },
     {
       "team": "BOS",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 4,
       "wildcardSequence": 1,
       "points": 27,
@@ -353,7 +355,7 @@
     },
     {
       "team": "BUF",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 6,
       "wildcardSequence": 5,
       "points": 20,
@@ -361,7 +363,7 @@
     },
     {
       "team": "CAR",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 1,
       "wildcardSequence": 0,
       "points": 34,
@@ -369,7 +371,7 @@
     },
     {
       "team": "CBJ",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 8,
       "wildcardSequence": 10,
       "points": 14,
@@ -377,7 +379,7 @@
     },
     {
       "team": "CGY",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 6,
       "wildcardSequence": 7,
       "points": 19,
@@ -385,7 +387,7 @@
     },
     {
       "team": "CHI",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 8,
       "wildcardSequence": 9,
       "points": 12,
@@ -393,7 +395,7 @@
     },
     {
       "team": "COL",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 2,
       "wildcardSequence": 0,
       "points": 27,
@@ -401,7 +403,7 @@
     },
     {
       "team": "DAL",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 4,
       "wildcardSequence": 1,
       "points": 26,
@@ -409,7 +411,7 @@
     },
     {
       "team": "DET",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 7,
       "wildcardSequence": 6,
       "points": 19,
@@ -417,7 +419,7 @@
     },
     {
       "team": "EDM",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 1,
       "wildcardSequence": 0,
       "points": 35,
@@ -425,7 +427,7 @@
     },
     {
       "team": "FLA",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 5,
       "wildcardSequence": 2,
       "points": 27,
@@ -433,7 +435,7 @@
     },
     {
       "team": "LAK",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 7,
       "wildcardSequence": 8,
       "points": 12,
@@ -441,7 +443,7 @@
     },
     {
       "team": "MIN",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 1,
       "wildcardSequence": 0,
       "points": 34,
@@ -449,15 +451,15 @@
     },
     {
       "team": "MTL",
-      "date": "2026-11-15",
-      "divisionSequence": 2,
+      "date": "2026-11-16",
+      "divisionSequence": 3,
       "wildcardSequence": 0,
       "points": 28,
-      "played": 20
+      "played": 21
     },
     {
       "team": "NJD",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 2,
       "wildcardSequence": 0,
       "points": 30,
@@ -465,7 +467,7 @@
     },
     {
       "team": "NSH",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 3,
       "wildcardSequence": 0,
       "points": 27,
@@ -473,7 +475,7 @@
     },
     {
       "team": "NYI",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 4,
       "wildcardSequence": 3,
       "points": 22,
@@ -481,23 +483,23 @@
     },
     {
       "team": "NYR",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 3,
       "wildcardSequence": 0,
-      "points": 25,
-      "played": 21
+      "points": 27,
+      "played": 22
     },
     {
       "team": "OTT",
-      "date": "2026-11-15",
-      "divisionSequence": 3,
+      "date": "2026-11-16",
+      "divisionSequence": 2,
       "wildcardSequence": 0,
       "points": 28,
       "played": 21
     },
     {
       "team": "PHI",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 6,
       "wildcardSequence": 8,
       "points": 18,
@@ -505,7 +507,7 @@
     },
     {
       "team": "PIT",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 7,
       "wildcardSequence": 9,
       "points": 16,
@@ -513,7 +515,7 @@
     },
     {
       "team": "SEA",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 5,
       "wildcardSequence": 6,
       "points": 19,
@@ -521,7 +523,7 @@
     },
     {
       "team": "SJS",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 4,
       "wildcardSequence": 4,
       "points": 22,
@@ -529,7 +531,7 @@
     },
     {
       "team": "STL",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 7,
       "wildcardSequence": 5,
       "points": 20,
@@ -537,7 +539,7 @@
     },
     {
       "team": "TBL",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 1,
       "wildcardSequence": 0,
       "points": 28,
@@ -545,7 +547,7 @@
     },
     {
       "team": "TOR",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 8,
       "wildcardSequence": 7,
       "points": 18,
@@ -553,23 +555,23 @@
     },
     {
       "team": "UTA",
-      "date": "2026-11-15",
-      "divisionSequence": 5,
-      "wildcardSequence": 2,
+      "date": "2026-11-16",
+      "divisionSequence": 6,
+      "wildcardSequence": 3,
       "points": 23,
-      "played": 21
-    },
-    {
-      "team": "VAN",
-      "date": "2026-11-15",
-      "divisionSequence": 8,
-      "wildcardSequence": 10,
-      "points": 9,
       "played": 22
     },
     {
+      "team": "VAN",
+      "date": "2026-11-16",
+      "divisionSequence": 8,
+      "wildcardSequence": 10,
+      "points": 11,
+      "played": 23
+    },
+    {
       "team": "VGK",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 2,
       "wildcardSequence": 0,
       "points": 29,
@@ -577,15 +579,15 @@
     },
     {
       "team": "WPG",
-      "date": "2026-11-15",
-      "divisionSequence": 6,
-      "wildcardSequence": 3,
+      "date": "2026-11-16",
+      "divisionSequence": 5,
+      "wildcardSequence": 2,
       "points": 23,
       "played": 21
     },
     {
       "team": "WSH",
-      "date": "2026-11-15",
+      "date": "2026-11-16",
       "divisionSequence": 5,
       "wildcardSequence": 4,
       "points": 20,
@@ -13120,6 +13122,267 @@
           "played": 18
         }
       ]
+    },
+    {
+      "date": "2026-11-16",
+      "standings": [
+        {
+          "team": "ANA",
+          "date": "2026-11-16",
+          "divisionSequence": 3,
+          "wildcardSequence": 0,
+          "points": 23,
+          "played": 21
+        },
+        {
+          "team": "BOS",
+          "date": "2026-11-16",
+          "divisionSequence": 4,
+          "wildcardSequence": 1,
+          "points": 27,
+          "played": 20
+        },
+        {
+          "team": "BUF",
+          "date": "2026-11-16",
+          "divisionSequence": 6,
+          "wildcardSequence": 5,
+          "points": 20,
+          "played": 20
+        },
+        {
+          "team": "CAR",
+          "date": "2026-11-16",
+          "divisionSequence": 1,
+          "wildcardSequence": 0,
+          "points": 34,
+          "played": 21
+        },
+        {
+          "team": "CBJ",
+          "date": "2026-11-16",
+          "divisionSequence": 8,
+          "wildcardSequence": 10,
+          "points": 14,
+          "played": 18
+        },
+        {
+          "team": "CGY",
+          "date": "2026-11-16",
+          "divisionSequence": 6,
+          "wildcardSequence": 7,
+          "points": 19,
+          "played": 21
+        },
+        {
+          "team": "CHI",
+          "date": "2026-11-16",
+          "divisionSequence": 8,
+          "wildcardSequence": 9,
+          "points": 12,
+          "played": 20
+        },
+        {
+          "team": "COL",
+          "date": "2026-11-16",
+          "divisionSequence": 2,
+          "wildcardSequence": 0,
+          "points": 27,
+          "played": 21
+        },
+        {
+          "team": "DAL",
+          "date": "2026-11-16",
+          "divisionSequence": 4,
+          "wildcardSequence": 1,
+          "points": 26,
+          "played": 20
+        },
+        {
+          "team": "DET",
+          "date": "2026-11-16",
+          "divisionSequence": 7,
+          "wildcardSequence": 6,
+          "points": 19,
+          "played": 21
+        },
+        {
+          "team": "EDM",
+          "date": "2026-11-16",
+          "divisionSequence": 1,
+          "wildcardSequence": 0,
+          "points": 35,
+          "played": 22
+        },
+        {
+          "team": "FLA",
+          "date": "2026-11-16",
+          "divisionSequence": 5,
+          "wildcardSequence": 2,
+          "points": 27,
+          "played": 22
+        },
+        {
+          "team": "LAK",
+          "date": "2026-11-16",
+          "divisionSequence": 7,
+          "wildcardSequence": 8,
+          "points": 12,
+          "played": 18
+        },
+        {
+          "team": "MIN",
+          "date": "2026-11-16",
+          "divisionSequence": 1,
+          "wildcardSequence": 0,
+          "points": 34,
+          "played": 22
+        },
+        {
+          "team": "MTL",
+          "date": "2026-11-16",
+          "divisionSequence": 3,
+          "wildcardSequence": 0,
+          "points": 28,
+          "played": 21
+        },
+        {
+          "team": "NJD",
+          "date": "2026-11-16",
+          "divisionSequence": 2,
+          "wildcardSequence": 0,
+          "points": 30,
+          "played": 21
+        },
+        {
+          "team": "NSH",
+          "date": "2026-11-16",
+          "divisionSequence": 3,
+          "wildcardSequence": 0,
+          "points": 27,
+          "played": 21
+        },
+        {
+          "team": "NYI",
+          "date": "2026-11-16",
+          "divisionSequence": 4,
+          "wildcardSequence": 3,
+          "points": 22,
+          "played": 19
+        },
+        {
+          "team": "NYR",
+          "date": "2026-11-16",
+          "divisionSequence": 3,
+          "wildcardSequence": 0,
+          "points": 27,
+          "played": 22
+        },
+        {
+          "team": "OTT",
+          "date": "2026-11-16",
+          "divisionSequence": 2,
+          "wildcardSequence": 0,
+          "points": 28,
+          "played": 21
+        },
+        {
+          "team": "PHI",
+          "date": "2026-11-16",
+          "divisionSequence": 6,
+          "wildcardSequence": 8,
+          "points": 18,
+          "played": 23
+        },
+        {
+          "team": "PIT",
+          "date": "2026-11-16",
+          "divisionSequence": 7,
+          "wildcardSequence": 9,
+          "points": 16,
+          "played": 20
+        },
+        {
+          "team": "SEA",
+          "date": "2026-11-16",
+          "divisionSequence": 5,
+          "wildcardSequence": 6,
+          "points": 19,
+          "played": 18
+        },
+        {
+          "team": "SJS",
+          "date": "2026-11-16",
+          "divisionSequence": 4,
+          "wildcardSequence": 4,
+          "points": 22,
+          "played": 23
+        },
+        {
+          "team": "STL",
+          "date": "2026-11-16",
+          "divisionSequence": 7,
+          "wildcardSequence": 5,
+          "points": 20,
+          "played": 20
+        },
+        {
+          "team": "TBL",
+          "date": "2026-11-16",
+          "divisionSequence": 1,
+          "wildcardSequence": 0,
+          "points": 28,
+          "played": 20
+        },
+        {
+          "team": "TOR",
+          "date": "2026-11-16",
+          "divisionSequence": 8,
+          "wildcardSequence": 7,
+          "points": 18,
+          "played": 22
+        },
+        {
+          "team": "UTA",
+          "date": "2026-11-16",
+          "divisionSequence": 6,
+          "wildcardSequence": 3,
+          "points": 23,
+          "played": 22
+        },
+        {
+          "team": "VAN",
+          "date": "2026-11-16",
+          "divisionSequence": 8,
+          "wildcardSequence": 10,
+          "points": 11,
+          "played": 23
+        },
+        {
+          "team": "VGK",
+          "date": "2026-11-16",
+          "divisionSequence": 2,
+          "wildcardSequence": 0,
+          "points": 29,
+          "played": 22
+        },
+        {
+          "team": "WPG",
+          "date": "2026-11-16",
+          "divisionSequence": 5,
+          "wildcardSequence": 2,
+          "points": 23,
+          "played": 21
+        },
+        {
+          "team": "WSH",
+          "date": "2026-11-16",
+          "divisionSequence": 5,
+          "wildcardSequence": 4,
+          "points": 20,
+          "played": 18
+        }
+      ]
     }
   ],
   "clubs": [
@@ -13361,7 +13624,7 @@
         },
         {
           "label": "PENALTY KILL",
-          "rank": 15,
+          "rank": 16,
           "value": 78.125
         }
       ],
@@ -13508,7 +13771,7 @@
       "specialTeams": [
         {
           "label": "POWER PLAY",
-          "rank": 3,
+          "rank": 2,
           "value": 34.246500000000005
         },
         {
@@ -13584,7 +13847,7 @@
       "specialTeams": [
         {
           "label": "POWER PLAY",
-          "rank": 14,
+          "rank": 15,
           "value": 21.6666
         },
         {
@@ -13661,12 +13924,12 @@
         {
           "label": "POWER PLAY",
           "rank": 31,
-          "value": 13.333300000000001
+          "value": 12.5
         },
         {
           "label": "PENALTY KILL",
-          "rank": 16,
-          "value": 77.9221
+          "rank": 15,
+          "value": 78.75
         }
       ],
       "leaders": [
@@ -13681,15 +13944,15 @@
           "label": "SHOTS ON GOAL",
           "name": "C. Caufield",
           "portrait": "https://assets.nhle.com/mugs/nhl/20262027/MTL/8481540.png",
-          "detail": "12 goals, 17.9% shooting",
-          "value": "67"
+          "detail": "12 goals, 17.4% shooting",
+          "value": "69"
         },
         {
           "label": "SAVE PERCENTAGE",
           "name": "J. Fowler",
           "portrait": "https://assets.nhle.com/mugs/nhl/20262027/MTL/8484170.png",
-          "detail": "12 games, 2.13 GAA",
-          "value": ".926"
+          "detail": "13 games, 2.21 GAA",
+          "value": ".923"
         }
       ]
     },
@@ -13727,7 +13990,7 @@
           "name": "C. Hellebuyck",
           "portrait": "https://assets.nhle.com/mugs/nhl/20262027/NJD/8476945.png",
           "detail": "7 games, 2.25 GAA",
-          "value": ".916"
+          "value": ".915"
         }
       ]
     },
@@ -13757,8 +14020,8 @@
           "label": "SHOTS ON GOAL",
           "name": "R. Josi",
           "portrait": "https://assets.nhle.com/mugs/nhl/20262027/NSH/8474600.png",
-          "detail": "2 goals, 3.5% shooting",
-          "value": "57"
+          "detail": "2 goals, 3.4% shooting",
+          "value": "58"
         },
         {
           "label": "SAVE PERCENTAGE",
@@ -13812,13 +14075,13 @@
       "specialTeams": [
         {
           "label": "POWER PLAY",
-          "rank": 16,
-          "value": 20.6896
+          "rank": 23,
+          "value": 19.6721
         },
         {
           "label": "PENALTY KILL",
           "rank": 2,
-          "value": 89.0625
+          "value": 89.7059
         }
       ],
       "leaders": [
@@ -13826,8 +14089,8 @@
           "label": "POINTS",
           "name": "A. Fox",
           "portrait": "https://assets.nhle.com/mugs/nhl/20262027/NYR/8479323.png",
-          "detail": "2 goals, 21 assists",
-          "value": "23"
+          "detail": "2 goals, 22 assists",
+          "value": "24"
         },
         {
           "label": "SHOTS ON GOAL",
@@ -13840,8 +14103,8 @@
           "label": "SAVE PERCENTAGE",
           "name": "J. Korpisalo",
           "portrait": "https://assets.nhle.com/mugs/nhl/20262027/NYR/8476914.png",
-          "detail": "2 games, 2.01 GAA",
-          "value": ".931"
+          "detail": "3 games, 1.67 GAA",
+          "value": ".940"
         }
       ]
     },
@@ -13926,7 +14189,7 @@
       "specialTeams": [
         {
           "label": "POWER PLAY",
-          "rank": 22,
+          "rank": 21,
           "value": 20
         },
         {
@@ -13955,7 +14218,7 @@
           "name": "S. Murashov",
           "portrait": "https://assets.nhle.com/mugs/nhl/20262027/PIT/8483703.png",
           "detail": "8 games, 3.25 GAA",
-          "value": ".893"
+          "value": ".894"
         }
       ]
     },
@@ -13964,12 +14227,12 @@
       "specialTeams": [
         {
           "label": "POWER PLAY",
-          "rank": 15,
+          "rank": 16,
           "value": 21.052599999999998
         },
         {
           "label": "PENALTY KILL",
-          "rank": 31,
+          "rank": 32,
           "value": 62.7451
         }
       ],
@@ -14040,7 +14303,7 @@
       "specialTeams": [
         {
           "label": "POWER PLAY",
-          "rank": 16,
+          "rank": 17,
           "value": 20.6896
         },
         {
@@ -14154,13 +14417,13 @@
       "specialTeams": [
         {
           "label": "POWER PLAY",
-          "rank": 2,
-          "value": 34.7222
+          "rank": 3,
+          "value": 33.766200000000005
         },
         {
           "label": "PENALTY KILL",
-          "rank": 27,
-          "value": 70.4226
+          "rank": 28,
+          "value": 69.3334
         }
       ],
       "leaders": [
@@ -14168,21 +14431,21 @@
           "label": "POINTS",
           "name": "C. Keller",
           "portrait": "https://assets.nhle.com/mugs/nhl/20262027/UTA/8479343.png",
-          "detail": "5 goals, 22 assists",
-          "value": "27"
+          "detail": "5 goals, 23 assists",
+          "value": "28"
         },
         {
           "label": "SHOTS ON GOAL",
           "name": "C. Keller",
           "portrait": "https://assets.nhle.com/mugs/nhl/20262027/UTA/8479343.png",
-          "detail": "5 goals, 8.9% shooting",
-          "value": "56"
+          "detail": "5 goals, 8.3% shooting",
+          "value": "60"
         },
         {
           "label": "SAVE PERCENTAGE",
           "name": "K. Vejmelka",
           "portrait": "https://assets.nhle.com/mugs/nhl/20262027/UTA/8478872.png",
-          "detail": "15 games, 3.14 GAA",
+          "detail": "16 games, 3.14 GAA",
           "value": ".872"
         }
       ]
@@ -14192,36 +14455,36 @@
       "specialTeams": [
         {
           "label": "POWER PLAY",
-          "rank": 21,
-          "value": 20.2898
+          "rank": 14,
+          "value": 21.9178
         },
         {
           "label": "PENALTY KILL",
-          "rank": 32,
-          "value": 61.971900000000005
+          "rank": 31,
+          "value": 63.1579
         }
       ],
       "leaders": [
         {
           "label": "POINTS",
-          "name": "E. Pettersson",
-          "portrait": "https://assets.nhle.com/mugs/nhl/20262027/VAN/8480012.png",
-          "detail": "6 goals, 17 assists",
+          "name": "B. Boeser",
+          "portrait": "https://assets.nhle.com/mugs/nhl/20262027/VAN/8478444.png",
+          "detail": "8 goals, 15 assists",
           "value": "23"
         },
         {
           "label": "SHOTS ON GOAL",
           "name": "J. DeBrusk",
           "portrait": "https://assets.nhle.com/mugs/nhl/20262027/VAN/8478498.png",
-          "detail": "5 goals, 10.9% shooting",
-          "value": "46"
+          "detail": "6 goals, 11.8% shooting",
+          "value": "51"
         },
         {
           "label": "SAVE PERCENTAGE",
-          "name": "L. Meriläinen",
-          "portrait": "https://assets.nhle.com/mugs/nhl/20262027/VAN/8482447.png",
-          "detail": "16 games, 3.49 GAA",
-          "value": ".887"
+          "name": "N. Tolopilo",
+          "portrait": "https://assets.nhle.com/mugs/nhl/20262027/VAN/8484268.png",
+          "detail": "1 games, 2.00 GAA",
+          "value": ".946"
         }
       ]
     },
@@ -14306,7 +14569,7 @@
       "specialTeams": [
         {
           "label": "POWER PLAY",
-          "rank": 22,
+          "rank": 21,
           "value": 20
         },
         {
