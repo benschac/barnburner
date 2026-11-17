@@ -152,6 +152,17 @@ class DressedTest(unittest.TestCase):
         self.run_cli(lambda url: self.fail("fetched"))
         self.assertEqual(path.read_bytes(), before)
 
+    def test_mismatched_header_is_rewritten(self):
+        self.run_cli(lambda url: box(self.gid(url)))
+        path = self.root / "dressed/20232024-2.json.gz"
+        stored = self.stored()
+        stored["seasonId"], stored["gameType"] = 19171918, 3
+        with gzip.open(path, "wt") as file:
+            json.dump(stored, file)
+        self.run_cli(lambda url: self.fail("fetched"))
+        fixed = self.stored()
+        self.assertEqual((fixed["seasonId"], fixed["gameType"]), (20232024, 2))
+
     def test_cooldown_is_rechecked_after_sleep(self):
         clock = FakeClock()
         fetcher = dressed.Fetcher(lambda url: box(1), None, clock=clock)

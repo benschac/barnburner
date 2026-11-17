@@ -49,7 +49,7 @@ CREATE INDEX IF NOT EXISTS player_games ON appearances(player_id,game_id);
 """
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 def require(condition, detail):
@@ -211,6 +211,7 @@ def build(root, db, refetch=None):
         db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         def load_and_check():
             nonlocal changed
+            fetched.clear()
             existing = {(s, k): h for s, k, h in db.execute("SELECT season_id,game_type,sha256 FROM partitions")}
             require(not existing.keys() - archives.keys(), "database contains seasons outside the catalog")
             for (season, kind), path in sorted(archives.items()):

@@ -30,11 +30,11 @@ def write_gz(path, payload):
 
 def populate(root):
     (root).mkdir(parents=True, exist_ok=True)
-    (root / "seasons.json").write_text(json.dumps({"data": [{"id": int(s)} for s in SEASONS]}))
+    (root / "seasons.json").write_text(json.dumps({"total": len(SEASONS), "data": [{"id": int(s)} for s in SEASONS]}))
     for season in SEASONS:
         for game_type in (2, 3):
-            write_gz(root / "seasons" / f"{season}-{game_type}.json.gz", {"s": season, "t": game_type})
-            write_gz(root / "dressed" / f"{season}-{game_type}.json.gz", {"games": {"1": {"home": []}}})
+            write_gz(root / "seasons" / f"{season}-{game_type}.json.gz", {"teams": [{"gameId": 1}, {"gameId": 2}]})
+            write_gz(root / "dressed" / f"{season}-{game_type}.json.gz", {"games": {"1": {"home": []}, "2": {}}})
 
 
 def run(argv):
@@ -114,7 +114,7 @@ class ArchiveTest(unittest.TestCase):
     def test_fetch_rejects_bad_manifest_paths(self):
         for bad in ("../evil.json.gz", "seasons/../../evil.json.gz", "/etc/passwd",
                     "other/19171918-2.json.gz", "seasons/1917-2.json.gz",
-                    "seasons/19171918-4.json.gz"):
+                    "seasons/19171918-4.json.gz", "seasons/19171918-2.json.gz\n"):
             manifest = dict(self.manifest, files=[dict(self.manifest["files"][0], path=bad)])
             (self.target / "manifest.json").write_text(json.dumps(manifest))
             code, _, err = self.fetch()
@@ -174,6 +174,23 @@ class ManifestTest(unittest.TestCase):
         self.assertNotIn(": 8", err)
         self.assertEqual(out, "")
         self.assertFalse((self.root / "manifest.json").exists())
+
+
+    def test_missing_dressed_games_are_listed(self):
+        write_gz(self.root / "dressed" / "20232024-2.json.gz", {"games": {"1": {}}})
+        code, _, err = run(["manifest", "--root", str(self.root)])
+        self.assertEqual(code, 1)
+        self.assertIn("dressed/20232024-2.json.gz: 2", err)
+        self.assertNotIn(": 1", err)
+
+    def test_bad_catalog_is_rejected(self):
+        rows = [{"id": int(s)} for s in SEASONS]
+        for catalog in ({"total": 5, "data": rows}, {"total": 4, "data": rows[:3] + rows[:1]},
+                        {"total": 4, "data": rows[:3] + [{"id": "20252026"}]}):
+            (self.root / "seasons.json").write_text(json.dumps(catalog))
+            code, _, err = run(["manifest", "--root", str(self.root)])
+            self.assertEqual(code, 1)
+            self.assertIn("catalog is unreadable", err)
 
 
 if __name__ == "__main__":

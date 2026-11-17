@@ -96,7 +96,11 @@ class Fetcher:
 def run_season(source, target, fetcher, refresh=False, batch=BATCH, workers=WORKERS):
     season = load(source)
     game_ids = sorted({str(row["gameId"]) for row in season["teams"]})
-    existing = load(target)["games"] if target.exists() else None
+    stored = load(target) if target.exists() else None
+    existing = stored["games"] if stored else None
+    header = (season["seasonId"], season["gameType"])
+    # A stored header that disagrees with the source partition forces a rewrite.
+    header_current = bool(stored) and (stored.get("seasonId"), stored.get("gameType")) == header
     games = {g: existing[g] for g in game_ids if g in (existing or {})}
     saved = existing
     todo = [g for g in game_ids if refresh or games.get(g) is None]
@@ -104,11 +108,12 @@ def run_season(source, target, fetcher, refresh=False, batch=BATCH, workers=WORK
     fetched = 0
 
     def write():
-        nonlocal saved
+        nonlocal saved, header_current
         current = {g: games[g] for g in game_ids if g in games}
-        if saved == current:
+        if saved == current and header_current:
             return
         saved = current
+        header_current = True
         save(target, {
             "seasonId": season["seasonId"], "gameType": season["gameType"],
             "fetchedAt": datetime.now(timezone.utc).isoformat(),

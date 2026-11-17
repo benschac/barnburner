@@ -269,6 +269,17 @@ class HistoricalCasesTest(unittest.TestCase):
             (span,) = relations.shared_spans.values()
             self.assertEqual((span.games, span.first), (2, 2024020001))
 
+    def test_partner_span_first_game_is_lowest_id_not_earliest_date(self):
+        with closing(sqlite3.connect(":memory:")) as db:
+            db.executescript(SCHEMA)
+            for game, date in ((2024020001, "2025-02-01"), (2024020002, "2025-01-01")):
+                add_game(db, game, date, ((1, [(1, "Player 1")]), (2, [(3, "Player 3")])))
+                db.executemany("INSERT INTO dressed_goalies VALUES (?, ?, ?)",
+                               [(game, 1, 1), (game, 1, 2)])
+            relations = truth.collect_relations(db, {1, 2, 3})
+            (span,) = relations.partner_spans.values()
+            self.assertEqual((span.games, span.first), (2, 2024020001))
+
     def test_name_resolution_finals_and_coverage(self):
         with closing(sqlite3.connect(":memory:")) as db:
             db.executescript(SCHEMA)
