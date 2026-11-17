@@ -13,5 +13,5 @@ Line ranges refer to [docs.txt](docs.txt). Read [the source guide](../README.md)
 | Let's talk | 32 | 41 |
 | Long-term support | 42 | 51 |
 | Effect v3 | 52 | 55 |
-| Packages | 56 | 95 |
-| License | 96 | 99 |
+| Packages | 56 | 96 |
+| License | 97 | 100 |

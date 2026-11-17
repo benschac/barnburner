@@ -1,8 +1,8 @@
 {
   "repository": "https://github.com/joelhooks/rat-stack",
-  "revision": "45df515566bc3880a7c20ba2f198e6056215376c",
-  "retrievedAt": "2026-11-09T18:12:20.818165+00:00",
-  "archiveUrl": "https://codeload.github.com/joelhooks/rat-stack/tar.gz/45df515566bc3880a7c20ba2f198e6056215376c",
+  "revision": "4aabfb719dd57958cac936c3903f653e4bac1e8a",
+  "retrievedAt": "2026-11-17T17:20:17.032389+00:00",
+  "archiveUrl": "https://codeload.github.com/joelhooks/rat-stack/tar.gz/4aabfb719dd57958cac936c3903f653e4bac1e8a",
   "scope": "LICENSE and skills/rat-stack-mode only; reference data, not installed agent skills",
   "sha256": {
     "LICENSE": "9eb717c507cfb956ebee13b1ddafa7c43cc3dd3595650b412255a99b73046cb2",
