@@ -2,9 +2,13 @@
   "$schema": "https://turborepo.dev/schema.json",
   "globalDependencies": ["data/*.json", "lib/*.mjs", "data/history/serving.json"],
   "tasks": {
+    "@nhl-reddit-stats/api#history:fetch": {
+      "cache": false
+    },
     "build": {
       "dependsOn": [
-        "^build"
+        "^build",
+        "@nhl-reddit-stats/api#history:fetch"
       ],
       "env": [
         "NODE_ENV",

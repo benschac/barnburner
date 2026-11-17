@@ -3,10 +3,14 @@
 //   { snapshotId, url, sha256, bytes }
 // `url` serves the file gzipped. `sha256` and `bytes` describe the UNCOMPRESSED sqlite file, so they are
 // checked after gunzip. The file is written to a `.part` sibling and renamed into place only after it verifies.
-// A missing pointer is allowed (the history API then answers HistoryUnavailable) and exits 0.
+// A missing pointer is allowed (the history API then answers HistoryUnavailable) and exits 0. It also removes any
+// stale output so an old snapshot is never served; `--keep-existing` or HISTORY_KEEP_LOCAL=1 keeps a hand-staged file.
+// The pointer is fully validated before any network I/O.
 // If the output already matches the pointer, the download is skipped.
 import { createHash } from 'node:crypto'
 import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, rmSync } from 'node:fs'
+import { randomBytes } from 'node:crypto'
+import { Schema } from 'effect'
 import { dirname, join } from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
@@ -28,12 +32,20 @@ async function digestFile(path) {
   return { sha256: hash.digest('hex'), bytes }
 }
 
+const Pointer = Schema.Struct({
+  snapshotId: Schema.String.check(Schema.isPattern(/^[0-9a-f]{12}$/)),
+  url: Schema.String.check(Schema.isPattern(/^(https:\/\/|http:\/\/(127\.0\.0\.1|localhost)[:/])\S+$/)),
+  sha256: Schema.String.check(Schema.isPattern(/^[0-9a-f]{64}$/)),
+  bytes: Schema.Int.check(Schema.isGreaterThan(0)),
+})
+const decodePointer = Schema.decodeUnknownSync(Schema.fromJsonString(Pointer))
+
 function readPointer(pointerPath) {
-  const pointer = JSON.parse(readFileSync(pointerPath, 'utf8'))
-  if (typeof pointer.url !== 'string' || typeof pointer.sha256 !== 'string' || !Number.isSafeInteger(pointer.bytes)) {
-    throw new Error(`history pointer ${pointerPath} needs url, sha256, and bytes`)
+  try {
+    return decodePointer(readFileSync(pointerPath, 'utf8'))
+  } catch (error) {
+    throw new Error(`history pointer ${pointerPath} is invalid: ${error instanceof Error ? error.message : error}`)
   }
-  return pointer
 }
 
 // Returns 'skipped' (no pointer), 'unchanged' (output already matches), or 'downloaded'. Throws on any mismatch.
@@ -42,9 +54,15 @@ export async function fetchServingFile({
   outPath = defaultOutPath,
   fetchImpl = fetch,
   log = console.log,
+  keepExisting = process.env.HISTORY_KEEP_LOCAL === '1',
 } = {}) {
   if (!existsSync(pointerPath)) {
-    log('no history pointer; skipping')
+    if (keepExisting) log('no history pointer; skipping (keeping any existing local file)')
+    else {
+      rmSync(outPath, { force: true })
+      log('no history pointer; skipping (removed any stale serving file)')
+    }
+    return 'skipped'
     return 'skipped'
   }
   const pointer = readPointer(pointerPath)
@@ -52,7 +70,7 @@ export async function fetchServingFile({
   if (existsSync(outPath)) {
     const current = await digestFile(outPath)
     if (current.sha256 === pointer.sha256 && current.bytes === pointer.bytes) {
-      log(`history serving file already matches ${pointer.snapshotId ?? 'pointer'}; skipping download`)
+      log(`history serving file already matches ${pointer.snapshotId}; skipping download`)
       return 'unchanged'
     }
   }
@@ -63,7 +81,7 @@ export async function fetchServingFile({
   }
 
   mkdirSync(dirname(outPath), { recursive: true })
-  const partPath = `${outPath}.part`
+  const partPath = `${outPath}.${process.pid}.${randomBytes(6).toString('hex')}.part`
   try {
     await pipeline(Readable.fromWeb(response.body), createGunzip(), createWriteStream(partPath))
     const actual = await digestFile(partPath)
@@ -78,17 +96,22 @@ export async function fetchServingFile({
     rmSync(partPath, { force: true })
     throw error
   }
-  log(`history serving file written for ${pointer.snapshotId ?? 'pointer'} (${pointer.bytes} bytes)`)
+  log(`history serving file written for ${pointer.snapshotId} (${pointer.bytes} bytes)`)
   return 'downloaded'
 }
 
 function parseArgs(argv) {
   const options = {}
-  for (let i = 0; i < argv.length; i += 2) {
+  for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i]
+    if (flag === '--keep-existing') {
+      options.keepExisting = true
+      continue
+    }
     if (flag !== '--pointer' && flag !== '--out') throw new Error(`unknown argument ${flag}`)
-    if (argv[i + 1] === undefined) throw new Error(`${flag} needs a path`)
-    options[flag === '--pointer' ? 'pointerPath' : 'outPath'] = argv[i + 1]
+    i += 1
+    if (argv[i] === undefined) throw new Error(`${flag} needs a path`)
+    options[flag === '--pointer' ? 'pointerPath' : 'outPath'] = argv[i]
   }
   return options
 }
