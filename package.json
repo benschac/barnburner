@@ -6,6 +6,8 @@
   "packageManager": "bun@1.4.3",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
+    "docs:plan": "bun run --cwd apps/web docs:plan",
+    "typecheck:plan": "bun run --cwd apps/web typecheck:plan",
     "data:refresh": "node scripts/refresh-nhl-games.mjs",
     "data:refresh:poster": "node scripts/refresh-nhl-poster.mjs",
     "data:refresh:all": "node scripts/refresh-nhl-data.mjs",

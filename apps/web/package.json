@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "docs:plan": "bun scripts/build-analyst-plan.ts",
+    "typecheck:plan": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.plan.json",
     "dev": "vite",
     "build": "bun run --cwd ../api build && bun run typecheck && vite build",
     "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.app.json && effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.node.json",
@@ -28,6 +30,8 @@
     "xstate": "6.0.0-alpha.73"
   },
   "devDependencies": {
+    "@content-collections/core": "0.15.3",
+    "@content-collections/mdx": "0.2.2",
     "@oxlint/plugins": "1.90.0",
     "@resvg/resvg-js": "^2.6.2",
     "@tamagui/cli": "3.3.1",
@@ -36,6 +40,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.90.0",
+    "remark-gfm": "4.0.1",
     "typescript": "~7.0.2",
     "vite": "^8.3.6"
   }

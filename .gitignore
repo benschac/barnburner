@@ -12,6 +12,7 @@ dist
 dist-ssr
 .tamagui/
 .audit/
+**/.content-collections/
 **/src/tamagui.generated.css
 .turbo/
 .vercel/
