@@ -41,11 +41,15 @@ CREATE TABLE IF NOT EXISTS source_disagreements (
     FOREIGN KEY(game_id,team_id,player_id,role) REFERENCES appearances ON DELETE CASCADE
         DEFERRABLE INITIALLY DEFERRED
 ) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS dressed_goalies (
+    game_id INTEGER, team_id INTEGER, player_id INTEGER, PRIMARY KEY(game_id,team_id,player_id),
+    FOREIGN KEY(game_id,team_id) REFERENCES game_sides ON DELETE CASCADE
+) WITHOUT ROWID;
 CREATE INDEX IF NOT EXISTS player_games ON appearances(player_id,game_id);
 """
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def require(condition, detail):
@@ -133,6 +137,35 @@ def project(db, data, season, kind):
                        appearances(data[role + "s"], role))
 
 
+def read_dressed(path):
+    return json.loads(gzip.decompress(path.read_bytes()))
+
+
+def project_dressed(db, dressed, season, kind):
+    require((dressed["seasonId"], dressed["gameType"]) == (season, kind), "dressed partition mismatch")
+    for game, teams in dressed["games"].items():
+        if teams is None:
+            continue
+        sides = dict(db.execute("SELECT team,team_id FROM game_sides WHERE game_id=?", (int(game),)))
+        for abbrev, goalies in teams.items():
+            require(abbrev in sides, f"dressed team {abbrev} matches no side of game {game}")
+            db.executemany("INSERT INTO dressed_goalies VALUES(?,?,?)",
+                           [(int(game), sides[abbrev], g["playerId"]) for g in goalies])
+
+
+def count_unlisted(db, dressed_paths):
+    """Credited goalie appearances missing from box scores that were fetched."""
+    db.execute("CREATE TEMP TABLE IF NOT EXISTS fetched_games(game_id INTEGER PRIMARY KEY)")
+    db.execute("DELETE FROM fetched_games")
+    for path in dressed_paths:
+        if path.is_file():
+            db.executemany("INSERT OR IGNORE INTO fetched_games VALUES(?)",
+                           [(int(g),) for g, t in read_dressed(path)["games"].items() if t is not None])
+    return db.execute("""SELECT COUNT(*) FROM appearances a JOIN fetched_games USING(game_id)
+                         WHERE a.role='goalie' AND NOT EXISTS (SELECT 1 FROM dressed_goalies d
+                         WHERE d.game_id=a.game_id AND d.team_id=a.team_id AND d.player_id=a.player_id)""").fetchone()[0]
+
+
 def load_archiver(root):
     path = Path(__file__).with_name("import-nhl-history.py")
     spec = importlib.util.spec_from_file_location("import_nhl_history", path)
@@ -161,6 +194,7 @@ def build(root, db, refetch=refetch_recent):
     require(ids and len(ids) == catalog["total"] == len(set(ids)) and all(map(positive, ids)),
             "incomplete season catalog")
     archives = {(s, k): root / "seasons" / f"{s}-{k}.json.gz" for s in ids for k in (2, 3)}
+    dressed = {key: root / "dressed" / f"{key[0]}-{key[1]}.json.gz" for key in archives}
     missing = [p.name for p in archives.values() if not p.is_file()]
     require(not missing, f"missing {len(missing)} archives: {missing[:5]}")
     db.execute("PRAGMA foreign_keys=ON")
@@ -175,7 +209,12 @@ def build(root, db, refetch=refetch_recent):
             require(not existing.keys() - archives.keys(), "database contains seasons outside the catalog")
             for (season, kind), path in sorted(archives.items()):
                 contents = path.read_bytes()
-                digest = hashlib.sha256(contents).hexdigest()
+                dressed_path = dressed[season, kind]
+                dressed_bytes = dressed_path.read_bytes() if dressed_path.is_file() else None
+                hasher = hashlib.sha256(contents)
+                if dressed_bytes is not None:
+                    hasher.update(b"\0dressed\0" + dressed_bytes)
+                digest = hasher.hexdigest()
                 if existing.get((season, kind)) == digest:
                     continue
                 try:
@@ -186,6 +225,8 @@ def build(root, db, refetch=refetch_recent):
                     db.execute("INSERT INTO partitions VALUES(?,?,?,?,?)",
                                (season, kind, digest, data["fetchedAt"], json.dumps(data["sources"])))
                     project(db, data, season, kind)
+                    if dressed_bytes is not None:
+                        project_dressed(db, json.loads(gzip.decompress(dressed_bytes)), season, kind)
                 except (KeyError, ValueError, sqlite3.Error) as exc:
                     raise ValueError(f"{path.name}: {exc}") from exc
                 changed += 1
@@ -196,6 +237,8 @@ def build(root, db, refetch=refetch_recent):
         issues = {key: value[:12] for key, value in report.items()
                   if key in ("differences", "duplicates", "missingPartitions", "unexpectedPartitions") and value}
         require(not issues, f"NHL season reconciliation failed: {issues}")
+        print(f"{count_unlisted(db, dressed.values())} credited goalie appearances are not listed "
+              "on the fetched box scores.")
     return changed
 
 
