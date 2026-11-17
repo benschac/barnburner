@@ -11,7 +11,7 @@
     "data:refresh": "node scripts/refresh-nhl-games.mjs",
     "data:refresh:poster": "node scripts/refresh-nhl-poster.mjs",
     "data:refresh:all": "node scripts/refresh-nhl-data.mjs",
-    "data:import:history": "python3 scripts/import-nhl-history.py && python3 scripts/check_nhl_history.py --fetch && python3 scripts/build-nhl-history.py",
+    "data:import:history": "python3 scripts/import-nhl-history.py && python3 scripts/check_nhl_history.py --fetch && python3 scripts/build-nhl-history.py --refetch-recent",
     "data:import:dressed": "python3 scripts/import-nhl-dressed.py",
     "data:build:history": "python3 scripts/build-nhl-history.py",
     "data:build:serving": "python3 scripts/build-nhl-serving.py --base data/history/nhl.sqlite --out data/history/nhl-serve.sqlite",

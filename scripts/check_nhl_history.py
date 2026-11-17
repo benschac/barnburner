@@ -111,9 +111,10 @@ def recent_only(report, seasons):
 
 def check_with_retry(run_check, refetch, seasons):
     """Run the check; if differences are confined to the two latest seasons
-    (a game finished mid-refresh), call refetch(recent_seasons) once and check again."""
+    (a game finished mid-refresh), call refetch(recent_seasons) once and check again.
+    Partition-coverage errors fail immediately, and refetch=None never retries."""
     report = run_check()
-    if recent_only(report, seasons):
+    if refetch and not (report.get("missingPartitions") or report.get("unexpectedPartitions")) and recent_only(report, seasons):
         refetch(sorted(seasons)[-2:])
         report = run_check()
     return report
@@ -153,7 +154,7 @@ def main():
 
     with gzip.open(args.totals, "rt") as stream:
         seasons = json.load(stream)["seasons"]
-    report = check_with_retry(run_check, lambda recent: refetch_totals(args.totals, recent) if args.fetch else None, seasons)
+    report = check_with_retry(run_check, (lambda recent: refetch_totals(args.totals, recent)) if args.fetch else None, seasons)
     print(json.dumps(report, indent=2))
     return int(any(report[key] for key in ("differences", "duplicates", "missingPartitions", "unexpectedPartitions")))
 

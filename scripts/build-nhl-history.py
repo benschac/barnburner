@@ -144,23 +144,24 @@ def read_dressed(path):
 def project_dressed(db, dressed, season, kind):
     require((dressed["seasonId"], dressed["gameType"]) == (season, kind), "dressed partition mismatch")
     for game, teams in dressed["games"].items():
+        number = int(game)
+        require(number // 1000000 == season // 10000 and number // 10000 % 100 == kind,
+                f"dressed game {game} is outside partition {season}-{kind}")
         if teams is None:
             continue
-        sides = dict(db.execute("SELECT team,team_id FROM game_sides WHERE game_id=?", (int(game),)))
+        sides = dict(db.execute("SELECT team,team_id FROM game_sides WHERE game_id=? AND season_id=? AND game_type=?",
+                                (number, season, kind)))
         for abbrev, goalies in teams.items():
             require(abbrev in sides, f"dressed team {abbrev} matches no side of game {game}")
             db.executemany("INSERT INTO dressed_goalies VALUES(?,?,?)",
                            [(int(game), sides[abbrev], g["playerId"]) for g in goalies])
 
 
-def count_unlisted(db, dressed_paths):
+def count_unlisted(db, fetched):
     """Credited goalie appearances missing from box scores that were fetched."""
     db.execute("CREATE TEMP TABLE IF NOT EXISTS fetched_games(game_id INTEGER PRIMARY KEY)")
     db.execute("DELETE FROM fetched_games")
-    for path in dressed_paths:
-        if path.is_file():
-            db.executemany("INSERT OR IGNORE INTO fetched_games VALUES(?)",
-                           [(int(g),) for g, t in read_dressed(path)["games"].items() if t is not None])
+    db.executemany("INSERT OR IGNORE INTO fetched_games VALUES(?)", [(g,) for g in fetched])
     return db.execute("""SELECT COUNT(*) FROM appearances a JOIN fetched_games USING(game_id)
                          WHERE a.role='goalie' AND NOT EXISTS (SELECT 1 FROM dressed_goalies d
                          WHERE d.game_id=a.game_id AND d.team_id=a.team_id AND d.player_id=a.player_id)""").fetchone()[0]
@@ -184,7 +185,7 @@ def refetch_recent(root, seasons, archive=None, totals=refetch_totals):
     totals(root / "season-totals.json.gz", seasons)
 
 
-def build(root, db, refetch=refetch_recent):
+def build(root, db, refetch=None):
     version = db.execute("PRAGMA user_version").fetchone()[0]
     has_tables = db.execute("SELECT 1 FROM sqlite_master WHERE type='table'").fetchone()
     require(version == SCHEMA_VERSION or (version == 0 and not has_tables),
@@ -198,11 +199,16 @@ def build(root, db, refetch=refetch_recent):
     missing = [p.name for p in archives.values() if not p.is_file()]
     require(not missing, f"missing {len(missing)} archives: {missing[:5]}")
     db.execute("PRAGMA foreign_keys=ON")
-    db.executescript(SCHEMA)
-    db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
     changed = 0
+    fetched = set()
     with db:
+        # Schema and version commit together with the first load, so an interrupted
+        # fresh initialisation leaves an empty file that can be retried.
         db.execute("BEGIN IMMEDIATE")
+        for statement in SCHEMA.split(";"):
+            if statement.strip():
+                db.execute(statement)
+        db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         def load_and_check():
             nonlocal changed
             existing = {(s, k): h for s, k, h in db.execute("SELECT season_id,game_type,sha256 FROM partitions")}
@@ -215,6 +221,9 @@ def build(root, db, refetch=refetch_recent):
                 if dressed_bytes is not None:
                     hasher.update(b"\0dressed\0" + dressed_bytes)
                 digest = hasher.hexdigest()
+                dressed_data = json.loads(gzip.decompress(dressed_bytes)) if dressed_bytes is not None else None
+                if dressed_data is not None:
+                    fetched.update(int(g) for g, t in dressed_data["games"].items() if t is not None)
                 if existing.get((season, kind)) == digest:
                     continue
                 try:
@@ -226,18 +235,19 @@ def build(root, db, refetch=refetch_recent):
                                (season, kind, digest, data["fetchedAt"], json.dumps(data["sources"])))
                     project(db, data, season, kind)
                     if dressed_bytes is not None:
-                        project_dressed(db, json.loads(gzip.decompress(dressed_bytes)), season, kind)
+                        project_dressed(db, dressed_data, season, kind)
                 except (KeyError, ValueError, sqlite3.Error) as exc:
                     raise ValueError(f"{path.name}: {exc}") from exc
                 changed += 1
             with gzip.open(root / "season-totals.json.gz", "rt") as stream:
                 return check(db, json.load(stream))
 
-        report = check_with_retry(load_and_check, lambda recent: refetch(root, recent), sorted(ids))
+        report = check_with_retry(load_and_check, (lambda recent: refetch(root, recent)) if refetch else None,
+                                  sorted(ids))
         issues = {key: value[:12] for key, value in report.items()
                   if key in ("differences", "duplicates", "missingPartitions", "unexpectedPartitions") and value}
         require(not issues, f"NHL season reconciliation failed: {issues}")
-        print(f"{count_unlisted(db, dressed.values())} credited goalie appearances are not listed "
+        print(f"{count_unlisted(db, fetched)} credited goalie appearances are not listed "
               "on the fetched box scores.")
     return changed
 
@@ -246,6 +256,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("data/history"))
     parser.add_argument("--db", type=Path)
+    parser.add_argument("--refetch-recent", action="store_true",
+                        help="on a mismatch confined to the two latest seasons, refetch them from the NHL and retry")
     args = parser.parse_args()
     with sqlite3.connect(args.db or args.root / "nhl.sqlite") as connection:
-        print(f"Rebuilt {build(args.root, connection)} partitions.")
+        refetch = refetch_recent if args.refetch_recent else None
+        print(f"Rebuilt {build(args.root, connection, refetch)} partitions.")

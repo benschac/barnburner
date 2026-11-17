@@ -14,6 +14,22 @@ dressed = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(dressed)
 
 
+class FakeClock:
+    """A monotonic clock that only moves when a test sleeps, so cooldowns never spin in real time."""
+
+    def __init__(self):
+        self.now = 1000.0
+        self.lock = threading.Lock()
+
+    def __call__(self):
+        with self.lock:
+            return self.now
+
+    def sleep(self, seconds):
+        with self.lock:
+            self.now += max(seconds, 0)
+
+
 class Killed(BaseException):
     pass
 
@@ -47,7 +63,8 @@ class DressedTest(unittest.TestCase):
     def run_cli(self, fetch, *extra):
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            dressed.main(["--root", str(self.root), *extra], fetch=fetch, sleep=lambda s: None, batch=2)
+            clock = FakeClock()
+            dressed.main(["--root", str(self.root), *extra], fetch=fetch, sleep=clock.sleep, batch=2, clock=clock)
         return out.getvalue()
 
     def stored(self):
@@ -123,8 +140,32 @@ class DressedTest(unittest.TestCase):
 
         def always(url):
             raise dressed.RateLimited(url)
-        self.run_cli(always, "--refresh")
-        self.assertTrue(all(v is not None for v in self.stored()["games"].values()))
+        report = self.run_cli(always, "--refresh")
+        # A refresh that exhausts its retries follows the contract: null, counted, retried next run.
+        self.assertTrue(all(v is None for v in self.stored()["games"].values()))
+        self.assertIn("null 5", report)
+
+    def test_rerun_without_fetches_leaves_file_unchanged(self):
+        self.run_cli(lambda url: box(self.gid(url)))
+        path = self.root / "dressed/20232024-2.json.gz"
+        before = path.read_bytes()
+        self.run_cli(lambda url: self.fail("fetched"))
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_cooldown_is_rechecked_after_sleep(self):
+        clock = FakeClock()
+        fetcher = dressed.Fetcher(lambda url: box(1), None, clock=clock)
+        slept = []
+
+        def sleep(seconds):
+            slept.append(seconds)
+            clock.sleep(seconds)
+            if len(slept) == 1:  # another worker extends the cooldown while this one sleeps
+                fetcher.pause_until += 100
+        fetcher.sleep = sleep
+        fetcher.pause_until = clock() + 1
+        fetcher.game(1)
+        self.assertGreater(len(slept), 1)
 
     def test_season_filter(self):
         self.run_cli(lambda url: box(self.gid(url)), "--season", "19992000")
