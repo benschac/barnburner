@@ -129,3 +129,9 @@ test('mergePending keeps every existing card in order', () => {
   const merged = mergePending([a, b, c], [makeCard('b', 'pending'), d])
   assert.deepEqual(merged.map((card) => card.id), [a.id, b.id, c.id, d.id])
 })
+
+test('mergePending collapses existing cards that share an id to the later one', () => {
+  const first = makeCard('one', 'approved')
+  const second = { ...makeCard('one', 'rejected'), body: 'Second body.' }
+  assert.deepEqual(mergePending([first, second], []), [second])
+})
