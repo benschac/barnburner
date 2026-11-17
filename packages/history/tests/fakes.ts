@@ -1,7 +1,9 @@
 import { Effect } from 'effect'
 import { UnknownPlayer, UnknownRoster } from '../src/contracts.ts'
+import { makeGraph } from '../src/graph.ts'
+import type { TeammateGraph } from '../src/graph.ts'
 import type {
-  FinalParticipant, FinalRow, GameType, Graph, GraphArrays, LinkKind, OpposedGameRow, PlayerDetail, PlayerRow,
+  FinalParticipant, FinalRow, GameType, GraphArrays, LinkKind, OpposedGameRow, PlayerDetail, PlayerRow,
   Position, RosterRow, SharedGameRow, StintRow,
 } from '../src/shapes.ts'
 import type { HistoryStore } from '../src/store.ts'
@@ -33,10 +35,7 @@ export const MINI_ARRAYS: GraphArrays = {
   oppGames: Uint16Array.of(2, 2, 1, 1, 2, 3, 1, 1, 1, 1, 1, 4, 1, 1, 2),
 }
 
-export const MINI_GRAPH: Graph = {
-  arrays: MINI_ARRAYS,
-  indexOf: new Map(Array.from(MINI_ARRAYS.playerIds, (playerId, index) => [playerId, index] as const)),
-}
+export const MINI_GRAPH: TeammateGraph = makeGraph(MINI_ARRAYS)
 
 export const MINI_SNAPSHOT_ID = '0123456789ab'
 
