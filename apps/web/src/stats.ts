@@ -1,5 +1,6 @@
 import { teams, teamSeason } from '@nhl-reddit-stats/season'
 import type { Standing, TeamData, TeamGame } from '@nhl-reddit-stats/season'
+import type { PublishedInsight, TeamDataWithInsights } from '@nhl-reddit-stats/season/rpc'
 
 export type Outcome = TeamGame['outcome']
 export type PlayoffComparison = {
@@ -55,7 +56,7 @@ function record(games: readonly TeamGame[]) {
   return ['win', 'loss', 'overtime'].map((outcome) => games.filter((game) => game.outcome === outcome).length).join('-')
 }
 
-export function teamPoster(data: TeamData, selectedTeam: string) {
+export function teamPoster(data: TeamData, selectedTeam: string, insights: readonly PublishedInsight[] = []) {
   const metadata = teams.find((entry) => entry.abbrev === selectedTeam)
   if (!metadata) throw new Error(`Unknown team: ${selectedTeam}`)
   const season = teamSeason(data.season, selectedTeam)
@@ -107,7 +108,7 @@ export function teamPoster(data: TeamData, selectedTeam: string) {
     time: game.scheduleState === 'PPD' ? 'Postponed' : easternTime.format(new Date(game.startTimeUTC)),
   }))
   return {
-    team: metadata, seasonGames, completedGames, divisions, standings, recent, upcoming, latestPlayoffCushion,
+    team: metadata, insights, seasonGames, completedGames, divisions, standings, recent, upcoming, latestPlayoffCushion,
     specialTeams: club?.specialTeams.map((entry) => ({ label: entry.label, rank: ordinal(entry.rank), value: entry.value.toFixed(1) })) ?? [],
     leaders: club?.leaders ?? [],
     snapshotDate: longDate.format(new Date(throughDate)),
@@ -122,12 +123,12 @@ export function teamPoster(data: TeamData, selectedTeam: string) {
 }
 export type TeamPosterData = ReturnType<typeof teamPoster>
 
-export function createTeamPosterCache(source: TeamData) {
+export function createTeamPosterCache(source: TeamDataWithInsights) {
   const posters = new Map<string, TeamPosterData>()
   return (team: string) => {
     const cached = posters.get(team)
     if (cached) return cached
-    const poster = teamPoster(source, team)
+    const poster = teamPoster(source, team, source.insights)
     posters.set(team, poster)
     return poster
   }
