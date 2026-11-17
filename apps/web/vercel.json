@@ -3,8 +3,12 @@
   "trailingSlash": false,
   "cleanUrls": true,
   "functions": {
-    "api/**/*.ts": {
+    "api/{games,poster,rpc,teams}.ts": {
       "supportsCancellation": true
+    },
+    "api/history.ts": {
+      "supportsCancellation": true,
+      "includeFiles": "history-data/nhl-serve.sqlite"
     }
   }
 }
