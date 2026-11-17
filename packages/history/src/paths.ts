@@ -3,6 +3,7 @@ import { Result } from 'effect'
 import { NoPath, UnknownPlayer } from './contracts.ts'
 import { evidenceSpan, hopKind, linkPassingGames, linkPasses } from './graph.ts'
 import type { TeammateGraph } from './graph.ts'
+import { PATH_COUNT_CAP } from './shapes.ts'
 import type { Filter, GameType, PathResult, Relation, TeammateHop } from './shapes.ts'
 
 /** Distance value for a node the search did not reach. */
@@ -100,7 +101,8 @@ export const walkFirstPath = (
   let node = from
   while (distanceToTarget[node] > 0) {
     const at = firstStepAt(graph, distanceToTarget, node, filter)
-    if (at < 0) break
+    // defect: a node with a finite distance always has a closer passing neighbour
+    if (at < 0) throw new Error('walkFirstPath: no closer neighbour at a finite distance')
     hops.push(teammateHop(graph, linkIds[at], node, neighbours[at], filter))
     node = neighbours[at]
   }
@@ -108,12 +110,125 @@ export const walkFirstPath = (
 }
 
 /**
+ * Number of distinct shortest chains from index `from` to the target, saturating at `cap`.
+ * `distanceToTarget` comes from `bfsDistances(..., from)`: every node closer than `from` has its exact
+ * distance. DP over the layers: `ways[node]` is the sum of `ways` over its passing neighbours one step
+ * closer, `ways[target] = 1`. Each sum is clamped to `cap`, which is exact for "reached the cap" because
+ * clamping is monotone. `capped` means the true count is `>= cap` (exactly `cap` counts as capped).
+ * Requires `distanceToTarget[from] >= 0`.
+ */
+export const countShortestChains = (
+  graph: TeammateGraph, distanceToTarget: Int32Array, from: number, filter: Filter, cap: number,
+): { readonly count: number; readonly capped: boolean } => {
+  const { offsets, neighbours, linkIds } = graph.adjacency
+  const n = distanceToTarget.length
+  const total = distanceToTarget[from]
+  if (total === 0) return { count: Math.min(1, cap), capped: 1 >= cap }
+  // Counting sort of the nodes with distance < total by distance; `from` itself is summed last.
+  const layerStart = new Int32Array(total + 1)
+  for (let node = 0; node < n; node += 1) {
+    const d = distanceToTarget[node]
+    if (d >= 0 && d < total) layerStart[d + 1] += 1
+  }
+  for (let d = 0; d < total; d += 1) layerStart[d + 1] += layerStart[d]
+  const order = new Int32Array(layerStart[total])
+  const fill = layerStart.slice(0, total)
+  for (let node = 0; node < n; node += 1) {
+    const d = distanceToTarget[node]
+    if (d >= 0 && d < total) {
+      order[fill[d]] = node
+      fill[d] += 1
+    }
+  }
+  const ways = new Float64Array(n)
+  const sumAt = (node: number): number => {
+    const want = distanceToTarget[node] - 1
+    const end = offsets[node + 1]
+    let sum = 0
+    for (let at = offsets[node]; at < end && sum < cap; at += 1) {
+      if (distanceToTarget[neighbours[at]] !== want) continue
+      if (!linkPasses(graph, linkIds[at], filter)) continue
+      sum += ways[neighbours[at]]
+    }
+    return Math.min(sum, cap)
+  }
+  for (let k = 0; k < order.length; k += 1) {
+    const node = order[k]
+    ways[node] = distanceToTarget[node] === 0 ? 1 : sumAt(node)
+  }
+  const count = sumAt(from)
+  return { count, capped: count >= cap }
+}
+
+/**
+ * Up to `limit` distinct shortest chains from `from`, lazily, in D6 order: a depth-first walk down the
+ * distance layers that tries each node's closer passing neighbours most games first, then lowest ID.
+ * Every closer neighbour leads to the target, so there are no dead ends and the work is proportional
+ * to `limit * distance` plus the sorting of the candidate lists it visits.
+ */
+export const enumerateChains = (
+  graph: TeammateGraph, distanceToTarget: Int32Array, from: number, filter: Filter, limit: number,
+): ReadonlyArray<ReadonlyArray<TeammateHop>> => {
+  const { offsets, neighbours, linkIds } = graph.adjacency
+  const total = distanceToTarget[from]
+  const chains: Array<ReadonlyArray<TeammateHop>> = []
+  if (limit < 1) return chains
+  if (total === 0) return [[]]
+  // Adjacency positions of the closer passing neighbours of `node`, in D6 order.
+  const candidates = (node: number): ReadonlyArray<number> => {
+    const want = distanceToTarget[node] - 1
+    const end = offsets[node + 1]
+    const found: Array<{ readonly at: number; readonly games: number }> = []
+    for (let at = offsets[node]; at < end; at += 1) {
+      if (distanceToTarget[neighbours[at]] !== want) continue
+      const games = linkPassingGames(graph, linkIds[at], filter)
+      if (games > 0) found.push({ at, games })
+    }
+    // Neighbour indexes ascend with player ID, so the tie-break on index is the lowest ID.
+    found.sort((a, b) => b.games - a.games || neighbours[a.at] - neighbours[b.at])
+    return found.map((entry) => entry.at)
+  }
+  const nodes = new Int32Array(total + 1)
+  const cursor = new Int32Array(total + 1)
+  const chosen = new Int32Array(total)
+  const frames: Array<ReadonlyArray<number>> = [candidates(from)]
+  nodes[0] = from
+  let depth = 0
+  while (depth >= 0 && chains.length < limit) {
+    const options = frames[depth]
+    if (cursor[depth] >= options.length) {
+      frames.pop()
+      cursor[depth] = 0
+      depth -= 1
+      continue
+    }
+    const at = options[cursor[depth]]
+    cursor[depth] += 1
+    chosen[depth] = at
+    nodes[depth + 1] = neighbours[at]
+    if (depth + 1 === total) {
+      const hops: TeammateHop[] = []
+      for (let step = 0; step < total; step += 1) {
+        hops.push(teammateHop(graph, linkIds[chosen[step]], nodes[step], nodes[step + 1], filter))
+      }
+      chains.push(hops)
+    } else {
+      depth += 1
+      cursor[depth] = 0
+      frames.push(candidates(nodes[depth]))
+    }
+  }
+  return chains
+}
+
+/**
  * Shortest teammate paths from `from` to `to` (player IDs) in D6 order.
- * Only `relation: 'with'` and `limit: 1` are real so far. Q3 adds further chains and the tie count
- * (`pathCount` is 1 until then); Q7 adds `against` and `either`.
+ * `relation: 'with'` returns up to `limit` distinct shortest chains in D6 order (the first is Q2's) and
+ * `pathCount`, the number of tied shortest chains, saturating at `PATH_COUNT_CAP` (`pathCountCapped` when
+ * the true count is `>=` the cap). Q7 adds `against` and `either`.
  */
 export const findPaths = (
-  graph: TeammateGraph, from: number, to: number, filter: Filter, relation: Relation, _limit: number,
+  graph: TeammateGraph, from: number, to: number, filter: Filter, relation: Relation, limit: number,
 ): Result.Result<PathResult, UnknownPlayer | NoPath> => {
   const fromIndex = graph.indexOf.get(from)
   if (fromIndex === undefined) return Result.fail(new UnknownPlayer({ playerId: from }))
@@ -121,10 +236,12 @@ export const findPaths = (
   if (toIndex === undefined) return Result.fail(new UnknownPlayer({ playerId: to }))
   // TODO(Q7): `against` and `either`. Placeholder until then: report no path rather than a wrong teammate path.
   if (relation !== 'with') return Result.fail(new NoPath({ from, to }))
-  // TODO(Q3): `limit` above 1 returns more chains, and `pathCount` becomes the real tie count.
   const distanceToTarget = bfsDistances(graph, toIndex, filter, fromIndex)
   const distance = distanceToTarget[fromIndex]
   if (distance === UNREACHED) return Result.fail(new NoPath({ from, to }))
-  const path = walkFirstPath(graph, distanceToTarget, fromIndex, filter)
-  return Result.succeed({ distance, pathCount: 1, pathCountCapped: false, paths: [path] })
+  const { count, capped } = countShortestChains(graph, distanceToTarget, fromIndex, filter, PATH_COUNT_CAP)
+  const paths = limit <= 1
+    ? [walkFirstPath(graph, distanceToTarget, fromIndex, filter)]
+    : enumerateChains(graph, distanceToTarget, fromIndex, filter, limit)
+  return Result.succeed({ distance, pathCount: count, pathCountCapped: capped, paths })
 }
