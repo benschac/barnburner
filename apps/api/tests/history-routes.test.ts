@@ -7,7 +7,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { Effect, Layer } from 'effect'
 import { FetchHttpClient, HttpRouter } from 'effect/http'
 import { RpcClient, RpcClientError, RpcSerialization } from 'effect/rpc'
-import { HistoryUnavailable, UnknownPlayer } from '@nhl-reddit-stats/history'
+import { HistoryUnavailable, UnknownPlayer, UnknownRoster } from '@nhl-reddit-stats/history'
 import { HistoryRpcs } from '@nhl-reddit-stats/history/rpc'
 import { MINI_ARRAYS, MINI_GAMES, MINI_SNAPSHOT_ID, makeMiniStore } from '../../../packages/history/tests/fakes.ts'
 import { History, HistoryRoutes } from '../src/history-routes.ts'
@@ -132,7 +132,58 @@ test('no configured file is HistoryUnavailable', () => withClient(undefined, asy
   assert.ok((await flip(client.GetPlayer({ playerId: 11 }))) instanceof HistoryUnavailable)
 }))
 
-test('an RPC that a later task owns reports HistoryUnavailable', () => withMini(async (client) => {
-  const error = await flip(client.GetRoster({ teamId: 1, seasonId: 20232024, gameType: 2 }))
-  assert.ok(error instanceof HistoryUnavailable)
+const DEFAULT = { competition: 'all', fromSeason: null, toSeason: null, goaliePartners: true } as const
+
+/** Serves the in-memory fake store through the real handlers. */
+const withFake = async (use: (client: Client) => Promise<void>) => {
+  const web = HttpRouter.toWebHandler(HistoryRoutes.pipe(Layer.provide(History.fromStore(fake))), { disableLogger: true })
+  const fetch = FetchHttpClient.Fetch.of((input, init) => web.handler(new Request(input, init)))
+  try {
+    await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+      const client = yield* RpcClient.make(HistoryRpcs)
+      yield* Effect.promise(() => use(client))
+    })).pipe(Effect.provide(RpcClient.layerProtocolHttp({ url: 'https://rinkside.example/api/history' }).pipe(
+      Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]),
+      Layer.provide(Layer.succeed(FetchHttpClient.Fetch, fetch)),
+    ))))
+  } finally { await web.dispose() }
+}
+
+test('GetRoster links a goalie partner, a roster-mate with none, and the focus row', () => withFake(async (client) => {
+  const roster = await Effect.runPromise(client.GetRoster({ teamId: 3, seasonId: 19511952, gameType: 2, focusPlayerId: 16 }))
+  assert.equal(roster.snapshotId, MINI_SNAPSHOT_ID)
+  const byId = new Map(roster.players.map((p) => [p.playerId, p.link]))
+  assert.deepEqual(byId.get(16), { _tag: 'NoLink' })
+  const partner = byId.get(17)
+  assert.equal(partner?._tag, 'GoaliePartners')
+  assert.equal(partner?._tag === 'GoaliePartners' ? partner.games : 0, 3)
+  assert.ok(roster.players.some((p) => p.playerId !== 16 && p.playerId !== 17 && byId.get(p.playerId)?._tag === 'NoLink'))
+  const plain = await Effect.runPromise(client.GetRoster({ teamId: 3, seasonId: 19511952, gameType: 2 }))
+  assert.ok(plain.players.every((p) => p.link === undefined))
+  const played = await Effect.runPromise(client.GetRoster({ teamId: 1, seasonId: 19501951, gameType: 2, focusPlayerId: 11 }))
+  assert.equal(played.players.find((p) => p.playerId === 12)?.link?._tag, 'PlayedWith')
+}))
+
+test('GetRoster fails with UnknownRoster and UnknownPlayer', () => withFake(async (client) => {
+  assert.ok((await flip(client.GetRoster({ teamId: 99, seasonId: 19511952, gameType: 2 }))) instanceof UnknownRoster)
+  assert.ok((await flip(client.GetRoster({ teamId: 3, seasonId: 19511952, gameType: 2, focusPlayerId: 999 }))) instanceof UnknownPlayer)
+}))
+
+test('GetLink honors the goalie-partner filter and reports unknown players', () => withFake(async (client) => {
+  const on = await Effect.runPromise(client.GetLink({ a: 16, b: 17, filter: DEFAULT }))
+  assert.equal(on.snapshotId, MINI_SNAPSHOT_ID)
+  assert.equal(on.totalGames, 3)
+  assert.equal(on.spans[0].link, 'GoaliePartners')
+  const off = await Effect.runPromise(client.GetLink({ a: 16, b: 17, filter: { ...DEFAULT, goaliePartners: false } }))
+  assert.equal(off.totalGames, 0)
+  assert.equal(off.evidenceGameId, null)
+  assert.ok((await flip(client.GetLink({ a: 16, b: 999, filter: DEFAULT }))) instanceof UnknownPlayer)
+}))
+
+test('GetSharedGames returns the shared games for 11-12', () => withFake(async (client) => {
+  const expected = Effect.runSync(fake.sharedGames(11, 12, 19501951, 2, 1))
+  assert.ok(expected.length > 0)
+  const result = await Effect.runPromise(client.GetSharedGames({ a: 11, b: 12, seasonId: 19501951, gameType: 2, teamId: 1 }))
+  assert.equal(result.snapshotId, MINI_SNAPSHOT_ID)
+  assert.deepEqual(result.games, expected)
 }))
