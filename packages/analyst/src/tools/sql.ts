@@ -1,6 +1,7 @@
 import { Effect } from 'effect'
 import { jsonSchema, tool } from 'ai'
 import type { Db, Guard } from '../shapes.ts'
+import { toJson } from '../json.ts'
 
 export interface SqlDeps {
   readonly db: Db
@@ -22,7 +23,7 @@ export const runSql = (deps: SqlDeps, query: string): Promise<string> => {
       if (!verdict.ok) return `ERROR: ${verdict.reason}`
       const result = yield* deps.db.queryCanonical(query, { timeoutMs, rowCap })
       const rows = result.rows.slice(0, rowCap)
-      return JSON.stringify({
+      return toJson({
         rows,
         rowCount: result.rowCount,
         truncated: result.rowCount > rows.length,

@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { Effect, Result } from 'effect'
+import { Effect, Result, Schema } from 'effect'
 import type { InsightCard } from '../src/card.ts'
 import { openDb } from '../src/db.ts'
 import { guardQuery } from '../src/guard.ts'
@@ -10,6 +10,11 @@ import type { RecheckContext } from '../src/recheck.ts'
 import type { Db, DbError, Guard, SqlError } from '../src/shapes.ts'
 import { readCards, writeCards } from '../src/store.ts'
 import type { StoreError } from '../src/store.ts'
+
+// The poster snapshot ships with the repo; one that does not decode is a defect.
+const decodePoster = Schema.decodeUnknownSync(
+  Schema.fromJsonString(Schema.Struct({ fetchedAt: Schema.String, completedGameIds: Schema.Array(Schema.Finite) })),
+)
 
 export interface RecheckOptions {
   readonly dir: string
@@ -53,10 +58,7 @@ export const runRecheck = ({ dir, deps, ctx }: RecheckOptions): Effect.Effect<Re
 // A missing insights directory means zero cards.
 export const recheckInsights = ({ dir, dataDir }: { dir: string; dataDir: string }): Effect.Effect<RecheckSummary, StoreError | DbError | SqlError> => {
   if (!existsSync(dir)) return Effect.succeed({ unchanged: 0, refreshed: 0, stale: 0 })
-  const poster = JSON.parse(readFileSync(join(dataDir, 'nhl-poster-20262027.json'), 'utf8')) as {
-    fetchedAt: string
-    completedGameIds: readonly number[]
-  }
+  const poster = decodePoster(readFileSync(join(dataDir, 'nhl-poster-20262027.json'), 'utf8'))
   const asOf = { fetchedAt: poster.fetchedAt, completedGameIds: poster.completedGameIds.length }
   return Effect.scoped(
     Effect.gen(function* () {

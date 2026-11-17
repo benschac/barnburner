@@ -34,6 +34,11 @@ Adopt the stack incrementally through concrete features. Preserve this project's
 - `packages/analyst` enforces this in `bun run lint` with `scripts/check-error-model.mjs`. Add the check to a package's `lint` script when that package adopts the rule.
 - `apps/web` runs the same check on `plan-viewer/plan.ts`. `content-collections.ts` is the one place that throws its `PlanParseError`, because the content build only reports thrown errors.
 
+# JSON boundary
+
+- Package source does not call `JSON.parse` or `JSON.stringify`. Decode text with `Schema.fromJsonString(<schema>)`, or use `parseJson`, `toJson`, and `toPrettyJson` from `packages/analyst/src/json.ts` when the value is still `unknown`.
+- `packages/analyst` fails `bun run typecheck` on the `effect-tsgo` diagnostics `globalJson` and `globalJsonInEffect` in `src` and `scripts`. Tests are exempt.
+
 # Union model
 
 - Give every member of a union of object shapes a `_tag`. Branch on it with `Match.valueTags` or `Match.tagsExhaustive`, so a new member fails to compile until it is handled.

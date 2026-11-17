@@ -3,6 +3,7 @@ import type { InsightCard } from './card.ts'
 import { render } from './render.ts'
 import type { Db, Guard } from './shapes.ts'
 import { fillCard } from './tools/submit-card.ts'
+import { toJson } from './json.ts'
 
 export type RecheckChange = 'unchanged' | 'refreshed' | 'stale'
 
@@ -21,7 +22,8 @@ class Stale extends Schema.TaggedError<Stale, { readonly brand: unique symbol }>
   reason: Schema.String,
 }) {}
 
-const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b)
+// Optional evidence, such as coverage, may be absent on either side.
+const same = (a: unknown, b: unknown): boolean => (a === undefined || b === undefined ? a === b : toJson(a) === toJson(b))
 
 const staleResult = (card: InsightCard, reason: string): RecheckResult => ({
   card: { ...card, status: 'stale' },
