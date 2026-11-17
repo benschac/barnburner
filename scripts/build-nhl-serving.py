@@ -21,6 +21,7 @@ STEPS = [
     "nhl_serving_finals",
     "nhl_serving_graph",
     "nhl_serving_graph_pack",
+    "nhl_serving_opponents",
 ]
 
 
