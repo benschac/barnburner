@@ -18,6 +18,8 @@
     "data:serve": "node apps/api/src/main.ts",
     "test:data": "node --test tests/nhl-*.test.mjs",
     "test:api": "bun run --cwd apps/api test",
+    "test:scripts": "node --test tests/land-stack.test.mjs",
+    "land": "node scripts/land-stack.mjs",
     "test:history": "python3 -m unittest discover -s tests -p 'test_*.py'",
     "dev": "turbo run dev",
     "build": "turbo run build",

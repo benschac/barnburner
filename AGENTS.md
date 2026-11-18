@@ -53,6 +53,13 @@ For AntV G2 5 or G6 5 charts, graphs, themes, or views, search `.agent-sources/a
 
 For Next.js 16 App Router, route handlers, metadata and image routes, `next.config.js`, or webpack builds, search `.agent-sources/next/index.md`, then read the matching line range of `.agent-sources/next/docs.txt` (pinned to the v16.4.6 tag). Refresh with `node scripts/refresh-next-sources.mjs`.
 
+# Landing a stack
+
+`node scripts/land-stack.mjs --branch <top branch>` reports whether a stack of pull requests can land on `main` with one fast-forward push, and what blocks each one. Without `--push` it changes nothing.
+
+- Do not pass `--push` or add the `reviewed` label unless the user asks for it in the current conversation. The label is the user's record that they reviewed that pull request; GitHub does not let an author approve their own.
+- When the stack does not sit on the current `main`, rebase and resubmit it, then wait for the checks before landing.
+
 # Ratstack workflow
 
 For non-trivial implementation, architecture, data, or debugging work, follow [the project Ratstack workflow](.agent-sources/ratstack/README.md). Read its pinned router, relevant principles, and matching playbooks before editing. Apply the patterns to the owning code and report which rules affected the change.
