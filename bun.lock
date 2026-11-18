@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "nhl-reddit-stats",
+      "dependencies": {
+        "effect": "4.1.2",
+      },
       "devDependencies": {
         "@effect/tsgo": "0.67.1",
         "turbo": "2.11.10",

@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { Layer } from 'effect'
 import { HttpRouter } from 'effect/http'
+import { loggerLayer } from '../../../lib/logger.mjs'
 import { History, HistoryRoutes } from './history-routes.ts'
 
 // Vercel runs the function with its root as `process.cwd()`. `includeFiles` in `apps/web/vercel.json` keeps the
@@ -14,6 +15,7 @@ const historyPath = process.env.HISTORY_DB || bundledFile
 
 export const historyApi = HttpRouter.toWebHandler(HistoryRoutes.pipe(
   Layer.provide(History.layer(historyPath)),
+  Layer.provideMerge(loggerLayer),
 ))
 
 export default { fetch: historyApi.handler }
