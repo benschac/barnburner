@@ -11,50 +11,32 @@ import poster from '../../../data/nhl-poster-20262027.json' with { type: 'json' 
 import { teamPoster } from '../src/stats.ts'
 import type { TeamPosterData } from '../src/stats.ts'
 import { teamFromPath, teamHref, teamLogo } from '../src/team-season.ts'
-import { renderSocialCard, socialImageSize } from './card.ts'
+import { renderSocialCard } from './card.ts'
+import { siteOrigin, socialDescription, socialImageOrigin, teamMetadata } from './metadata.ts'
 
 const webRoot = fileURLToPath(new URL('../', import.meta.url))
 const snapshots = Schema.decodeUnknownSync(TeamData)({ season, poster })
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] ?? character)
 
-export function siteOrigin(env: NodeJS.ProcessEnv) {
-  const host = env.SITE_URL ?? (env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined)
-    ?? (env.VERCEL_URL ? `https://${env.VERCEL_URL}` : 'http://localhost:5173')
-  const url = new URL(host)
-  if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
-    throw new Error('SITE_URL must be an HTTP(S) origin, such as https://example.com')
-  }
-  return url.origin
-}
-
-export function socialDescription(data: TeamPosterData) {
-  const summary = data.seasonSummary
-  return `${summary.record} · ${summary.points} points · ${summary.divisionPlace} in the ${data.team.division} · ${summary.streak}. Last 10: ${summary.lastTen}. Through ${data.snapshotDate}.`
-}
-
-export function socialImageOrigin(env: NodeJS.ProcessEnv) {
-  return env.VERCEL_ENV === 'preview' && env.VERCEL_URL
-    ? siteOrigin({ VERCEL_URL: env.VERCEL_URL }) : siteOrigin(env)
-}
+export { siteOrigin, socialDescription, socialImageOrigin }
 
 export function socialHtml({ html, data, origin, imageOrigin = origin, path, imagePath }: {
   html: string; data: TeamPosterData; origin: string; imageOrigin?: string; path: string; imagePath: string
 }) {
-  const title = `${data.team.name} | ${data.seasonSummary.record} | RinkSide`
-  const description = socialDescription(data)
-  const image = new URL(imagePath, imageOrigin).href
-  const imageAlt = `${data.team.name} season at a glance. ${description}`
+  const meta = teamMetadata(data, origin, { path, imagePath, imageOrigin })
+  const [og] = meta.openGraph.images
+  const [tw] = meta.twitter.images
   const metadata = [
-    ['og:type', 'website'], ['og:site_name', 'RinkSide'], ['og:title', title], ['og:description', description],
-    ['og:url', new URL(path, origin).href], ['og:image', image], ['og:image:type', 'image/png'],
-    ['og:image:width', String(socialImageSize.width)], ['og:image:height', String(socialImageSize.height)], ['og:image:alt', imageAlt],
+    ['og:type', meta.openGraph.type], ['og:site_name', meta.openGraph.siteName], ['og:title', meta.title], ['og:description', meta.description],
+    ['og:url', meta.openGraph.url], ['og:image', og.url], ['og:image:type', og.type],
+    ['og:image:width', String(og.width)], ['og:image:height', String(og.height)], ['og:image:alt', og.alt],
   ].map(([property, content]) => `<meta property="${property}" content="${escapeHtml(content)}" />`).join('\n    ')
-  const twitter = [['twitter:card', 'summary_large_image'], ['twitter:title', title], ['twitter:description', description],
-    ['twitter:image', image], ['twitter:image:alt', imageAlt]]
+  const twitter = [['twitter:card', meta.twitter.card], ['twitter:title', meta.title], ['twitter:description', meta.description],
+    ['twitter:image', tw.url], ['twitter:image:alt', tw.alt]]
     .map(([name, content]) => `<meta name="${name}" content="${escapeHtml(content)}" />`).join('\n    ')
-  return html.replace(/<title>[^]*?<\/title>/, `<title>${escapeHtml(title)}</title>`)
-    .replace(/<meta name="description" content="[^"]*"\s*\/>/, `<meta name="description" content="${escapeHtml(description)}" />`)
-    .replace('</head>', `    ${metadata}\n    ${twitter}\n    <link rel="canonical" href="${escapeHtml(new URL(path, origin).href)}" />\n  </head>`)
+  return html.replace(/<title>[^]*?<\/title>/, `<title>${escapeHtml(meta.title)}</title>`)
+    .replace(/<meta name="description" content="[^"]*"\s*\/>/, `<meta name="description" content="${escapeHtml(meta.description)}" />`)
+    .replace('</head>', `    ${metadata}\n    ${twitter}\n    <link rel="canonical" href="${escapeHtml(meta.alternates.canonical)}" />\n  </head>`)
 }
 
 export async function createSocialPreviews() {
