@@ -24,7 +24,7 @@
 <main id="views">
 <section class="view" id="roadmap-view" aria-labelledby="tab-roadmap">
 <div class="intro"><div><h2>Small tasks. Explicit dependencies.</h2><p>A task becomes ready when its Needs are merged to main. Select a task to inspect its inputs, direct dependents, and exact scope.</p></div><span class="tag">Source ledger snapshot</span></div>
-<div class="diagram-heading"><h3 id="dependency-title">A1 dependencies</h3><a href="https://pele.run/" target="_blank" rel="noreferrer">Rendered with Pele 1.6.0</a></div><div class="pele-diagram" id="dependency-diagram" role="img" aria-label="Selected task dependencies"></div><p class="small muted">Solid arrows are declared Needs. Dashed arrows are explicit Stack on relationships. This shows one task's immediate neighborhood.</p><details><summary>Dependency Mermaid source</summary><pre id="dependency-source"></pre></details>
+<div class="diagram-heading"><h3 id="dependency-title">A1 dependencies</h3><a href="https://pele.run/" target="_blank" rel="noreferrer">Rendered with Pele 1.6.0</a></div><div class="pele-diagram" id="dependency-diagram" role="group" aria-label="Selected task dependencies"></div><p class="small muted">Solid arrows are declared Needs. Dashed arrows are explicit Stack on relationships. This shows one task's immediate neighborhood.</p><details><summary>Dependency Mermaid source</summary><pre id="dependency-source"></pre></details>
 <div class="controls"><label class="search-label">Find a task<input id="search" type="search" placeholder="Search task ID, title, or scope" autocomplete="off"></label><label>Builder model<select id="model"><option value="all">All models</option><option>Sonnet</option><option>Haiku</option><option>Opus</option><option>Codex</option><option value="you">You / prerequisites</option></select></label><button class="quiet" type="button" id="reset">Reset</button></div>
 <p id="result-count" class="small muted" aria-live="polite"></p>
 <div class="roadmap-layout"><div class="roadmap"><p class="stack-note">These are source-card workstreams, not sequential waves. Ready tasks can land independently. Only DEP1 &rarr; DEP2 and N2 &rarr; N3 are explicitly stacked.</p><div id="waves"></div></div><aside class="detail" id="task-detail" aria-label="Selected task"></aside></div>
@@ -34,7 +34,7 @@
 </section>
 <section class="view" id="pipeline-view" aria-labelledby="tab-pipeline" hidden>
 <div class="intro"><div><h2>Every claim has a query.</h2><p>A conceptual runtime flow, separate from the build schedule. Select a task ID to inspect its implementation card.</p></div><span class="tag">Conceptual flow</span></div>
-<div class="pele-diagram" id="pipeline-diagram" role="img" aria-label="Runtime pipeline from snapshots to approved cards and staleness checks"></div><details><summary>Runtime Mermaid source</summary><pre id="pipeline-source"></pre></details>
+<div class="pele-diagram" id="pipeline-diagram" role="group" aria-label="Runtime pipeline from snapshots to approved cards and staleness checks"></div><details><summary>Runtime Mermaid source</summary><pre id="pipeline-source"></pre></details>
 <ol class="pipeline" id="pipeline"></ol>
 <h2 class="section-heading">Approval owns publication</h2><div class="status-flow"><span class="tag">pending</span><span aria-hidden="true">&rarr;</span><span>Human review</span><span aria-hidden="true">&rarr;</span><span class="tag approved">approved</span><span class="muted">or</span><span class="tag rejected">rejected</span></div><p class="pipeline-note">The generator adds pending cards. Only human-approved cards reach the API and poster. After a refresh, the recheck keeps valid cards approved and re-renders changed values when the assertion still holds. A false assertion or query error makes the card <span class="stale">stale</span>.</p>
 <details><summary>Runtime model choices are provisional</summary><div class="task-body" id="runtime-models"></div></details><p class="source-note">P3, the public live Ask box, is not planned. Plan it after P2 using approval-rate data.</p>
@@ -70,10 +70,21 @@ function renderDiagram(id, source) {
     const fallback = document.createElement('pre'); fallback.textContent = source;
     container.append(message, fallback); return;
   }
+  function logDiagramError(error) {
+    const log = document.createElement('p');
+    log.setAttribute('role', 'log');
+    log.className = 'diagram-error';
+    log.textContent = 'Diagram could not render. ' + String(error);
+    const fallback = document.createElement('pre');
+    fallback.textContent = source;
+    container.replaceChildren(log, fallback);
+  }
   try {
-    const handle = window.pele.mount(container, source, { links: false, images: false, onError: function(error) { container.replaceChildren(); const fallback = document.createElement('pre'); fallback.textContent = 'Diagram could not render. Mermaid source:\n' + source; container.append(fallback); console.error(error); } });
+    const handle = window.pele.mount(container, source, { links: false, images: false, onError: logDiagramError });
     mountedDiagrams.set(id, { source: source, handle: handle });
-  } catch (error) { const fallback = document.createElement('pre'); fallback.textContent = source; container.replaceChildren(fallback); console.error(error); }
+  } catch (error) {
+    logDiagramError(error);
+  }
 }
 function renderDependency() {
   const source = plan.dependencyDiagrams[state.selected];
