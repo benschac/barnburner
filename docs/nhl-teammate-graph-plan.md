@@ -582,7 +582,7 @@ The explorer has two kinds of view. **Built views** are the ones this plan alrea
 
 This section fixes the approach, moves the app onto a framework that can render a page per URL, defines the shapes every lane works from, and runs a spike that measures what research could not settle. The explorer's own cards are written after it (**FJ1**).
 
-The work is 54 small PRs in 12 lanes. It runs the way the backend did (§Orchestration): the orchestrator dispatches every ready card to a worktree subagent at the card's model and effort, reruns each **Done** check, runs each **Gate**, and submits through Graphite. Codex reviews every PR; Opus also reviews the Sonnet · high ones.
+The work is 56 small PRs in 12 lanes. It runs the way the backend did (§Orchestration): the orchestrator dispatches every ready card to a worktree subagent at the card's model and effort, reruns each **Done** check, runs each **Gate**, and submits through Graphite. Codex reviews every PR; Opus also reviews the Sonnet · high ones.
 
 ### Decisions
 
@@ -599,6 +599,8 @@ Numbering continues from §Decisions.
 | D21 | **The app is built in Tamagui's zero-runtime mode. Today's poster moves, unchanged, into one island.** Zero-runtime is one setting for the whole build: pages compile to plain elements and one stylesheet, and anything that needs the Tamagui runtime is an island, a separately loaded piece. New explorer pages are written to the mode's eight rules from the start. Visualizations, the sandbox host, and the lab are islands. | The report on today's app lists 41 violations in 12 files, all inside the poster. As one island they need no fixes, and the poster keeps working exactly as it does now. An island renders a placeholder on the server, so the poster stays out of the server HTML, as it is today (the app is client-rendered). Accepted, Nov 18: this is a beta feature, and this is a side project. Rule for new pages: anything a search engine or share preview must read cannot live in an island. |
 | D22 | **No card edits a file another card owns.** Every card writes new files of its own. The few shared files have one owner each or a fixed order (§Who owns which file). Lists that many cards add to are folders the code discovers, never a file with one line per card. | It lets a dozen workers run at once and rebase into a chain without conflicts. The backend plan needed **Stack on** notes for its step list; folders remove the need. |
 
+| D23 | **Effect Atoms hold the explorer's remote data and URL state. XState machines keep lifecycles.** `effect/reactivity` ships with the installed Effect, and `@effect/atom-react` 4.1.2 adds the React hooks. The History RPC group becomes query atoms through `AtomRpc`. Each URL parameter is an `Atom.searchParam` decoded with an Effect schema. Data a server render already loaded reaches the browser's atoms through `HydrationBoundary`. Machines stay for things with states and timeouts: the sandbox frame (**FS4**), team navigation, the box score. | It is the same Effect and the same RPC contract on both sides, so there is no second data library to keep in step. Query atoms cache, deduplicate, and expose loading and failure as one tagged value. `Atom.searchParam` gives the typed URL state that TanStack Start would have. Unproven: an island is a separate bundle, so two islands on one page may not share one Atom registry. **FX3** settles it. |
+
 This section is the plan's one exception to “nothing calls a model at run time”: **FM3** and **FE2** call the model configured in `packages/analyst/src/llm.ts`, and each run records its model and token count.
 
 Not chosen:
@@ -606,8 +608,11 @@ Not chosen:
 - **A component catalog as the foundation** (json-render, GPT-Vis, Vega-Lite specs). Safe and predictable, but it caps prompted views at what we listed. It may return later as a fast path for ordinary charts inside answers.
 - **Raw D3 as the default vocabulary.** The highest ceiling, but every prompted view would hand-roll its own tooltips, zoom, and legends, and quality would vary from view to view. It stays as the escape hatch.
 - **Apache ECharts.** Strong charts, but its graph series is a chart type, not a graph toolkit, and the product is a graph.
-- **TanStack Start.** It stays on Vite and has typed URL state, which suits the explorer's filters. But Tamagui documents no server-rendering setup for it, and it reached 1.0 in October 2026. Typed URL state on Next comes from typed routes plus search parameters decoded with our Effect schemas (**FJ1**).
+- **TanStack Start.** It stays on Vite and has typed URL state, which suits the explorer's filters. But Tamagui documents no server-rendering setup for it, and it reached 1.0 in October 2026. Typed URL state on Next comes from `Atom.searchParam` with our Effect schemas (D23).
 - **Staying a single-page Vite app.** No per-URL titles or previews without a server render.
+- **A separate data library** (TanStack Query, SWR). Atoms already speak our RPC contract and our schemas.
+- **Moving the poster's machines to atoms.** They work, and they live inside the poster island.
+- **`effect/ai` in place of the Vercel AI SDK.** The analyst package's model calls, traces, and evals are built on the AI SDK. Not part of this work.
 - **Fixing the poster's 41 zero-runtime violations.** A rewrite of working code for no visible gain. Parts of the poster can leave the island later, one at a time, if a page needs them in server HTML.
 
 ### Baseline
@@ -620,7 +625,7 @@ Measured Nov 18 on the Vite build, with installed versions.
 | CSS | 2,614 kB (83 kB gzipped). The config ships every default Tamagui theme plus 64 team themes. |
 | Zero-runtime report | 41 violations in 12 files: 14 style values not known at build time, 14 components that do not compile to one element, 6 `styled()` components used through an expression, 4 `useTheme` or `useMedia` reads, 3 runtime theme names, and one each of a provider, a prop spread, and a side-effect import |
 | Zero-runtime support | Tamagui 3.3.1 enables base mode and islands for Vite and for Next with webpack |
-| Versions to pin | `next` 16.4.6, `@tamagui/next-plugin` 3.3.1, `@antv/g2` 5.4.8, `@antv/g6` 5.1.1, `@antv/g6-extension-react` 0.2.7, `@antv/g-webgl` 2.1.3, `d3` 7.9.2, `three` 0.187.0, `@cosmos.gl/graph` 3.6.0, `playwright` 1.65.1 |
+| Versions to pin | `@effect/atom-react` 4.1.2 (installed, #124), `next` 16.4.6, `@tamagui/next-plugin` 3.3.1, `@antv/g2` 5.4.8, `@antv/g6` 5.1.1, `@antv/g6-extension-react` 0.2.7, `@antv/g-webgl` 2.1.3, `d3` 7.9.2, `three` 0.187.0, `@cosmos.gl/graph` 3.6.0, `playwright` 1.65.1 |
 
 ### C-viz: the shapes every lane works from
 
@@ -712,7 +717,7 @@ A card writes only the files on its **Write** list. Every file not listed here i
 | `apps/web/tamagui.config.ts` | FZ2 |
 | `apps/web/.oxlintrc.json`, `apps/web/lint/`, `apps/web/scripts/test-design-rules.mjs`, `apps/web/design/README.md` | FV2 |
 | `apps/web/scripts/check-vercel-output.mjs` | FN7 |
-| `packages/analyst/package.json` | FP1 |
+| `packages/analyst/package.json`, `apps/api/package.json` | FP1 |
 | `packages/viz/package.json`, its `tsconfig.json` and lint config | FC0 |
 | `.agent-sources/sources.json`, `.agent-sources/README.md`, `AGENTS.md` | FP2, FP3, FN6 |
 | This plan and its ledger | the orchestrator |
@@ -733,7 +738,7 @@ When two cards on one row are ready together, the orchestrator dispatches them i
 | **FS** sandbox | 6 | The frame, its build, its headers, its host, its boundary tests | `apps/web/src/viz/frame`, `src/islands` |
 | **FM** model | 4 | Code check, prompts, generate and repair, a command | `packages/viz`, `packages/analyst/src/viz` |
 | **FE** eval | 4 | Render harness, bake-off runner, report | `packages/analyst/evals/viz` |
-| **FX** explorer groundwork | 1 | The History RPC client for the web app | `apps/web/src` |
+| **FX** explorer groundwork | 3 | History query atoms, URL state atoms, and proof that atoms work across islands | `apps/web/src/explorer` |
 | **FJ** judge | 1 | The decision, and the explorer's cards | this plan |
 
 Tiers, on the scale in §Model and effort tiers:
@@ -742,12 +747,12 @@ Tiers, on the scale in §Model and effort tiers:
 | --- | --- |
 | **Haiku · low** | FP1, FM4 |
 | **Haiku · medium** | FT1, FT2, FT5, FT6, FV1, FV7, FV8, FV9, FV10, FV11, FM1, FE3 |
-| **Sonnet · low** | FC0, FP2, FP3, FN4, FN5, FN6, FZ2, FT3, FT4, FT7, FV3, FV6, FR2, FR3, FR4, FS2, FS3, FS5, FM3, FE2, FX1 |
-| **Sonnet · medium** | FN1, FN2, FN3, FZ3, FV2, FV4, FV5, FR1, FS4, FM2, FE1 |
+| **Sonnet · low** | FC0, FP2, FP3, FN4, FN5, FN6, FZ2, FT3, FT4, FT7, FV3, FV6, FR2, FR3, FR4, FS2, FS3, FS5, FM3, FE2, FX2 |
+| **Sonnet · medium** | FN1, FN2, FN3, FZ3, FV2, FV4, FV5, FR1, FS4, FM2, FE1, FX1, FX3 |
 | **Sonnet · high**, with an Opus review | FC1, FN7, FZ1, FS1, FS6 |
 | **Orchestrator** | FR5, FE4, FJ1 |
 
-Fourteen cards fit Haiku and 21 fit Sonnet at low effort, because the shapes, the samples, and the file layout are fixed here. The 11 Sonnet · medium cards are the first use of each library or framework feature; later cards copy them. The five Sonnet · high cards are where a wrong answer passes a casual test: the shared shapes, the packaged build, the zero-runtime switch, and the sandbox boundary.
+Fourteen cards fit Haiku and 21 fit Sonnet at low effort, because the shapes, the samples, and the file layout are fixed here. The 13 Sonnet · medium cards are the first use of each library or framework feature; later cards copy them. The five Sonnet · high cards are where a wrong answer passes a casual test: the shared shapes, the packaged build, the zero-runtime switch, and the sandbox boundary.
 
 ### What can run at once
 
@@ -759,7 +764,8 @@ FC0 ──┬── FP1 (then FN1, below)
               ├── FR2, FR3, FR4 (also FP1)
               ├── FS1 ── FS2 ──┐
               ├── FS4 ─────────┼── FS5 ── FS6 (also FS3)
-              └── FM1, FM3 ── FM4 (also FM2)
+              ├── FM1 ── FM2 ── FM4 (also FP2, FM3)
+              └── FX1 ── FX2 (also FV3)
 
 FP1 ── FN1 ──┬── FN2 ── FN3 ──┐
              ├── FN4 ── FN5 ──┼── FN6 ──┬── FN7
@@ -768,25 +774,27 @@ FP1 ── FN1 ──┬── FN2 ── FN3 ──┐
              │         └── FR1
              └── FS3
 
-FP2 ── FM2        FP3, FV2, FV7, FE3, FX1 need nothing
+FP3, FV2, FV7, and FE3 need nothing. Every card in `apps/web`, `apps/api`, or `packages/analyst` that imports
+`packages/viz` also needs FP1.
 
 FE1 needs FS5.   FE2 needs FM3 and FE1.
 FR5 needs FR1 to FR4 and FT7.   FE4 needs FE2, FE3, FM2, and FT7.
-FJ1 needs FZ3, FV8, FV11, FR5, FS6, and FE4.
+FX3 needs FX1 and FZ1.
+FJ1 needs FZ3, FX2, FX3, FV8, FV11, FR5, FS6, and FE4.
 ```
 
 If every card took the same time, the work would run in nine rounds:
 
 | Round | Ready together | Width |
 | --- | --- | --- |
-| 1 | FC0, FP2, FP3, FV2, FV7, FE3, FX1 | 7 |
+| 1 | FC0, FP2, FP3, FV2, FV7, FE3 | 6 |
 | 2 | FC1, FP1 | 2 |
-| 3 | FN1, FT1 to FT6, FV1, FV6, FV9, FV10, FR2 to FR4, FS1, FS4, FM1, FM2, FM3 | 19 |
-| 4 | FN2, FN4, FT7, FV3, FS2, FS3, FM4 | 7 |
-| 5 | FN3, FN5, FV4, FV5, FR1, FS5 | 6 |
+| 3 | FN1, FT1 to FT6, FV1, FV6, FV9, FV10, FR2 to FR4, FS1, FS4, FM1, FM3, FX1 | 19 |
+| 4 | FN2, FN4, FT7, FV3, FS2, FS3, FM2 | 7 |
+| 5 | FN3, FN5, FV4, FV5, FR1, FS5, FM4, FX2 | 8 |
 | 6 | FN6, FV8, FV11, FR5, FS6, FE1 | 6 |
 | 7 | FN7, FZ1, FZ2, FE2 | 4 |
-| 8 | FZ3, FE4 | 2 |
+| 8 | FZ3, FE4, FX3 | 3 |
 | 9 | FJ1 | 1 |
 
 - **Run first:** FC0, then FC1 and FP1. Those three cards make 19 more ready.
@@ -804,6 +812,7 @@ If every card took the same time, the work would run in nine rounds:
 4. Add to a discovered folder by adding a file. Never add a line to a registry.
 5. Colours come from `VizTheme`. A colour literal in `apps/web/src/viz` fails lint once **FV2** lands; do not write one before then either.
 6. For a library's API, read its cached docs in `.agent-sources` first (D19). If the cache is missing what you need, say so in the PR and then read the live docs.
+7. For Atoms, search `.agent-sources/effect-api/reactivity-index.md` and `atom-react-index.md`. For RPC, `rpc-index.md`. They are generated from the installed 4.1.2 packages.
 
 - **viz-check** means, from `packages/viz`: `bun run typecheck && bun run lint && bun run test`.
 - **web-check** means, from `apps/web`: `bun run typecheck && bun run lint && bun run check:tamagui`, plus the card's own tests.
@@ -830,7 +839,7 @@ If every card took the same time, the work would run in nine rounds:
 #### FP1 · Install the dependencies (Haiku · low)
 
 - **Needs:** FC0 (for the workspace package)
-- **Write:** in `apps/web/package.json`, at the exact versions in §Baseline: `@antv/g2`, `@antv/g6`, `@antv/g6-extension-react`, `@antv/g-webgl`, `d3`, `@types/d3`, `three`, `@types/three`, `@cosmos.gl/graph`, and `@nhl-reddit-stats/viz` as a workspace dependency; `playwright` as a dev dependency. In `packages/analyst/package.json`: `@nhl-reddit-stats/viz` and `playwright` (dev). `bun.lock`.
+- **Write:** in `apps/web/package.json`, at the exact versions in §Baseline: `@antv/g2`, `@antv/g6`, `@antv/g6-extension-react`, `@antv/g-webgl`, `d3`, `@types/d3`, `three`, `@types/three`, `@cosmos.gl/graph`, and `@nhl-reddit-stats/viz` and `@nhl-reddit-stats/history` as workspace dependencies; `playwright` as a dev dependency. In `packages/analyst/package.json`: `@nhl-reddit-stats/viz` and `playwright` (dev). In `apps/api/package.json`: `@nhl-reddit-stats/viz`. `bun.lock`. `@effect/atom-react` is already installed.
 - **Done:** web-check and analyst-check pass. `bun run build` in `apps/web` gives the §Baseline JavaScript size, since nothing imports the new packages yet. The PR lists the installed versions.
 
 #### FP2 · Cache the AntV docs and skills (Sonnet · low)
@@ -940,7 +949,7 @@ Each builder is one file, `packages/viz/src/tables/<name>.ts`, with one test, `t
 
 #### FT7 · Export command (Sonnet · low)
 
-- **Needs:** FT1 to FT6
+- **Needs:** FT1 to FT6, FP1
 - **Read:** `apps/api/scripts/history-query.ts` (name lookup and `effect/cli` use), `apps/api/src/history-store.ts`
 - **Write:** `apps/api/scripts/history-viz-tables.ts`: `chain <a> <b>`, `pair <a> <b>`, `ego <name>`, `league`, `opponents <a> <b>`, and `finals <name>`, each writing one `Tables` JSON file to `data/history/viz/` (ignored by git). A name that matches several players lists them and exits non-zero, as `history-query` does. A test runs each subcommand on the §C-mini file.
 - **Done:** api-check passes. **Gate (Archive):** the orchestrator exports McDavid → Lindsay, McDavid with Draisaitl, Jágr, the league, Gretzky with Ovechkin, and Jágr's Finals from 1980 to 2026 from the real snapshot, and records each file's size and row counts.
@@ -949,7 +958,7 @@ Each builder is one file, `packages/viz/src/tables/<name>.ts`, with one test, `t
 
 #### FV1 · Theme adapter (Haiku · medium)
 
-- **Needs:** FC1
+- **Needs:** FC1, FP1
 - **Read:** this plan §C-viz Theme; `apps/web/design/contract.json` (theme keys)
 - **Write:** `apps/web/src/viz/theme.ts`: `vizTheme(values, mode)`, which builds a `VizTheme` from a record of theme values; `g2Theme(theme)`; `g6Theme(theme)`; `cssVariables(theme)`; `teamColor(abbrev, theme, index)`, which returns the club's `team-primary` from `contract.json`, or the `series` colour at `index` for a club with no palette. All pure. `useVizTheme()`, the one function that calls `useTheme()`. `tests/viz-theme.test.ts`: every `VizTheme` field is filled from the contract's light and dark themes, and `series` has the order in §C-viz.
 - **Done:** web-check passes.
@@ -984,7 +993,7 @@ Each builder is one file, `packages/viz/src/tables/<name>.ts`, with one test, `t
 
 #### FV6 · Chain spec (Sonnet · low)
 
-- **Needs:** FC1
+- **Needs:** FC1, FP1
 - **Read:** this plan D6, §C-viz Tables (`chain`); the `chain` sample
 - **Write:** `src/viz/specs/chain.ts`: `chainGraph(tables)` returns `{ nodes, edges, chains }`. One node per player, in the order players first appear. One edge per distinct hop, labelled with the team abbreviation, the season, and the games, and carrying the evidence game ID. `chains` lists each chain's edge IDs in D6 order, for highlighting. `tests/viz-chain.test.ts` on the sample: four nodes, four edges, two chains, 11–12–14 first.
 - **Done:** web-check passes.
@@ -1072,7 +1081,7 @@ Each builder is one file, `packages/viz/src/tables/<name>.ts`, with one test, `t
 
 #### FS4 · Frame lifecycle (Sonnet · medium)
 
-- **Needs:** FC1
+- **Needs:** FC1, FP1
 - **Read:** `apps/web/src/boxscore-machine.ts`, `tests/boxscore-machine.test.ts`; `.agent-sources/ratstack/index.md` for `add-a-lifecycle-machine`; this plan §C-viz Frame messages
 - **Write:** `src/viz/frame/frame-machine.ts`: states `loading`, `ready`, `rendering`, `rendered`, `failed`, and `timedOut`. `Ready` moves `loading` to `ready`. A render request moves to `rendering` and records its `id`. A `Rendered` or `Failed` with that `id` settles it; one with another `id` is ignored. No answer in time moves to `timedOut`, which the host answers by replacing the frame. The time limit is an input, not a constant. `tests/viz-frame-machine.test.ts` covers each transition, a stale `id`, and a timeout.
 - **Done:** web-check passes.
@@ -1101,14 +1110,14 @@ Each builder is one file, `packages/viz/src/tables/<name>.ts`, with one test, `t
 
 #### FM2 · Prompts (Sonnet · medium)
 
-- **Needs:** FC1, FP2
+- **Needs:** FC1, FP1, FP2, FM1
 - **Read:** `packages/analyst/src/prompts/generate.md`, `src/prompt.ts`; the cached G2 and G6 docs and AntV skills; this plan §C-viz, D16
 - **Write:** `packages/analyst/src/prompts/view-antv.md` and `view-d3.md`. Each states the view-module contract, the `VizTheme` fields, the rules (draw only in `root`, no imports, no network, return a cleanup, use theme colours), and how the tables and their `notes` arrive. `view-antv.md` says to use G2 for charts and G6 for networks first, with D3 and Three.js for what they cannot do, and quotes the cached docs for the pinned versions. `view-d3.md` allows D3 and Three.js only. Each ends with one complete, working view module for the `chain` sample.
 - **Done:** analyst-check passes. Both example modules pass `checkViewCode` in a test.
 
 #### FM3 · Generate and repair (Sonnet · low)
 
-- **Needs:** FC1
+- **Needs:** FC1, FP1
 - **Read:** `packages/analyst/src/llm.ts`, `rank.ts` (a structured model call), `ask.ts`
 - **Write:** `packages/analyst/src/viz/generate.ts`: `generateView({ prompt, tables, notes, system })` returns `{ title, code, model, usage }` or a tagged error, through the `Llm` service. The system prompt is a parameter, so this card does not wait for **FM2**. `repairView({ code, failure, system })` asks again with the frame's `Failed` message or the problems from `checkViewCode`. `generateChecked(...)` generates, runs `checkViewCode`, and repairs at most twice. Tests use a stubbed model: a clean first answer, one repaired answer, and one that fails three times.
 - **Done:** analyst-check passes.
@@ -1154,19 +1163,33 @@ Each builder is one file, `packages/viz/src/tables/<name>.ts`, with one test, `t
 
 ### FX · Explorer groundwork
 
-#### FX1 · History client for the web app (Sonnet · low)
+#### FX1 · History query atoms (Sonnet · medium)
 
-- **Needs:** nothing (§C-rpc is in `main`)
-- **Read:** `apps/web/src/season-source.ts`; this plan §C-rpc
-- **Write:** `apps/web/src/history-source.ts`: a `HistorySource` service over `HistoryRpcs` at `/api/history`, with `searchPlayers`, `player`, `roster`, `link`, `opponents`, `findPath`, and `finalsCoverage`, mirroring `season-source.ts`. A transport failure becomes `HistoryUnavailable`. `tests/history-source.test.ts` runs it against the in-memory fake store through the real handler.
-- **Done:** web-check passes.
+- **Needs:** FP1
+- **Read:** `.agent-sources/effect-api/reactivity-index.md` for `AtomRpc`, `Atom.family`, and `AsyncResult`; `apps/web/src/season-source.ts` (the RPC protocol layer); this plan §C-rpc, D23
+- **Write:** `apps/web/src/explorer/history-atoms.ts`: `HistoryClient`, an `AtomRpc` service over `HistoryRpcs` at `/api/history`, and one query-atom function for each call the explorer reads: `searchPlayers`, `player`, `roster`, `link`, `sharedGames`, `opponents`, `opposedGames`, `findPath`, `farthest`, and `finalsCoverage`. Each takes the call's payload and returns the same atom for the same payload. Each sets a serialization key, so a server render can hand its result to the browser, and a time to live. `tests/history-atoms.test.ts` reads each atom through an `AtomRegistry`, with no React, against the in-memory fake store behind the real handler: a success, `UnknownPlayer`, and `HistoryUnavailable` when the transport fails.
+- **Done:** web-check passes. The PR records what the cached docs did not cover.
+
+#### FX2 · URL state atoms (Sonnet · low)
+
+- **Needs:** FX1, FV3
+- **Read:** `.agent-sources/effect-api/reactivity-index.md` for `Atom.searchParam`; `packages/history/src/contracts.ts` (the `Filter` and `Relation` schemas); this plan D7
+- **Write:** `apps/web/src/explorer/url-state.ts`: one `Atom.searchParam` for each of `from`, `to`, `relation`, `competition`, `fromSeason`, `toSeason`, and `partners`, each decoded with a synchronous Effect schema; `filterAtom`, which derives a `Filter` from them with the defaults in §C-search; `pathAtom`, which reads `findPath` for the current URL, or nothing while `from` or `to` is missing. `src/viz/lab/entries/url-state.tsx`: fields for each parameter and the decoded values beside them.
+- **Done:** web-check passes. In the lab, editing a field changes the URL, loading a URL fills the fields, a value that does not decode shows as missing, and the back button restores the earlier state.
+
+#### FX3 · Atoms across islands and from the server (Sonnet · medium)
+
+- **Needs:** FX1, FZ1
+- **Read:** `.agent-sources/effect-api/atom-react-index.md` (`RegistryProvider`, `HydrationBoundary`); `reactivity-index.md` for `Hydration`; the zero-runtime guide §Full-runtime islands
+- **Write:** a lab page with two islands that read and write one atom, and a third that reads `player` for an ID the server component already loaded and passed through `HydrationBoundary`. `apps/web/docs/atoms.md`: how islands share atoms, how server-loaded data reaches them, and what does not work.
+- **Done:** web-check passes. The PR answers, with evidence from the page: do two islands share one registry without help, and if not, what makes them; does the third island show the player with no request to `/api/history`.
 
 ### FJ · Judge
 
 #### FJ1 · Decide and write the explorer cards (orchestrator)
 
-- **Needs:** FZ3, FV8, FV11, FR5, FS6, FE4
-- **Write:** in §Results: the numbers from each gate and the pass lines agreed with Ben. Then, in this section: D16 confirmed or changed; the renderer for each network view; whether the frame gets its own domain; which libraries load on demand; whether new pages stay zero-runtime by default. Then the cards for the explorer's built views, including its routes and how URL state (the two players, filters, relation, undo) is decoded with Effect schemas, and for the prompted-view service: how the agent chooses bounded History queries for a prompt, cost and rate limits, caching by prompt and snapshot ID, and how a prompted view that works well is promoted to a built one.
+- **Needs:** FZ3, FX2, FX3, FV8, FV11, FR5, FS6, FE4
+- **Write:** in §Results: the numbers from each gate and the pass lines agreed with Ben. Then, in this section: D16 confirmed or changed; the renderer for each network view; whether the frame gets its own domain; which libraries load on demand; whether new pages stay zero-runtime by default. Then the cards for the explorer's built views, including its routes, built on the query atoms (**FX1**) and URL atoms (**FX2**) in the way **FX3** proved, and for the prompted-view service, with progress streamed over a streaming RPC and results cached with `effect/persistence`: how the agent chooses bounded History queries for a prompt, cost and rate limits, caching by prompt and snapshot ID, and how a prompted view that works well is promoted to a built one.
 - **Done:** Ben approves the section.
 
 What the spike decides. No pass line is set in advance; each gate records its numbers first.
@@ -1209,13 +1232,13 @@ Empty until the gates run. The orchestrator fills it.
 | FT4 | `league` tables | Sonnet · low | FC1 | | | not started |
 | FT5 | `opponents` tables | Haiku · medium | FC1 | | | not started |
 | FT6 | `finals` tables | Haiku · medium | FC1 | | | not started |
-| FT7 | Export command | Sonnet · low | FT1–FT6 | | | not started |
-| FV1 | Theme adapter | Haiku · medium | FC1 | | | not started |
+| FT7 | Export command | Sonnet · low | FT1–FT6, FP1 | | | not started |
+| FV1 | Theme adapter | Haiku · medium | FC1, FP1 | | | not started |
 | FV2 | No literal colours in `src/viz` | Sonnet · medium | — | | | not started |
 | FV3 | Lab route | Sonnet · low | FN1 | | | not started |
 | FV4 | G2 host | Sonnet · medium | FP1, FV1, FV3 | | | not started |
 | FV5 | G6 host | Sonnet · medium | FP1, FV1, FV3 | | | not started |
-| FV6 | Chain spec | Sonnet · low | FC1 | | | not started |
+| FV6 | Chain spec | Sonnet · low | FC1, FP1 | | | not started |
 | FV7 | Player card | Haiku · medium | — | | | not started |
 | FV8 | Chain view | Haiku · medium | FV5, FV6, FV7 | | | not started |
 | FV9 | Games-by-season spec | Haiku · medium | FC1, FP1 | | | not started |
@@ -1229,19 +1252,21 @@ Empty until the gates run. The orchestrator fills it.
 | FS1 | Frame runtime | Sonnet · high | FC1, FP1 | | | not started |
 | FS2 | Frame bundle | Sonnet · low | FS1 | | | not started |
 | FS3 | Frame headers | Sonnet · low | FN1 | | | not started |
-| FS4 | Frame lifecycle | Sonnet · medium | FC1 | | | not started |
+| FS4 | Frame lifecycle | Sonnet · medium | FC1, FP1 | | | not started |
 | FS5 | Frame host | Sonnet · low | FS2, FS4, FV3 | | | not started |
 | FS6 | Boundary tests | Sonnet · high | FS3, FS5 | | | not started |
 | FM1 | Code check | Haiku · medium | FC1 | | | not started |
-| FM2 | Prompts | Sonnet · medium | FC1, FP2 | | | not started |
-| FM3 | Generate and repair | Sonnet · low | FC1 | | | not started |
+| FM2 | Prompts | Sonnet · medium | FC1, FP1, FP2, FM1 | | | not started |
+| FM3 | Generate and repair | Sonnet · low | FC1, FP1 | | | not started |
 | FM4 | Generate command | Haiku · low | FM2, FM3 | | | not started |
 | FE1 | Render harness | Sonnet · medium | FS5 | | | not started |
 | FE2 | Bake-off runner | Sonnet · low | FM3, FE1 | | | not started |
 | FE3 | Bake-off report | Haiku · medium | — | | | not started |
 | FE4 | Bake-off gate | Orchestrator | FE2, FE3, FM2, FT7 | | | not started |
-| FX1 | History client for the web app | Sonnet · low | — | | | not started |
-| FJ1 | Decide and write the explorer cards | Orchestrator | FZ3, FV8, FV11, FR5, FS6, FE4 | | | not started |
+| FX1 | History query atoms | Sonnet · medium | FP1 | | | not started |
+| FX2 | URL state atoms | Sonnet · low | FX1, FV3 | | | not started |
+| FX3 | Atoms across islands and from the server | Sonnet · medium | FX1, FZ1 | | | not started |
+| FJ1 | Decide and write the explorer cards | Orchestrator | FZ3, FX2, FX3, FV8, FV11, FR5, FS6, FE4 | | | not started |
 
 ## Later
 
