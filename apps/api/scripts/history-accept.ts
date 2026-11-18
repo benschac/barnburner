@@ -459,7 +459,6 @@ const run = (argv: ReadonlyArray<string>) => program(argv).pipe(
     TruthUnreadable: (e) => fail(`${e.path}: ${e.message}`),
     HistoryUnavailable: (e) => fail(`History unavailable: ${e.message}`),
     UnknownPlayer: (e) => fail(`Unknown player ${e.playerId}.`),
-    NoPath: () => fail('Unexpected NoPath.'),
     UnsupportedFilter: () => fail('Unexpected UnsupportedFilter.'),
   }),
 )
