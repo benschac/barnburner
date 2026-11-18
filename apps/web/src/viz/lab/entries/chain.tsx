@@ -37,12 +37,13 @@ function ChainPlayer({ data }: G6NodeProps) {
   )
 }
 
-/** The player IDs along one chain, from its first edge's source through each edge's target. */
-function chainIds(graph: ChainGraph, chain: ReadonlyArray<string>): string {
+/** The players' names along one chain, from its first edge's source through each edge's target, in chain order. */
+function chainNames(graph: ChainGraph, chain: ReadonlyArray<string>): string {
+  const names = new Map(graph.nodes.map((node) => [node.id, node.data.name]))
   const ordered = chain.flatMap((id) => graph.edges.filter((edge) => edge.id === id))
   const first = ordered[0]
   if (first === undefined) return 'no hops'
-  return [first.source, ...ordered.map((edge) => edge.target)].join(' – ')
+  return [first.source, ...ordered.map((edge) => edge.target)].map((id) => names.get(id) ?? id).join(' – ')
 }
 
 function ChainView() {
@@ -93,7 +94,7 @@ function ChainView() {
       <G6Graph data={data} layout="dagre" node={ChainPlayer} height="drawer" onEdgeHover={setHovered} highlightedEdges={highlightedEdges} />
       <View gap="1">
         {graph.chains.map((chain, index) => (
-          <Text key={index} fontFamily="body" color="color">{`Chain ${index + 1}: ${chainIds(graph, chain)}`}</Text>
+          <Text key={index} fontFamily="body" color="color">{`Chain ${index + 1}: ${chainNames(graph, chain)}`}</Text>
         ))}
       </View>
     </View>
