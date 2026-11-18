@@ -142,7 +142,7 @@ const finalsLine = (names: Names, year: FinalsYear) => Effect.gen(function* () {
   return `${year.year}: ${who} (Final game ${year.finalGameId}, shared game ${year.sharedGameId})`
 })
 
-const COMMANDS = ['path', 'player', 'link', 'opponents', 'farthest', 'finals']
+const Command = Schema.Literals(['path', 'player', 'link', 'opponents', 'farthest', 'finals'])
 
 const program = (argv: ReadonlyArray<string>) => Effect.gen(function* () {
   const parsed = yield* Effect.try({
@@ -159,9 +159,11 @@ const program = (argv: ReadonlyArray<string>) => Effect.gen(function* () {
     catch: () => new UsageError({ message: `Bad arguments.\n${USAGE}` }),
   })
   const { values, positionals } = parsed
-  const [command, ...args] = positionals
-  if (command === undefined) return yield* new UsageError({ message: USAGE })
-  if (!COMMANDS.includes(command)) return yield* new UsageError({ message: `Unknown command "${command}".\n${USAGE}` })
+  const [name, ...args] = positionals
+  if (name === undefined) return yield* new UsageError({ message: USAGE })
+  const command = yield* Schema.decodeUnknownEffect(Command)(name).pipe(
+    Effect.mapError(() => new UsageError({ message: `Unknown command "${name}".\n${USAGE}` })),
+  )
   const arity = command === 'path' || command === 'link' ? 2 : 1
   if (args.length !== arity) return yield* new UsageError({ message: `${command} takes ${arity} player argument(s).\n${USAGE}` })
   if (values.regular === true && values.playoff === true) {
@@ -253,7 +255,7 @@ const program = (argv: ReadonlyArray<string>) => Effect.gen(function* () {
       for (const hop of example) out.push(yield* hopLine(names, hop))
       return out
     }
-    default: {
+    case 'finals': {
       const fromYear = yield* parseCount('--from', values.from, 1980)
       const toYear = yield* parseCount('--to', values.to, 2026)
       const years = yield* finalsCoverage(graph, store, a.playerId, fromYear, toYear)
