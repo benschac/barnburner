@@ -82,5 +82,19 @@
     "compatibility": "Unversioned reference snapshot. These packages are not installed in this project at initial import. Verify current dependencies and upstream API versions before use.",
     "document": "xstate-effect/docs.txt",
     "index": "xstate-effect/index.md"
+  },
+  "effect-api-cli": {
+    "url": "node_modules/effect/dist/cli/*.d.ts",
+    "fetchedAt": "2026-11-18T13:59:17.549Z",
+    "retrieval": "installed-package",
+    "sha256": "f97b8ebf4f38a88d5093b12f84b185ac25cee5b2a5f22c7043ada8e68e2b7461",
+    "bytes": 415951,
+    "package": "effect",
+    "targetPackageVersion": "4.1.2",
+    "upstreamVersion": "4.1.2",
+    "upstreamRevision": null,
+    "compatibility": "Generated from the installed effect@4.1.2 declarations; matches that version exactly. Regenerate after an effect upgrade.",
+    "document": "effect-api/cli.txt",
+    "index": "effect-api/cli-index.md"
   }
 }
