@@ -19,6 +19,7 @@
     "test:plan": "node --test tests/plan-parse.test.ts"
   },
   "dependencies": {
+    "@effect/atom-react": "4.1.2",
     "@nhl-reddit-stats/api": "0.0.0",
     "@nhl-reddit-stats/season": "0.0.0",
     "@tamagui/config": "3.3.1",
