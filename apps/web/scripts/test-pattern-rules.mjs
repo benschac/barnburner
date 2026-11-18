@@ -1,3 +1,4 @@
+import { logInfo } from '../../../lib/logger.mjs'
 import assert from 'node:assert/strict'
 import { mkdtemp, writeFile, rm } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
@@ -32,7 +33,7 @@ try {
     else assert.equal(errors.length, 0, `${name}: ${result.stdout}`)
     assert.equal(result.status, expected ? 1 : 0, name)
   }
-  console.log(`${cases.length} actor-pattern lint cases passed`)
+  logInfo(`${cases.length} actor-pattern lint cases passed`)
 } finally {
   await rm(dir, { recursive: true, force: true })
 }

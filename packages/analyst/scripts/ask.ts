@@ -1,5 +1,6 @@
 import { resolve } from 'node:path'
 import { Effect } from 'effect'
+import { logError } from '../../../lib/logger.mjs'
 import { ask } from '../src/ask.ts'
 import { openDb } from '../src/db.ts'
 import { Llm } from '../src/llm.ts'
@@ -20,9 +21,9 @@ for (let index = 1; index < args.length; index += 2) {
   else valid = false
 }
 if (args.length === 1 && question === '--help') {
-  console.log(usage)
+  process.stdout.write(`${usage}\n`)
 } else if (!valid || !team || !/^[A-Z]{3}$/.test(team)) {
-  console.error(usage)
+  logError(usage)
   process.exitCode = 1
 } else {
   await Effect.runPromise(
@@ -31,10 +32,10 @@ if (args.length === 1 && question === '--help') {
       return yield* ask({ question: question!, team, db })
     })).pipe(Effect.provide(Llm.layer())),
   ).then((result) => {
-    console.log(toPrettyJson(result))
+    process.stdout.write(`${toPrettyJson(result)}\n`)
     if (result.outcome._tag === 'Crashed') process.exitCode = 1
   }, (error: unknown) => {
-    console.error(String(error))
+    logError(String(error))
     process.exitCode = 1
   })
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Proves the union-model lint rules fire on bad shapes and stay quiet on good ones.
 // Usage: node scripts/test-union-rules.mjs <package dir with .oxlintrc.json>
+import { logInfo } from '../lib/logger.mjs'
 import assert from 'node:assert/strict'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
@@ -40,7 +41,7 @@ try {
     else assert.equal(errors.length, 0, `${name}: ${result.stdout}`)
     assert.equal(result.status, expected ? 1 : 0, name)
   }
-  console.log(`${cases.length} union-model and type-aware lint cases passed`)
+  logInfo(`${cases.length} union-model and type-aware lint cases passed`)
 } finally {
   await rm(dir, { recursive: true, force: true })
 }

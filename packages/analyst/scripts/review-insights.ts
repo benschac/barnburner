@@ -3,6 +3,7 @@ import { dirname, join, resolve } from 'node:path'
 import { createInterface } from 'node:readline'
 import { fileURLToPath } from 'node:url'
 import { Result } from 'effect'
+import { logError } from '../../../lib/logger.mjs'
 import { type InsightCard, RejectReason } from '../src/card.ts'
 import type { RenderError } from '../src/render.ts'
 import { applyDecision, formatForReview } from '../src/review.ts'
@@ -123,11 +124,11 @@ const main = async (): Promise<void> => {
         const next = await iterator.next()
         return next.done === true ? undefined : next.value
       },
-      out: (text) => console.log(text),
+      out: (text) => process.stdout.write(`${text}\n`),
       now: new Date().toISOString(),
     })
     if (Result.isFailure(result)) {
-      console.error(result.failure.message)
+      logError(result.failure.message)
       process.exitCode = 1
     }
   } finally {

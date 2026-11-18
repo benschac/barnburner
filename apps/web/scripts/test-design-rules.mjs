@@ -1,3 +1,4 @@
+import { logInfo } from '../../../lib/logger.mjs'
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
@@ -78,5 +79,5 @@ try {
   await writeFile(css, 'body {}')
   const result = spawnSync(process.execPath, ['scripts/check-design-files.mjs'], { cwd: root, encoding: 'utf8' })
   assert.equal(result.status, 1, 'unused CSS must fail')
-  console.log(`${cases.length} Oxlint rule cases and unused CSS check passed`)
+  logInfo(`${cases.length} Oxlint rule cases and unused CSS check passed`)
 } finally { await rm(dir, { recursive: true, force: true }) }
