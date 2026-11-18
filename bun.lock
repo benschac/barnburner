@@ -80,6 +80,7 @@
         "oxlint": "1.91.0",
         "playwright": "1.65.1",
         "remark-gfm": "4.0.1",
+        "rolldown": "1.2.18",
         "typescript": "~7.0.2",
         "vite": "^8.3.6",
       },

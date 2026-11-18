@@ -46,3 +46,5 @@ apps/web/history-data/*
 # Claude Code: agent worktrees and personal settings
 .claude/worktrees/
 .claude/settings.local.json
+
+apps/web/public/viz-frame/
