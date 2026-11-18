@@ -23,6 +23,8 @@
         ".env.*"
       ],
       "outputs": [
+        ".next/**",
+        "!.next/cache/**",
         "dist/**",
         "src/tamagui.generated.css"
       ]

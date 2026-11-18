@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug?: st
   const path = `/${slug.join('/')}`
   const team = teamFromPath(path) ?? 'NJD'
   const data = teamPoster(snapshots, team)
-  // The Vite plugin fingerprints a rendered PNG, which needs resvg's native binding that webpack cannot bundle.
+  // The image route fingerprints a rendered PNG, which needs resvg's native binding that webpack cannot bundle.
   // The Next page names the PNG path (served by FN5) and versions it by the card's data instead.
   const { origin, imageOrigin } = await requestOrigins()
   return teamMetadata(data, origin, {

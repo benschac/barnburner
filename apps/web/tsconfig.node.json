@@ -23,5 +23,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "tamagui.build.ts", "tamagui.config.ts", "api", "social", "../api/src/boxscore-archive.d.ts"]
+  "include": ["tamagui.build.ts", "tamagui.config.ts", "social", "../api/src/boxscore-archive.d.ts"]
 }

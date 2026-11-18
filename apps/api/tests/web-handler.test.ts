@@ -5,8 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { Effect, Layer, Schema } from 'effect'
 import { FetchHttpClient } from 'effect/http'
 import { BoxscoreSource, SeasonSource, rpcBoxscoreSourceLayer, rpcSeasonSourceLayer } from '../../web/src/season-source.ts'
-import api from '../../web/api/rpc.ts'
-import { webApi } from '@nhl-reddit-stats/api/web-handler'
+import api, { webApi } from '@nhl-reddit-stats/api/web-handler'
 
 after(() => webApi.dispose())
 

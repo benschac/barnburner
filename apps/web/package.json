@@ -6,11 +6,11 @@
   "scripts": {
     "docs:plan": "bun scripts/build-analyst-plan.ts",
     "typecheck:plan": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.plan.json",
-    "dev": "vite",
+    "dev": "bun run --cwd ../api build && next dev --webpack",
     "viz:frame": "bun scripts/build-viz-frame.mjs",
-    "prenext:dev": "bun run viz:frame",
-    "prenext:build": "bun run viz:frame",
-    "build": "bun run --cwd ../api build && bun run typecheck && vite build",
+    "predev": "bun run viz:frame",
+    "prebuild": "bun run viz:frame",
+    "build": "bun run --cwd ../api build && bun run typecheck && next build --webpack",
     "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.app.json && effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.node.json",
     "check:tamagui": "tamagui check --strict",
     "generate:tamagui": "tamagui generate-prompt",
@@ -23,9 +23,7 @@
     "lint:patterns": "node scripts/test-pattern-rules.mjs",
     "lint:xstate": "node scripts/test-xstate-rules.mjs",
     "lint:core": "node ../../scripts/test-effect-core-rules.mjs .",
-    "preview": "vite preview",
-    "next:dev": "next dev --webpack",
-    "next:build": "next build --webpack",
+    "preview": "next start",
     "test:design": "node scripts/test-design-rules.mjs",
     "test:teams": "node --test tests/team-season.test.ts tests/team-machine.test.ts tests/boxscore-machine.test.ts tests/game-inspection.test.ts",
     "test:social": "node --test tests/social-*.test.ts",
@@ -66,12 +64,10 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/three": "0.187.0",
-    "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "1.91.0",
     "playwright": "1.65.1",
     "rolldown": "1.2.18",
     "remark-gfm": "4.0.1",
-    "typescript": "~7.0.2",
-    "vite": "^8.3.6"
+    "typescript": "~7.0.2"
   }
 }

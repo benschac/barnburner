@@ -88,7 +88,7 @@ const viewFailed = (prefix: string) => (cause: unknown) => new ViewFailed({ mess
  */
 export const loadModule = (code: string): Promise<ModuleNamespace> => {
   const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }))
-  return import(/* @vite-ignore */ url).finally(() => URL.revokeObjectURL(url))
+  return import(url).finally(() => URL.revokeObjectURL(url))
 }
 
 type LoadedModule = { readonly code: string; readonly namespace: ModuleNamespace }

@@ -1,6 +1,6 @@
 # NHL Reddit Stats
 
-A shared “Season at a Glance” poster for all 32 NHL teams, using saved NHL schedules, results, standings, special teams, and player leaders. Built with Vite, React, TypeScript, and Tamagui in a Bun workspace managed by Turborepo.
+A shared “Season at a Glance” poster for all 32 NHL teams, using saved NHL schedules, results, standings, special teams, and player leaders. Built with Next.js, React, TypeScript, and Tamagui in a Bun workspace managed by Turborepo.
 
 **Live:** https://web-eight-iota-57.vercel.app
 
@@ -31,13 +31,13 @@ Open http://127.0.0.1:4173. Select a team to load its poster in place. Shareable
 
 `apps/web` owns the application, dependencies, and task scripts. The root package delegates tasks to Turbo. Add shared libraries under `packages/` when needed.
 
-Run all commands from the repository root. To target this app, use `bun run build --filter=@nhl-reddit-stats/web`. Production output is in `apps/web/dist`. `bun run preview` builds and serves that output.
+Run all commands from the repository root. To target this app, use `bun run build --filter=@nhl-reddit-stats/web`. Production output is in `apps/web/.next`. `bun run preview` builds and serves that output.
 
 The task and workspace setup follows [the Turborepo migration guide](https://turborepo.dev/docs/getting-started/add-to-existing-repository).
 
 ## Content and assets
 
-The league-wide game snapshot and read-only team API are documented in [data/README.md](data/README.md). `bun run data:serve` starts the [Effect Node server](apps/api/README.md) at `http://127.0.0.1:3001`. The app calls `GetTeamData` through `/api/rpc`, using the shared contract in `packages/season`; the GET endpoints remain available for direct consumers. Vite proxies `/api` in development and preview. The Vercel entrypoint in `apps/web/api` hosts the same router alongside the static frontend, using bundled snapshots.
+The league-wide game snapshot and read-only team API are documented in [data/README.md](data/README.md). `bun run data:serve` starts the [Effect Node server](apps/api/README.md) at `http://127.0.0.1:3001`. The app calls `GetTeamData` through `/api/rpc`, using the shared contract in `packages/season`; the GET endpoints remain available for direct consumers. The Next route handlers in `apps/web/app/api` host the same router, using bundled snapshots. `bun run dev` builds the API first, because the routes import `apps/api/dist`.
 
 - `apps/web/src/App.tsx`: semantic page sections, standings, schedules, and leaders.
 - `apps/web/src/stats.ts`: selected-team poster formatting from validated backend snapshots.
@@ -53,9 +53,8 @@ Each build generates 1200×630 PNG cards and HTML metadata for all 32 `/team/{TE
 
 Cards include the team's record, points, division rank, streak, last ten, special teams, points leader, and snapshot timestamps. Refresh the saved data and rebuild/deploy to update them. Image URLs include a content hash to distinguish changed cards; social platforms may still cache a link's metadata.
 
-Set `SITE_URL=https://your-domain.example` at build time for a custom canonical domain. Otherwise the build uses Vercel's `VERCEL_PROJECT_PRODUCTION_URL`, then `VERCEL_URL`, then `http://localhost:5173` for local development. Preview deployments use their own `VERCEL_URL` for image assets, so new image hashes resolve before production is updated. These variables and `VERCEL_ENV` are included in the Turbo build cache key. Other static hosts must serve `/team/BOS` from `dist/team/BOS.html`; Vercel's `cleanUrls` setting handles this here.
-
-Run `bun run --cwd apps/web test:social` for PNG and metadata checks. `apps/web/social/card.ts` owns the SVG layout; `apps/web/social/plugin.ts` owns validation, raster generation, and crawler metadata.
+Set `SITE_URL=https://your-domain.example` at build time for a custom canonical domain. Otherwise the build uses Vercel's `VERCEL_PROJECT_PRODUCTION_URL`, then `VERCEL_URL`, then `http://localhost:3000` for local development. Preview deployments use their own `VERCEL_URL` for image assets, so new image hashes resolve before production is updated. These variables and `VERCEL_ENV` are included in the Turbo build cache key.
+Run `bun run --cwd apps/web test:social` for PNG and metadata checks. `apps/web/social/card.ts` owns the SVG layout; `apps/web/social/metadata.ts` owns crawler metadata and `apps/web/app/og/[image]/route.ts` renders the PNG.
 
 ## Credits
 
@@ -78,4 +77,4 @@ Use Bun 1.4.3 for installation and script orchestration. Node 24 remains require
 
 ## Tamagui configuration
 
-The existing provider and configuration are retained. `apps/web/tamagui.config.ts` uses `@tamagui/config/v6`; `apps/web/tamagui.build.ts` owns compiler options. Vite generates `apps/web/src/tamagui.generated.css` (ignored) before resolving its import. After configuration changes, run `bun run generate:tamagui` to refresh `apps/web/tamagui-prompt.md`.
+The existing provider and configuration are retained. `apps/web/tamagui.config.ts` uses `@tamagui/config/v6`; `apps/web/tamagui.build.ts` owns compiler options. The Tamagui Next plugin handles compilation. After configuration changes, run `bun run generate:tamagui` to refresh `apps/web/tamagui-prompt.md`.

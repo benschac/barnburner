@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "trailingSlash": false,
   "cleanUrls": true,
+  "framework": "nextjs",
   "git": {
     "deploymentEnabled": {
       "**": false,
@@ -9,12 +10,8 @@
     }
   },
   "functions": {
-    "api/{games,poster,rpc,teams}.ts": {
-      "supportsCancellation": true
-    },
-    "api/history.ts": {
-      "supportsCancellation": true,
-      "includeFiles": "history-data/nhl-serve.sqlite"
-    }
+    "app/api/history/route.ts": { "supportsCancellation": true, "maxDuration": 60 },
+    "app/api/{rpc,games,poster,teams}/route.ts": { "supportsCancellation": true },
+    "app/api/[[...path]]/route.ts": { "supportsCancellation": true }
   }
 }
