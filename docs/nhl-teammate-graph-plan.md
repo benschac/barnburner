@@ -1205,68 +1205,122 @@ What the spike decides. No pass line is set in advance; each gate records its nu
 
 ### Results
 
-Empty until the gates run. The orchestrator fills it.
+Filled as the gates run. Snapshot 4b755090e186 (8,842 players, latest game 2026-11-16).
+
+**FT7 · exports from the real snapshot**
+
+| Export | File | Rows |
+| --- | --- | --- |
+| `chain` McDavid → Lindsay | 18 kB | distance 5, 297 tied chains, 10 listed: 19 players, 11 teams, 50 hops |
+| `pair` McDavid, Draisaitl | 4 kB | 20 spans, 879 games together, 0 opposed |
+| `ego` Jágr | 2.3 MB (141 kB gzipped) | 519 players, 15,280 links |
+| `league` | 56.3 MB (3.7 MB gzipped) | 8,842 players, 478,383 links |
+| `opponents` Gretzky, Ovechkin | 1.4 MB (122 kB gzipped) | 4,824 players, 5,105 faced rows |
+| `finals` Jágr, 1980–2026 | 14 kB | 46 Finals, 45 covered, 28 players |
+
+**FN7 · packaging on a local `vercel build --prod --standalone`** (nothing uploaded)
+
+- With no snapshot the check passes: 32 clubs and 1,344 games through the packaged RPC function, the three GET routes, cancellation on all 12 function entries, and `HistoryUnavailable` from the history function.
+- With the real snapshot and `--require-history` it passes once the history route has its own function config: `history.func` is 82 MB with the file, and the other five routes share a 7.7 MB function without it. With one shared config, Vercel built a single 87 MB function for all six routes.
+
+**FV8 · chain view on the real McDavid → Lindsay export**
+
+- It loads and draws in both themes, and hovering an edge highlights every chain through it.
+- Seen for FJ1: edge labels are too small and overlap; some edges pass behind cards; the chain list showed IDs (fixed to names).
+
+**Sizes so far**
+
+| What | Raw | Gzipped |
+| --- | --- | --- |
+| Frame page (G2, G6, D3, Three.js inline) | 3.14 MB | 0.90 MB |
+| JavaScript G2 adds to a page | 1.33 MB | 391 kB |
+| JavaScript G6 adds to a page | 1.80 MB | 497 kB |
+| Stylesheet before FZ2 | 2,588 kB | 49 kB |
+| Stylesheet after FZ2 | 1,047 kB | 22 kB |
+
+- Decoding a 500,000-row table inside the frame takes about half a second, with the frame unresponsive meanwhile.
+- cosmos.gl's own simulation-end signal took 84 s on the ten-node sample in one run, so "settle time" by that signal is not comparable with G6's; decide what settle means before FR5.
+- G6 5's GPU layouts need `@antv/layout-gpu`, which is not installed.
+- The frame is given no club palette, so prompted views cannot colour by club.
 
 ### Frontend ledger
 
 | ID | Title | Tier | Needs | Branch | PR | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| FC0 | Scaffold `packages/viz` | Sonnet · low | — | | | not started |
-| FC1 | Shapes and samples | Sonnet · high | FC0 | | | not started |
-| FP1 | Install the dependencies | Haiku · low | FC0 | | | not started |
-| FP2 | Cache the AntV docs and skills | Sonnet · low | — | | | not started |
-| FP3 | Cache the Next.js docs | Sonnet · low | — | | | not started |
-| FN1 | Next beside Vite | Sonnet · medium | FP1 | | | not started |
-| FN2 | API routes | Sonnet · medium | FN1 | | | not started |
-| FN3 | Ship the history file with its route | Sonnet · medium | FN2 | | | not started |
-| FN4 | Team page titles and tags | Sonnet · low | FN1 | | | not started |
-| FN5 | Team preview images | Sonnet · low | FN4 | | | not started |
-| FN6 | Cut over to Next | Sonnet · low | FN3, FN5 | | | not started |
-| FN7 | Packaging check on the Next output | Sonnet · high | FN6 | | | not started |
-| FZ1 | Turn zero-runtime on, poster as one island | Sonnet · high | FN6 | | | not started |
-| FZ2 | Narrow the theme pack | Sonnet · low | FN6 | | | not started |
+| FC0 | Scaffold `packages/viz` | Sonnet · low | — | `web/fc0-viz-scaffold` | #129 | PR open; reviewed |
+| FC1 | Shapes and samples | Sonnet · high | FC0 | `web/fc1-viz-shapes` | #131 | PR open; reviewed (Codex and orchestrator) |
+| FP1 | Install the dependencies | Haiku · low | FC0 | `web/fp1-viz-deps` | #130 | PR open; reviewed |
+| FP2 | Cache the AntV docs and skills | Sonnet · low | — | `web/fp2-antv-docs` | #154 | PR open; reviewed |
+| FP3 | Cache the Next.js docs | Sonnet · low | — | `web/fp3-next-docs` | #155 | PR open; reviewed |
+| FN1 | Next beside Vite | Sonnet · medium | FP1 | `web/fn1-next-beside-vite` | #133 | PR open; reviewed |
+| FN2 | API routes | Sonnet · medium | FN1 | `web/fn2-api-routes` | #159 | PR open; reviewed. Escalated: see note 1 |
+| FN3 | Ship the history file with its route | Sonnet · medium | FN2 | `web/fn3-history-file` | #160 | PR open; reviewed |
+| FN4 | Team page titles and tags | Sonnet · low | FN1 | `web/fn4-team-metadata` | #157 | PR open; reviewed |
+| FN5 | Team preview images | Sonnet · low | FN4 | `web/fn5-team-images` | #162 | PR open; reviewed |
+| FN6 | Cut over to Next | Sonnet · low | FN3, FN5 | `web/fn6-cutover` | #172 | PR open; Codex review running. Two things for Ben: see note 9 |
+| FN7 | Packaging check on the Next output | Sonnet · high | FN6 | `web/fn7-packaging-check` | #174 | PR open; Codex review running. Gate passed: see §Results |
+| FZ1 | Turn zero-runtime on, poster as one island | Sonnet · high | FN6 | `web/fz1-zero-runtime` |  | in progress; six blockers outside its Write list were approved: see note 10 |
+| FZ2 | Narrow the theme pack | Sonnet · low | FN6 | `web/fz2-theme-pack` | #173 | PR open; Codex review running |
 | FZ3 | The first zero-runtime page | Sonnet · medium | FZ1 | | | not started |
-| FT1 | `chain` tables | Haiku · medium | FC1 | | | not started |
-| FT2 | `pair` tables | Haiku · medium | FC1 | | | not started |
-| FT3 | `ego` tables | Sonnet · low | FC1 | | | not started |
-| FT4 | `league` tables | Sonnet · low | FC1 | | | not started |
-| FT5 | `opponents` tables | Haiku · medium | FC1 | | | not started |
-| FT6 | `finals` tables | Haiku · medium | FC1 | | | not started |
-| FT7 | Export command | Sonnet · low | FT1–FT6, FP1 | | | not started |
-| FV1 | Theme adapter | Haiku · medium | FC1, FP1 | | | not started |
-| FV2 | No literal colours in `src/viz` | Sonnet · medium | — | | | not started |
-| FV3 | Lab route | Sonnet · low | FN1 | | | not started |
-| FV4 | G2 host | Sonnet · medium | FP1, FV1, FV3 | | | not started |
-| FV5 | G6 host | Sonnet · medium | FP1, FV1, FV3 | | | not started |
-| FV6 | Chain spec | Sonnet · low | FC1, FP1 | | | not started |
-| FV7 | Player card | Haiku · medium | — | | | not started |
-| FV8 | Chain view | Haiku · medium | FV5, FV6, FV7 | | | not started |
-| FV9 | Games-by-season spec | Haiku · medium | FC1, FP1 | | | not started |
-| FV10 | Finals grid spec | Haiku · medium | FC1, FP1 | | | not started |
-| FV11 | Chart lab entries | Haiku · medium | FV4, FV9, FV10 | | | not started |
-| FR1 | Speed harness | Sonnet · medium | FC1, FV3 | | | not started |
-| FR2 | G6 canvas renderer | Sonnet · low | FC1, FP1 | | | not started |
-| FR3 | G6 WebGL renderer | Sonnet · low | FC1, FP1 | | | not started |
-| FR4 | cosmos.gl renderer | Sonnet · low | FC1, FP1 | | | not started |
+| FT1 | `chain` tables | Haiku · medium | FC1 | `web/ft1-chain-tables` | #136 | PR open; reviewed |
+| FT2 | `pair` tables | Haiku · medium | FC1 | `web/ft2-pair-tables` | #137 | PR open; reviewed |
+| FT3 | `ego` tables | Sonnet · low | FC1 | `web/ft3-ego-tables` | #138 | PR open; reviewed |
+| FT4 | `league` tables | Sonnet · low | FC1 | `web/ft4-league-tables` | #139 | PR open; reviewed |
+| FT5 | `opponents` tables | Haiku · medium | FC1 | `web/ft5-opponents-tables` | #140 | PR open; reviewed |
+| FT6 | `finals` tables | Haiku · medium | FC1 | `web/ft6-finals-tables` | #141 | PR open; reviewed |
+| FT7 | Export command | Sonnet · low | FT1–FT6, FP1 | `web/ft7-export-command` | #163 | PR open; reviewed. Gate run: see §Results |
+| FV1 | Theme adapter | Haiku · medium | FC1, FP1 | `web/fv1-theme-adapter` | #144 | PR open; reviewed. Dark-theme axis labels still too dim: being diagnosed |
+| FV2 | No literal colours in `src/viz` | Sonnet · medium | — | `web/fv2-viz-color-lint` | #132 | PR open; reviewed twice. Scope grew: see note 2 |
+| FV3 | Lab route | Sonnet · low | FN1 | `web/fv3-lab-route` | #156 | PR open; reviewed |
+| FV4 | G2 host | Sonnet · medium | FP1, FV1, FV3 | `web/fv4-g2-host` | #166 | PR open; reviewed |
+| FV5 | G6 host | Sonnet · medium | FP1, FV1, FV3 | `web/fv5-g6-host` | #168 | PR open; Codex review running |
+| FV6 | Chain spec | Sonnet · low | FC1, FP1 | `web/fv6-chain-spec` | #143 | PR open; reviewed twice |
+| FV7 | Player card | Haiku · medium | — | `web/fv7-player-card` | #142 | PR open; reviewed |
+| FV8 | Chain view | Haiku · medium | FV5, FV6, FV7 | `web/fv8-chain-view` | #171 | PR open; Codex review running. Gate run: see §Results |
+| FV9 | Games-by-season spec | Haiku · medium | FC1, FP1 | `web/fv9-games-by-season` | #145 | PR open; reviewed |
+| FV10 | Finals grid spec | Haiku · medium | FC1, FP1 | `web/fv10-finals-grid` | #146 | PR open; reviewed |
+| FV11 | Chart lab entries | Haiku · medium | FV4, FV9, FV10 | `web/fv11-chart-lab-entries` | #175 | PR open; Codex review running. Gate (real exports) not run |
+| FR1 | Speed harness | Sonnet · medium | FC1, FV3 | `web/fr1-bench-harness` | #165 | PR open; reviewed; one fix commit not yet folded in |
+| FR2 | G6 canvas renderer | Sonnet · low | FC1, FP1 | `web/fr2-g6-canvas` | #149 | PR open; reviewed. Ran the league sample in the harness after its fix (worker's run) |
+| FR3 | G6 WebGL renderer | Sonnet · low | FC1, FP1 | `web/fr3-g6-webgl` | #150 | PR open; reviewed. Ran the league sample in the harness after its fix (worker's run) |
+| FR4 | cosmos.gl renderer | Sonnet · low | FC1, FP1 | `web/fr4-cosmos` | #151 | PR open; reviewed. Ran the league sample in the harness; settle time is very long: see §Results |
 | FR5 | Speed gate | Orchestrator | FR1–FR4, FT7 | | | not started |
-| FS1 | Frame runtime | Sonnet · high | FC1, FP1 | | | not started |
-| FS2 | Frame bundle | Sonnet · low | FS1 | | | not started |
-| FS3 | Frame headers | Sonnet · low | FN1 | | | not started |
-| FS4 | Frame lifecycle | Sonnet · medium | FC1, FP1 | | | not started |
-| FS5 | Frame host | Sonnet · low | FS2, FS4, FV3 | | | not started |
-| FS6 | Boundary tests | Sonnet · high | FS3, FS5 | | | not started |
-| FM1 | Code check | Haiku · medium | FC1 | | | not started |
-| FM2 | Prompts | Sonnet · medium | FC1, FP1, FP2, FM1 | | | not started |
-| FM3 | Generate and repair | Sonnet · low | FC1, FP1 | | | not started |
-| FM4 | Generate command | Haiku · low | FM2, FM3 | | | not started |
-| FE1 | Render harness | Sonnet · medium | FS5 | | | not started |
+| FS1 | Frame runtime | Sonnet · high | FC1, FP1 | `web/fs1-frame-runtime` | #148 | PR open; reviewed (Codex and orchestrator) |
+| FS2 | Frame bundle | Sonnet · low | FS1 | `web/fs2-frame-bundle` | #158 | PR open; reviewed |
+| FS3 | Frame headers | Sonnet · low | FN1 | `web/fs3-frame-headers` | #161 | PR open; reviewed |
+| FS4 | Frame lifecycle | Sonnet · medium | FC1, FP1 | `web/fs4-frame-machine` | #147 | PR open; reviewed |
+| FS5 | Frame host | Sonnet · low | FS2, FS4, FV3 | `web/fs5-frame-host` | #176 | PR open; Codex review running |
+| FS6 | Boundary tests | Sonnet · high | FS3, FS5 |  |  | ready; waits for FZ1 (shared `package.json`) |
+| FM1 | Code check | Haiku · medium | FC1 | `web/fm1-check-view-code` | #134 | PR open; reviewed |
+| FM2 | Prompts | Sonnet · medium | FC1, FP1, FP2, FM1 | `web/fm2-view-prompts` | #164 | PR open; reviewed; one fix commit not yet folded in |
+| FM3 | Generate and repair | Sonnet · low | FC1, FP1 | `web/fm3-generate-repair` | #135 | PR open; reviewed |
+| FM4 | Generate command | Haiku · low | FM2, FM3 | `web/fm4-generate-command` | #169 | PR open; Codex review running |
+| FE1 | Render harness | Sonnet · medium | FS5 | `web/fe1-render-harness` |  | built against a stub; being pointed at the real sandbox page |
 | FE2 | Bake-off runner | Sonnet · low | FM3, FE1 | | | not started |
-| FE3 | Bake-off report | Haiku · medium | — | | | not started |
+| FE3 | Bake-off report | Haiku · medium | — | `web/fe3-bakeoff-report` | #153 | PR open; reviewed |
 | FE4 | Bake-off gate | Orchestrator | FE2, FE3, FM2, FT7 | | | not started |
-| FX1 | History query atoms | Sonnet · medium | FP1 | | | not started |
-| FX2 | URL state atoms | Sonnet · low | FX1, FV3 | | | not started |
+| FX1 | History query atoms | Sonnet · medium | FP1 | `web/fx1-history-atoms` | #152 | PR open; reviewed |
+| FX2 | URL state atoms | Sonnet · low | FX1, FV3 | `web/fx2-url-state` | #170 | PR open; Codex review running |
 | FX3 | Atoms across islands and from the server | Sonnet · medium | FX1, FZ1 | | | not started |
 | FJ1 | Decide and write the explorer cards | Orchestrator | FZ3, FX2, FX3, FV8, FV11, FR5, FS6, FE4 | | | not started |
+
+Updated Nov 18 2026 by the frontend orchestrator. 47 card PRs are open in one Graphite stack on `main`, #129 to #166 and #168 to #176, with this ledger (#167) on top. Stack order: FC0, FP1, FC1, FV2, FN1, FM1, FM3, FT1–FT6, FV7, FV6, FV1, FV9, FV10, FS4, FS1, FR2–FR4, FX1, FE3, FP2, FP3, FV3, FN4, FS2, FN2, FN3, FS3, FN5, FT7, FM2, FR1, FV4, FV5, FM4, FX2, FV8, FN6, FZ2, FN7, FV11, FS5.
+
+Ledger notes:
+
+1. **FN2 escalated.** It failed its Done check twice: `next:build` failed its type check, then review showed Next rebundling the API (`serverExternalPackages` does not match a workspace symlink). Round two ran at Sonnet · high instead of Sonnet · medium and passed.
+2. **FV2 grew.** The design lint treated every object literal under `src/` as a Tamagui style, so no G2 or G6 spec could pass. Five cards stopped on it. FV2 now scopes the three object-literal rules, in `src/viz` and `src/explorer`, to objects Tamagui reads, and exempts `src/viz/frame/frame.ts` from two rules. Colour literals stay banned in `src/viz`. This is a decision for Ben to confirm in #132.
+3. **Refresh scripts.** FP2 and FP3 each added their own refresh script (`refresh-antv-sources.mjs`, `refresh-next-sources.mjs`); the script their cards name is Tamagui-only.
+4. **Analyst test glob.** FP1 added `evals/viz/*.test.ts` to the analyst `test` script so the FE cards' tests run.
+5. **Canaries.** FT1, FV6 and FM1 passed against the samples before the rest of round 3 opened. Codex checked all 62 sample rows against §C-mini.
+6. **Plan gaps found.** `bun.lock` is on FC0's Write list but not in §Who owns which file. `firstSeason` and `lastSeason` are 8-digit season IDs, which FV7 could not know. FN4 needed a new `Poster.tsx` to keep the page a server component. FS2 bundles with Rolldown, because `Bun.build` breaks `@antv/g2` and Vite goes at FN6. G6's GPU layouts need `@antv/layout-gpu`, which is not installed, so FR3 uses a CPU layout.
+7. **Numbers for FJ1 so far.** Frame bundle: 3.06 MB raw, 0.88 MB gzipped, 7 scripts. G2 adds about 391 kB gzipped to a page and G6 about 497 kB (lab pages, worker-measured). Decoding a 500,000-row table in the frame takes about half a second.
+8. **Gates.** Run: FT7, FN7, FV8 (see §Results). Not run: FV11 (real exports), FR5 (Ben's browsers), FE4 (needs Ben's go-ahead). The real snapshot used is 4b755090e186, found in an older worktree; there is no `data/history/serving.json` pointer in the repo.
+9. **Cutover, for Ben.** The Vercel project is stored as a Vite app; `vercel.json` now sets `"framework": "nextjs"`. The history route has `maxDuration: 60` so that Vercel builds it as its own function; without a differing config Vercel packs every API route into one function and the 82 MB history file ships with all of them.
+10. **FZ1 scope.** The enforced zero-runtime build needed changes outside FZ1's Write list, each approved narrowly: a `webpack` version pin, `<T,>` on generic arrows the island build parses as JSX, a `<Theme>` wrap in `ThemePreference.tsx`, one dialog style in `GameBoxscore.tsx`, two `.gitignore` lines, and `turbo.json` outputs.
+11. **Frame policy.** The frame page is one inline script allowed by a hash in the page's own policy, plus `blob:` modules. With `script-src 'self'`, posted code could have requested scripts from our origin. Chrome does not recognise the `webrtc` directive; FS6 decides what that means.
+12. **FS2 order.** FS2 no longer hooks the frame build into `dev` and `build`; FN6 does, so the frame is never published by the Vite build, which has no sandbox headers.
+
 
 ## Later
 
