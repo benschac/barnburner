@@ -59,6 +59,7 @@ Use the named directory's generated index to select a section before reading its
 | --- | --- | --- |
 | `ratstack/` | General engineering guidelines, services, schemas, testing, infrastructure, and ecosystem patterns | [Agent guide](https://ratstack.sh/llms.txt) and [full corpus](https://ratstack.sh/llms-full.txt) |
 | `effect/` | Official package overview, requirements, and links to API documentation | [Effect README](https://github.com/Effect-TS/effect/blob/main/README.md) |
+| `effect-api/` | Exact API reference for the installed `effect` version, one file per module (`cli` today): every export with its JSDoc, examples, and signature | Installed package declarations (`node_modules/effect/dist/<module>/*.d.ts`) |
 | `xstate/` | State machines, actors, transitions, testing, and version-specific documentation links | [Stately documentation index](https://stately.ai/llms.txt) |
 | `xstate-effect/` | Effect-backed actors and their scoped lifetimes | [Official integration quick start](https://stately.ai/docs/xstate/v6/effect/quick-start) |
 
@@ -67,6 +68,14 @@ The Effect README and Stately index are entry points, not complete API caches. R
 Before applying a pattern, inspect the owning package manifest, lockfile, and installed types. The web app pins XState, Effect, and `@xstate/effect` for team-view navigation. The integration quick start calls `@xstate/effect` experimental and targets XState v6 alpha and Effect 4, while the Stately index labels v6 beta. Do not infer compatibility from these unversioned snapshots or apply v6 examples to v5. Verify exact package versions and peer dependencies before an implementation change.
 
 For integration work, check who owns actor startup, shutdown, interruption, dependencies, and failures. Use the official integration documentation to verify those contracts. The cache does not authorize a runtime migration or package installation.
+
+For an Effect module API, search `effect-api/<module>-index.md` by module and export name, then read that line range from `effect-api/<module>.txt`:
+
+```sh
+rg -n '\| Command \| (make|withSubcommands|run) \|' .agent-sources/effect-api/cli-index.md
+```
+
+These files are generated from the installed package, so they match its version exactly; they are the same JSDoc the effect.website API pages render. Regenerate them after an `effect` upgrade, or add a module, with `node scripts/refresh-effect-api.mjs [module ...]` (default `cli`). The script reads only local files.
 
 Refresh these references explicitly with `node scripts/refresh-pattern-sources.mjs`. Review the downloaded documents, indexes, and `sources.json` together. This fetch does not run during install or build.
 
