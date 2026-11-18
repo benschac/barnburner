@@ -117,5 +117,26 @@
         "bytes": 7405
       }
     }
+  },
+  "next": {
+    "url": "https://github.com/vercel/next.js/tree/v16.4.6/docs/01-app",
+    "fetchedAt": "2026-11-18T19:26:07.462Z",
+    "retrieval": "https",
+    "sha256": "d4c95339442b8463ed0fc10e096e0ba02ffbf66f6522c8d50cdcd3e2b3c1a81e",
+    "bytes": 625433,
+    "package": "next",
+    "targetPackageVersion": "16.4.6",
+    "upstreamVersion": "16.4.6",
+    "upstreamRevision": "54b876b6b161b0ecda19562eb264bec637e60d6d",
+    "pages": 62,
+    "licence": {
+      "spdx": "MIT",
+      "url": "https://raw.githubusercontent.com/vercel/next.js/54b876b6b161b0ecda19562eb264bec637e60d6d/license.md",
+      "file": "next/LICENSE",
+      "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224"
+    },
+    "compatibility": "Pinned to the v16.4.6 tag, which matches the planned next@16.4.6.",
+    "document": "next/docs.txt",
+    "index": "next/index.md"
   }
 }

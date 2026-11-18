@@ -51,6 +51,8 @@ For Effect and `@effect/*`, the installed packages are the reference. Do not cac
 
 For AntV G2 5 or G6 5 charts, graphs, themes, or views, search `.agent-sources/antv/g2/index.md` or `g6/index.md`, then read the matching line range of that `docs.txt`; pages are English where the site has them and Chinese otherwise (the index has a language column). The `antv-g2-chart` and `antv-g6-graph` skills are cached under `.agent-sources/antv/skills/`. Refresh with `node scripts/refresh-antv-sources.mjs`.
 
+For Next.js 16 App Router, route handlers, metadata and image routes, `next.config.js`, or webpack builds, search `.agent-sources/next/index.md`, then read the matching line range of `.agent-sources/next/docs.txt` (pinned to the v16.4.6 tag). Refresh with `node scripts/refresh-next-sources.mjs`.
+
 # Ratstack workflow
 
 For non-trivial implementation, architecture, data, or debugging work, follow [the project Ratstack workflow](.agent-sources/ratstack/README.md). Read its pinned router, relevant principles, and matching playbooks before editing. Apply the patterns to the owning code and report which rules affected the change.
