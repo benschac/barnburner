@@ -576,11 +576,11 @@ H0 ─┬─ I1 (the backfill runs once: about 70,000 requests)
 
 ## Frontend
 
-Added Nov 18 2026. Status: decisions drafted, spike not started. Owner: Ben.
+Added Nov 18 2026. Status: decisions drafted, nothing started. Owner: Ben.
 
 The explorer has two kinds of view. **Built views** are the ones this plan already names: search, a player's clubs, rosters, a chain with its evidence, played-against lists. **Prompted views** are new: a fan types what they want to see, a model writes the visualization, and the app draws it. Both must feel like one product, stay fast, and leave room for data we have not imported yet.
 
-This section fixes the approach, defines the contracts a prompted view crosses, and specifies a spike. The spike measures the two things research could not settle. The explorer's own cards are written after it (**F11**).
+This section fixes the approach, moves the app onto a framework that can render a page per URL, defines the contracts a prompted view crosses, and specifies a spike. The spike measures the two things research could not settle. The explorer's own cards are written after it (**F11**).
 
 ### Decisions
 
@@ -593,6 +593,8 @@ Numbering continues from §Decisions.
 | D17 | **The sandbox has no network and no access to the app.** The frame runs in an opaque origin. Data enters by message. The server-side agent chooses the data with bounded History RPC calls; code inside the frame never fetches. | Model-written code is untrusted. With no network it cannot leak data or call our API, and with no shared origin it cannot read cookies or the page. |
 | D18 | **One theme source.** `apps/web/design/contract.json` feeds Tamagui today. An adapter turns the same values into a G2 theme, a G6 theme, and CSS variables for the frame. | Chart colours already come from `useTheme()` by contract. Built and prompted views must not drift apart. |
 | D19 | **Docs for every adopted library are cached in `.agent-sources`, pinned to the installed version, and quoted in the generation prompt.** | Coding agents and the run-time model both write against the installed API, not a remembered older one. |
+| D20 | **The web app moves to Next.js (App Router), built with webpack.** | The app is one page with no routes, and its share previews are built at build time for 32 teams. The explorer needs a URL, a title, and a preview image for each of 8,842 players, any pair, and any prompted view, rendered per request. The pinned Tamagui docs cover Next.js, including themes under server rendering. Webpack, not Next's default Turbopack, because that is the Next integration zero-runtime supports (D21). |
+| D21 | **Pages are zero-runtime by default; anything that needs the Tamagui runtime is an island.** Tamagui 3's experimental zero-runtime mode compiles a page to plain elements and one stylesheet, with no Tamagui code in its JavaScript. Built visualizations, the sandbox host, and theme controls are islands. | Most of a player page is static content, and the heavy JavaScript should be the visualizations. Accepted, Nov 18: it is a beta feature, and this is a side project. An island renders a placeholder on the server, so anything a search engine or share preview must read cannot live in one. |
 
 This section is the plan's one exception to “nothing calls a model at run time”: **F9** and **F10** call the model configured in `packages/analyst/src/llm.ts`, and each run records its model and token count.
 
@@ -601,6 +603,8 @@ Not chosen:
 - **A component catalog as the foundation** (json-render, GPT-Vis, Vega-Lite specs). Safe and predictable, but it caps prompted views at what we listed. It may return later as a fast path for ordinary charts inside answers.
 - **Raw D3 as the default vocabulary.** The highest ceiling, but every prompted view would hand-roll its own tooltips, zoom, and legends, and quality would vary from view to view. It stays as the escape hatch.
 - **Apache ECharts.** Strong charts, but its graph series is a chart type, not a graph toolkit, and the product is a graph.
+- **TanStack Start.** It stays on Vite and has typed URL state, which suits the explorer's filters. But Tamagui documents no server-rendering setup for it, and it reached 1.0 in October 2026. Typed URL state on Next comes from typed routes plus search parameters decoded with our Effect schemas (**F11**).
+- **Staying a single-page Vite app.** No per-URL titles or previews without a server render.
 
 ### C-viz: what a prompted view crosses
 
@@ -638,24 +642,69 @@ Rules for the frame, each proved by a test in **F8**:
 - It cannot open windows, submit forms, or navigate the page.
 - A view that never returns must not freeze the explorer. **F8** records what each browser does; the result decides whether the frame needs its own domain.
 
+### Framework move
+
+Four PRs, first in the stack, on branches named `web/<id>-<slug>`. They come before the spike so that the lab page and the sandbox frame are built once, on the framework they will ship on. **web-check** means, from `apps/web`: `bun run typecheck && bun run lint && bun run check:tamagui`. The scripts behind those names change in **N1**; the names do not.
+
+Baseline, measured Nov 18 on the Vite build: 780 kB of JavaScript (252 kB gzipped) and 2,614 kB of CSS (83 kB gzipped). Zero-runtime's report mode already runs on the app: **41 violations in 12 files**.
+
+| Violation | Count | Example |
+| --- | --- | --- |
+| A style value the compiler cannot resolve at build time | 14 | `render` on `Link` in `TeamViews.tsx` |
+| A component that does not compile to one element | 14 | `Image` in `TeamViews.tsx` |
+| A `styled()` component used through an expression | 6 | `AnimatedRecord.tsx` |
+| `useTheme` read in JavaScript | 4 | `Charts.tsx` |
+| `TamaguiProvider` at the root | 1 | `ThemePreference.tsx` |
+| A prop spread on a Tamagui element | 1 | `PlayoffPicture.tsx` |
+| A bare side-effect import | 1 | `@tamagui/core/reset.css` in `main.tsx` |
+
+#### N1 · Next.js shell (Sonnet · medium)
+
+- **Needs:** nothing
+- **Read:** `.agent-sources/tamagui/docs.txt` §guides/next-js (App Router, webpack); `apps/web/vite.config.ts`, `src/main.tsx`, `src/App.tsx`, `src/ThemePreference.tsx`, `tamagui.build.ts`, `package.json`, `apps/web/design/README.md`
+- **Write:** `next` and `@tamagui/next-plugin` in `apps/web/package.json`, with `dev`, `build`, and `preview` moved to Next on webpack and the Vite dependencies removed; `next.config.js` with the Tamagui plugin (`appDir: true`); `app/layout.tsx` and a client provider with the existing theme preference; `app/[[...team]]/page.tsx` rendering today's page at today's URLs; the lint and Tamagui checks pointed at the new layout. The team page keeps the full Tamagui runtime for now. The Vite social-preview plugin stays in the repo, unused, until **N3**. Update `apps/web/README.md` and any AGENTS.md line that names Vite.
+- **Done:** web-check passes. The team page renders the same at the same URLs, in both themes. The PR records the JavaScript and CSS sizes against the baseline.
+
+#### N2 · API routes and the packaged history file (Sonnet · high, Opus review)
+
+- **Needs:** N1
+- **Read:** `apps/web/api/*.ts`, `apps/web/vercel.json`, `apps/web/scripts/check-vercel-output.mjs`, `apps/api/README.md` §Vercel; this plan **V1**
+- **Write:** route handlers under `app/api/` that wrap the same web handlers the five functions wrap today, with cancellation kept; the rule that ships `history-data/nhl-serve.sqlite` with the history route only; `check-vercel-output.mjs` updated for the new output layout, with every assertion it makes today kept. Remove `apps/web/api/` and the `functions` block it leaves unused.
+- **Done:** web-check and api-check pass. The orchestrator runs `vercel build --prod --standalone` and the check passes with no snapshot and with `--require-history`, as in #105. If the history route cannot open the file, stop and report.
+
+#### N3 · Share previews at request time (Sonnet · medium)
+
+- **Needs:** N1. **Stack on:** N2.
+- **Read:** `apps/web/social/plugin.ts`, `social/card.ts`, `tests/social-*.test.ts`
+- **Write:** per-route metadata and a preview-image route for team pages, drawing with the existing card renderer; the site-origin rule from the plugin kept as a shared function. Remove the Vite plugin. The tests keep their assertions and move to the new entry points.
+- **Done:** web-check passes and `bun run test:social` passes. A team URL returns its own title, description, and image.
+
+#### N4 · Zero-runtime with islands (Sonnet · high, Opus review)
+
+- **Needs:** N1. **Stack on:** N3.
+- **Read:** `.agent-sources/tamagui/docs.txt` §guides/zero-runtime (the eight rules, islands, Next with webpack); the violation table above
+- **Write:** `experimental.zeroRuntime` enforced in `tamagui.build.ts`. Fix each violation in place where the fix is a build-time value or an explicit prop. Declare an island where the code needs the runtime: the charts (`useTheme`), the theme controls, the box-score sheet, and anything animated. Narrow the themes and tokens in `tamagui.config.ts` to what the app uses, since zero-runtime does not prune them. Add `--expect-optimizations` to the build so a silent fallback to the full runtime fails CI.
+- **Done:** web-check passes and the enforced build reports no violations. The team page's text is in the server HTML. The PR records JavaScript and CSS sizes against the baseline and against **N1**, and lists each island with the reason it is one. If a rule cannot be met without rewriting a component the explorer will replace anyway, make that component an island and say so.
+
 ### The spike
 
-Twelve small PRs. They continue the one stack, on branches named `viz/<id>-<slug>`. The §Worker preamble applies. **web-check** means, from `apps/web`: `bun run typecheck && bun run lint && bun run check:tamagui`.
+Twelve small PRs. They continue the one stack, on branches named `viz/<id>-<slug>`. The §Worker preamble applies.
 
-The spike's views live in a lab page that only exists in development builds (`import.meta.env.DEV`), so nothing here ships to production.
+The spike's views live in a lab route that is only built in development, so nothing here ships to production. Every lab view is an island (D21).
 
 ```
-F1 ─┬─ F0
-    ├─ F3 ─┬─ F5 (needs F2, F4)
-    │      ├─ F6 (needs F2, F4)
-    │      └─ F7 (needs F4)
-    └─ F8 ─── F10 (needs F4, F9)
+N1 ─┬─ N2 ─ N3 ─ N4
+    └─ F1 ─┬─ F0
+           ├─ F3 ─┬─ F5 (needs F2, F4)
+           │      ├─ F6 (needs F2, F4)
+           │      └─ F7 (needs F4)
+           └─ F8 ─── F10 (needs F4, F9)
 F2, F4, F9 need nothing from this section
-F11 needs F5, F6, F7, F10
+F11 needs N4, F5, F6, F7, F10
 ```
 
-- **Ready now:** F1, F2, F4, F9. **F9** works from §C-viz alone; it does not need the frame.
-- **Run first:** F1 → F8, because the sandbox is the one piece with a security boundary, and F1 → F3 → F7, because G6's speed is the one open risk in D16.
+- **Ready now:** N1, F2, F4, F9. **F9** works from §C-viz alone; it does not need the frame.
+- **Run first:** N1, because every web card builds on it. Then F1 → F8, because the sandbox is the one piece with a security boundary, and F1 → F3 → F7, because G6's speed is the one open risk in D16. N2 to N4 run alongside the spike.
 - **Blocked on Ben:** rating the screenshots in **F10**, and the pass lines in **F11**.
 
 What the spike decides:
@@ -667,13 +716,14 @@ What the spike decides:
 | Does the model write better views with AntV or with D3 and Three.js? | **F10**, five prompts, both vocabularies | D16's default vocabulary |
 | Does a runaway view freeze the page? | **F8**, per browser | Same-host frame or a separate domain |
 | What does each library cost to load? | **F5**, **F6**, **F7** bundle reports | Which libraries load on demand |
+| What does zero-runtime save? | **N4**, sizes against the baseline | Whether explorer pages stay zero-runtime by default (D21) |
 
 No pass line is set in advance. Each gate records its numbers first; **F11** sets the lines from them.
 
 #### F1 · Install the visualization dependencies (Haiku · low)
 
-- **Needs:** nothing
-- **Write:** exact-pinned versions in `apps/web/package.json`: `@antv/g2`, `@antv/g6`, `@antv/g6-extension-react`, `@antv/g-webgl`, `d3`, `three`, `@cosmos.gl/graph`, and their type packages where separate. In `packages/analyst/package.json`: `playwright` as a dev dependency (for **F10**). `bun.lock`. No other task edits these two manifests during the spike.
+- **Needs:** N1 (the same manifest)
+- **Write:** exact-pinned versions in `apps/web/package.json`: `@antv/g2`, `@antv/g6`, `@antv/g6-extension-react`, `@antv/g-webgl`, `d3`, `three`, `@cosmos.gl/graph`, and their type packages where separate. In `packages/analyst/package.json`: `playwright` as a dev dependency (for **F10**). `bun.lock`. After **N1**, no other task edits these two manifests during the spike.
 - **Done:** web-check passes and `bun run build` in `apps/web` produces the same bundle size as before, since nothing imports the new packages yet. The PR lists the installed versions.
 
 #### F0 · Cache the AntV docs and skills (Sonnet · low)
@@ -694,7 +744,7 @@ No pass line is set in advance. Each gate records its numbers first; **F11** set
 
 - **Needs:** F1
 - **Read:** `apps/web/design/README.md`, `apps/web/design/contract.json`, `apps/web/src/Charts.tsx`, `apps/web/src/ThemePreference.tsx`; the cached G2 and G6 theme docs if **F0** has landed
-- **Write:** `apps/web/src/viz/theme.ts`: `VizTheme` built from `useTheme()`, and pure functions from it to a G2 theme, a G6 theme, and a CSS-variable map. A design rule that rejects literal colours in files under `src/viz/`, with a passing and a failing fixture in `scripts/test-design-rules.mjs`. `src/viz/lab/Lab.tsx`: a page that lists entries from `src/viz/lab/registry.ts`; later cards each add one line there. The app has no router, so `src/main.tsx` mounts the lab instead of the app when the build is a development build and the path is `/viz-lab`.
+- **Write:** `apps/web/src/viz/theme.ts`: `VizTheme` built from `useTheme()`, and pure functions from it to a G2 theme, a G6 theme, and a CSS-variable map. A design rule that rejects literal colours in files under `src/viz/`, with a passing and a failing fixture in `scripts/test-design-rules.mjs`. `src/viz/lab/Lab.tsx`: a page that lists entries from `src/viz/lab/registry.ts`; later cards each add one line there. The lab is the route `app/viz-lab/page.tsx`, which answers 404 outside development, and each entry is an island.
 - **Done:** web-check passes. Switching the app theme changes the colours of a sample G2 chart and a sample G6 graph on the lab page.
 
 #### F4 · Export the spike's datasets (Sonnet · medium)
@@ -728,8 +778,8 @@ No pass line is set in advance. Each gate records its numbers first; **F11** set
 #### F8 · The sandbox frame (Sonnet · high, Opus review)
 
 - **Needs:** F1
-- **Read:** this plan D17, §C-viz; `apps/web/vercel.json`, `apps/web/vite.config.ts`
-- **Write:** `apps/web/src/viz/contracts.ts` (the §C-viz schemas). `apps/web/viz-frame.html` and `src/viz/frame.ts`: a second Vite entry that carries G2, G6, D3, and Three.js, runs a posted view module, and answers with the frame messages. `src/viz/VizFrame.tsx`: the host component; it posts `Render`, validates every message it receives, and removes the frame when no `Rendered` or `Failed` arrives in time. Response headers for the frame's path in `vercel.json` and the same policy in the Vite dev server. One lab entry that runs a hand-written sample module. The PR states how posted code is executed and why that route was chosen.
+- **Read:** this plan D17, §C-viz; `apps/web/next.config.js`, `apps/api/scripts/build.mjs` (for `Bun.build`)
+- **Write:** `apps/web/src/viz/contracts.ts` (the §C-viz schemas). `src/viz/frame.ts` and `viz-frame.html`: the frame's own page and bundle, carrying G2, G6, D3, and Three.js; it runs a posted view module and answers with the frame messages. A build script bundles it with `Bun.build` into `public/viz-frame/`, so the frame shares no code or runtime with the Next app. `src/viz/VizFrame.tsx`: the host island; it posts `Render`, validates every message it receives, and removes the frame when no `Rendered` or `Failed` arrives in time. Response headers for `/viz-frame/*` in `next.config.js`, which apply in development and production alike. One lab entry that runs a hand-written sample module. The PR states how posted code is executed and why that route was chosen.
 - **Done:** web-check passes. A browser test (Playwright, from the lab page) proves each rule in §C-viz: inside the frame, a fetch to the app's own API fails, cookies and storage are unreadable, the parent document is unreachable, and a window cannot be opened. A sample that throws produces `Failed`. A sample that loops forever is reported for Chrome, Safari, and Firefox: whether the explorer stays responsive, and how long removal takes.
 
 #### F9 · Write a view from a prompt (Sonnet · medium)
@@ -753,15 +803,19 @@ No pass line is set in advance. Each gate records its numbers first; **F11** set
 
 #### F11 · Decide and write the explorer cards (orchestrator)
 
-- **Needs:** F5, F6, F7, F10
-- **Write:** in this section: the gate numbers, the pass lines agreed with Ben, D16 confirmed or changed, the renderer for each network view, whether the frame gets its own domain, and which libraries load on demand. Then the cards for the explorer's built views, including how the app gets routes (it has none today), and for the prompted-view service: how the agent chooses bounded History queries for a prompt, cost and rate limits, caching by prompt and snapshot ID, and how a prompted view that works well is promoted to a built one.
+- **Needs:** N4, F5, F6, F7, F10
+- **Write:** in this section: the gate numbers, the pass lines agreed with Ben, D16 confirmed or changed, the renderer for each network view, whether the frame gets its own domain, and which libraries load on demand. Then the cards for the explorer's built views, including its routes and how URL state (the two players, filters, relation, undo) is decoded with Effect schemas, and for the prompted-view service: how the agent chooses bounded History queries for a prompt, cost and rate limits, caching by prompt and snapshot ID, and how a prompted view that works well is promoted to a built one.
 - **Done:** Ben approves the section.
 
 ### Frontend ledger
 
 | ID | Title | Tier | Needs | Branch | PR | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| F1 | Install the visualization dependencies | Haiku · low | — | | | not started |
+| N1 | Next.js shell | Sonnet · medium | — | | | not started |
+| N2 | API routes and the packaged history file | Sonnet · high | N1 | | | not started |
+| N3 | Share previews at request time | Sonnet · medium | N1 | | | not started |
+| N4 | Zero-runtime with islands | Sonnet · high | N1 | | | not started |
+| F1 | Install the visualization dependencies | Haiku · low | N1 | | | not started |
 | F0 | Cache the AntV docs and skills | Sonnet · low | F1 | | | not started |
 | F2 | History client for the web app | Sonnet · low | — | | | not started |
 | F3 | Theme adapter and lab shell | Sonnet · medium | F1 | | | not started |
@@ -772,7 +826,7 @@ No pass line is set in advance. Each gate records its numbers first; **F11** set
 | F8 | The sandbox frame | Sonnet · high | F1 | | | not started |
 | F9 | Write a view from a prompt | Sonnet · medium | — | | | not started |
 | F10 | Vocabulary bake-off | Sonnet · medium | F4, F8, F9 | | | not started |
-| F11 | Decide and write the explorer cards | Orchestrator | F5, F6, F7, F10 | | | not started |
+| F11 | Decide and write the explorer cards | Orchestrator | N4, F5, F6, F7, F10 | | | not started |
 
 ## Later
 
