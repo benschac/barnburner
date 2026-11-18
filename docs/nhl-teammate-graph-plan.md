@@ -289,7 +289,7 @@ Run on a full snapshot by **T2**. Exact values hold for the baseline snapshot. O
 | --- | --- |
 | Players, shared-game pairs, shared-game spans | 8,842 · 478,383 · 1,049,918 |
 | Opponent pairs | 3,273,864 |
-| Goalie-partner spans and the pairs they add | Not pinned. **T1** and the serving build must agree; the first full run records them here. |
+| Goalie-partner spans and the pairs they add | 5,862 · 1,126 (first full run, snapshot `e10c93faedc3`, Nov 17). **T1** and the serving build must agree. |
 | Components; diameter with goalie partners off | 1 · 9 |
 | McDavid shared-game teammates; distance to Lindsay | 174 · 5 |
 | McDavid and Draisaitl | 879 games together |
@@ -586,35 +586,48 @@ Out of scope for this plan. The API contract above is what these will call.
 
 | ID | Title | Tier | Needs | Branch | PR | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| H0 | Land the existing import | Orchestrator | — | | | todo |
-| K0 | Scaffold `packages/history` | Sonnet · low | H0 | | | todo |
-| K1 | Contracts, shapes, and fakes | Sonnet · high | K0 | | | todo |
-| I1 | Import dressed goalies | Sonnet · medium | H0 | | | todo |
-| I2 | Dressed goalies in the base build | Sonnet · medium | B1 | | | todo |
-| B1 | Carry position and points into the base build | Sonnet · medium | H0 | | | todo |
-| B2 | Serving tables | Sonnet · medium | B1 | | | todo |
-| B3 | Cup Final flags | Haiku · medium | B2 | | | todo |
-| B4 | Graph arrays | Sonnet · high | B2 | | | todo |
-| B5 | Goalie-partner spans | Sonnet · medium | B4, I2 | | | todo |
-| B6 | Opponent arrays | Sonnet · medium | B2 | | | todo |
-| O4 | Survive a game finishing mid-refresh | Sonnet · medium | H0 | | | todo |
-| Q1 | Graph and links | Sonnet · high | K1 | | | todo |
-| Q2 | Shortest paths in a fixed order | Sonnet · high | Q1 | | | todo |
-| Q3 | Tied chains and their count | Sonnet · medium | Q2 | | | todo |
-| Q4 | Farthest player | Sonnet · medium | Q2 | | | todo |
-| Q6 | Finals coverage | Sonnet · medium | Q1 | | | todo |
-| Q7 | Opponents and the relation mode | Sonnet · high | Q2 | | | todo |
-| A1 | SQLite store | Sonnet · medium | K1 | | | todo |
-| A3 | History function and local flag | Sonnet · medium | A1 | | | todo |
-| V1 | Prove the packaged function reads the file | Sonnet · medium | A3 | | | todo |
-| A2a | Lookup handlers | Sonnet · medium | A3, Q1 | | | todo |
-| A2b | Path handlers | Sonnet · medium | A2a, Q3, Q4 | | | todo |
-| A2c | Finals handler | Sonnet · medium | A2a, Q6 | | | todo |
-| A2d | Opponent handlers | Sonnet · medium | A2a, Q7 | | | todo |
-| C1 | Query command | Sonnet · low | A2b, A2c, A2d | | | todo |
-| A4 | Fetch the serving file at build | Haiku · medium | V1 | | | todo |
-| T1 | Reference answers | Codex | H0 | | | todo |
-| T2 | Full-snapshot acceptance | Sonnet · medium | A2b, A2c, A2d, B3, B5, B6, T1 | | | todo |
-| O1 | Run the history checks on pull requests | Haiku · low | K0 | | | todo |
-| O2 | Archive manifest and fetch | Sonnet · medium | I1 | | | todo |
-| O3 | Nightly refresh | Sonnet · medium | O2, O4, I2, A4, T2 | | | todo |
+| H0 | Land the existing import | Orchestrator | — | `history/h0-land-import` | #58 | in stack |
+| K0 | Scaffold `packages/history` | Sonnet · low | H0 | `history/k0-scaffold` | #60 | in stack |
+| K1 | Contracts, shapes, and fakes | Sonnet · high | K0 | `history/k1-contracts` | #73 | in stack · Opus ✓ |
+| I1 | Import dressed goalies | Sonnet · medium | H0 | `history/i1-import-dressed` | #61 | in stack · gate ✓ (70,641 games, 0 failures) |
+| I2 | Dressed goalies in the base build | Sonnet · medium | B1 | `history/i2-dressed-base` | #64 | in stack · gate ✓ (265,104 rows, 0 unlisted) |
+| B1 | Carry position and points into the base build | Sonnet · medium | H0 | `history/b1-position-points` | #59 | in stack · gate ✓ |
+| B2 | Serving tables | Sonnet · medium | B1 | `history/b2-serving-tables` | #66 | in stack · gate ✓ |
+| B3 | Cup Final flags | Haiku · medium | B2 | `history/b3-cup-finals` | #76 | in stack · gate ✓ |
+| B4 | Graph arrays | Sonnet · high | B2 | `history/b4-graph-arrays` | #77 | in stack · gate ✓ · Opus ✓ |
+| B5 | Goalie-partner spans | Sonnet · medium | B4, I2 | `history/b5-goalie-partners` | #97 | in stack · gate ✓ (5,862 spans, 1,126 pairs) |
+| B6 | Opponent arrays | Sonnet · medium | B2 | `history/b6-opponent-arrays` | #78 | in stack · gate ✓ |
+| O4 | Survive a game finishing mid-refresh | Sonnet · medium | H0 | `history/o4-refresh-retry` | #62 | in stack |
+| Q1 | Graph and links | Sonnet · high | K1 | `history/q1-graph-links` | #79 | in stack · Opus ✓ |
+| Q2 | Shortest paths in a fixed order | Sonnet · high | Q1 | `history/q2-shortest-paths` | #82 | in stack · Opus ✓ |
+| Q3 | Tied chains and their count | Sonnet · medium | Q2 | `history/q3-tied-chains` | #85 | in stack |
+| Q4 | Farthest player | Sonnet · medium | Q2 | `history/q4-farthest` | #84 | in stack |
+| Q6 | Finals coverage | Sonnet · medium | Q1 | `history/q6-finals-coverage` | #81 | in stack |
+| Q7 | Opponents and the relation mode | Sonnet · high | Q2 | `history/q7-opponents` | #89 | in stack · Opus ✓ after #98 |
+| A1 | SQLite store | Sonnet · medium | K1 | `history/a1-sqlite-store` | #80 | in stack |
+| A3 | History function and local flag | Sonnet · medium | A1 | `history/a3-history-function` | #83 | in stack |
+| V1 | Prove the packaged function reads the file | Sonnet · medium | A3 | `history/v1-packaged-sqlite` | #87 | in stack · vercel build ✓ (deploy unproven) |
+| A2a | Lookup handlers | Sonnet · medium | A3, Q1 | `history/a2a-lookup-handlers` | #88 | in stack |
+| A2b | Path handlers | Sonnet · medium | A2a, Q3, Q4 | `history/a2b-path-handlers` | #91 | in stack |
+| A2c | Finals handler | Sonnet · medium | A2a, Q6 | `history/a2c-finals-handler` | #92 | in stack |
+| A2d | Opponent handlers | Sonnet · medium | A2a, Q7 | `history/a2d-opponent-handlers` | #93 | in stack |
+| C1 | Query command | Sonnet · low | A2b, A2c, A2d | `history/c1-query-command` | #99 | in stack · gate ✓ |
+| A4 | Fetch the serving file at build | Haiku · medium | V1 | `history/a4-fetch-serving` | #94 | in stack |
+| T1 | Reference answers | Codex | H0 | `history/t1-truth` | #72 | in stack · gate ✓ |
+| T2 | Full-snapshot acceptance | Sonnet · medium | A2b, A2c, A2d, B3, B5, B6, T1 | `history/t2-acceptance` | #100 | in stack · gate ✓ ACCEPTED |
+| O1 | Run the history checks on pull requests | Haiku · low | K0 | `history/o1-history-ci` | #63 | in stack |
+| O2 | Archive manifest and fetch | Sonnet · medium | I1 | `history/o2-archive-manifest` | #65 | in stack · release awaits Ben |
+| O3 | Nightly refresh | Sonnet · medium | O2, O4, I2, A4, T2 | `history/o3-nightly-refresh` | #102 | in stack · first run awaits Ben |
+
+Review follow-ups (Codex reviewed every PR; Opus reviewed K1, B4, Q1, Q2, Q7):
+
+| PR | Fixes | Branch |
+| --- | --- | --- |
+| #96 | O1 CI triggers; O2 cutoff, inventory, path checks | `history/fix-ci-archive-review` |
+| #98 | Q7 tied chains and counts for opponent relations | `history/q7b-relation-counts` |
+| #101 | B1 schema init; I1 cooldown, refresh nulls, no-op writes; O4 opt-in retry; I2 partition scoping | `history/fix-import-build-review` |
+| #103 | B2 points, snapshot transaction, 403 s → 85 s build; B3 in-progress Final; B4 temp spans; T1 evidence | `history/fix-serving-review` |
+| #104 | K1 shared games per span kind; roster link rule; Q1 ID-only exports | `history/fix-contracts-review` |
+| #105 | V1/A4 Turbo cache drop of the database (P1); stale file; packaging check without a snapshot | `history/fix-packaging-review` |
+| #106 | I2 schema v4; O2 interrupted checkpoints and catalog checks | `history/fix-archive-review` |
+| #107 | Q3/Q7 counting only along the start's chains (3.5 → 1.1 ms); store closes on dispose | `history/fix-path-count-perf` |
