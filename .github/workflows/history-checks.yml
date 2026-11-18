@@ -59,6 +59,8 @@ jobs:
         run: bun run check:node-scripts
       - name: anti-slop rule tests
         run: bun run test:anti-slop
+      - name: Script tests
+        run: bun run test:scripts
       - name: Python history checks
         run: bun run test:history
       - name: History package checks
