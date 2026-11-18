@@ -60,8 +60,11 @@ Use the named directory's generated index to select a section before reading its
 | `ratstack/` | General engineering guidelines, services, schemas, testing, infrastructure, and ecosystem patterns | [Agent guide](https://ratstack.sh/llms.txt) and [full corpus](https://ratstack.sh/llms-full.txt) |
 | `effect/` | Official package overview, requirements, and links to API documentation | [Effect README](https://github.com/Effect-TS/effect/blob/main/README.md) |
 | `effect-api/` | Exact API reference for the installed `effect` version, one file per module (`cli` today): every export with its JSDoc, examples, and signature | Installed package declarations (`node_modules/effect/dist/<module>/*.d.ts`) |
+| [Effect Logger](effect/logger-index.md) | Logging events, installing a logger, and selecting an output format or stream. The cached source includes the API examples. | [Effect v4 Logger API](https://effect.website/docs/v4/api/effect/Logger) |
 | `xstate/` | State machines, actors, transitions, testing, and version-specific documentation links | [Stately documentation index](https://stately.ai/llms.txt) |
 | `xstate-effect/` | Effect-backed actors and their scoped lifetimes | [Official integration quick start](https://stately.ai/docs/xstate/v6/effect/quick-start) |
+
+For project diagnostics, use the shared [logger](../lib/logger.mjs). The API installs its Effect layer. Node and Bun scripts use its synchronous helpers. Diagnostics use logfmt on stderr so CLI results can be read from stdout.
 
 The Effect README and Stately index are entry points, not complete API caches. Resolve relative Stately links against `https://stately.ai` and Effect README links against its GitHub source directory. Follow relevant links when the cached material does not answer the question.
 
@@ -79,4 +82,4 @@ These files are generated from the installed package, so they match its version 
 
 Refresh these references explicitly with `node scripts/refresh-pattern-sources.mjs`. Review the downloaded documents, indexes, and `sources.json` together. This fetch does not run during install or build.
 
-To import existing downloads, use `node scripts/refresh-pattern-sources.mjs --from-dir DIR --fetched-at ISO_TIMESTAMP`. The directory must contain `ratstack-llms.txt`, `ratstack-full.txt`, `effect-readme.md`, `xstate-llms.txt`, and `xstate-effect.md`, downloaded from the URLs in the script. Supply the actual batch retrieval timestamp. Imports record caller-supplied provenance.
+To import existing downloads, use `node scripts/refresh-pattern-sources.mjs --from-dir DIR --fetched-at ISO_TIMESTAMP`. The directory must contain `ratstack-llms.txt`, `ratstack-full.txt`, `effect-readme.md`, `effect-logger.ts`, `xstate-llms.txt`, and `xstate-effect.md`, downloaded from the URLs in the script. Supply the actual batch retrieval timestamp. Imports record caller-supplied provenance.

@@ -96,5 +96,19 @@
     "compatibility": "Generated from the installed effect@4.1.2 declarations; matches that version exactly. Regenerate after an effect upgrade.",
     "document": "effect-api/cli.txt",
     "index": "effect-api/cli-index.md"
+  },
+  "effect-logger": {
+    "url": "https://raw.githubusercontent.com/Effect-TS/effect/289a53f7b1fc40049219c6e69022db2fb859c356/packages/effect/src/Logger.ts",
+    "fetchedAt": "2026-11-18T14:12:20.400Z",
+    "retrieval": "imported-download; timestamp supplied by caller",
+    "sha256": "df5873f80a7df745aa9774c16573f7c0b753f70a611bedb6a4044b8819f4bfe2",
+    "bytes": 36123,
+    "package": "effect",
+    "targetPackageVersion": "4.1.2",
+    "upstreamVersion": "4.1.4",
+    "upstreamRevision": "289a53f7b1fc40049219c6e69022db2fb859c356",
+    "compatibility": "Pinned upstream API source. Check installed Effect types for compatibility.",
+    "document": "effect/logger.txt",
+    "index": "effect/logger-index.md"
   }
 }
