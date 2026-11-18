@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Result } from 'effect'
+import { Match, Result } from 'effect'
 import { samples } from '@nhl-reddit-stats/viz/samples'
-import { benchDataFromTables, benchScript, decodeBenchText, frameRates, median, scriptMs, stepsDue, summarize, worst } from '../src/viz/bench/stats.ts'
+import { benchDataFromTables, benchScript, decodeBenchText, frameRates, median, overlaps, scriptMs, summarize, validateBench, worst } from '../src/viz/bench/stats.ts'
 
 test('median of odd, even, and empty lists', () => {
   assert.equal(median([3, 1, 2]), 2)
@@ -27,21 +27,31 @@ test('summarize reports the median and the worst frame rate', () => {
   assert.equal(summary.worstFps, 20)
 })
 
-test('the script spans ten seconds, is ordered, and zooms cancel out', () => {
+test('the script spans ten seconds in contiguous one-second steps, and the zooms cancel out', () => {
   const script = benchScript()
-  assert.equal(script.length, scriptMs / 50)
-  assert.ok(script.every((step, index) => index === 0 || step.atMs > script[index - 1].atMs))
-  assert.ok(script.every((step) => step.atMs < scriptMs))
-  const net = script.reduce((scale, step) => (step._tag === 'zoom' ? scale * step.factor : scale), 1)
-  assert.ok(Math.abs(net - 1) < 1e-9)
+  assert.equal(script.length, scriptMs / 1000)
+  script.forEach((step, index) => {
+    assert.equal(step.fromMs, index * 1000)
+    assert.equal(step.toMs, step.fromMs + 1000)
+  })
+  const logScale = script.reduce(
+    (total, step) =>
+      total + Match.valueTags(step, {
+        pan: () => 0,
+        zoom: (zoom) => Math.log(zoom.factorPerSecond) * ((zoom.toMs - zoom.fromMs) / 1000),
+      }),
+    0,
+  )
+  assert.ok(Math.abs(logScale) < 1e-9)
   assert.ok(script.some((step) => step._tag === 'pan'))
 })
 
-test('stepsDue returns a half-open window', () => {
+test('overlaps gives the milliseconds of each step inside a window', () => {
   const script = benchScript()
-  assert.deepEqual(stepsDue(script, 0, 100).map((step) => step.atMs), [0, 50])
-  assert.equal(stepsDue(script, 0, scriptMs).length, script.length)
-  assert.equal(stepsDue(script, 100, 100).length, 0)
+  assert.deepEqual(overlaps(script, 500, 1500).map(({ step, ms }) => [step.fromMs, ms]), [[0, 500], [1000, 500]])
+  assert.deepEqual(overlaps(script, 0, scriptMs).map(({ ms }) => ms), Array.from({ length: 10 }, () => 1000))
+  assert.equal(overlaps(script, 100, 100).length, 0)
+  assert.equal(overlaps(script, scriptMs, scriptMs + 50).length, 0)
 })
 
 for (const name of ['ego', 'league'] as const) {
@@ -63,11 +73,21 @@ for (const name of ['ego', 'league'] as const) {
 }
 
 test('a { nodes, links } file still decodes; other JSON fails with a tagged error', () => {
-  const plain = { nodes: [{ playerId: 1, name: 'A', games: 2 }], links: [{ a: 1, b: 2, games: 3 }] }
+  const plain = { nodes: [{ playerId: 1, name: 'A', games: 2 }, { playerId: 2, name: 'B', games: 3 }], links: [{ a: 1, b: 2, games: 3 }] }
   const ok = decodeBenchText(JSON.stringify(plain))
   assert.ok(Result.isSuccess(ok))
   assert.deepEqual(ok.success, plain)
   const bad = decodeBenchText('{"x":1}')
   assert.ok(Result.isFailure(bad))
   assert.equal(bad.failure._tag, 'BenchFileError')
+})
+
+test('validateBench rejects a dangling link, negative games, and a repeated player', () => {
+  const node = (playerId: number, games = 1) => ({ playerId, name: 'N', games })
+  assert.ok(Result.isSuccess(validateBench({ nodes: [node(1), node(2)], links: [{ a: 1, b: 2, games: 0 }] })))
+  assert.ok(Result.isFailure(validateBench({ nodes: [node(1)], links: [{ a: 1, b: 2, games: 1 }] })))
+  assert.ok(Result.isFailure(validateBench({ nodes: [node(1, -1)], links: [] })))
+  assert.ok(Result.isFailure(validateBench({ nodes: [node(1), node(2)], links: [{ a: 1, b: 2, games: -2 }] })))
+  assert.ok(Result.isFailure(validateBench({ nodes: [node(1), node(1)], links: [] })))
+  assert.ok(Result.isFailure(decodeBenchText(JSON.stringify({ nodes: [node(1)], links: [{ a: 1, b: 9, games: 1 }] }))))
 })

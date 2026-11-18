@@ -1,22 +1,23 @@
 import { useRef, useState } from 'react'
 import { View } from 'tamagui'
 import type { TamaguiElement } from 'tamagui'
-import type { ChangeEvent, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Effect, Result, Schema } from 'effect'
-import { benchDataFromTables, decodeBenchText } from '../../bench/stats.ts'
+import { benchDataFromTables } from '../../bench/stats.ts'
 import { samples } from '@nhl-reddit-stats/viz/samples'
 import type { BenchData, BenchRenderer, LabEntry } from '@nhl-reddit-stats/viz'
-import { runBench } from '../../bench/harness.ts'
+import { loadRenderer, readBenchFile, runBench } from '../../bench/harness.ts'
 import type { BenchResult } from '../../bench/harness.ts'
 import { useVizTheme } from '../../theme.ts'
 
-type RendererContext = { keys(): string[]; (key: string): { default: BenchRenderer } }
-type WebpackRequire = { context(directory: string, recursive: boolean, filter: RegExp): RendererContext }
+type RendererContext = { keys(): string[]; (key: string): Promise<{ default: BenchRenderer }> }
+type WebpackRequire = { context(directory: string, recursive: boolean, filter: RegExp, mode: 'lazy'): RendererContext }
 
-// Webpack bundles every file in the folder, so adding a renderer file is enough.
+// Rooted at the bench folder, which always exists. 'lazy' lists the renderer files without importing
+// them: each one becomes its own chunk, fetched when Run is pressed. Adding a renderer file is enough.
 declare const require: WebpackRequire
-const context = require.context('../../bench/renderers', false, /\.ts$/)
-const renderers = context.keys().map((key) => context(key).default)
+const context = require.context('../../bench', true, /^\.\/renderers\/[^/]+\.ts$/, 'lazy')
+const renderers = context.keys().map((key) => ({ id: key.replace(/^.*\//, '').replace(/\.ts$/, ''), key }))
 
 const toPrettyJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown, { space: 2 }))
 
@@ -28,7 +29,8 @@ type Source = 'ego' | 'league' | 'file'
 function BenchPage() {
   const theme = useVizTheme()
   const root = useRef<TamaguiElement>(null)
-  const [renderer, setRenderer] = useState(renderers[0]?.name ?? '')
+  const latestFile = useRef(0)
+  const [renderer, setRenderer] = useState(renderers[0]?.id ?? '')
   const [source, setSource] = useState<Source>('league')
   const [loaded, setLoaded] = useState<BenchData | undefined>(undefined)
   const [note, setNote] = useState('')
@@ -39,21 +41,27 @@ function BenchPage() {
 
   if (renderers.length === 0) return <p>No renderers found in src/viz/bench/renderers.</p>
 
-  const onFile = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+  // Each file choice invalidates the one before it at once; only the latest one to finish may set the dataset.
+  const onFile = (files: FileList | null) => {
+    const file = files?.[0]
+    const ticket = ++latestFile.current
+    setLoaded(undefined)
     if (!file) return
-    const decoded = decodeBenchText(await file.text())
-    if (Result.isSuccess(decoded)) {
-      setLoaded(decoded.success)
-      setSource('file')
-      setNote(`Loaded ${decoded.success.nodes.length} nodes and ${decoded.success.links.length} links.`)
-    } else {
-      setNote(`Could not read the file: ${decoded.failure.message}`)
-    }
+    setSource('file')
+    setNote(`Reading ${file.name}`)
+    void Effect.runPromise(Effect.result(readBenchFile(file))).then((outcome) => {
+      if (ticket !== latestFile.current) return
+      if (Result.isSuccess(outcome)) {
+        setLoaded(outcome.success)
+        setNote(`Loaded ${file.name}: ${outcome.success.nodes.length} nodes and ${outcome.success.links.length} links.`)
+      } else {
+        setNote(`Could not use ${file.name}: ${outcome.failure.message}`)
+      }
+    })
   }
 
   const run = async () => {
-    const chosen = renderers.find((item) => item.name === renderer)
+    const chosen = renderers.find((item) => item.id === renderer)
     const data = selected
     const element = root.current
     if (!chosen || !data || !(element instanceof HTMLElement)) {
@@ -61,23 +69,31 @@ function BenchPage() {
       return
     }
     setRunning(true)
-    setNote(`Running ${chosen.name}`)
-    const outcome = await Effect.runPromise(Effect.result(runBench(chosen, data, theme, element)))
-    if (Result.isSuccess(outcome)) {
-      setResults((previous) => [...previous, outcome.success])
-      setNote('')
-    } else {
-      setNote(`${outcome.failure.renderer} failed at ${outcome.failure.stage}: ${outcome.failure.message}`)
+    setNote(`Running ${chosen.id}`)
+    try {
+      const outcome = await Effect.runPromise(Effect.result(
+        loadRenderer(chosen.id, () => context(chosen.key)).pipe(Effect.flatMap((loaded) => runBench(loaded, data, theme, element))),
+      ))
+      if (Result.isSuccess(outcome)) {
+        setResults((previous) => [...previous, outcome.success])
+        setNote('')
+      } else {
+        setNote(`${outcome.failure.renderer} failed at ${outcome.failure.stage}: ${outcome.failure.message}`)
+      }
+    } catch (cause) {
+      // foreign: a defect escaped the Effect; show it and keep Run usable
+      setNote(`${chosen.id} failed unexpectedly: ${String(cause)}`)
+    } finally {
+      setRunning(false)
     }
-    setRunning(false)
   }
 
   return (
     <section>
-      <p>{renderers.length} renderer{renderers.length === 1 ? '' : 's'} found: {renderers.map((item) => item.name).join(', ')}.</p>
+      <p>{renderers.length} renderer{renderers.length === 1 ? '' : 's'} found: {renderers.map((item) => item.id).join(', ')}.</p>
       <label>Renderer{' '}
         <select value={renderer} onChange={(event) => setRenderer(event.target.value)}>
-          {renderers.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}
+          {renderers.map((item) => <option key={item.id} value={item.id}>{item.id}</option>)}
         </select>
       </label>{' '}
       <label>Dataset{' '}
@@ -88,9 +104,9 @@ function BenchPage() {
         </select>
       </label>{' '}
       <label>File{' '}
-        <input type="file" accept="application/json" onChange={(event) => { void onFile(event) }} />
+        <input type="file" accept="application/json" onChange={(event) => { onFile(event.target.files) }} />
       </label>{' '}
-      <button type="button" disabled={running} onClick={() => { void run() }}>Run (10 s)</button>
+      <button type="button" disabled={running || !selected} onClick={() => { void run() }}>Run (10 s)</button>
       <p>Dataset: {selected ? `${selected.nodes.length} nodes, ${selected.links.length} links` : 'none loaded'}.</p>
       <p role="status">{note}</p>
       <View ref={root} w="drawer" h="drawer" bg="background" />

@@ -1,11 +1,10 @@
 import type { BenchData, BenchRenderer, VizTheme } from '@nhl-reddit-stats/viz/contracts'
-import { Effect, Match, Schema } from 'effect'
-import { benchScript, scriptMs, stepsDue, summarize } from './stats.ts'
-import type { BenchStep } from './stats.ts'
+import { Effect, Match, Result, Schema } from 'effect'
+import { benchScript, decodeBenchText, overlaps, scriptMs, summarize, BenchFileError } from './stats.ts'
 
 export class BenchRunError extends Schema.TaggedError<BenchRunError, { readonly brand: unique symbol }>()('BenchRunError', {
   renderer: Schema.String,
-  stage: Schema.Literals(['mount', 'drive']),
+  stage: Schema.Literals(['load', 'mount', 'drive', 'destroy']),
   message: Schema.String,
 }) {}
 
@@ -22,34 +21,87 @@ export type BenchResult = {
 
 const messageOf = (cause: unknown) => (cause instanceof globalThis.Error ? cause.message : String(cause))
 
-const nextFrame = () => new Promise<number>((resolve) => requestAnimationFrame(resolve))
+type Camera = { pan(dx: number, dy: number): void; zoom(factor: number): void }
 
-/** Runs the ten-second script, drawing a frame at a time; resolves the times (ms from the start) of each frame. */
-async function drive(handle: { pan(dx: number, dy: number): void; zoom(factor: number): void }): Promise<ReadonlyArray<number>> {
+/**
+ * Runs the ten-second script. Every animation frame moves the camera by the time since the previous
+ * frame, so each measured frame needs a new image. A run is discarded if the tab is hidden at any point,
+ * because the browser pauses animation callbacks and the gap would count as a frame.
+ * Resolves the time (ms from the first frame) of each frame.
+ */
+function drive(handle: Camera): Promise<ReadonlyArray<number>> {
   const script = benchScript()
-  const apply = (step: BenchStep) =>
-    Match.valueTags(step, {
-      pan: ({ dx, dy }) => handle.pan(dx, dy),
-      zoom: ({ factor }) => handle.zoom(factor),
-    })
-  const origin = await nextFrame()
-  const times: number[] = [0]
-  let last = 0
-  for (;;) {
-    const now = (await nextFrame()) - origin
-    for (const step of stepsDue(script, last, now)) apply(step)
-    last = now
-    times.push(now)
-    if (now >= scriptMs) return times
-  }
+  return new Promise((resolve, reject) => {
+    const hiddenMessage = 'the tab was hidden during the run; the run is discarded'
+    let done = false
+    let origin: number | undefined
+    let last = 0
+    const times: number[] = []
+    const onVisibility = () => {
+      if (document.visibilityState !== 'hidden' || done) return
+      done = true
+      document.removeEventListener('visibilitychange', onVisibility)
+      reject(hiddenMessage)
+    }
+    const tick = (timestamp: number) => {
+      if (done) return
+      origin ??= timestamp
+      const now = timestamp - origin
+      for (const { step, ms } of overlaps(script, last, now)) {
+        Match.valueTags(step, {
+          pan: (pan) => handle.pan((pan.dxPerSecond * ms) / 1000, (pan.dyPerSecond * ms) / 1000),
+          zoom: (zoom) => handle.zoom(zoom.factorPerSecond ** (ms / 1000)),
+        })
+      }
+      last = now
+      times.push(now)
+      if (now >= scriptMs) {
+        done = true
+        document.removeEventListener('visibilitychange', onVisibility)
+        resolve(times)
+      } else {
+        requestAnimationFrame(tick)
+      }
+    }
+    if (document.visibilityState === 'hidden') {
+      reject(hiddenMessage)
+      return
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    requestAnimationFrame(tick)
+  })
 }
+
+/** Imports one renderer's module. `load` is the lazy import of its file. */
+export const loadRenderer = (
+  id: string,
+  load: () => Promise<{ readonly default: BenchRenderer }>,
+): Effect.Effect<BenchRenderer, BenchRunError> =>
+  Effect.tryPromise({
+    try: async () => (await load()).default,
+    catch: (cause) => new BenchRunError({ renderer: id, stage: 'load', message: messageOf(cause) }),
+  })
+
+/** Reads a chosen file and decodes it; a read failure names the file. */
+export const readBenchFile = (file: { readonly name: string; text(): Promise<string> }): Effect.Effect<BenchData, BenchFileError> =>
+  Effect.tryPromise({
+    try: () => file.text(),
+    catch: (cause) => new BenchFileError({ message: `could not read ${file.name}: ${messageOf(cause)}` }),
+  }).pipe(
+    Effect.flatMap((text) => {
+      const decoded = decodeBenchText(text)
+      return Result.isSuccess(decoded)
+        ? Effect.succeed(decoded.success)
+        : Effect.fail(new BenchFileError({ message: `${file.name}: ${decoded.failure.message}` }))
+    }),
+  )
 
 /**
  * Contract: a renderer's `mount` resolves only once its layout has settled, so the time `mount`
  * takes is the settle time. The harness has no other signal; it does not poll the renderer.
  *
  * Mounts one renderer on `root` (which needs a size), times the mount, drives the fixed script,
- * and destroys the renderer. `mount` resolving is taken as "the layout has settled".
+ * and destroys the renderer. A failure in `destroy` is reported too.
  */
 export const runBench = (
   renderer: BenchRenderer,
@@ -58,13 +110,14 @@ export const runBench = (
   root: HTMLElement,
 ): Effect.Effect<BenchResult, BenchRunError> =>
   Effect.gen(function* () {
-    const fail = (stage: 'mount' | 'drive') => (cause: unknown) =>
+    const fail = (stage: 'mount' | 'drive' | 'destroy') => (cause: unknown) =>
       new BenchRunError({ renderer: renderer.name, stage, message: messageOf(cause) })
     const started = performance.now()
     const handle = yield* Effect.tryPromise({ try: () => renderer.mount(root, data, theme), catch: fail('mount') })
     const settleMs = performance.now() - started
-    const times = yield* Effect.tryPromise({ try: () => drive(handle), catch: fail('drive') }).pipe(
-      Effect.ensuring(Effect.sync(() => handle.destroy())),
-    )
-    return { renderer: renderer.name, nodes: data.nodes.length, links: data.links.length, settleMs, ...summarize(times) }
+    const driven = yield* Effect.result(Effect.tryPromise({ try: () => drive(handle), catch: fail('drive') }))
+    const cleaned = yield* Effect.result(Effect.try({ try: () => handle.destroy(), catch: fail('destroy') }))
+    if (Result.isFailure(driven)) return yield* driven.failure
+    if (Result.isFailure(cleaned)) return yield* cleaned.failure
+    return { renderer: renderer.name, nodes: data.nodes.length, links: data.links.length, settleMs, ...summarize(driven.success) }
   })

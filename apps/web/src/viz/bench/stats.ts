@@ -4,38 +4,50 @@ import type { BenchData } from '@nhl-reddit-stats/viz/contracts'
 
 // The pure parts of the speed harness: the fixed script, and the frame-rate arithmetic.
 
-/** One scripted gesture. A pan moves the view by (dx, dy) pixels; a zoom scales it by `factor`. */
+/**
+ * One scripted gesture, active from `fromMs` to `toMs`. Motion is a rate, so every animation frame
+ * moves the camera by the time since the last frame: a pan by (dxPerSecond, dyPerSecond) pixels a second,
+ * a zoom by `factorPerSecond` a second.
+ */
 export type BenchStep =
-  | { readonly _tag: 'pan'; readonly atMs: number; readonly dx: number; readonly dy: number }
-  | { readonly _tag: 'zoom'; readonly atMs: number; readonly factor: number }
+  | { readonly _tag: 'pan'; readonly fromMs: number; readonly toMs: number; readonly dxPerSecond: number; readonly dyPerSecond: number }
+  | { readonly _tag: 'zoom'; readonly fromMs: number; readonly toMs: number; readonly factorPerSecond: number }
 
 export const scriptMs = 10_000
-const stepEveryMs = 50
+const phaseMs = 1000
 
 /**
- * The fixed ten-second script: a step every 50 ms. Each second is one of five phases, repeated twice:
- * pan right, zoom in, pan down-left, zoom out, pan back up. Zoom steps pair up so the view ends where it began.
+ * The fixed ten-second script: five one-second phases, repeated twice: pan right, zoom in,
+ * pan down-left, zoom out, pan back up. The zooms pair up so the view ends at the scale it began.
  */
 export function benchScript(): ReadonlyArray<BenchStep> {
   const steps: BenchStep[] = []
-  const perSecond = 1000 / stepEveryMs
-  for (let index = 0; index < scriptMs / stepEveryMs; index += 1) {
-    const atMs = index * stepEveryMs
-    const phase = Math.floor(index / perSecond) % 5
-    switch (phase) {
-      case 0: steps.push({ _tag: 'pan', atMs, dx: 12, dy: 0 }); break
-      case 1: steps.push({ _tag: 'zoom', atMs, factor: 1.04 }); break
-      case 2: steps.push({ _tag: 'pan', atMs, dx: -8, dy: 8 }); break
-      case 3: steps.push({ _tag: 'zoom', atMs, factor: 1 / 1.04 }); break
-      default: steps.push({ _tag: 'pan', atMs, dx: -4, dy: -8 })
+  for (let index = 0; index < scriptMs / phaseMs; index += 1) {
+    const fromMs = index * phaseMs
+    const toMs = fromMs + phaseMs
+    switch (index % 5) {
+      case 0: steps.push({ _tag: 'pan', fromMs, toMs, dxPerSecond: 240, dyPerSecond: 0 }); break
+      case 1: steps.push({ _tag: 'zoom', fromMs, toMs, factorPerSecond: 2 }); break
+      case 2: steps.push({ _tag: 'pan', fromMs, toMs, dxPerSecond: -160, dyPerSecond: 160 }); break
+      case 3: steps.push({ _tag: 'zoom', fromMs, toMs, factorPerSecond: 0.5 }); break
+      default: steps.push({ _tag: 'pan', fromMs, toMs, dxPerSecond: -80, dyPerSecond: -160 })
     }
   }
   return steps
 }
 
-/** The steps with `fromMs <= atMs < toMs`, in order. */
-export function stepsDue(script: ReadonlyArray<BenchStep>, fromMs: number, toMs: number): ReadonlyArray<BenchStep> {
-  return script.filter((step) => step.atMs >= fromMs && step.atMs < toMs)
+/** Each step active in `[fromMs, toMs)`, with how many milliseconds of it fall in the window. */
+export function overlaps(
+  script: ReadonlyArray<BenchStep>,
+  fromMs: number,
+  toMs: number,
+): ReadonlyArray<{ readonly step: BenchStep; readonly ms: number }> {
+  const found: { readonly step: BenchStep; readonly ms: number }[] = []
+  for (const step of script) {
+    const ms = Math.min(toMs, step.toMs) - Math.max(fromMs, step.fromMs)
+    if (ms > 0) found.push({ step, ms })
+  }
+  return found
 }
 
 /** The median of a list; 0 for an empty list. */
@@ -83,6 +95,22 @@ type Tabled = {
   readonly links: ReadonlyArray<{ readonly a: number; readonly b: number; readonly games: number }>
 }
 
+/** Rejects negative or non-finite games, repeated players, and links to a player that is not a node. */
+export function validateBench(data: BenchData): Result.Result<BenchData, BenchFileError> {
+  const reject = (message: string) => Result.fail(new BenchFileError({ message }))
+  const ids = new Set<number>()
+  for (const node of data.nodes) {
+    if (!Number.isFinite(node.games) || node.games < 0) return reject(`player ${node.playerId} has games ${node.games}`)
+    if (ids.has(node.playerId)) return reject(`player ${node.playerId} appears twice`)
+    ids.add(node.playerId)
+  }
+  for (const link of data.links) {
+    if (!Number.isFinite(link.games) || link.games < 0) return reject(`link ${link.a}-${link.b} has games ${link.games}`)
+    if (!ids.has(link.a) || !ids.has(link.b)) return reject(`link ${link.a}-${link.b} names a player that is not in nodes`)
+  }
+  return Result.succeed(data)
+}
+
 /** Players become nodes and links become links. Plain loops: the league file has 478,383 links. */
 export function benchDataFromTables(tables: Tabled): BenchData {
   const nodes: BenchData['nodes'][number][] = []
@@ -111,10 +139,10 @@ export function decodeBenchText(text: string): Result.Result<BenchData, BenchFil
   if (Result.isFailure(parsed)) return Result.fail(new BenchFileError({ message: `not JSON: ${parsed.failure.message}` }))
   const value = parsed.success
   const ego = decodeEgoFile(value)
-  if (Result.isSuccess(ego)) return Result.succeed(benchDataFromTables(ego.success.tables))
+  if (Result.isSuccess(ego)) return validateBench(benchDataFromTables(ego.success.tables))
   const league = decodeLeagueFile(value)
-  if (Result.isSuccess(league)) return Result.succeed(benchDataFromTables(league.success.tables))
+  if (Result.isSuccess(league)) return validateBench(benchDataFromTables(league.success.tables))
   const plain = decodeBenchFile(value)
-  if (Result.isSuccess(plain)) return Result.succeed(plain.success)
+  if (Result.isSuccess(plain)) return validateBench(plain.success)
   return Result.fail(new BenchFileError({ message: 'expected an exported ego or league file, or { nodes, links }' }))
 }
