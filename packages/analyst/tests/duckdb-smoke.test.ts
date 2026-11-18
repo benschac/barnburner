@@ -4,6 +4,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DuckDBInstance } from "@duckdb/node-api";
+import { logInfo } from "../../../lib/logger.mjs";
 
 const errorOf = async (run: () => Promise<unknown>): Promise<string> => {
   try {
@@ -59,7 +60,7 @@ test("duckdb lock: load, lock, wrap, serialize", async () => {
       ),
     };
     for (const message of Object.values(failures)) assert.ok(message.length > 0);
-    console.log(JSON.stringify(failures, null, 2));
+    logInfo(failures);
 
     // 4
     const wrapped = await connection.runAndReadAll(

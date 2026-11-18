@@ -1,3 +1,4 @@
+import { logError, logInfo, logWarning } from '../lib/logger.mjs'
 import {
   mkdir,
   mkdtemp,
@@ -50,7 +51,7 @@ function createNhlFetcher() {
         ? Math.max(nextRequestAt, retryAt)
         : Date.now() + 30_000;
       if (attempt === 3) return response;
-      console.warn(
+      logWarning(
         `NHL rate limit while reading ${url}. Waiting before retry.`,
       );
       await response.body?.cancel();
@@ -106,7 +107,7 @@ export async function refreshData(directory, { fetcher = createNhlFetcher(), bac
       };
       validatePosterAgainstGames(poster, games);
       await writePosterSnapshot(join(staging, posterFile), poster, games.teams, poster.history.map(({ date }) => date));
-      console.warn(`Keeping supplemental stats fetched ${poster.fetchedAt}; completed scores and box scores will still refresh. ${error.message}`);
+      logWarning(`Keeping supplemental stats fetched ${poster.fetchedAt}; completed scores and box scores will still refresh. ${error.message}`);
     }
 
     const archive = join(directory, "boxscores", String(SEASON));
@@ -152,7 +153,7 @@ export async function refreshData(directory, { fetcher = createNhlFetcher(), bac
         );
       } catch (error) {
         pending.push(game.id);
-        console.warn(
+        logWarning(
           `Could not refresh box score ${game.id}: ${error.message}`,
         );
         continue;
@@ -170,11 +171,11 @@ export async function refreshData(directory, { fetcher = createNhlFetcher(), bac
     await mkdir(archive, { recursive: true });
     for (const [source, destination] of writes)
       await rename(source, destination);
-    console.log(
+    logInfo(
       `Checked ${finals.length} finals through ${completedDates(games).at(-1)}. Supplemental stats fetched ${poster.fetchedAt}. Matching box scores: ${currentBoxes.size}/${finals.length}. Updated files: ${writes.length}.`,
     );
     if (pending.length)
-      console.warn(`Box scores unavailable this run: ${pending.join(", ")}`);
+      logWarning(`Box scores unavailable this run: ${pending.join(", ")}`);
   } finally {
     await rm(staging, { recursive: true, force: true });
   }
@@ -186,7 +187,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     ? resolve(values["data-dir"])
     : fileURLToPath(new URL("../data", import.meta.url));
   refreshData(directory, values["backfill-limit"] === undefined ? {} : { backfillLimit: parseBackfillLimit(values["backfill-limit"]) }).catch((error) => {
-    console.error(error.message);
+    logError(error.message);
     process.exitCode = 1;
   });
 }

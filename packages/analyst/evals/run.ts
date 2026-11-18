@@ -3,6 +3,7 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Effect, Match, Schema } from 'effect'
+import { logError } from '../../../lib/logger.mjs'
 import { ask, ASK_SYSTEM } from '../src/ask.ts'
 import type { AskResult } from '../src/ask.ts'
 import { openDb } from '../src/db.ts'
@@ -109,7 +110,11 @@ export interface OfflineEvaluation {
   readonly answer: (item: EvalCase) => Effect.Effect<AskResult, EvalCliError>
 }
 
-export const runCli = (args: readonly string[], out: (text: string) => void = console.log, offline?: OfflineEvaluation) => Effect.gen(function* () {
+export const runCli = (
+  args: readonly string[],
+  out: (text: string) => void = (text) => process.stdout.write(`${text}\n`),
+  offline?: OfflineEvaluation,
+) => Effect.gen(function* () {
   if (args.includes('--help')) {
     out('Usage: bun run evals --data-dir PATH [--output-dir PATH] [--cases-dir PATH]\nUses the configured live model; writes a JSON receipt and per-question traces.')
     return
@@ -155,7 +160,7 @@ export const runCli = (args: readonly string[], out: (text: string) => void = co
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   await Effect.runPromise(runCli(process.argv.slice(2)).pipe(Effect.catch((error) => Effect.sync(() => {
-    console.error(String(error))
+    logError(String(error))
     process.exitCode = 1
   }))))
 }

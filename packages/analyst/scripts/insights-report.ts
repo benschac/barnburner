@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Result } from "effect";
+import { logError } from "../../../lib/logger.mjs";
 import { defaultTraceDir, parseTraceLine, type OutcomeStatus, type TraceEvent, type TraceLineError } from "../src/trace.ts";
 
 export interface ModelUsage {
@@ -137,18 +138,18 @@ function main(argv: readonly string[]): void {
   const path = join(dir, `${runId}.jsonl`);
   const events = parseTrace(readFileSync(path, "utf8"));
   if (Result.isFailure(events)) {
-    console.error(events.failure.message);
+    logError(events.failure.message);
     process.exitCode = 1;
     return;
   }
-  console.log(formatSummary(runId, summarize(events.success)));
+  process.stdout.write(`${formatSummary(runId, summarize(events.success))}\n`);
 }
 
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     main(process.argv.slice(2));
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+    logError(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   }
 }

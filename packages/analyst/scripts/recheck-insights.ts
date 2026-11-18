@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Effect, Result, Schema } from 'effect'
+import { logError } from '../../../lib/logger.mjs'
 import type { InsightCard } from '../src/card.ts'
 import { openDb } from '../src/db.ts'
 import { guardQuery } from '../src/guard.ts'
@@ -81,12 +82,12 @@ const main = async (): Promise<void> => {
   const dataDir = flag('--data') ?? join(root, 'data')
   const result = await Effect.runPromise(Effect.result(recheckInsights({ dir, dataDir })))
   if (Result.isFailure(result)) {
-    console.error(result.failure.message)
+    logError(result.failure.message)
     process.exitCode = 1
     return
   }
   const { unchanged, refreshed, stale } = result.success
-  console.log(`unchanged ${unchanged}, refreshed ${refreshed}, stale ${stale}`)
+  process.stdout.write(`unchanged ${unchanged}, refreshed ${refreshed}, stale ${stale}\n`)
 }
 
 if (process.argv[1] !== undefined && import.meta.url === new URL(`file://${resolve(process.argv[1])}`).href) await main()
