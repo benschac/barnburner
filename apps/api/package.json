@@ -21,7 +21,7 @@
     "history:fetch": "node scripts/fetch-history.mjs",
     "history:query": "node scripts/history-query.ts",
     "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.json",
-    "lint": "effect-tsgo --tsrs-lint oxlint src tests",
+    "lint": "effect-tsgo --tsrs-lint oxlint src tests scripts",
     "test": "bun run build && node --test tests/*.test.ts"
   },
   "dependencies": {
