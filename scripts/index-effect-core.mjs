@@ -3,14 +3,14 @@
 // installed declaration file, so a search by name or intent leads straight to the source.
 // Nothing is copied or fetched: the declarations stay in node_modules.
 //
-//   node scripts/index-effect-core.mjs          write .agent-sources/effect-api/core-index.md
+//   node scripts/index-effect-core.mjs          write .agent-sources/effect/core-index.md
 //   node scripts/index-effect-core.mjs --check  fail when the index does not match the installed effect
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { logError, logInfo } from '../lib/logger.mjs'
 
 const repo = new URL('../', import.meta.url)
 const dist = new URL('node_modules/effect/dist/', repo)
-const target = new URL('.agent-sources/effect-api/core-index.md', repo)
+const target = new URL('.agent-sources/effect/core-index.md', repo)
 const declaration = /^export (?:declare )?(?:const|function|type|interface|class|namespace|enum) ([A-Za-z_$][\w$]*)/
 
 // The first sentence of a JSDoc block, flattened to one line and safe inside a table cell.
@@ -67,8 +67,8 @@ const index = [
   'Each row is one export of `import { <Module> } from \'effect\'`. Its JSDoc, examples, and signature are lines Start to End of `node_modules/effect/dist/<Module>.d.ts`.', '',
   'Search by name or by intent, then read that range:', '',
   '```sh',
-  "rg -n '^\\| Array \\| (sort|dedupe|groupBy) \\|' .agent-sources/effect-api/core-index.md",
-  "rg -in 'duplicate|sorts' .agent-sources/effect-api/core-index.md",
+  "rg -n '^\\| Array \\| (sort|dedupe|groupBy) \\|' .agent-sources/effect/core-index.md",
+  "rg -in 'duplicate|sorts' .agent-sources/effect/core-index.md",
   "sed -n '<Start>,<End>p' node_modules/effect/dist/<Module>.d.ts",
   '```', '',
   'For a native pattern and its Effect replacement, start with [native-to-effect.md](native-to-effect.md).', '',
@@ -79,7 +79,7 @@ const index = [
 if (process.argv.includes('--check')) {
   const current = await readFile(target, 'utf8').catch(() => '')
   if (current !== index) {
-    logError(`.agent-sources/effect-api/core-index.md does not match effect@${version}. Fix: node scripts/index-effect-core.mjs`)
+    logError(`.agent-sources/effect/core-index.md does not match effect@${version}. Fix: node scripts/index-effect-core.mjs`)
     process.exitCode = 1
   } else logInfo(`effect core index matches effect@${version} (${rows.length} exports)`)
 } else {

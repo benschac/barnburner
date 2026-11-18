@@ -812,7 +812,7 @@ If every card took the same time, the work would run in nine rounds:
 4. Add to a discovered folder by adding a file. Never add a line to a registry.
 5. Colours come from `VizTheme`. A colour literal in `apps/web/src/viz` fails lint once **FV2** lands; do not write one before then either.
 6. For a library's API, read its cached docs in `.agent-sources` first (D19). If the cache is missing what you need, say so in the PR and then read the live docs.
-7. For Atoms, search `.agent-sources/effect-api/reactivity-index.md` and `atom-react-index.md`. For RPC, `rpc-index.md`. They are generated from the installed 4.1.2 packages.
+7. For an Effect API, find the module in `.agent-sources/effect/index.md`, then read its declarations in the installed 4.1.2 packages: `node_modules/effect/dist/reactivity/*.d.ts` and `node_modules/@effect/atom-react/dist/*.d.ts` for Atoms, `node_modules/effect/dist/rpc/*.d.ts` for RPC.
 
 - **viz-check** means, from `packages/viz`: `bun run typecheck && bun run lint && bun run test`.
 - **web-check** means, from `apps/web`: `bun run typecheck && bun run lint && bun run check:tamagui`, plus the card's own tests.
@@ -1166,21 +1166,21 @@ Each builder is one file, `packages/viz/src/tables/<name>.ts`, with one test, `t
 #### FX1 · History query atoms (Sonnet · medium)
 
 - **Needs:** FP1
-- **Read:** `.agent-sources/effect-api/reactivity-index.md` for `AtomRpc`, `Atom.family`, and `AsyncResult`; `apps/web/src/season-source.ts` (the RPC protocol layer); this plan §C-rpc, D23
+- **Read:** `AtomRpc.d.ts`, `Atom.d.ts`, and `AsyncResult.d.ts` in `node_modules/effect/dist/reactivity/` for `AtomRpc`, `Atom.family`, and `AsyncResult`; `apps/web/src/season-source.ts` (the RPC protocol layer); this plan §C-rpc, D23
 - **Write:** `apps/web/src/explorer/history-atoms.ts`: `HistoryClient`, an `AtomRpc` service over `HistoryRpcs` at `/api/history`, and one query-atom function for each call the explorer reads: `searchPlayers`, `player`, `roster`, `link`, `sharedGames`, `opponents`, `opposedGames`, `findPath`, `farthest`, and `finalsCoverage`. Each takes the call's payload and returns the same atom for the same payload. Each sets a serialization key, so a server render can hand its result to the browser, and a time to live. `tests/history-atoms.test.ts` reads each atom through an `AtomRegistry`, with no React, against the in-memory fake store behind the real handler: a success, `UnknownPlayer`, and `HistoryUnavailable` when the transport fails.
 - **Done:** web-check passes. The PR records what the cached docs did not cover.
 
 #### FX2 · URL state atoms (Sonnet · low)
 
 - **Needs:** FX1, FV3
-- **Read:** `.agent-sources/effect-api/reactivity-index.md` for `Atom.searchParam`; `packages/history/src/contracts.ts` (the `Filter` and `Relation` schemas); this plan D7
+- **Read:** `node_modules/effect/dist/reactivity/Atom.d.ts` for `Atom.searchParam`; `packages/history/src/contracts.ts` (the `Filter` and `Relation` schemas); this plan D7
 - **Write:** `apps/web/src/explorer/url-state.ts`: one `Atom.searchParam` for each of `from`, `to`, `relation`, `competition`, `fromSeason`, `toSeason`, and `partners`, each decoded with a synchronous Effect schema; `filterAtom`, which derives a `Filter` from them with the defaults in §C-search; `pathAtom`, which reads `findPath` for the current URL, or nothing while `from` or `to` is missing. `src/viz/lab/entries/url-state.tsx`: fields for each parameter and the decoded values beside them.
 - **Done:** web-check passes. In the lab, editing a field changes the URL, loading a URL fills the fields, a value that does not decode shows as missing, and the back button restores the earlier state.
 
 #### FX3 · Atoms across islands and from the server (Sonnet · medium)
 
 - **Needs:** FX1, FZ1
-- **Read:** `.agent-sources/effect-api/atom-react-index.md` (`RegistryProvider`, `HydrationBoundary`); `reactivity-index.md` for `Hydration`; the zero-runtime guide §Full-runtime islands
+- **Read:** `RegistryContext.d.ts` and `ReactHydration.d.ts` in `node_modules/@effect/atom-react/dist/` (`RegistryProvider`, `HydrationBoundary`); `node_modules/effect/dist/reactivity/Hydration.d.ts` for `Hydration`; the zero-runtime guide §Full-runtime islands
 - **Write:** a lab page with two islands that read and write one atom, and a third that reads `player` for an ID the server component already loaded and passed through `HydrationBoundary`. `apps/web/docs/atoms.md`: how islands share atoms, how server-loaded data reaches them, and what does not work.
 - **Done:** web-check passes. The PR answers, with evidence from the page: do two islands share one registry without help, and if not, what makes them; does the third island show the player with no request to `/api/history`.
 

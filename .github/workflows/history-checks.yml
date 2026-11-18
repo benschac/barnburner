@@ -9,6 +9,9 @@ on:
       - 'scripts/check_nhl_*.py'
       - 'scripts/nhl-history-*.py'
       - 'scripts/nhl_*.py'
+      - 'scripts/refresh-effect-api.mjs'
+      - 'scripts/index-effect-core.mjs'
+      - '.agent-sources/effect/**'
       - 'tests/**'
       - 'packages/history/**'
       - 'packages/season/**'
@@ -44,6 +47,8 @@ jobs:
         with:
           bun-version: 1.4.3
       - run: bun install --frozen-lockfile
+      - name: Effect API index matches the installed packages
+        run: bun run check:effect-api
       - name: Python history checks
         run: bun run test:history
       - name: History package checks

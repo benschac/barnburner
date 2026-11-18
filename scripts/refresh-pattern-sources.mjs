@@ -7,8 +7,6 @@ const root = new URL('../.agent-sources/', import.meta.url)
 const registry = [
   { id: 'ratstack-guide', title: 'Ratstack agent guide', url: 'https://ratstack.sh/llms.txt', file: 'ratstack-llms.txt', document: 'ratstack/guide.txt', index: 'ratstack/guide-index.md', package: null },
   { id: 'ratstack', title: 'Ratstack patterns and guidelines', url: 'https://ratstack.sh/llms-full.txt', file: 'ratstack-full.txt', document: 'ratstack/docs.txt', index: 'ratstack/index.md', package: null },
-  { id: 'effect', title: 'Effect official overview', url: 'https://raw.githubusercontent.com/Effect-TS/effect/main/README.md', file: 'effect-readme.md', document: 'effect/docs.txt', index: 'effect/index.md', package: 'effect' },
-  { id: 'effect-logger', title: 'Effect v4 Logger API source', url: 'https://raw.githubusercontent.com/Effect-TS/effect/289a53f7b1fc40049219c6e69022db2fb859c356/packages/effect/src/Logger.ts', file: 'effect-logger.ts', document: 'effect/logger.txt', index: 'effect/logger-index.md', package: 'effect', upstreamVersion: '4.1.4', sha256: 'df5873f80a7df745aa9774c16573f7c0b753f70a611bedb6a4044b8819f4bfe2' },
   { id: 'xstate', title: 'XState documentation map', url: 'https://stately.ai/llms.txt', file: 'xstate-llms.txt', document: 'xstate/docs.txt', index: 'xstate/index.md', package: 'xstate' },
   { id: 'xstate-effect', title: 'XState Effect quick start', url: 'https://stately.ai/docs/xstate/v6/effect/quick-start.mdx', file: 'xstate-effect.md', document: 'xstate-effect/docs.txt', index: 'xstate-effect/index.md', package: '@xstate/effect' },
 ]
@@ -27,22 +25,14 @@ for (const source of registry) {
     bytes = Buffer.from(await response.arrayBuffer())
   }
   const sha256 = createHash('sha256').update(bytes).digest('hex')
-  if (source.sha256 && sha256 !== source.sha256) throw new Error(`${source.id}: checksum differs from pinned source`)
   const document = bytes.toString('utf8')
   if (!document.trim() || /<!doctype html|<html[\s>]/i.test(document)) {
     throw new Error(`${source.id}: expected Markdown, received empty content or HTML`)
   }
   const lines = document.split('\n')
   const topics = []
-  let docStart = 1
   let fence
   for (let i = 0; i < lines.length; i++) {
-    if (source.id === 'effect-logger') {
-      if (lines[i] === '/**') docStart = i + 1
-      const declaration = /^export (?:const|interface) (\w+)/.exec(lines[i])
-      if (declaration) topics.push({ name: declaration[1], start: docStart })
-      continue
-    }
     const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(lines[i])
     if (marker) {
       if (!fence) fence = marker[1]
@@ -69,17 +59,13 @@ for (const { source, bytes, index, sha256 } of prepared) {
   await mkdir(new URL(`${source.document.split('/')[0]}/`, root), { recursive: true })
   await writeFile(new URL(source.document, root), bytes)
   await writeFile(new URL(source.index, root), index)
-  const loggerSource = source.id === 'effect-logger'
-  const targetPackageVersion = loggerSource
-    ? JSON.parse(await readFile(new URL('../package.json', root), 'utf8')).dependencies.effect
-    : null
   sources[source.id] = {
     url: source.url, fetchedAt,
     retrieval: args.length ? 'imported-download; timestamp supplied by caller' : 'https',
     sha256, bytes: bytes.length,
-    package: source.package, targetPackageVersion, upstreamVersion: source.upstreamVersion ?? null,
-    upstreamRevision: loggerSource ? new URL(source.url).pathname.split('/')[3] : null,
-    compatibility: loggerSource ? 'Pinned upstream API source. Check installed Effect types for compatibility.' : 'Unversioned reference snapshot. These packages are not installed in this project at initial import. Verify current dependencies and upstream API versions before use.',
+    package: source.package, targetPackageVersion: null, upstreamVersion: null,
+    upstreamRevision: null,
+    compatibility: 'Unversioned reference snapshot. These packages are not installed in this project at initial import. Verify current dependencies and upstream API versions before use.',
     document: source.document, index: source.index,
   }
 }
