@@ -36,7 +36,15 @@ for (const name of ['view-antv.md', 'view-d3.md']) {
 
 test('view-antv.md names G2 and G6 first, and view-d3.md allows only D3 and Three.js', () => {
   const antv = read('view-antv.md')
-  assert.ok(antv.indexOf('ctx.libs.G2') < antv.indexOf('ctx.libs.d3'))
+  const rule = antv.split('\n').find((line) => line.startsWith('10. Pick the library'))
+  assert.ok(rule !== undefined, 'the prompt has the selection rule')
+  const at = (needle: string): number => rule.indexOf(needle)
+  for (const first of ['ctx.libs.G2', 'ctx.libs.G6']) {
+    for (const later of ['ctx.libs.d3', 'ctx.libs.THREE']) {
+      assert.ok(at(first) >= 0 && at(later) >= 0 && at(first) < at(later), first + ' is named before ' + later + ' in the selection rule')
+    }
+  }
+  assert.ok(antv.includes('no per-club colours') && read('view-d3.md').includes('no per-club colours'))
   assert.ok(antv.includes('G2 5.4.8') && antv.includes('G6 5.1.1'))
   assert.match(read('view-d3.md'), /Use only `ctx\.libs\.d3` and `ctx\.libs\.THREE`/)
 })

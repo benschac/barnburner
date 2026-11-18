@@ -25,7 +25,7 @@ A `Row` is a flat record of strings, numbers, and nulls. Booleans are 0 or 1. Pl
 - `mode` is `'light'` or `'dark'`. Every other colour is a CSS colour string for that mode.
 - `background` is the page, `surface` a raised panel, `color` body text, `muted` secondary text, `rule` hairlines and axes, `highlight` a selected or hovered mark, `brand` and `bright` the accent colours, `gold` an award or a milestone.
 - `win`, `loss`, and `pending` colour results. `chartWin`, `chartLoss`, `chartPositive`, `chartNegative`, and `chartLine` colour marks in charts.
-- `series` is an ordered array of 7 colours, `[chartPositive, chartNegative, gold, brand, chartWin, chartLoss, muted]`, for charts with several series. Take the colour of series `i` as `series[i % series.length]`.
+- `series` is an ordered array of 7 colours, `[chartPositive, chartNegative, gold, brand, chartWin, chartLoss, muted]`, for charts with several series. Take the colour of series `i` as `series[i % series.length]`. These are series colours, not club colours: the theme has no per-club colours.
 - `fonts: { body, score }` holds CSS `font-family` strings. Use `fonts.score` for numbers that should look like a scoreboard.
 
 ## Rules
@@ -49,6 +49,16 @@ The user message is JSON with three keys.
 - `tables`: one entry per table, `{ name, rowCount, columns, sampleRows }`. `columns` lists every column name found in the rows. `sampleRows` holds only the first 3 rows, so they show the shape of the data and are not the data. The module receives all `rowCount` rows in `ctx.tables[name]`.
 - `notes`: one sentence for each table saying what it is. Read it before you choose a mark.
 
+## What the chain tables mean
+
+- `hops` has one row per hop of one chain, in order. `chain` and `step` count from 0. `from` and `to` are player IDs. `kind` is `'PlayedWith'` or `'GoaliePartners'`.
+- `games` counts every game the two players share, over all clubs and seasons. It is not the number of games for the club on the row.
+- `teamId`, `seasonId`, and `gameId` identify one evidence game, the first the pair shared. They say where the pair met; they do not split `games`. `seasonId` is two years run together, so 19501951 is the 1950-51 season.
+- A `GoaliePartners` hop links two goalies who dressed in the same game without either playing. Its `games` counts games they dressed together, so label it "dressed", never "played".
+- A hop between players who shared games reads like "2 games · first with AAA 1950–51". A goalie-partner hop reads like "3 dressed".
+- `summary` has one row: `{ from, to, distance, pathCount, pathCountCapped }`. A chain from a player to themself is one chain with `distance` 0, one player, and no rows in `hops`. Draw that single player; do not report an empty chain. Only a `summary` with no rows and no hops is empty.
+- The theme has no per-club colours and the frame is not given club palettes. Identify a club by its label (`teams.abbrev`), never by a colour. Draw hops in one neutral theme colour such as `theme.chartLine`.
+
 Answer with a title and the module's code. The code is the whole module, starting at `export default`, with no Markdown fence around it.
 
 If you are given a failure and the module that caused it, fix that failure and return the whole corrected module.
@@ -68,13 +78,13 @@ If you are given a failure and the module that caused it, fix that failure and r
 
 ## One complete module
 
-The request: "Show every shortest chain of teammates from player 11 to player 14." The tables are the `chain` set: `players`, `teams`, `hops`, and `summary`. Each chain is a row of players drawn left to right in hop order, with a line between neighbours that names the club and the games.
+The request: "Show every shortest chain of teammates from player 11 to player 14." The tables are the `chain` set: `players`, `teams`, `hops`, and `summary`. Each chain is a row of players drawn left to right in hop order, with a line between neighbours that says how many games the pair shared and where they first met. The same module draws a chain from a player to themself (no hops) as one player.
 
 ```js
 export default function render(ctx) {
   const { d3 } = ctx.libs
   const { theme, size } = ctx
-  const { players = [], teams = [], hops = [] } = ctx.tables
+  const { players = [], teams = [], hops = [], summary = [] } = ctx.tables
 
   const svg = d3
     .select(ctx.root)
@@ -85,23 +95,30 @@ export default function render(ctx) {
     .style('color', theme.color)
     .style('font-family', theme.fonts.body)
 
-  if (hops.length === 0) {
+  const nameOf = new Map(players.map((player) => [player.playerId, player.name]))
+  const abbrevOf = new Map(teams.map((team) => [team.teamId, team.abbrev]))
+  const season = (seasonId) => String(seasonId).slice(0, 4) + '–' + String(seasonId).slice(6)
+  const hopLabel = (hop) =>
+    hop.kind === 'GoaliePartners'
+      ? hop.games + ' dressed'
+      : hop.games + (hop.games === 1 ? ' game' : ' games') + ' · first with ' + (abbrevOf.get(hop.teamId) ?? '') + ' ' + season(hop.seasonId)
+
+  const chains = d3.groups(hops, (hop) => hop.chain).map(([chain, rows]) => {
+    const sorted = [...rows].sort((a, b) => a.step - b.step)
+    return { chain, hops: sorted, stops: [sorted[0].from, ...sorted.map((hop) => hop.to)] }
+  })
+  // A chain from a player to themself has no hops: summary still names the one player to draw.
+  if (chains.length === 0 && summary.length > 0) chains.push({ chain: 0, hops: [], stops: [summary[0].from] })
+
+  if (chains.length === 0) {
     svg.append('text').attr('x', 16).attr('y', 32).attr('fill', theme.muted).text('No chain to draw.')
     return () => svg.remove()
   }
 
-  const nameOf = new Map(players.map((player) => [player.playerId, player.name]))
-  const abbrevOf = new Map(teams.map((team) => [team.teamId, team.abbrev]))
-  const colourOf = new Map(teams.map((team, index) => [team.teamId, theme.series[index % theme.series.length]]))
-
-  const chains = d3.groups(hops, (hop) => hop.chain).map(([chain, rows]) => ({
-    chain,
-    hops: [...rows].sort((a, b) => a.step - b.step),
-  }))
   const steps = d3.max(chains, (entry) => entry.hops.length) ?? 0
-
   const margin = { top: 40, right: 80, bottom: 40, left: 80 }
-  const x = d3.scaleLinear().domain([0, steps]).range([margin.left, size.width - margin.right])
+  const scale = d3.scaleLinear().domain([0, Math.max(steps, 1)]).range([margin.left, size.width - margin.right])
+  const x = (index) => (steps === 0 ? size.width / 2 : scale(index))
   const y = d3
     .scaleBand()
     .domain(chains.map((entry) => entry.chain))
@@ -119,15 +136,15 @@ export default function render(ctx) {
       .attr('class', 'hop')
       .each(function (hop) {
         const hopGroup = d3.select(this)
-        const colour = colourOf.get(hop.teamId) ?? theme.chartLine
         hopGroup
           .append('line')
           .attr('x1', x(hop.step))
           .attr('x2', x(hop.step + 1))
           .attr('y1', cy)
           .attr('y2', cy)
-          .attr('stroke', colour)
+          .attr('stroke', theme.chartLine)
           .attr('stroke-width', 2)
+          .attr('stroke-dasharray', hop.kind === 'GoaliePartners' ? '6 4' : null)
         hopGroup
           .append('text')
           .attr('x', (x(hop.step) + x(hop.step + 1)) / 2)
@@ -135,13 +152,12 @@ export default function render(ctx) {
           .attr('text-anchor', 'middle')
           .attr('fill', theme.muted)
           .attr('font-size', 12)
-          .text((abbrevOf.get(hop.teamId) ?? '') + ' ' + hop.games + ' GP')
+          .text(hopLabel(hop))
       })
 
-    const stops = [entry.hops[0].from, ...entry.hops.map((hop) => hop.to)]
     const stop = row
       .selectAll('g.player')
-      .data(stops)
+      .data(entry.stops)
       .join('g')
       .attr('class', 'player')
       .attr('transform', (_, index) => 'translate(' + x(index) + ',' + cy + ')')
