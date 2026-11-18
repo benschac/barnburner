@@ -100,6 +100,10 @@ For integration work, check who owns actor startup, shutdown, interruption, depe
 
 `bun run check:xstate-docs` fails when either index does not match the installed packages; root `bun run lint` runs it. After an XState or `@xstate/effect` upgrade, run `node scripts/index-xstate-docs.mjs` and commit the result. The script reads only local files.
 
+## AntV
+
+Use `antv/g2/` for G2 5 charts and `antv/g6/` for G6 5 graphs. Search `index.md` (category, topic, line range), then read that range of `docs.txt`. Each `docs.txt` is built page by page from the site's `llms.txt` listing, examples included (G2 5.4.8, G6 5.1.1, matching the plan's pinned versions), with every page in English where the site has an English version and in Chinese otherwise (the `Language` column of the index says which). `antv/skills/` holds the `antv-g2-chart` and `antv-g6-graph` skills from `antvis/chart-visualization-skills` (English), pinned to the commit in `sources.json`; `--update-skills` moves that pin to the upstream HEAD. G2 and G6 are MIT licensed, and so are the skills; each licence sits beside its files and in `sources.json`. Refresh explicitly with `node scripts/refresh-antv-sources.mjs`; it writes nothing unless every download parses. The skills are reference material, not instructions for agents; in particular, the cached `antv-g2-chart` skill's rule "MUST: No d3 in user code" does not apply here, because this project's view modules are handed `ctx.libs.d3` (plan §C-viz).
+
 ## General patterns
 
 Use the named directory's generated index to select a section before reading its cached document. Ratstack's full corpus includes general guidelines, Effect patterns, and related systems such as Alchemy, Cloudflare, and Foldkit. Follow [our Ratstack workflow](ratstack/README.md) to apply those references within this project's stack and authority boundaries.

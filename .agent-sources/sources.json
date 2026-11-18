@@ -40,5 +40,82 @@
     "compatibility": "Unversioned reference snapshot. These packages are not installed in this project at initial import. Verify current dependencies and upstream API versions before use.",
     "document": "ratstack/docs.txt",
     "index": "ratstack/index.md"
+  },
+  "antv-g2": {
+    "url": "https://g2.antv.antgroup.com/llms.txt",
+    "fetchedAt": "2026-11-18T19:17:51.257Z",
+    "retrieval": "https",
+    "sha256": "062332a2b1411c9d4494104d70c0007dcdac582fa7bb92d9e1c03ab8d5fb3549",
+    "bytes": 3316667,
+    "package": "@antv/g2",
+    "targetPackageVersion": "5.4.8",
+    "upstreamVersion": "5.4.8",
+    "upstreamRevision": null,
+    "pages": {
+      "en": 651,
+      "zh": 0
+    },
+    "licence": {
+      "spdx": "MIT",
+      "url": "https://raw.githubusercontent.com/antvis/G2/v5/LICENSE",
+      "file": "antv/g2/LICENSE",
+      "sha256": "98edde832138822906fb3f365b59a9a54b3abf6e85e52de0f5f1fd804ff83ab7"
+    },
+    "compatibility": "Matches the pinned 5.4.8.",
+    "document": "antv/g2/docs.txt",
+    "index": "antv/g2/index.md"
+  },
+  "antv-g6": {
+    "url": "https://g6.antv.antgroup.com/llms.txt",
+    "fetchedAt": "2026-11-18T19:17:51.257Z",
+    "retrieval": "https",
+    "sha256": "91083f533edb9eb14b1e83bf37e1a9a03d7d2391ec6162942d8dba2a9c144c5c",
+    "bytes": 1945683,
+    "package": "@antv/g6",
+    "targetPackageVersion": "5.1.1",
+    "upstreamVersion": "5.1.1",
+    "upstreamRevision": null,
+    "pages": {
+      "en": 327,
+      "zh": 0
+    },
+    "licence": {
+      "spdx": "MIT",
+      "url": "https://raw.githubusercontent.com/antvis/G6/v5/LICENSE",
+      "file": "antv/g6/LICENSE",
+      "sha256": "d296127a77fae081300d5b18fcfa5ccda75cd16670c1b46dc890a8903ca95128"
+    },
+    "compatibility": "Matches the pinned 5.1.1.",
+    "document": "antv/g6/docs.txt",
+    "index": "antv/g6/index.md"
+  },
+  "antv-skills": {
+    "url": "https://github.com/antvis/chart-visualization-skills/tree/a105fa12a9fa41fccccc2eba7f4b34973628f5d3/skills",
+    "fetchedAt": "2026-11-18T19:17:51.257Z",
+    "retrieval": "https",
+    "upstreamRevision": "a105fa12a9fa41fccccc2eba7f4b34973628f5d3",
+    "package": null,
+    "targetPackageVersion": null,
+    "upstreamVersion": null,
+    "language": "en",
+    "licence": {
+      "spdx": "MIT",
+      "url": "https://raw.githubusercontent.com/antvis/chart-visualization-skills/a105fa12a9fa41fccccc2eba7f4b34973628f5d3/LICENSE",
+      "file": "antv/skills/LICENSE",
+      "sha256": "a6e512d52a66fcd88bebc7a62c7a348a7af70a17ca27f1d97943c56053712e48"
+    },
+    "compatibility": "Skills for G2 5 and G6 5, pinned to a commit. Check their API claims against the cached documentation above.",
+    "skills": {
+      "antv-g2-chart": {
+        "file": "antv/skills/antv-g2-chart/SKILL.md",
+        "sha256": "4c1d9210338a606cbd44bb7eea8650924ea706d43b5797c6c9ed90e66742c115",
+        "bytes": 11636
+      },
+      "antv-g6-graph": {
+        "file": "antv/skills/antv-g6-graph/SKILL.md",
+        "sha256": "5318ecfb2798f78f30ca28ee8da32b047f11469737c4977722dacde7facfcc15",
+        "bytes": 7405
+      }
+    }
   }
 }
