@@ -4,7 +4,7 @@ Status: ready to start, Nov 17 2026. Owner: Ben.
 
 Build a graph of everyone credited with playing in the NHL. A fan should be able to start at Connor McDavid, open one of his Edmonton rosters, follow a teammate to another club or era, and eventually reach Ted Lindsay. Every hop should answer “when did these two play together?” with a team and a specific game.
 
-The import exists locally and reconciles. Everything else here is planned. This revision records the review of Nov 17: it fixes the engine choice, closes the holes the review found, adds goalie partners and “played against”, and splits the work into small PRs. Scope, agreed Nov 17: the data structure, the backend, and the core queries. The web explorer and the game come later (§Later).
+The import exists locally and reconciles. Everything else here is planned. This revision records the review of Nov 17: it fixes the engine choice, closes the holes the review found, adds goalie partners and “played against”, and splits the work into small PRs. Scope, agreed Nov 17: the data structure, the backend, and the core queries. The web explorer and the game come later (§Later). Nov 18: §Frontend adds the visualization decisions and a spike that the explorer's cards wait on.
 
 ## How to use this plan
 
@@ -574,11 +574,211 @@ H0 ─┬─ I1 (the backfill runs once: about 70,000 requests)
 - **Write:** `.github/workflows/refresh-nhl-history.yml`: fetch the archive, import the recent seasons and their new box scores, build, run `history:accept`, upload the gzipped serving file under its snapshot ID, and commit the pointer. Skip the commit when the snapshot ID is unchanged. Gate on the same repository variable pattern as the existing refresh.
 - **Done:** a manual dispatch on the default branch publishes a snapshot, and the next deploy serves it. Ben triggers the first run.
 
+## Frontend
+
+Added Nov 18 2026. Status: decisions drafted, spike not started. Owner: Ben.
+
+The explorer has two kinds of view. **Built views** are the ones this plan already names: search, a player's clubs, rosters, a chain with its evidence, played-against lists. **Prompted views** are new: a fan types what they want to see, a model writes the visualization, and the app draws it. Both must feel like one product, stay fast, and leave room for data we have not imported yet.
+
+This section fixes the approach, defines the contracts a prompted view crosses, and specifies a spike. The spike measures the two things research could not settle. The explorer's own cards are written after it (**F11**).
+
+### Decisions
+
+Numbering continues from §Decisions.
+
+| # | Decision | Why |
+| --- | --- | --- |
+| D15 | **A prompted view is code the model writes, run in a sandbox.** It is not a pick from a catalog of chart components. | A catalog can only draw what we defined in advance. Code can draw a layout, an animation, or a 3D scene nobody listed. The cost is that code can fail or misbehave, which D17 and the repair loop (**F9**) handle. |
+| D16 | **AntV is the house visualization family.** G2 draws charts and G6 draws networks, in built and prompted views alike. L7 (maps), S2 (pivot tables), and Infographic join when a view needs them. D3 and Three.js are available inside the sandbox for views AntV cannot express. A GPU renderer (cosmos.gl) takes any view G6 cannot draw at speed. **Provisional until F11.** | One family gives every view the same interactions, animation, and theme, so prompted views look like the built ones. It covers the widest range of formats found, and AntV publishes agent skills for G2 5 and G6 5. Its weak spot is G6 at scale: no published benchmark near our graph, and reports of lag at a few hundred nodes. The spike measures that. |
+| D17 | **The sandbox has no network and no access to the app.** The frame runs in an opaque origin. Data enters by message. The server-side agent chooses the data with bounded History RPC calls; code inside the frame never fetches. | Model-written code is untrusted. With no network it cannot leak data or call our API, and with no shared origin it cannot read cookies or the page. |
+| D18 | **One theme source.** `apps/web/design/contract.json` feeds Tamagui today. An adapter turns the same values into a G2 theme, a G6 theme, and CSS variables for the frame. | Chart colours already come from `useTheme()` by contract. Built and prompted views must not drift apart. |
+| D19 | **Docs for every adopted library are cached in `.agent-sources`, pinned to the installed version, and quoted in the generation prompt.** | Coding agents and the run-time model both write against the installed API, not a remembered older one. |
+
+This section is the plan's one exception to “nothing calls a model at run time”: **F9** and **F10** call the model configured in `packages/analyst/src/llm.ts`, and each run records its model and token count.
+
+Not chosen:
+
+- **A component catalog as the foundation** (json-render, GPT-Vis, Vega-Lite specs). Safe and predictable, but it caps prompted views at what we listed. It may return later as a fast path for ordinary charts inside answers.
+- **Raw D3 as the default vocabulary.** The highest ceiling, but every prompted view would hand-roll its own tooltips, zoom, and legends, and quality would vary from view to view. It stays as the escape hatch.
+- **Apache ECharts.** Strong charts, but its graph series is a chart type, not a graph toolkit, and the product is a graph.
+
+### C-viz: what a prompted view crosses
+
+Three shapes, all in `apps/web/src/viz/contracts.ts` as Effect schemas (**F8** writes them). They move to a package when a second consumer needs them.
+
+**Tables.** The data a view receives. `{ tables: { [name]: Row[] }, notes: string }`, where a `Row` is a flat record of strings, numbers, and nulls. Player IDs and names travel together. `notes` says what each table is, in one sentence each, and is also given to the model.
+
+**View module.** What the model writes: the body of one ES module with a default export.
+
+```ts
+export default function render(ctx: {
+  root: HTMLElement                      // draw only inside this element
+  tables: Record<string, Row[]>
+  theme: VizTheme                        // D18
+  size: { width: number; height: number }
+  libs: { G2, G6, d3, THREE }            // the frame provides these; the module imports nothing
+}): () => void                           // returns its own cleanup
+```
+
+**Frame messages.** Every message has a `_tag`.
+
+| Direction | Message | Meaning |
+| --- | --- | --- |
+| Host → frame | `Render { id, code, tables, theme }` | Run this view module. |
+| Host → frame | `Dispose { id }` | Call the view's cleanup and clear the root. |
+| Frame → host | `Ready { versions }` | The frame loaded; the library versions it carries. |
+| Frame → host | `Rendered { id, ms }` | First paint finished. |
+| Frame → host | `Failed { id, message }` | The module threw, or did not paint in time. |
+| Frame → host | `FrameRate { id, fps }` | Sampled while the view runs. Used by **F7** and **F10**. |
+
+Rules for the frame, each proved by a test in **F8**:
+
+- It runs with scripts allowed and no same-origin access, so its origin is opaque.
+- It cannot reach the network: no fetch, no WebSocket, no image or font from outside its own bundle.
+- It cannot open windows, submit forms, or navigate the page.
+- A view that never returns must not freeze the explorer. **F8** records what each browser does; the result decides whether the frame needs its own domain.
+
+### The spike
+
+Twelve small PRs. They continue the one stack, on branches named `viz/<id>-<slug>`. The §Worker preamble applies. **web-check** means, from `apps/web`: `bun run typecheck && bun run lint && bun run check:tamagui`.
+
+The spike's views live in a lab page that only exists in development builds (`import.meta.env.DEV`), so nothing here ships to production.
+
+```
+F1 ─┬─ F0
+    ├─ F3 ─┬─ F5 (needs F2, F4)
+    │      ├─ F6 (needs F2, F4)
+    │      └─ F7 (needs F4)
+    └─ F8 ─── F10 (needs F4, F9)
+F2, F4, F9 need nothing from this section
+F11 needs F5, F6, F7, F10
+```
+
+- **Ready now:** F1, F2, F4, F9. **F9** works from §C-viz alone; it does not need the frame.
+- **Run first:** F1 → F8, because the sandbox is the one piece with a security boundary, and F1 → F3 → F7, because G6's speed is the one open risk in D16.
+- **Blocked on Ben:** rating the screenshots in **F10**, and the pass lines in **F11**.
+
+What the spike decides:
+
+| Question | Measured by | Decides |
+| --- | --- | --- |
+| Can G6 draw one player's teammate network smoothly? | **F7**, Jágr's 518 teammates | Whether G6 keeps the network views |
+| Can anything draw the whole league (8,842 players, 478,383 links)? | **F7**, G6 on WebGL against cosmos.gl | Which renderer gets that view, or that it is cut |
+| Does the model write better views with AntV or with D3 and Three.js? | **F10**, five prompts, both vocabularies | D16's default vocabulary |
+| Does a runaway view freeze the page? | **F8**, per browser | Same-host frame or a separate domain |
+| What does each library cost to load? | **F5**, **F6**, **F7** bundle reports | Which libraries load on demand |
+
+No pass line is set in advance. Each gate records its numbers first; **F11** sets the lines from them.
+
+#### F1 · Install the visualization dependencies (Haiku · low)
+
+- **Needs:** nothing
+- **Write:** exact-pinned versions in `apps/web/package.json`: `@antv/g2`, `@antv/g6`, `@antv/g6-extension-react`, `@antv/g-webgl`, `d3`, `three`, `@cosmos.gl/graph`, and their type packages where separate. In `packages/analyst/package.json`: `playwright` as a dev dependency (for **F10**). `bun.lock`. No other task edits these two manifests during the spike.
+- **Done:** web-check passes and `bun run build` in `apps/web` produces the same bundle size as before, since nothing imports the new packages yet. The PR lists the installed versions.
+
+#### F0 · Cache the AntV docs and skills (Sonnet · low)
+
+- **Needs:** F1 (for the versions)
+- **Read:** `.agent-sources/README.md`, `.agent-sources/sources.json`, `scripts/refresh-agent-sources.mjs`
+- **Write:** entries for G2 5, G6 5, and `antvis/chart-visualization-skills` (the `antv-g2-chart` and `antv-g6-graph` skills) in `sources.json`; the fetched docs and generated indexes under `.agent-sources/antv/`; one paragraph in `.agent-sources/README.md` and one in `AGENTS.md` §Library documentation. English pages where they exist, Chinese otherwise. Record each source's licence.
+- **Done:** `node scripts/refresh-agent-sources.mjs` reproduces the files with matching checksums. The PR states the doc versions against the versions **F1** installed.
+
+#### F2 · History client for the web app (Sonnet · low)
+
+- **Needs:** nothing (§C-rpc is in the stack)
+- **Read:** `apps/web/src/season-source.ts`; this plan §C-rpc
+- **Write:** `apps/web/src/history-source.ts`: a `HistorySource` service over `HistoryRpcs` at `/api/history`, with `searchPlayers`, `player`, `roster`, `link`, `opponents`, `findPath`, and `finalsCoverage`, mirroring `season-source.ts`. A transport failure becomes `HistoryUnavailable`. `apps/web/tests/history-source.test.ts` runs it against the in-memory fake store through the real handler.
+- **Done:** web-check passes and the test passes.
+
+#### F3 · Theme adapter and lab shell (Sonnet · medium)
+
+- **Needs:** F1
+- **Read:** `apps/web/design/README.md`, `apps/web/design/contract.json`, `apps/web/src/Charts.tsx`, `apps/web/src/ThemePreference.tsx`; the cached G2 and G6 theme docs if **F0** has landed
+- **Write:** `apps/web/src/viz/theme.ts`: `VizTheme` built from `useTheme()`, and pure functions from it to a G2 theme, a G6 theme, and a CSS-variable map. A design rule that rejects literal colours in files under `src/viz/`, with a passing and a failing fixture in `scripts/test-design-rules.mjs`. `src/viz/lab/Lab.tsx`: a page that lists entries from `src/viz/lab/registry.ts`; later cards each add one line there. The app has no router, so `src/main.tsx` mounts the lab instead of the app when the build is a development build and the path is `/viz-lab`.
+- **Done:** web-check passes. Switching the app theme changes the colours of a sample G2 chart and a sample G6 graph on the lab page.
+
+#### F4 · Export the spike's datasets (Sonnet · medium)
+
+- **Needs:** nothing
+- **Read:** `apps/api/scripts/history-query.ts`, `apps/api/src/history-store.ts`; this plan §C-viz, §C-mini
+- **Write:** `apps/api/scripts/history-viz-fixtures.ts`: from a serving file, write five §C-viz table sets as JSON to `data/history/viz/` (ignored by git): `chain` (the tied shortest chains between two players, with each hop's evidence), `ego` (one player's teammates and every link among them), `league` (every player and every teammate link, with games and first season), `opponents` (two players' opponents side by side), and `finals` (one player's Finals coverage by year). A test runs it on the §C-mini file and checks each table. Commit the five §C-mini outputs under `apps/web/tests/fixtures/viz/` for the cards below.
+- **Done:** api-check passes. **Gate (Archive):** the orchestrator runs it on the real snapshot for McDavid → Lindsay, Jágr, and Gretzky with Ovechkin, and records each file's size.
+
+#### F5 · Chain view in G6 (Sonnet · medium)
+
+- **Needs:** F2, F3, F4
+- **Read:** this plan §C-rpc `FindPath`, D6; the cached G6 docs for React nodes and the dagre layout
+- **Write:** `apps/web/src/viz/ChainView.tsx` and one lab entry: the tied shortest chains between two players as one left-to-right graph, each player a Tamagui card rendered as a G6 React node, each hop labelled with its team, season, and evidence game. Hovering a chain highlights it. No colour or size outside the design contract.
+- **Done:** web-check passes. On the §C-mini fixture, 11 → 14 shows both tied chains with 11–12–14 first. The PR records the added bundle size and a screenshot from the real `chain` dataset.
+
+#### F6 · Two charts in G2 (Sonnet · medium)
+
+- **Needs:** F2, F3, F4. **Stack on:** F5 (the lab registry).
+- **Read:** this plan §C-rpc `GetLink`, `GetFinalsCoverage`; the cached G2 docs
+- **Write:** `apps/web/src/viz/GamesBySeason.tsx` (a pair's games together per season, split by club and competition, from link spans) and `FinalsGrid.tsx` (one cell per Final year, hit or miss, with the matched player on hover), each with a lab entry.
+- **Done:** web-check passes. The PR records the added bundle size and screenshots in the light and dark themes.
+
+#### F7 · Network speed gate (Sonnet · medium)
+
+- **Needs:** F3, F4. **Stack on:** F6 (the lab registry).
+- **Read:** the cached G6 docs for renderers, layouts, and `OptimizeViewportTransform`; the cosmos.gl README
+- **Write:** `apps/web/src/viz/lab/NetworkBench.tsx` and one lab entry: draw the `ego` and `league` datasets with G6 on canvas, G6 on WebGL, and cosmos.gl. For each, record time to a settled layout, and median and worst frame rate over a scripted ten-second pan and zoom. Print a table and offer it as JSON.
+- **Done:** web-check passes and the page runs on the §C-mini fixtures. **Gate (Archive):** the orchestrator runs it on the real datasets in Chrome and Safari on Ben's laptop and pastes the table into the PR, with the bundle size each renderer adds.
+
+#### F8 · The sandbox frame (Sonnet · high, Opus review)
+
+- **Needs:** F1
+- **Read:** this plan D17, §C-viz; `apps/web/vercel.json`, `apps/web/vite.config.ts`
+- **Write:** `apps/web/src/viz/contracts.ts` (the §C-viz schemas). `apps/web/viz-frame.html` and `src/viz/frame.ts`: a second Vite entry that carries G2, G6, D3, and Three.js, runs a posted view module, and answers with the frame messages. `src/viz/VizFrame.tsx`: the host component; it posts `Render`, validates every message it receives, and removes the frame when no `Rendered` or `Failed` arrives in time. Response headers for the frame's path in `vercel.json` and the same policy in the Vite dev server. One lab entry that runs a hand-written sample module. The PR states how posted code is executed and why that route was chosen.
+- **Done:** web-check passes. A browser test (Playwright, from the lab page) proves each rule in §C-viz: inside the frame, a fetch to the app's own API fails, cookies and storage are unreadable, the parent document is unreachable, and a window cannot be opened. A sample that throws produces `Failed`. A sample that loops forever is reported for Chrome, Safari, and Firefox: whether the explorer stays responsive, and how long removal takes.
+
+#### F9 · Write a view from a prompt (Sonnet · medium)
+
+- **Needs:** nothing (works from §C-viz)
+- **Read:** `packages/analyst/src/llm.ts`, `prompt.ts`, `ask.ts`; this plan §C-viz, D19
+- **Write:** `packages/analyst/src/viz/generate.ts`: `generateView({ prompt, tables, notes, vocabulary })` returns `{ title, code }` or a tagged error. `vocabulary` is `'antv'` (G2 and G6 first, D3 and Three.js allowed) or `'d3'` (D3 and Three.js only); each has its own system prompt under `src/prompts/`, quoting the cached docs for the pinned versions. `repairView({ code, failure })` asks again with the frame's `Failed` message, at most twice. A static check rejects code that imports, fetches, or reaches outside `ctx` before it is ever run. `scripts/generate-view.ts` writes one view to a file. Tests use a stubbed model.
+- **Done:** from `packages/analyst`, `bun run typecheck && bun run lint && bun run test` pass.
+
+#### F10 · Vocabulary bake-off (Sonnet · medium)
+
+- **Needs:** F4, F8, F9
+- **Read:** `packages/analyst/evals/run.ts`, `runner.ts`, `grade.ts`
+- **Write:** `packages/analyst/evals/viz/`: run the five prompts below with each vocabulary on the real datasets, render every result in the sandbox frame through Playwright, apply the repair loop, and write one report page with, per run: rendered or failed, repairs used, tokens, seconds to first paint, median frame rate, and a screenshot. The report shows the two vocabularies side by side without labels, so Ben can rate each pair blind.
+  1. `chain`: “Show how McDavid connects to Ted Lindsay, and make each hop feel like a jump through time.”
+  2. `ego`: “Draw Jágr's career as a galaxy of teammates, clustered by club, brightest where he played the most.”
+  3. `league`: “Animate the league's teammate network growing season by season from 1917.”
+  4. `opponents`: “Compare who Gretzky and Ovechkin played against. Who did both face, and how often?”
+  5. `finals`: “Make something wild out of the 45 Finals that Jágr's teammates played in.”
+- **Done:** the eval's own tests pass with a stubbed model. **Gate:** the orchestrator runs it once with the configured generate model (at most 30 model calls), Ben rates the ten pairs, and the PR records the table. If the two vocabularies are close, rerun once with a stronger model before deciding.
+
+#### F11 · Decide and write the explorer cards (orchestrator)
+
+- **Needs:** F5, F6, F7, F10
+- **Write:** in this section: the gate numbers, the pass lines agreed with Ben, D16 confirmed or changed, the renderer for each network view, whether the frame gets its own domain, and which libraries load on demand. Then the cards for the explorer's built views, including how the app gets routes (it has none today), and for the prompted-view service: how the agent chooses bounded History queries for a prompt, cost and rate limits, caching by prompt and snapshot ID, and how a prompted view that works well is promoted to a built one.
+- **Done:** Ben approves the section.
+
+### Frontend ledger
+
+| ID | Title | Tier | Needs | Branch | PR | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| F1 | Install the visualization dependencies | Haiku · low | — | | | not started |
+| F0 | Cache the AntV docs and skills | Sonnet · low | F1 | | | not started |
+| F2 | History client for the web app | Sonnet · low | — | | | not started |
+| F3 | Theme adapter and lab shell | Sonnet · medium | F1 | | | not started |
+| F4 | Export the spike's datasets | Sonnet · medium | — | | | not started |
+| F5 | Chain view in G6 | Sonnet · medium | F2, F3, F4 | | | not started |
+| F6 | Two charts in G2 | Sonnet · medium | F2, F3, F4 | | | not started |
+| F7 | Network speed gate | Sonnet · medium | F3, F4 | | | not started |
+| F8 | The sandbox frame | Sonnet · high | F1 | | | not started |
+| F9 | Write a view from a prompt | Sonnet · medium | — | | | not started |
+| F10 | Vocabulary bake-off | Sonnet · medium | F4, F8, F9 | | | not started |
+| F11 | Decide and write the explorer cards | Orchestrator | F5, F6, F7, F10 | | | not started |
+
 ## Later
 
 Out of scope for this plan. The API contract above is what these will call.
 
-- **Web explorer.** Player search, a player's clubs, rosters, a visible chain with undo, the evidence sheet behind any link, the path view with filters, and the played-against lists.
+- **Web explorer.** Player search, a player's clubs, rosters, a visible chain with undo, the evidence sheet behind any link, the path view with filters, and the played-against lists. §Frontend fixes the approach and runs a spike; **F11** writes these cards.
 - **Game.** A daily challenge between two well-known players, move-by-move checking, chain verification and a longest-chain score, and a Finals streak view. It needs a fame floor: the farthest pair is Amos Arbour and Trevor Kuntar, nine hops apart, and nobody can play that.
 - **User state.** Accounts, saved chains, and leaderboards, in Postgres (D13).
 
