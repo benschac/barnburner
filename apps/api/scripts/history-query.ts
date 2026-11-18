@@ -112,13 +112,12 @@ const makeNames = (store: HistoryStore): Names => {
     name: (id) => Effect.map(detail(id), (d) => d.name),
     team: (playerId, teamId) => Effect.map(detail(playerId), (d) => d.stints.find((s) => s.teamId === teamId)?.teamAbbrev ?? `team ${teamId}`),
     date: (hop) => {
-      const games = hop._tag === 'PlayedAgainst'
-        ? store.opposedGames(hop.from, hop.to)
-        : store.sharedGames(hop.from, hop.to, hop.seasonId, hop.gameType, hop.teamId, hop._tag)
-      return games.pipe(
-        Effect.map((rows) => rows.find((g) => g.gameId === hop.gameId)?.gameDate ?? '?'),
-        Effect.catchTag('UnknownPlayer', () => Effect.succeed('?')),
-      )
+      const pick = (rows: ReadonlyArray<{ readonly gameId: number; readonly gameDate: string }>) =>
+        rows.find((g) => g.gameId === hop.gameId)?.gameDate ?? '?'
+      const found = hop._tag === 'PlayedAgainst'
+        ? Effect.map(store.opposedGames(hop.from, hop.to), pick)
+        : Effect.map(store.sharedGames(hop.from, hop.to, hop.seasonId, hop.gameType, hop.teamId, hop._tag), pick)
+      return found.pipe(Effect.catchTag('UnknownPlayer', () => Effect.succeed('?')))
     },
   }
 }
@@ -280,7 +279,6 @@ const run = (argv: ReadonlyArray<string>) => program(argv).pipe(
     NoChain: (e) => fail(`No chain between ${e.from} and ${e.to} with these filters.`),
     HistoryUnavailable: (e) => fail(`History unavailable: ${e.message}`),
     UnknownPlayer: (e) => fail(`Unknown player ${e.playerId}.`),
-    NoPath: () => fail('No chain between these players with these filters.'),
     UnsupportedFilter: (e) => fail(`--relation ${e.relation} supports no competition, season, or partner flags.`),
   }),
 )
