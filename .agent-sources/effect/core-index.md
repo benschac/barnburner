@@ -7,8 +7,8 @@ Each row is one export of `import { <Module> } from 'effect'`. Its JSDoc, exampl
 Search by name or by intent, then read that range:
 
 ```sh
-rg -n '^\| Array \| (sort|dedupe|groupBy) \|' .agent-sources/effect-api/core-index.md
-rg -in 'duplicate|sorts' .agent-sources/effect-api/core-index.md
+rg -n '^\| Array \| (sort|dedupe|groupBy) \|' .agent-sources/effect/core-index.md
+rg -in 'duplicate|sorts' .agent-sources/effect/core-index.md
 sed -n '<Start>,<End>p' node_modules/effect/dist/<Module>.d.ts
 ```
 

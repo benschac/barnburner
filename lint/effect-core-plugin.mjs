@@ -1,5 +1,5 @@
 // Enforces "Effect core modules" in AGENTS.md: native patterns that @effect/tsgo does not report.
-// Each message names the core module API to use; .agent-sources/effect-api/native-to-effect.md
+// Each message names the core module API to use; .agent-sources/effect/native-to-effect.md
 // lists the replacements and core-index.md leads to their declarations.
 
 const LOOP = /\/\/\s*loop:\s*\S/
