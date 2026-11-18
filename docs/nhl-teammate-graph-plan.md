@@ -576,11 +576,13 @@ H0 ─┬─ I1 (the backfill runs once: about 70,000 requests)
 
 ## Frontend
 
-Added Nov 18 2026. Status: decisions drafted, nothing started. Owner: Ben.
+Added Nov 18 2026. Status: decisions made, nothing started. Owner: Ben.
 
 The explorer has two kinds of view. **Built views** are the ones this plan already names: search, a player's clubs, rosters, a chain with its evidence, played-against lists. **Prompted views** are new: a fan types what they want to see, a model writes the visualization, and the app draws it. Both must feel like one product, stay fast, and leave room for data we have not imported yet.
 
-This section fixes the approach, moves the app onto a framework that can render a page per URL, defines the contracts a prompted view crosses, and specifies a spike. The spike measures the two things research could not settle. The explorer's own cards are written after it (**F11**).
+This section fixes the approach, moves the app onto a framework that can render a page per URL, defines the shapes every lane works from, and runs a spike that measures what research could not settle. The explorer's own cards are written after it (**FJ1**).
+
+The work is 54 small PRs in 12 lanes. It runs the way the backend did (§Orchestration): the orchestrator dispatches every ready card to a worktree subagent at the card's model and effort, reruns each **Done** check, runs each **Gate**, and submits through Graphite. Codex reviews every PR; Opus also reviews the Sonnet · high ones.
 
 ### Decisions
 
@@ -588,43 +590,80 @@ Numbering continues from §Decisions.
 
 | # | Decision | Why |
 | --- | --- | --- |
-| D15 | **A prompted view is code the model writes, run in a sandbox.** It is not a pick from a catalog of chart components. | A catalog can only draw what we defined in advance. Code can draw a layout, an animation, or a 3D scene nobody listed. The cost is that code can fail or misbehave, which D17 and the repair loop (**F9**) handle. |
-| D16 | **AntV is the house visualization family.** G2 draws charts and G6 draws networks, in built and prompted views alike. L7 (maps), S2 (pivot tables), and Infographic join when a view needs them. D3 and Three.js are available inside the sandbox for views AntV cannot express. A GPU renderer (cosmos.gl) takes any view G6 cannot draw at speed. **Provisional until F11.** | One family gives every view the same interactions, animation, and theme, so prompted views look like the built ones. It covers the widest range of formats found, and AntV publishes agent skills for G2 5 and G6 5. Its weak spot is G6 at scale: no published benchmark near our graph, and reports of lag at a few hundred nodes. The spike measures that. |
+| D15 | **A prompted view is code the model writes, run in a sandbox.** It is not a pick from a catalog of chart components. | A catalog can only draw what we defined in advance. Code can draw a layout, an animation, or a 3D scene nobody listed. The cost is that code can fail or misbehave, which D17 and the repair loop (**FM3**) handle. |
+| D16 | **AntV is the house visualization family.** G2 draws charts and G6 draws networks, in built and prompted views alike. L7 (maps), S2 (pivot tables), and Infographic join when a view needs them. D3 and Three.js are available inside the sandbox for views AntV cannot express. A GPU renderer (cosmos.gl) takes any view G6 cannot draw at speed. **Provisional until FJ1.** | One family gives every view the same interactions, animation, and theme, so prompted views look like the built ones. It covers the widest range of formats found, and AntV publishes agent skills for G2 5 and G6 5. Its weak spot is G6 at scale: no published benchmark near our graph, and reports of lag at a few hundred nodes. The spike measures that. |
 | D17 | **The sandbox has no network and no access to the app.** The frame runs in an opaque origin. Data enters by message. The server-side agent chooses the data with bounded History RPC calls; code inside the frame never fetches. | Model-written code is untrusted. With no network it cannot leak data or call our API, and with no shared origin it cannot read cookies or the page. |
 | D18 | **One theme source.** `apps/web/design/contract.json` feeds Tamagui today. An adapter turns the same values into a G2 theme, a G6 theme, and CSS variables for the frame. | Chart colours already come from `useTheme()` by contract. Built and prompted views must not drift apart. |
 | D19 | **Docs for every adopted library are cached in `.agent-sources`, pinned to the installed version, and quoted in the generation prompt.** | Coding agents and the run-time model both write against the installed API, not a remembered older one. |
-| D20 | **The web app moves to Next.js (App Router), built with webpack.** | The app is one page with no routes, and its share previews are built at build time for 32 teams. The explorer needs a URL, a title, and a preview image for each of 8,842 players, any pair, and any prompted view, rendered per request. The pinned Tamagui docs cover Next.js, including themes under server rendering. Webpack, not Next's default Turbopack, because that is the Next integration zero-runtime supports (D21). |
-| D21 | **Pages are zero-runtime by default; anything that needs the Tamagui runtime is an island.** Tamagui 3's experimental zero-runtime mode compiles a page to plain elements and one stylesheet, with no Tamagui code in its JavaScript. Built visualizations, the sandbox host, and theme controls are islands. | Most of a player page is static content, and the heavy JavaScript should be the visualizations. Accepted, Nov 18: it is a beta feature, and this is a side project. An island renders a placeholder on the server, so anything a search engine or share preview must read cannot live in one. |
+| D20 | **The web app moves to Next.js (App Router), built with webpack.** | The app is one page with no routes, and its share previews are built at build time for 32 teams. The explorer needs a URL, a title, and a preview image for each of 8,842 players, any pair, and any prompted view, rendered per request. The pinned Tamagui docs cover Next.js. Webpack, not Next's default Turbopack, because that is the Next integration zero-runtime supports (D21). |
+| D21 | **The app is built in Tamagui's zero-runtime mode. Today's poster moves, unchanged, into one island.** Zero-runtime is one setting for the whole build: pages compile to plain elements and one stylesheet, and anything that needs the Tamagui runtime is an island, a separately loaded piece. New explorer pages are written to the mode's eight rules from the start. Visualizations, the sandbox host, and the lab are islands. | The report on today's app lists 41 violations in 12 files, all inside the poster. As one island they need no fixes, and the poster keeps working exactly as it does now. An island renders a placeholder on the server, so the poster stays out of the server HTML, as it is today (the app is client-rendered). Accepted, Nov 18: this is a beta feature, and this is a side project. Rule for new pages: anything a search engine or share preview must read cannot live in an island. |
+| D22 | **No card edits a file another card owns.** Every card writes new files of its own. The few shared files have one owner each or a fixed order (§Who owns which file). Lists that many cards add to are folders the code discovers, never a file with one line per card. | It lets a dozen workers run at once and rebase into a chain without conflicts. The backend plan needed **Stack on** notes for its step list; folders remove the need. |
 
-This section is the plan's one exception to “nothing calls a model at run time”: **F9** and **F10** call the model configured in `packages/analyst/src/llm.ts`, and each run records its model and token count.
+This section is the plan's one exception to “nothing calls a model at run time”: **FM3** and **FE2** call the model configured in `packages/analyst/src/llm.ts`, and each run records its model and token count.
 
 Not chosen:
 
 - **A component catalog as the foundation** (json-render, GPT-Vis, Vega-Lite specs). Safe and predictable, but it caps prompted views at what we listed. It may return later as a fast path for ordinary charts inside answers.
 - **Raw D3 as the default vocabulary.** The highest ceiling, but every prompted view would hand-roll its own tooltips, zoom, and legends, and quality would vary from view to view. It stays as the escape hatch.
 - **Apache ECharts.** Strong charts, but its graph series is a chart type, not a graph toolkit, and the product is a graph.
-- **TanStack Start.** It stays on Vite and has typed URL state, which suits the explorer's filters. But Tamagui documents no server-rendering setup for it, and it reached 1.0 in October 2026. Typed URL state on Next comes from typed routes plus search parameters decoded with our Effect schemas (**F11**).
+- **TanStack Start.** It stays on Vite and has typed URL state, which suits the explorer's filters. But Tamagui documents no server-rendering setup for it, and it reached 1.0 in October 2026. Typed URL state on Next comes from typed routes plus search parameters decoded with our Effect schemas (**FJ1**).
 - **Staying a single-page Vite app.** No per-URL titles or previews without a server render.
+- **Fixing the poster's 41 zero-runtime violations.** A rewrite of working code for no visible gain. Parts of the poster can leave the island later, one at a time, if a page needs them in server HTML.
 
-### C-viz: what a prompted view crosses
+### Baseline
 
-Three shapes, all in `apps/web/src/viz/contracts.ts` as Effect schemas (**F8** writes them). They move to a package when a second consumer needs them.
+Measured Nov 18 on the Vite build, with installed versions.
 
-**Tables.** The data a view receives. `{ tables: { [name]: Row[] }, notes: string }`, where a `Row` is a flat record of strings, numbers, and nulls. Player IDs and names travel together. `notes` says what each table is, in one sentence each, and is also given to the model.
+| Measure | Value |
+| --- | --- |
+| JavaScript | 780 kB (252 kB gzipped) |
+| CSS | 2,614 kB (83 kB gzipped). The config ships every default Tamagui theme plus 64 team themes. |
+| Zero-runtime report | 41 violations in 12 files: 14 style values not known at build time, 14 components that do not compile to one element, 6 `styled()` components used through an expression, 4 `useTheme` or `useMedia` reads, 3 runtime theme names, and one each of a provider, a prop spread, and a side-effect import |
+| Zero-runtime support | Tamagui 3.3.1 enables base mode and islands for Vite and for Next with webpack |
+| Versions to pin | `next` 16.4.6, `@tamagui/next-plugin` 3.3.1, `@antv/g2` 5.4.8, `@antv/g6` 5.1.1, `@antv/g6-extension-react` 0.2.7, `@antv/g-webgl` 2.1.3, `d3` 7.9.2, `three` 0.187.0, `@cosmos.gl/graph` 3.6.0, `playwright` 1.65.1 |
 
-**View module.** What the model writes: the body of one ES module with a default export.
+### C-viz: the shapes every lane works from
+
+All of these are Effect schemas and types in a new package, `packages/viz`, written by **FC1**. It has no DOM code. Three places use it: the web app, the table builders, and the generator in `packages/analyst`.
+
+#### Tables
+
+The data a view receives: `{ tables: { [name]: Row[] }, notes: string }`. A `Row` is a flat record of strings, numbers, and nulls. `notes` says what each table is, one sentence each, and is also given to the model. Player IDs, never indexes, appear in rows. Booleans are 0 or 1.
+
+Two row shapes recur. A `players` row is `{ playerId, name, position, firstSeason, lastSeason, games }`. A `teams` row is `{ teamId, abbrev, name }`.
+
+| Table set | Input | Tables |
+| --- | --- | --- |
+| `chain` | `from, to`, default filter, limit 10 | `players`, `teams`, `hops { chain, step, from, to, kind, games, teamId, seasonId, gameType, gameId }` in D6 order with `chain` and `step` counted from 0, `summary { from, to, distance, pathCount, pathCountCapped }` |
+| `pair` | `a, b` | `players`, `teams`, `spans { seasonId, gameType, teamId, link, games, firstGameId }`, `summary { a, b, totalGames, opposedGames }` |
+| `ego` | `playerId` | `focus { playerId }`, `players` (the player and every teammate, each with `gamesWithFocus`), `links { a, b, games, firstSeason, lastSeason }` for every teammate link among them, `a < b` |
+| `league` | none | `players` (each with `teammates`), `links { a, b, games, firstSeason }` for every teammate link |
+| `opponents` | `a, b` | `players`, `faced { focus, opponent, games }` for both, most games first, then lower ID |
+| `finals` | `playerId, fromYear, toYear` | `finals { year, seasonId, covered, playerId, finalGameId, sharedGameId }` with nulls on a miss, `players` for the matches |
+
+**Samples.** `packages/viz/src/samples.ts` holds each table set for one §C-mini input, written by hand from §C-mini: `chain` 11 → 14, `pair` 15 and 16, `ego` 14, `league`, `opponents` 16 and 12, `finals` 12 from 1900 to 2100. Every web card develops against the samples, and every table builder is tested against them. The two are derived separately, so a mismatch means one is wrong: the worker stops and reports, and the orchestrator settles it against §C-mini.
+
+#### Theme
+
+`VizTheme`: `{ mode: 'light' | 'dark', background, color, muted, gold, win, loss, pending, rule, surface, highlight, brand, bright, chartWin, chartLoss, chartPositive, chartNegative, chartLine, series, fonts: { body, score } }`. Each colour is the theme value of the same name in `contract.json` (`chart-win` becomes `chartWin`). `series` is the fixed order `[chartPositive, chartNegative, gold, brand, chartWin, chartLoss, muted]` for charts with several series. A club's colour is its `team-primary` from `contract.json`.
+
+#### View module
+
+What the model writes: the body of one ES module with a default export.
 
 ```ts
 export default function render(ctx: {
   root: HTMLElement                      // draw only inside this element
   tables: Record<string, Row[]>
-  theme: VizTheme                        // D18
+  theme: VizTheme
   size: { width: number; height: number }
   libs: { G2, G6, d3, THREE }            // the frame provides these; the module imports nothing
 }): () => void                           // returns its own cleanup
 ```
 
-**Frame messages.** Every message has a `_tag`.
+#### Frame messages
+
+Every message has a `_tag`.
 
 | Direction | Message | Meaning |
 | --- | --- | --- |
@@ -633,206 +672,582 @@ export default function render(ctx: {
 | Frame → host | `Ready { versions }` | The frame loaded; the library versions it carries. |
 | Frame → host | `Rendered { id, ms }` | First paint finished. |
 | Frame → host | `Failed { id, message }` | The module threw, or did not paint in time. |
-| Frame → host | `FrameRate { id, fps }` | Sampled while the view runs. Used by **F7** and **F10**. |
+| Frame → host | `FrameRate { id, fps }` | Sampled once a second while the view runs. |
 
-Rules for the frame, each proved by a test in **F8**:
+Rules for the frame. **FS6** proves each one with a browser test.
 
-- It runs with scripts allowed and no same-origin access, so its origin is opaque.
-- It cannot reach the network: no fetch, no WebSocket, no image or font from outside its own bundle.
-- It cannot open windows, submit forms, or navigate the page.
-- A view that never returns must not freeze the explorer. **F8** records what each browser does; the result decides whether the frame needs its own domain.
+1. It runs with scripts allowed and no same-origin access, so its origin is opaque.
+2. It cannot reach the network: no fetch, XHR, WebSocket, EventSource, beacon, or WebRTC, and no image, font, or media from outside its own bundle.
+3. It cannot leave: it cannot open a window, submit a form, navigate the top page, or navigate itself to another site. The page that hosts it only allows frames from our own origin.
+4. It cannot read the explorer: no cookies, no storage, no access to the parent document.
+5. A view that never returns must not freeze the explorer. **FS6** records what each browser does; the result decides whether the frame needs its own domain.
 
-### Framework move
+#### Spec functions and hosts
 
-Four PRs, first in the stack, on branches named `web/<id>-<slug>`. They come before the spike so that the lab page and the sandbox frame are built once, on the framework they will ship on. **web-check** means, from `apps/web`: `bun run typecheck && bun run lint && bun run check:tamagui`. The scripts behind those names change in **N1**; the names do not.
+A built view is a pure function plus a host. The function is `(tables, theme) => spec` and has no DOM code, so it is tested on the samples. `G2Chart` (**FV4**) takes a G2 spec. `G6Graph` (**FV5**) takes `{ nodes, edges }`, a layout name, and an optional React component for nodes. The hosts own mounting, resizing, theme changes, and cleanup. A new view never repeats that work.
 
-Baseline, measured Nov 18 on the Vite build: 780 kB of JavaScript (252 kB gzipped) and 2,614 kB of CSS (83 kB gzipped). Zero-runtime's report mode already runs on the app: **41 violations in 12 files**.
+#### Folders the code discovers (D22)
 
-| Violation | Count | Example |
+| Folder | One file is | Found by |
 | --- | --- | --- |
-| A style value the compiler cannot resolve at build time | 14 | `render` on `Link` in `TeamViews.tsx` |
-| A component that does not compile to one element | 14 | `Image` in `TeamViews.tsx` |
-| A `styled()` component used through an expression | 6 | `AnimatedRecord.tsx` |
-| `useTheme` read in JavaScript | 4 | `Charts.tsx` |
-| `TamaguiProvider` at the root | 1 | `ThemePreference.tsx` |
-| A prop spread on a Tamagui element | 1 | `PlayoffPicture.tsx` |
-| A bare side-effect import | 1 | `@tamagui/core/reset.css` in `main.tsx` |
+| `apps/web/src/islands/*Island.tsx` | One island. Basenames are unique. | The `islands` glob in `tamagui.build.ts`, set once by **FZ1** |
+| `apps/web/src/viz/lab/entries/*.tsx` | One lab page: `export default { title, render }` | The lab island (**FV3**) |
+| `apps/web/src/viz/bench/renderers/*.ts` | One renderer under test: `export default { name, mount(root, data, theme) }`, where `mount` resolves to `{ pan(dx, dy), zoom(factor), destroy() }` | The bench harness (**FR1**) |
+| `packages/viz/src/tables/*.ts` | One table builder, imported as `@nhl-reddit-stats/viz/tables/<name>` | The package's `exports` map, set once by **FC0** |
 
-#### N1 · Next.js shell (Sonnet · medium)
+### Who owns which file
+
+A card writes only the files on its **Write** list. Every file not listed here is new and belongs to one card.
+
+| File | Cards allowed to edit it |
+| --- | --- |
+| `apps/web/package.json`, `bun.lock` | FP1, FN1, FN6, FZ1, FS2, FS6 |
+| `apps/web/next.config.js` | FN1, FN2, FN3, FS3 |
+| `apps/web/vercel.json`, `turbo.json`, `apps/web/tsconfig*.json` | FN1, FN6 |
+| `apps/web/app/layout.tsx` | FN1, FZ1 |
+| `apps/web/app/[[...slug]]/page.tsx` | FN1, FN4, FZ1 |
+| `apps/web/social/plugin.ts` | FN4, FN6 |
+| The ignore file | FN1, FS2 |
+| `apps/web/tamagui.build.ts` | FZ1 |
+| `apps/web/tamagui.config.ts` | FZ2 |
+| `apps/web/.oxlintrc.json`, `apps/web/lint/`, `apps/web/scripts/test-design-rules.mjs`, `apps/web/design/README.md` | FV2 |
+| `apps/web/scripts/check-vercel-output.mjs` | FN7 |
+| `packages/analyst/package.json` | FP1 |
+| `packages/viz/package.json`, its `tsconfig.json` and lint config | FC0 |
+| `.agent-sources/sources.json`, `.agent-sources/README.md`, `AGENTS.md` | FP2, FP3, FN6 |
+| This plan and its ledger | the orchestrator |
+
+When two cards on one row are ready together, the orchestrator dispatches them in the listed order and rebases the second onto the first. A card that adds a script adds its own key (`viz:frame`, `test:browser`, a `pre` hook) and leaves existing lines alone. **FN6** keeps every script other cards added.
+
+### Lanes
+
+| Lane | Cards | What it delivers | Works in |
+| --- | --- | --- | --- |
+| **FC** contracts | 2 | The `packages/viz` package: shapes and samples | `packages/viz` |
+| **FP** prep | 3 | Dependencies and cached docs | manifests, `.agent-sources` |
+| **FN** Next | 7 | The app on Next.js, with API routes, previews, and the packaging check | `apps/web/app`, config |
+| **FZ** zero-runtime | 3 | Zero-runtime on, the poster as an island, the first zero page | `apps/web` config, `src/islands` |
+| **FT** tables | 7 | Six table builders and the export command | `packages/viz/src/tables`, `apps/api/scripts` |
+| **FV** views | 11 | Theme adapter, lab, the two hosts, the chain view, two charts | `apps/web/src/viz` |
+| **FR** renderers | 5 | The speed harness and three renderers under test | `apps/web/src/viz/bench` |
+| **FS** sandbox | 6 | The frame, its build, its headers, its host, its boundary tests | `apps/web/src/viz/frame`, `src/islands` |
+| **FM** model | 4 | Code check, prompts, generate and repair, a command | `packages/viz`, `packages/analyst/src/viz` |
+| **FE** eval | 4 | Render harness, bake-off runner, report | `packages/analyst/evals/viz` |
+| **FX** explorer groundwork | 1 | The History RPC client for the web app | `apps/web/src` |
+| **FJ** judge | 1 | The decision, and the explorer's cards | this plan |
+
+Tiers, on the scale in §Model and effort tiers:
+
+| Tier | Cards |
+| --- | --- |
+| **Haiku · low** | FP1, FM4 |
+| **Haiku · medium** | FT1, FT2, FT5, FT6, FV1, FV7, FV8, FV9, FV10, FV11, FM1, FE3 |
+| **Sonnet · low** | FC0, FP2, FP3, FN4, FN5, FN6, FZ2, FT3, FT4, FT7, FV3, FV6, FR2, FR3, FR4, FS2, FS3, FS5, FM3, FE2, FX1 |
+| **Sonnet · medium** | FN1, FN2, FN3, FZ3, FV2, FV4, FV5, FR1, FS4, FM2, FE1 |
+| **Sonnet · high**, with an Opus review | FC1, FN7, FZ1, FS1, FS6 |
+| **Orchestrator** | FR5, FE4, FJ1 |
+
+Fourteen cards fit Haiku and 21 fit Sonnet at low effort, because the shapes, the samples, and the file layout are fixed here. The 11 Sonnet · medium cards are the first use of each library or framework feature; later cards copy them. The five Sonnet · high cards are where a wrong answer passes a casual test: the shared shapes, the packaged build, the zero-runtime switch, and the sandbox boundary.
+
+### What can run at once
+
+```
+FC0 ──┬── FP1 (then FN1, below)
+      │
+      └ FC1 ──┬── FT1 … FT6 ── FT7
+              ├── FV1, FV6, FV9, FV10
+              ├── FR2, FR3, FR4 (also FP1)
+              ├── FS1 ── FS2 ──┐
+              ├── FS4 ─────────┼── FS5 ── FS6 (also FS3)
+              └── FM1, FM3 ── FM4 (also FM2)
+
+FP1 ── FN1 ──┬── FN2 ── FN3 ──┐
+             ├── FN4 ── FN5 ──┼── FN6 ──┬── FN7
+             ├── FV3 ──┬── FV4 ── FV11   ├── FZ1 ── FZ3
+             │         ├── FV5 ── FV8    └── FZ2
+             │         └── FR1
+             └── FS3
+
+FP2 ── FM2        FP3, FV2, FV7, FE3, FX1 need nothing
+
+FE1 needs FS5.   FE2 needs FM3 and FE1.
+FR5 needs FR1 to FR4 and FT7.   FE4 needs FE2, FE3, FM2, and FT7.
+FJ1 needs FZ3, FV8, FV11, FR5, FS6, and FE4.
+```
+
+If every card took the same time, the work would run in nine rounds:
+
+| Round | Ready together | Width |
+| --- | --- | --- |
+| 1 | FC0, FP2, FP3, FV2, FV7, FE3, FX1 | 7 |
+| 2 | FC1, FP1 | 2 |
+| 3 | FN1, FT1 to FT6, FV1, FV6, FV9, FV10, FR2 to FR4, FS1, FS4, FM1, FM2, FM3 | 19 |
+| 4 | FN2, FN4, FT7, FV3, FS2, FS3, FM4 | 7 |
+| 5 | FN3, FN5, FV4, FV5, FR1, FS5 | 6 |
+| 6 | FN6, FV8, FV11, FR5, FS6, FE1 | 6 |
+| 7 | FN7, FZ1, FZ2, FE2 | 4 |
+| 8 | FZ3, FE4 | 2 |
+| 9 | FJ1 | 1 |
+
+- **Run first:** FC0, then FC1 and FP1. Those three cards make 19 more ready.
+- **The slow spine:** FC0 → FP1 → FN1 → FN2 → FN3 → FN6 → FZ1 → FZ3 → FJ1 is nine cards deep and cannot be parallelised. Keep it moving. Nothing in FT, FR, FM, or the pure half of FV waits on Next.
+- **Cards on one row of §Who owns which file** that become ready in the same round are dispatched in the listed order, one after the other.
+- **Blocked on Ben:** rating the screenshots in **FE4**, and the pass lines in **FJ1**.
+
+### Worker preamble for these cards
+
+§Worker preamble applies, with these additions.
+
+1. Branch as `web/<id>-<slug>`.
+2. Read §C-viz and §Who owns which file before the card's **Read** list.
+3. Develop against `packages/viz/src/samples.ts`. Do not invent data.
+4. Add to a discovered folder by adding a file. Never add a line to a registry.
+5. Colours come from `VizTheme`. A colour literal in `apps/web/src/viz` fails lint once **FV2** lands; do not write one before then either.
+6. For a library's API, read its cached docs in `.agent-sources` first (D19). If the cache is missing what you need, say so in the PR and then read the live docs.
+
+- **viz-check** means, from `packages/viz`: `bun run typecheck && bun run lint && bun run test`.
+- **web-check** means, from `apps/web`: `bun run typecheck && bun run lint && bun run check:tamagui`, plus the card's own tests.
+- **analyst-check** means, from `packages/analyst`: `bun run typecheck && bun run lint && bun run test`.
+
+### FC · Contracts
+
+#### FC0 · Scaffold `packages/viz` (Sonnet · low)
 
 - **Needs:** nothing
-- **Read:** `.agent-sources/tamagui/docs.txt` §guides/next-js (App Router, webpack); `apps/web/vite.config.ts`, `src/main.tsx`, `src/App.tsx`, `src/ThemePreference.tsx`, `tamagui.build.ts`, `package.json`, `apps/web/design/README.md`
-- **Write:** `next` and `@tamagui/next-plugin` in `apps/web/package.json`, with `dev`, `build`, and `preview` moved to Next on webpack and the Vite dependencies removed; `next.config.js` with the Tamagui plugin (`appDir: true`); `app/layout.tsx` and a client provider with the existing theme preference; `app/[[...team]]/page.tsx` rendering today's page at today's URLs; the lint and Tamagui checks pointed at the new layout. The team page keeps the full Tamagui runtime for now. The Vite social-preview plugin stays in the repo, unused, until **N3**. Update `apps/web/README.md` and any AGENTS.md line that names Vite.
-- **Done:** web-check passes. The team page renders the same at the same URLs, in both themes. The PR records the JavaScript and CSS sizes against the baseline.
+- **Read:** `packages/history/package.json`, its `tsconfig.json` and lint config; AGENTS.md §Error model, §Union model
+- **Write:** `packages/viz/package.json` (name `@nhl-reddit-stats/viz`; depends on `effect` and `@nhl-reddit-stats/history`; `exports` of `"."` for `src/contracts.ts`, `"./samples"`, and `"./*": "./src/*.ts"`; scripts `typecheck`, `lint`, `test`, as in `packages/history`, including the error-model check and the union-model plugin), `tsconfig.json`, the lint config, `src/contracts.ts` as a placeholder, one placeholder test, and `bun.lock`.
+- **Done:** viz-check passes.
 
-#### N2 · API routes and the packaged history file (Sonnet · high, Opus review)
+#### FC1 · Shapes and samples (Sonnet · high, Opus review)
 
-- **Needs:** N1
-- **Read:** `apps/web/api/*.ts`, `apps/web/vercel.json`, `apps/web/scripts/check-vercel-output.mjs`, `apps/api/README.md` §Vercel; this plan **V1**
-- **Write:** route handlers under `app/api/` that wrap the same web handlers the five functions wrap today, with cancellation kept; the rule that ships `history-data/nhl-serve.sqlite` with the history route only; `check-vercel-output.mjs` updated for the new output layout, with every assertion it makes today kept. Remove `apps/web/api/` and the `functions` block it leaves unused.
-- **Done:** web-check and api-check pass. The orchestrator runs `vercel build --prod --standalone` and the check passes with no snapshot and with `--require-history`, as in #105. If the history route cannot open the file, stop and report.
+- **Needs:** FC0
+- **Read:** this plan §C-viz, §C-mini, §C-search; `packages/history/src/shapes.ts`, `packages/history/tests/fakes.ts`; `apps/web/design/contract.json` (theme keys only)
+- **Write:** `src/contracts.ts`: schemas and types for `Row`, `Tables`, each table set's rows, `VizTheme`, the six frame messages as one tagged union, and the `ViewModule`, `LabEntry`, and `BenchRenderer` types. `src/samples.ts`: the six samples named in §C-viz, written by hand from §C-mini, with player names from the fakes. `tests/contracts.test.ts`: each schema round-trips one value; each sample decodes; `hops` is in D6 order; every `a < b`; every ID in a row has a `players` row.
+- **Done:** viz-check passes. The PR lists any field this plan left ambiguous and the choice made.
 
-#### N3 · Share previews at request time (Sonnet · medium)
+### FP · Prep
 
-- **Needs:** N1. **Stack on:** N2.
-- **Read:** `apps/web/social/plugin.ts`, `social/card.ts`, `tests/social-*.test.ts`
-- **Write:** per-route metadata and a preview-image route for team pages, drawing with the existing card renderer; the site-origin rule from the plugin kept as a shared function. Remove the Vite plugin. The tests keep their assertions and move to the new entry points.
-- **Done:** web-check passes and `bun run test:social` passes. A team URL returns its own title, description, and image.
+#### FP1 · Install the dependencies (Haiku · low)
 
-#### N4 · Zero-runtime with islands (Sonnet · high, Opus review)
+- **Needs:** FC0 (for the workspace package)
+- **Write:** in `apps/web/package.json`, at the exact versions in §Baseline: `@antv/g2`, `@antv/g6`, `@antv/g6-extension-react`, `@antv/g-webgl`, `d3`, `@types/d3`, `three`, `@types/three`, `@cosmos.gl/graph`, and `@nhl-reddit-stats/viz` as a workspace dependency; `playwright` as a dev dependency. In `packages/analyst/package.json`: `@nhl-reddit-stats/viz` and `playwright` (dev). `bun.lock`.
+- **Done:** web-check and analyst-check pass. `bun run build` in `apps/web` gives the §Baseline JavaScript size, since nothing imports the new packages yet. The PR lists the installed versions.
 
-- **Needs:** N1. **Stack on:** N3.
-- **Read:** `.agent-sources/tamagui/docs.txt` §guides/zero-runtime (the eight rules, islands, Next with webpack); the violation table above
-- **Write:** `experimental.zeroRuntime` enforced in `tamagui.build.ts`. Fix each violation in place where the fix is a build-time value or an explicit prop. Declare an island where the code needs the runtime: the charts (`useTheme`), the theme controls, the box-score sheet, and anything animated. Narrow the themes and tokens in `tamagui.config.ts` to what the app uses, since zero-runtime does not prune them. Add `--expect-optimizations` to the build so a silent fallback to the full runtime fails CI.
-- **Done:** web-check passes and the enforced build reports no violations. The team page's text is in the server HTML. The PR records JavaScript and CSS sizes against the baseline and against **N1**, and lists each island with the reason it is one. If a rule cannot be met without rewriting a component the explorer will replace anyway, make that component an island and say so.
+#### FP2 · Cache the AntV docs and skills (Sonnet · low)
 
-### The spike
-
-Twelve small PRs. They continue the one stack, on branches named `viz/<id>-<slug>`. The §Worker preamble applies.
-
-The spike's views live in a lab route that is only built in development, so nothing here ships to production. Every lab view is an island (D21).
-
-```
-N1 ─┬─ N2 ─ N3 ─ N4
-    └─ F1 ─┬─ F0
-           ├─ F3 ─┬─ F5 (needs F2, F4)
-           │      ├─ F6 (needs F2, F4)
-           │      └─ F7 (needs F4)
-           └─ F8 ─── F10 (needs F4, F9)
-F2, F4, F9 need nothing from this section
-F11 needs N4, F5, F6, F7, F10
-```
-
-- **Ready now:** N1, F2, F4, F9. **F9** works from §C-viz alone; it does not need the frame.
-- **Run first:** N1, because every web card builds on it. Then F1 → F8, because the sandbox is the one piece with a security boundary, and F1 → F3 → F7, because G6's speed is the one open risk in D16. N2 to N4 run alongside the spike.
-- **Blocked on Ben:** rating the screenshots in **F10**, and the pass lines in **F11**.
-
-What the spike decides:
-
-| Question | Measured by | Decides |
-| --- | --- | --- |
-| Can G6 draw one player's teammate network smoothly? | **F7**, Jágr's 518 teammates | Whether G6 keeps the network views |
-| Can anything draw the whole league (8,842 players, 478,383 links)? | **F7**, G6 on WebGL against cosmos.gl | Which renderer gets that view, or that it is cut |
-| Does the model write better views with AntV or with D3 and Three.js? | **F10**, five prompts, both vocabularies | D16's default vocabulary |
-| Does a runaway view freeze the page? | **F8**, per browser | Same-host frame or a separate domain |
-| What does each library cost to load? | **F5**, **F6**, **F7** bundle reports | Which libraries load on demand |
-| What does zero-runtime save? | **N4**, sizes against the baseline | Whether explorer pages stay zero-runtime by default (D21) |
-
-No pass line is set in advance. Each gate records its numbers first; **F11** sets the lines from them.
-
-#### F1 · Install the visualization dependencies (Haiku · low)
-
-- **Needs:** N1 (the same manifest)
-- **Write:** exact-pinned versions in `apps/web/package.json`: `@antv/g2`, `@antv/g6`, `@antv/g6-extension-react`, `@antv/g-webgl`, `d3`, `three`, `@cosmos.gl/graph`, and their type packages where separate. In `packages/analyst/package.json`: `playwright` as a dev dependency (for **F10**). `bun.lock`. After **N1**, no other task edits these two manifests during the spike.
-- **Done:** web-check passes and `bun run build` in `apps/web` produces the same bundle size as before, since nothing imports the new packages yet. The PR lists the installed versions.
-
-#### F0 · Cache the AntV docs and skills (Sonnet · low)
-
-- **Needs:** F1 (for the versions)
+- **Needs:** nothing
 - **Read:** `.agent-sources/README.md`, `.agent-sources/sources.json`, `scripts/refresh-agent-sources.mjs`
 - **Write:** entries for G2 5, G6 5, and `antvis/chart-visualization-skills` (the `antv-g2-chart` and `antv-g6-graph` skills) in `sources.json`; the fetched docs and generated indexes under `.agent-sources/antv/`; one paragraph in `.agent-sources/README.md` and one in `AGENTS.md` §Library documentation. English pages where they exist, Chinese otherwise. Record each source's licence.
-- **Done:** `node scripts/refresh-agent-sources.mjs` reproduces the files with matching checksums. The PR states the doc versions against the versions **F1** installed.
+- **Done:** `node scripts/refresh-agent-sources.mjs` reproduces the files with matching checksums. The PR states the doc versions against the versions in §Baseline.
 
-#### F2 · History client for the web app (Sonnet · low)
+#### FP3 · Cache the Next.js docs (Sonnet · low)
 
-- **Needs:** nothing (§C-rpc is in the stack)
-- **Read:** `apps/web/src/season-source.ts`; this plan §C-rpc
-- **Write:** `apps/web/src/history-source.ts`: a `HistorySource` service over `HistoryRpcs` at `/api/history`, with `searchPlayers`, `player`, `roster`, `link`, `opponents`, `findPath`, and `finalsCoverage`, mirroring `season-source.ts`. A transport failure becomes `HistoryUnavailable`. `apps/web/tests/history-source.test.ts` runs it against the in-memory fake store through the real handler.
-- **Done:** web-check passes and the test passes.
+- **Needs:** nothing. **Stack on:** FP2 (the same index files).
+- **Read:** as **FP2**
+- **Write:** the Next.js 16 docs for the App Router, route handlers, metadata and image routes, `next.config.js` (headers, `serverExternalPackages`, `outputFileTracingIncludes`), and building with webpack, under `.agent-sources/next/`, with index entries and the same two paragraphs.
+- **Done:** as **FP2**.
 
-#### F3 · Theme adapter and lab shell (Sonnet · medium)
+### FN · Next.js
 
-- **Needs:** F1
-- **Read:** `apps/web/design/README.md`, `apps/web/design/contract.json`, `apps/web/src/Charts.tsx`, `apps/web/src/ThemePreference.tsx`; the cached G2 and G6 theme docs if **F0** has landed
-- **Write:** `apps/web/src/viz/theme.ts`: `VizTheme` built from `useTheme()`, and pure functions from it to a G2 theme, a G6 theme, and a CSS-variable map. A design rule that rejects literal colours in files under `src/viz/`, with a passing and a failing fixture in `scripts/test-design-rules.mjs`. `src/viz/lab/Lab.tsx`: a page that lists entries from `src/viz/lab/registry.ts`; later cards each add one line there. The lab is the route `app/viz-lab/page.tsx`, which answers 404 outside development, and each entry is an island.
-- **Done:** web-check passes. Switching the app theme changes the colours of a sample G2 chart and a sample G6 graph on the lab page.
+#### FN1 · Next beside Vite (Sonnet · medium)
 
-#### F4 · Export the spike's datasets (Sonnet · medium)
+- **Needs:** FP1 (the same manifest)
+- **Read:** `.agent-sources/tamagui/docs.txt` §guides/next-js (App Router with webpack); `apps/web/src/main.tsx`, `src/App.tsx`, `src/ThemePreference.tsx`, `tamagui.config.ts`, `tamagui.build.ts`, `src/team-season.ts`, `scripts/check-design-files.mjs`
+- **Write:** `next` and `@tamagui/next-plugin` in `apps/web/package.json`, with scripts `next:dev` and `next:build`, both on webpack. `next.config.js` with the Tamagui plugin (`appDir: true`). `app/layout.tsx`, importing the existing `src/tamagui.generated.css`. `app/[[...slug]]/page.tsx`, which renders today's `AppTheme` and `App` in the browser only: the theme code reads `localStorage` and `matchMedia` when it starts, and the config sets `disableSSR`. A tsconfig Next accepts that leaves the three existing typecheck projects working. `.next` added to the ignore file and to the folders `check-design-files.mjs` skips. The Vite scripts and files stay untouched.
+- **Done:** web-check passes. `bun run next:build` passes. Under `bun run next:dev`, `/` and `/team/NJD` show the poster in both themes, and choosing a team changes the URL as it does today. `bun run build` still passes on Vite. The PR records the JavaScript and CSS sizes against §Baseline and anything the cached docs did not cover.
+
+#### FN2 · API routes (Sonnet · medium)
+
+- **Needs:** FN1
+- **Read:** `apps/web/api/*.ts`, `apps/api/scripts/build.mjs`, `apps/api/tests/web-handler.test.ts`
+- **Write:** `app/api/{rpc,games,poster,teams,history}/route.ts`. Each exports `GET` and `POST` that pass the request to the same handler's `fetch` that `apps/web/api/` uses today, on the Node runtime, never cached. In `next.config.js`: `serverExternalPackages` with `@nhl-reddit-stats/api` and `@resvg/resvg-js`, so Next does not rebundle the API. Its per-game box-score chunks must stay separate files that load one at a time.
+- **Done:** web-check passes. Under `next:dev`, the poster loads its data through `/api/rpc`, and `/api/games?team=ANA` answers. A test proves one box-score request loads one chunk, as `apps/api/tests/web-handler.test.ts` does for the Vercel entry.
+
+#### FN3 · Ship the history file with its route (Sonnet · medium)
+
+- **Needs:** FN2
+- **Read:** `apps/api/src/history-handler.ts`, `apps/web/vercel.json`; this plan **V1**, **A4**
+- **Write:** `outputFileTracingIncludes` in `next.config.js`, so `history-data/nhl-serve.sqlite` ships with `/api/history` and with no other route. No change to how the handler finds the file unless the Next build puts it somewhere the two paths it tries do not cover; `HISTORY_DB` still overrides it.
+- **Done:** web-check passes. With a §C-mini file staged (`HISTORY_KEEP_LOCAL=1`), `bun run next:build` followed by `next start` answers `SearchPlayers` from `/api/history`. With no file, it answers `HistoryUnavailable`. The PR names where the file lands in the build output.
+
+#### FN4 · Team page titles and tags (Sonnet · low)
+
+- **Needs:** FN1
+- **Read:** `apps/web/social/plugin.ts`, `tests/social-pages.test.ts`, `index.html`
+- **Write:** `apps/web/social/metadata.ts`: `siteOrigin`, `socialImageOrigin`, `socialDescription`, and a new `teamMetadata(team, origin)`, moved out of the plugin as pure functions. The plugin imports them from there, so Vite keeps working. `generateMetadata` in `app/[[...slug]]/page.tsx`, returning for each team the title, description, canonical URL, and Open Graph and Twitter tags that `socialHtml` writes today. `tests/social-metadata.test.ts` with the assertions from `social-pages.test.ts` that concern tags.
+- **Done:** web-check passes; `bun run test:social` passes. Under `next:dev`, the HTML of `/team/NJD` carries New Jersey's title and tags, and `/` carries New Jersey's, as it does today.
+
+#### FN5 · Team preview images (Sonnet · low)
+
+- **Needs:** FN4
+- **Read:** `apps/web/social/card.ts`, `social/plugin.ts` (`createSocialPreviews`), `tests/social-card.test.ts`
+- **Write:** an image route at the path `teamMetadata` points to. It draws each team's card with the existing renderer and is generated once per team at build time (`generateStaticParams`), not per request. `tests/social-image.test.ts` with the assertions from `social-pages.test.ts` that concern the PNG.
+- **Done:** web-check passes; the social tests pass. `bun run next:build` lists 32 prerendered images, and each team's image URL returns a PNG of the size `socialImageSize` names.
+
+#### FN6 · Cut over to Next (Sonnet · low)
+
+- **Needs:** FN3, FN5
+- **Read:** `apps/web/package.json`, `vercel.json`, `turbo.json`, `apps/web/README.md`
+- **Write:** `dev`, `build`, and `preview` in `apps/web/package.json` run Next on webpack; the `next:` scripts go. Remove `vite`, `@vitejs/plugin-react`, `vite.config.ts`, `index.html`, `src/main.tsx`, `social/plugin.ts`, `tests/social-pages.test.ts`, the `apps/web/api/` folder, and the `functions` block in `vercel.json`, which the route files replace; keep cancellation support for the API routes. Update `turbo.json` outputs, the tsconfig types, `apps/web/README.md`, and any `AGENTS.md` line that names Vite.
+- **Done:** web-check passes; `bun run build` passes from the repository root; `git grep -i vite -- apps/web` finds nothing outside lockfiles and history.
+
+#### FN7 · Packaging check on the Next output (Sonnet · high, Opus review)
+
+- **Needs:** FN6
+- **Read:** `apps/web/scripts/check-vercel-output.mjs`, `apps/api/README.md` §Vercel; PR #105
+- **Write:** `check-vercel-output.mjs` for the output `vercel build` writes for a Next app. Keep every assertion it makes today: the RPC route answers through the packaged function with 32 clubs and 1,344 games; the three GET routes answer; a trailing slash on `/api/rpc` keeps POST (308); the history function runs on a Node with `node:sqlite`, carries its file when `--require-history` is passed, answers `HistoryUnavailable` without it, and ignores `HISTORY_DB` during the check; cancellation is supported.
+- **Done:** **Gate:** the orchestrator runs `vercel build --prod --standalone` in the main checkout. The check passes with no snapshot and, with the real file staged, with `--require-history`. If the packaged history route cannot open the file, stop and report.
+
+### FZ · Zero-runtime
+
+#### FZ1 · Turn zero-runtime on, with the poster as one island (Sonnet · high, Opus review)
+
+- **Needs:** FN6
+- **Read:** `.agent-sources/tamagui/docs.txt` §guides/zero-runtime (all of it); this plan D21, §Baseline; `apps/web/tamagui.build.ts`, `app/layout.tsx`, `app/[[...slug]]/page.tsx`
+- **Write:** `experimental.zeroRuntime` enforced in `tamagui.build.ts`, with `islands: ['src/islands/*Island.tsx']`. `src/islands/TeamPosterIsland.tsx`: today's `AppTheme` and `App`, moved without change. The page imports the island through its generated loader; the layout links the generated stylesheet and no longer wraps the app in a provider. A step that generates the loaders before typecheck, so `web-check` passes from a clean checkout. `--expect-optimizations` on the build, so a silent fall back to the full runtime fails CI. `.tamagui` stays out of git.
+- **Done:** web-check passes from a clean checkout. The enforced build reports no violations. The poster looks and behaves the same in both themes, including the box-score dialog and print. The PR records JavaScript and CSS sizes against §Baseline and **FN1**, and the size of the page's own JavaScript without the island.
+
+#### FZ2 · Narrow the theme pack (Sonnet · low)
+
+- **Needs:** FN6
+- **Read:** `apps/web/tamagui.config.ts`, `design/themes.ts`, `design/contract.json`; the zero-runtime guide §Keep generated CSS small
+- **Write:** `tamagui.config.ts` ships only the themes the app uses: `light`, `dark`, the 64 team themes, and any default sub-theme a component in use needs. It stops spreading every default theme.
+- **Done:** web-check passes. The poster looks the same in both themes for three teams, including the dialog. The PR records the CSS size against §Baseline.
+
+#### FZ3 · The first zero-runtime page (Sonnet · medium)
+
+- **Needs:** FZ1
+- **Read:** the zero-runtime guide §The eight authoring rules; `apps/web/design/README.md`
+- **Write:** `app/explore/page.tsx`: the explorer's landing page, written to the eight rules, with no island. A heading, two sentences on what the explorer does, a plain search field that does nothing yet, and links to three example chains. `apps/web/docs/zero-pages.md`: one page on how to write a page this way, with this page as the example. Later explorer cards copy it.
+- **Done:** web-check passes and the enforced build reports no violations. The page's text is in the server HTML. The build's graph receipt shows no Tamagui module in the page's JavaScript. The PR records the page's JavaScript size.
+
+### FT · Tables
+
+Each builder is one file, `packages/viz/src/tables/<name>.ts`, with one test, `tests/tables-<name>.test.ts`. Each is a pure function over a `Graph` and a `HistoryStore` that returns `Tables` or a tagged error through `Effect`. Each test runs the builder on the §C-mini fake store and compares the result with the sample in `src/samples.ts`. If they differ, stop and report.
+
+| Card | Builder | Tier | Built from |
+| --- | --- | --- | --- |
+| FT1 | `chain(graph, store, from, to)` | Haiku · medium | `findPaths` with limit 10, then `store.player` for names and teams |
+| FT2 | `pair(graph, store, a, b)` | Haiku · medium | `link` with the default filter |
+| FT3 | `ego(graph, store, playerId)` | Sonnet · low | The teammate adjacency in `makeGraph`, then `link` for each pair inside the set |
+| FT4 | `league(graph, store)` | Sonnet · low | The graph arrays directly: every link, its spans summed, its earliest season |
+| FT5 | `opponents(graph, store, a, b)` | Haiku · medium | `opponents` for each player |
+| FT6 | `finals(graph, store, playerId, fromYear, toYear)` | Haiku · medium | `finalsCoverage` |
+
+- **Needs (all six):** FC1
+- **Read:** this plan §C-viz Tables, §C-search, §C-store; `packages/history/src/index.ts`; the sample for the card's table set
+- **Done:** viz-check passes.
+
+#### FT7 · Export command (Sonnet · low)
+
+- **Needs:** FT1 to FT6
+- **Read:** `apps/api/scripts/history-query.ts` (name lookup and `effect/cli` use), `apps/api/src/history-store.ts`
+- **Write:** `apps/api/scripts/history-viz-tables.ts`: `chain <a> <b>`, `pair <a> <b>`, `ego <name>`, `league`, `opponents <a> <b>`, and `finals <name>`, each writing one `Tables` JSON file to `data/history/viz/` (ignored by git). A name that matches several players lists them and exits non-zero, as `history-query` does. A test runs each subcommand on the §C-mini file.
+- **Done:** api-check passes. **Gate (Archive):** the orchestrator exports McDavid → Lindsay, McDavid with Draisaitl, Jágr, the league, Gretzky with Ovechkin, and Jágr's Finals from 1980 to 2026 from the real snapshot, and records each file's size and row counts.
+
+### FV · Views
+
+#### FV1 · Theme adapter (Haiku · medium)
+
+- **Needs:** FC1
+- **Read:** this plan §C-viz Theme; `apps/web/design/contract.json` (theme keys)
+- **Write:** `apps/web/src/viz/theme.ts`: `vizTheme(values, mode)`, which builds a `VizTheme` from a record of theme values; `g2Theme(theme)`; `g6Theme(theme)`; `cssVariables(theme)`; `teamColor(abbrev, theme, index)`, which returns the club's `team-primary` from `contract.json`, or the `series` colour at `index` for a club with no palette. All pure. `useVizTheme()`, the one function that calls `useTheme()`. `tests/viz-theme.test.ts`: every `VizTheme` field is filled from the contract's light and dark themes, and `series` has the order in §C-viz.
+- **Done:** web-check passes.
+
+#### FV2 · No literal colours in `src/viz` (Sonnet · medium)
 
 - **Needs:** nothing
-- **Read:** `apps/api/scripts/history-query.ts`, `apps/api/src/history-store.ts`; this plan §C-viz, §C-mini
-- **Write:** `apps/api/scripts/history-viz-fixtures.ts`: from a serving file, write five §C-viz table sets as JSON to `data/history/viz/` (ignored by git): `chain` (the tied shortest chains between two players, with each hop's evidence), `ego` (one player's teammates and every link among them), `league` (every player and every teammate link, with games and first season), `opponents` (two players' opponents side by side), and `finals` (one player's Finals coverage by year). A test runs it on the §C-mini file and checks each table. Commit the five §C-mini outputs under `apps/web/tests/fixtures/viz/` for the cards below.
-- **Done:** api-check passes. **Gate (Archive):** the orchestrator runs it on the real snapshot for McDavid → Lindsay, Jágr, and Gretzky with Ovechkin, and records each file's size.
+- **Read:** `apps/web/lint/design-plugin.mjs`, `scripts/test-design-rules.mjs`, `.oxlintrc.json`, `design/README.md`
+- **Write:** a `design/viz-theme-colors` rule: in files under `src/viz/`, a string that is a hex, `rgb()`, `hsl()`, or named CSS colour is an error, since colours come from `VizTheme`. One passing and one failing fixture in `test-design-rules.mjs`. One sentence in `design/README.md`.
+- **Done:** `bun run lint` passes from `apps/web`, and the failing fixture fails for the stated reason.
 
-#### F5 · Chain view in G6 (Sonnet · medium)
+#### FV3 · Lab route (Sonnet · low)
 
-- **Needs:** F2, F3, F4
-- **Read:** this plan §C-rpc `FindPath`, D6; the cached G6 docs for React nodes and the dagre layout
-- **Write:** `apps/web/src/viz/ChainView.tsx` and one lab entry: the tied shortest chains between two players as one left-to-right graph, each player a Tamagui card rendered as a G6 React node, each hop labelled with its team, season, and evidence game. Hovering a chain highlights it. No colour or size outside the design contract.
-- **Done:** web-check passes. On the §C-mini fixture, 11 → 14 shows both tied chains with 11–12–14 first. The PR records the added bundle size and a screenshot from the real `chain` dataset.
+- **Needs:** FN1
+- **Read:** this plan §C-viz Folders; `apps/web/app/[[...slug]]/page.tsx`
+- **Write:** `app/viz-lab/[[...entry]]/page.tsx`, which answers 404 outside development. `src/islands/VizLabIsland.tsx`: it finds every file in `src/viz/lab/entries/`, lists their titles, and renders the chosen one with the app's theme controls. `src/viz/lab/entries/hello.tsx`, a sample entry that shows the `chain` sample as a table.
+- **Done:** web-check passes. `/viz-lab` lists the sample entry under `next:dev`; a production build answers 404 for it.
 
-#### F6 · Two charts in G2 (Sonnet · medium)
+#### FV4 · G2 host (Sonnet · medium)
 
-- **Needs:** F2, F3, F4. **Stack on:** F5 (the lab registry).
-- **Read:** this plan §C-rpc `GetLink`, `GetFinalsCoverage`; the cached G2 docs
-- **Write:** `apps/web/src/viz/GamesBySeason.tsx` (a pair's games together per season, split by club and competition, from link spans) and `FinalsGrid.tsx` (one cell per Final year, hit or miss, with the matched player on hover), each with a lab entry.
-- **Done:** web-check passes. The PR records the added bundle size and screenshots in the light and dark themes.
+- **Needs:** FP1, FV1, FV3
+- **Read:** the cached G2 docs for the spec API, themes, and resizing; this plan §C-viz Spec functions and hosts
+- **Write:** `src/viz/G2Chart.tsx`: `{ spec, height }`, where `spec` is a G2 options object and `height` a design token. It mounts the chart, applies `g2Theme`, redraws when the spec or theme changes, follows its container's width, and destroys the chart on unmount. `src/viz/lab/entries/g2-host.tsx`, a bar chart of the `league` sample's players by games.
+- **Done:** web-check passes. In the lab, the chart follows the theme switch and the window width, and leaves no canvas behind after navigating away. The PR records the JavaScript the lab page gained.
 
-#### F7 · Network speed gate (Sonnet · medium)
+#### FV5 · G6 host (Sonnet · medium)
 
-- **Needs:** F3, F4. **Stack on:** F6 (the lab registry).
-- **Read:** the cached G6 docs for renderers, layouts, and `OptimizeViewportTransform`; the cosmos.gl README
-- **Write:** `apps/web/src/viz/lab/NetworkBench.tsx` and one lab entry: draw the `ego` and `league` datasets with G6 on canvas, G6 on WebGL, and cosmos.gl. For each, record time to a settled layout, and median and worst frame rate over a scripted ten-second pan and zoom. Print a table and offer it as JSON.
-- **Done:** web-check passes and the page runs on the §C-mini fixtures. **Gate (Archive):** the orchestrator runs it on the real datasets in Chrome and Safari on Ben's laptop and pastes the table into the PR, with the bundle size each renderer adds.
+- **Needs:** FP1, FV1, FV3
+- **Read:** the cached G6 docs for the graph options, layouts, behaviours, React nodes, and renderers; this plan §C-viz Spec functions and hosts
+- **Write:** `src/viz/G6Graph.tsx`: `{ data, layout, node?, renderer?, height }`. `data` is `{ nodes, edges }`; `layout` is `'dagre'` or `'force'`; `node` is an optional React component drawn for each node; `renderer` is `'canvas'` or `'webgl'`. Pan, zoom, and hover highlighting are on. It applies `g6Theme`, redraws on data or theme change, and destroys the graph on unmount. `src/viz/lab/entries/g6-host.tsx`, the `ego` sample as a force layout.
+- **Done:** as **FV4**, for the graph.
 
-#### F8 · The sandbox frame (Sonnet · high, Opus review)
+#### FV6 · Chain spec (Sonnet · low)
 
-- **Needs:** F1
-- **Read:** this plan D17, §C-viz; `apps/web/next.config.js`, `apps/api/scripts/build.mjs` (for `Bun.build`)
-- **Write:** `apps/web/src/viz/contracts.ts` (the §C-viz schemas). `src/viz/frame.ts` and `viz-frame.html`: the frame's own page and bundle, carrying G2, G6, D3, and Three.js; it runs a posted view module and answers with the frame messages. A build script bundles it with `Bun.build` into `public/viz-frame/`, so the frame shares no code or runtime with the Next app. `src/viz/VizFrame.tsx`: the host island; it posts `Render`, validates every message it receives, and removes the frame when no `Rendered` or `Failed` arrives in time. Response headers for `/viz-frame/*` in `next.config.js`, which apply in development and production alike. One lab entry that runs a hand-written sample module. The PR states how posted code is executed and why that route was chosen.
-- **Done:** web-check passes. A browser test (Playwright, from the lab page) proves each rule in §C-viz: inside the frame, a fetch to the app's own API fails, cookies and storage are unreadable, the parent document is unreachable, and a window cannot be opened. A sample that throws produces `Failed`. A sample that loops forever is reported for Chrome, Safari, and Firefox: whether the explorer stays responsive, and how long removal takes.
+- **Needs:** FC1
+- **Read:** this plan D6, §C-viz Tables (`chain`); the `chain` sample
+- **Write:** `src/viz/specs/chain.ts`: `chainGraph(tables)` returns `{ nodes, edges, chains }`. One node per player, in the order players first appear. One edge per distinct hop, labelled with the team abbreviation, the season, and the games, and carrying the evidence game ID. `chains` lists each chain's edge IDs in D6 order, for highlighting. `tests/viz-chain.test.ts` on the sample: four nodes, four edges, two chains, 11–12–14 first.
+- **Done:** web-check passes.
 
-#### F9 · Write a view from a prompt (Sonnet · medium)
+#### FV7 · Player card (Haiku · medium)
 
-- **Needs:** nothing (works from §C-viz)
-- **Read:** `packages/analyst/src/llm.ts`, `prompt.ts`, `ask.ts`; this plan §C-viz, D19
-- **Write:** `packages/analyst/src/viz/generate.ts`: `generateView({ prompt, tables, notes, vocabulary })` returns `{ title, code }` or a tagged error. `vocabulary` is `'antv'` (G2 and G6 first, D3 and Three.js allowed) or `'d3'` (D3 and Three.js only); each has its own system prompt under `src/prompts/`, quoting the cached docs for the pinned versions. `repairView({ code, failure })` asks again with the frame's `Failed` message, at most twice. A static check rejects code that imports, fetches, or reaches outside `ctx` before it is ever run. `scripts/generate-view.ts` writes one view to a file. Tests use a stubbed model.
-- **Done:** from `packages/analyst`, `bun run typecheck && bun run lint && bun run test` pass.
+- **Needs:** nothing
+- **Read:** `apps/web/design/README.md`, `src/components/team-poster/primitives.tsx`, `tamagui-prompt.md`
+- **Write:** `src/viz/PlayerCard.tsx`: `{ name, position, firstSeason, lastSeason, games, emphasis? }`. A compact card: the name, then position and years (`C · 2015–26`), then games. `emphasis` marks the two ends of a chain. Tokens only.
+- **Done:** web-check passes.
 
-#### F10 · Vocabulary bake-off (Sonnet · medium)
+#### FV8 · Chain view (Haiku · medium)
 
-- **Needs:** F4, F8, F9
-- **Read:** `packages/analyst/evals/run.ts`, `runner.ts`, `grade.ts`
-- **Write:** `packages/analyst/evals/viz/`: run the five prompts below with each vocabulary on the real datasets, render every result in the sandbox frame through Playwright, apply the repair loop, and write one report page with, per run: rendered or failed, repairs used, tokens, seconds to first paint, median frame rate, and a screenshot. The report shows the two vocabularies side by side without labels, so Ben can rate each pair blind.
+- **Needs:** FV5, FV6, FV7
+- **Write:** `src/viz/lab/entries/chain.tsx`: `G6Graph` with the dagre layout, `chainGraph` on the `chain` sample, and `PlayerCard` as the node. Hovering an edge highlights every chain that uses it. A file field loads an exported `chain` file in place of the sample.
+- **Done:** web-check passes. On the sample, both tied chains show, with 11–12–14 on top. **Gate:** the orchestrator loads the real McDavid → Lindsay export and attaches a screenshot in each theme.
+
+#### FV9 · Games-by-season spec (Haiku · medium)
+
+- **Needs:** FC1, FP1
+- **Read:** the cached G2 docs for interval marks and stacking; the `pair` sample
+- **Write:** `src/viz/specs/games-by-season.ts`: `gamesBySeason(tables, theme, clubColor)` returns a G2 spec. One bar per season, stacked by club, regular season and playoffs as separate facets, goalie-partner games in a muted fill. `clubColor(abbrev, index)` is a parameter, so this card does not wait for **FV1**. `tests/viz-games-by-season.test.ts` on the sample: one season, one club, two games.
+- **Done:** web-check passes.
+
+#### FV10 · Finals grid spec (Haiku · medium)
+
+- **Needs:** FC1, FP1
+- **Read:** the cached G2 docs for cell marks and tooltips; the `finals` sample
+- **Write:** `src/viz/specs/finals-grid.ts`: `finalsGrid(tables, theme)` returns a G2 spec. One cell per Final year, ten to a row, filled with `win` for a hit and `rule` for a miss, with the matched player in the tooltip. A test on the sample.
+- **Done:** web-check passes.
+
+#### FV11 · Chart lab entries (Haiku · medium)
+
+- **Needs:** FV4, FV9, FV10
+- **Write:** `src/viz/lab/entries/games-by-season.tsx` and `finals-grid.tsx`: each passes its spec to `G2Chart`, with `teamColor` from `theme.ts` where the spec asks for club colours, on the sample, with a file field for an exported file.
+- **Done:** web-check passes. **Gate:** the orchestrator loads the real McDavid–Draisaitl and Jágr exports and attaches a screenshot of each in both themes, with the JavaScript size the two entries add.
+
+### FR · Renderers
+
+#### FR1 · Speed harness (Sonnet · medium)
+
+- **Needs:** FC1, FV3
+- **Read:** this plan §C-viz Folders (`BenchRenderer`)
+- **Write:** `src/viz/bench/harness.ts`: for one renderer and one `{ nodes, links }` dataset, record the time until the layout settles, then drive a fixed ten-second script of pans and zooms and record the median and the worst frame rate. `src/viz/bench/stats.ts`: the pure parts (median, worst, the script's steps), with tests. `src/viz/lab/entries/network-bench.tsx`: pick a discovered renderer and a dataset (the `ego` or `league` sample, or a loaded file), run, show a table, and offer it as JSON.
+- **Done:** web-check passes. With no renderers yet, the page lists none and says so.
+
+| Card | Renderer file | Tier | Draws with |
+| --- | --- | --- | --- |
+| FR2 | `renderers/g6-canvas.ts` | Sonnet · low | G6, canvas renderer, force layout |
+| FR3 | `renderers/g6-webgl.ts` | Sonnet · low | G6, WebGL renderer, GPU force layout if the cached docs show one for G6 5 |
+| FR4 | `renderers/cosmos.ts` | Sonnet · low | cosmos.gl |
+
+- **Needs (all three):** FC1, FP1
+- **Read:** the library's cached docs or README; `BenchRenderer` in `packages/viz/src/contracts.ts`
+- **Write:** the one file. Node size from `games`, link opacity from `games`, colours from `VizTheme`.
+- **Done:** web-check passes, and the renderer draws the `league` sample in the lab once **FR1** has landed.
+
+#### FR5 · Speed gate (orchestrator)
+
+- **Needs:** FR1 to FR4, FT7
+- **Gate:** on Ben's laptop, in Chrome and Safari, run every renderer on the real `ego` (Jágr) and `league` exports. Record, for each: settle time, median and worst frame rate, and the JavaScript the renderer adds. Paste the table into §Results.
+
+### FS · Sandbox
+
+#### FS1 · Frame runtime (Sonnet · high, Opus review)
+
+- **Needs:** FC1, FP1
+- **Read:** this plan D17, §C-viz View module, Frame messages, and the five rules
+- **Write:** `apps/web/src/viz/frame/frame.ts` and `viz-frame.html`: the frame's own page. On load it posts `Ready` with the library versions. On `Render` it decodes the message, sets the CSS variables from the theme, runs the code as a module with `{ root, tables, theme, size, libs }`, and posts `Rendered` after the first paint or `Failed` with the error. It samples the frame rate once a second and posts `FrameRate`. On `Dispose` it calls the view's cleanup and clears the root. It accepts messages only from its parent and ignores anything that does not decode. The PR states how the posted code is executed and why that route was chosen. `tests/viz-frame.test.ts` covers the message handling with a fake window.
+- **Done:** web-check passes.
+
+#### FS2 · Frame bundle (Sonnet · low)
+
+- **Needs:** FS1
+- **Read:** `apps/api/scripts/build.mjs` (for `Bun.build`)
+- **Write:** `apps/web/scripts/build-viz-frame.mjs`: bundle `frame.ts` with G2, G6, D3, and Three.js into `public/viz-frame/`, with `viz-frame.html` beside it, sharing no code with the Next app. A `viz:frame` script runs it, and `predev` and `prebuild` call that script, so no other card's script line changes. `public/viz-frame/` stays out of git.
+- **Done:** web-check passes. `bun run build` writes the bundle, and the PR records its size.
+
+#### FS3 · Frame headers (Sonnet · low)
+
+- **Needs:** FN1
+- **Read:** this plan §C-viz, the five rules; the cached Next docs for `headers()`
+- **Write:** in `next.config.js`: response headers for `/viz-frame/*` that sandbox the document with scripts only and allow nothing from the network, and a header on the app's pages that only allows frames from our own origin. A starting policy for the frame: `sandbox allow-scripts; default-src 'none'; script-src 'self' blob:; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; webrtc 'block'; base-uri 'none'; form-action 'none'`. **FS6**'s tests are the authority; this card states what it could not check by hand.
+- **Done:** web-check passes. Under `next:dev`, the headers are present on both paths.
+
+#### FS4 · Frame lifecycle (Sonnet · medium)
+
+- **Needs:** FC1
+- **Read:** `apps/web/src/boxscore-machine.ts`, `tests/boxscore-machine.test.ts`; `.agent-sources/ratstack/index.md` for `add-a-lifecycle-machine`; this plan §C-viz Frame messages
+- **Write:** `src/viz/frame/frame-machine.ts`: states `loading`, `ready`, `rendering`, `rendered`, `failed`, and `timedOut`. `Ready` moves `loading` to `ready`. A render request moves to `rendering` and records its `id`. A `Rendered` or `Failed` with that `id` settles it; one with another `id` is ignored. No answer in time moves to `timedOut`, which the host answers by replacing the frame. The time limit is an input, not a constant. `tests/viz-frame-machine.test.ts` covers each transition, a stale `id`, and a timeout.
+- **Done:** web-check passes.
+
+#### FS5 · Frame host (Sonnet · low)
+
+- **Needs:** FS2, FS4, FV3
+- **Write:** `src/islands/VizFrameIsland.tsx`: `{ code, tables }`. It renders the frame, runs `frame-machine`, posts `Render` with the current `VizTheme`, validates every message from the frame, shows a plain message on `failed`, and replaces the frame on `timedOut`. `src/viz/lab/entries/sandbox.tsx`: a text area holding a hand-written view module for the `chain` sample, a run button, and the last messages received.
+- **Done:** web-check passes. In the lab, the sample module draws, an edit that throws shows `Failed`, and the theme switch redraws it.
+
+#### FS6 · Boundary tests (Sonnet · high, Opus review)
+
+- **Needs:** FS3, FS5
+- **Read:** this plan §C-viz, the five rules
+- **Write:** `apps/web/tests/browser/sandbox.spec.ts`, run with Playwright against a production build. One test for each clause of the five rules. Each runs a view module that attempts the forbidden thing and reports through `Failed` or `Rendered` whether it worked: a fetch to `/api/rpc`, an XHR, a WebSocket, a beacon, an image from another host, `document.cookie`, `localStorage`, `parent.document`, `window.open`, a form post, `top.location`, and `location` set to another site. One more runs an endless loop and records, for Chromium, WebKit, and Firefox, whether the explorer still responds to a click and how long the host takes to replace the frame. A `test:browser` script.
+- **Done:** every boundary test passes in all three browsers, or the PR names the rule a browser does not hold and the header or attribute that would fix it. The endless-loop table is in the PR.
+
+### FM · Model
+
+#### FM1 · Code check (Haiku · medium)
+
+- **Needs:** FC1
+- **Read:** this plan §C-viz View module
+- **Write:** `packages/viz/src/check-view-code.ts`: `checkViewCode(code)` returns the list of problems or none. A problem is: no default export; an `import` or `require`; or any of `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `sendBeacon`, `RTCPeerConnection`, `document.cookie`, `localStorage`, `sessionStorage`, `indexedDB`, `window.parent`, `window.top`, `window.open`, `location`, `eval`, or `new Function`. It is a filter for honest mistakes, which lets the model repair them before the frame ever runs; the frame is the boundary (D17), and the file says so. `tests/check-view-code.test.ts`: one passing module and one failing module for each problem.
+- **Done:** viz-check passes.
+
+#### FM2 · Prompts (Sonnet · medium)
+
+- **Needs:** FC1, FP2
+- **Read:** `packages/analyst/src/prompts/generate.md`, `src/prompt.ts`; the cached G2 and G6 docs and AntV skills; this plan §C-viz, D16
+- **Write:** `packages/analyst/src/prompts/view-antv.md` and `view-d3.md`. Each states the view-module contract, the `VizTheme` fields, the rules (draw only in `root`, no imports, no network, return a cleanup, use theme colours), and how the tables and their `notes` arrive. `view-antv.md` says to use G2 for charts and G6 for networks first, with D3 and Three.js for what they cannot do, and quotes the cached docs for the pinned versions. `view-d3.md` allows D3 and Three.js only. Each ends with one complete, working view module for the `chain` sample.
+- **Done:** analyst-check passes. Both example modules pass `checkViewCode` in a test.
+
+#### FM3 · Generate and repair (Sonnet · low)
+
+- **Needs:** FC1
+- **Read:** `packages/analyst/src/llm.ts`, `rank.ts` (a structured model call), `ask.ts`
+- **Write:** `packages/analyst/src/viz/generate.ts`: `generateView({ prompt, tables, notes, system })` returns `{ title, code, model, usage }` or a tagged error, through the `Llm` service. The system prompt is a parameter, so this card does not wait for **FM2**. `repairView({ code, failure, system })` asks again with the frame's `Failed` message or the problems from `checkViewCode`. `generateChecked(...)` generates, runs `checkViewCode`, and repairs at most twice. Tests use a stubbed model: a clean first answer, one repaired answer, and one that fails three times.
+- **Done:** analyst-check passes.
+
+#### FM4 · Generate command (Haiku · low)
+
+- **Needs:** FM2, FM3
+- **Read:** `packages/analyst/scripts/ask.ts`
+- **Write:** `packages/analyst/scripts/generate-view.ts`: `--prompt`, `--tables <file>`, `--vocabulary antv|d3`, `--out <file>`. It prints the title, model, tokens, and repairs used. A `view:generate` script is not added; run it with `node`.
+- **Done:** analyst-check passes.
+
+### FE · Eval
+
+#### FE1 · Render harness (Sonnet · medium)
+
+- **Needs:** FS5
+- **Read:** `apps/web/src/viz/lab/entries/sandbox.tsx`, `packages/viz/src/contracts.ts`
+- **Write:** `packages/analyst/evals/viz/render.ts`: `renderView({ baseUrl, code, tables })`. With Playwright, open the lab's sandbox entry, submit the code and tables, wait for `Rendered` or `Failed`, collect ten seconds of `FrameRate`, and take a screenshot. It returns `{ outcome, firstPaintMs, medianFps, screenshotPath }` or a tagged error. A test runs it against a small stub page that speaks the frame messages.
+- **Done:** analyst-check passes.
+
+#### FE2 · Bake-off runner (Sonnet · low)
+
+- **Needs:** FM3, FE1
+- **Read:** `packages/analyst/evals/run.ts`, `runner.ts`
+- **Write:** `packages/analyst/evals/viz/bakeoff.ts` and `prompts.json` (the five prompts below). For each prompt and each vocabulary: generate, render, repair on `Failed` at most twice, and write one record: `{ prompt, dataset, vocabulary, outcome, repairs, model, tokens, firstPaintMs, medianFps, screenshotPath, code }`. Records go to `data/history/viz/bakeoff/`. Tests use a stubbed model and a stubbed renderer.
   1. `chain`: “Show how McDavid connects to Ted Lindsay, and make each hop feel like a jump through time.”
   2. `ego`: “Draw Jágr's career as a galaxy of teammates, clustered by club, brightest where he played the most.”
   3. `league`: “Animate the league's teammate network growing season by season from 1917.”
   4. `opponents`: “Compare who Gretzky and Ovechkin played against. Who did both face, and how often?”
   5. `finals`: “Make something wild out of the 45 Finals that Jágr's teammates played in.”
-- **Done:** the eval's own tests pass with a stubbed model. **Gate:** the orchestrator runs it once with the configured generate model (at most 30 model calls), Ben rates the ten pairs, and the PR records the table. If the two vocabularies are close, rerun once with a stronger model before deciding.
+- **Done:** analyst-check passes.
 
-#### F11 · Decide and write the explorer cards (orchestrator)
+#### FE3 · Bake-off report (Haiku · medium)
 
-- **Needs:** N4, F5, F6, F7, F10
-- **Write:** in this section: the gate numbers, the pass lines agreed with Ben, D16 confirmed or changed, the renderer for each network view, whether the frame gets its own domain, and which libraries load on demand. Then the cards for the explorer's built views, including its routes and how URL state (the two players, filters, relation, undo) is decoded with Effect schemas, and for the prompted-view service: how the agent chooses bounded History queries for a prompt, cost and rate limits, caching by prompt and snapshot ID, and how a prompted view that works well is promoted to a built one.
+- **Needs:** nothing (the record shape is in **FE2**)
+- **Write:** `packages/analyst/evals/viz/report.ts`: `bakeoffReport(records)` returns one self-contained HTML page. For each prompt, the two results sit side by side in a random order, labelled A and B, with a screenshot and no vocabulary name. A key at the bottom, hidden until opened, says which was which. Below it, a table by vocabulary: rendered, repairs, tokens, first paint, median frame rate. A test builds a report from four hand-written records.
+- **Done:** analyst-check passes.
+
+#### FE4 · Bake-off gate (orchestrator)
+
+- **Needs:** FE2, FE3, FM2, FT7
+- **Gate:** run the bake-off once on the real exports with the configured generate model: at most 30 model calls. Ben rates the five pairs blind. Paste the table and the ratings into §Results. If the two vocabularies are close, run once more with a stronger model before deciding.
+
+### FX · Explorer groundwork
+
+#### FX1 · History client for the web app (Sonnet · low)
+
+- **Needs:** nothing (§C-rpc is in `main`)
+- **Read:** `apps/web/src/season-source.ts`; this plan §C-rpc
+- **Write:** `apps/web/src/history-source.ts`: a `HistorySource` service over `HistoryRpcs` at `/api/history`, with `searchPlayers`, `player`, `roster`, `link`, `opponents`, `findPath`, and `finalsCoverage`, mirroring `season-source.ts`. A transport failure becomes `HistoryUnavailable`. `tests/history-source.test.ts` runs it against the in-memory fake store through the real handler.
+- **Done:** web-check passes.
+
+### FJ · Judge
+
+#### FJ1 · Decide and write the explorer cards (orchestrator)
+
+- **Needs:** FZ3, FV8, FV11, FR5, FS6, FE4
+- **Write:** in §Results: the numbers from each gate and the pass lines agreed with Ben. Then, in this section: D16 confirmed or changed; the renderer for each network view; whether the frame gets its own domain; which libraries load on demand; whether new pages stay zero-runtime by default. Then the cards for the explorer's built views, including its routes and how URL state (the two players, filters, relation, undo) is decoded with Effect schemas, and for the prompted-view service: how the agent chooses bounded History queries for a prompt, cost and rate limits, caching by prompt and snapshot ID, and how a prompted view that works well is promoted to a built one.
 - **Done:** Ben approves the section.
+
+What the spike decides. No pass line is set in advance; each gate records its numbers first.
+
+| Question | Measured by | Decides |
+| --- | --- | --- |
+| Can G6 draw one player's teammate network smoothly? | **FR5**, Jágr's 518 teammates | Whether G6 keeps the network views |
+| Can anything draw the whole league (8,842 players, 478,383 links)? | **FR5**, G6 on WebGL against cosmos.gl | Which renderer gets that view, or that it is cut |
+| Does the model write better views with AntV or with D3 and Three.js? | **FE4**, five prompts, both vocabularies | D16's default vocabulary |
+| Does a runaway view freeze the page? | **FS6**, per browser | Same-host frame or a separate domain |
+| What does each library cost to load? | **FV4**, **FV5**, **FV11**, **FR5**, **FS2** | Which libraries load on demand |
+| What does zero-runtime save? | **FZ1**, **FZ3**, sizes against §Baseline | Whether explorer pages stay zero-runtime by default |
+
+### Results
+
+Empty until the gates run. The orchestrator fills it.
 
 ### Frontend ledger
 
 | ID | Title | Tier | Needs | Branch | PR | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| N1 | Next.js shell | Sonnet · medium | — | | | not started |
-| N2 | API routes and the packaged history file | Sonnet · high | N1 | | | not started |
-| N3 | Share previews at request time | Sonnet · medium | N1 | | | not started |
-| N4 | Zero-runtime with islands | Sonnet · high | N1 | | | not started |
-| F1 | Install the visualization dependencies | Haiku · low | N1 | | | not started |
-| F0 | Cache the AntV docs and skills | Sonnet · low | F1 | | | not started |
-| F2 | History client for the web app | Sonnet · low | — | | | not started |
-| F3 | Theme adapter and lab shell | Sonnet · medium | F1 | | | not started |
-| F4 | Export the spike's datasets | Sonnet · medium | — | | | not started |
-| F5 | Chain view in G6 | Sonnet · medium | F2, F3, F4 | | | not started |
-| F6 | Two charts in G2 | Sonnet · medium | F2, F3, F4 | | | not started |
-| F7 | Network speed gate | Sonnet · medium | F3, F4 | | | not started |
-| F8 | The sandbox frame | Sonnet · high | F1 | | | not started |
-| F9 | Write a view from a prompt | Sonnet · medium | — | | | not started |
-| F10 | Vocabulary bake-off | Sonnet · medium | F4, F8, F9 | | | not started |
-| F11 | Decide and write the explorer cards | Orchestrator | N4, F5, F6, F7, F10 | | | not started |
+| FC0 | Scaffold `packages/viz` | Sonnet · low | — | | | not started |
+| FC1 | Shapes and samples | Sonnet · high | FC0 | | | not started |
+| FP1 | Install the dependencies | Haiku · low | FC0 | | | not started |
+| FP2 | Cache the AntV docs and skills | Sonnet · low | — | | | not started |
+| FP3 | Cache the Next.js docs | Sonnet · low | — | | | not started |
+| FN1 | Next beside Vite | Sonnet · medium | FP1 | | | not started |
+| FN2 | API routes | Sonnet · medium | FN1 | | | not started |
+| FN3 | Ship the history file with its route | Sonnet · medium | FN2 | | | not started |
+| FN4 | Team page titles and tags | Sonnet · low | FN1 | | | not started |
+| FN5 | Team preview images | Sonnet · low | FN4 | | | not started |
+| FN6 | Cut over to Next | Sonnet · low | FN3, FN5 | | | not started |
+| FN7 | Packaging check on the Next output | Sonnet · high | FN6 | | | not started |
+| FZ1 | Turn zero-runtime on, poster as one island | Sonnet · high | FN6 | | | not started |
+| FZ2 | Narrow the theme pack | Sonnet · low | FN6 | | | not started |
+| FZ3 | The first zero-runtime page | Sonnet · medium | FZ1 | | | not started |
+| FT1 | `chain` tables | Haiku · medium | FC1 | | | not started |
+| FT2 | `pair` tables | Haiku · medium | FC1 | | | not started |
+| FT3 | `ego` tables | Sonnet · low | FC1 | | | not started |
+| FT4 | `league` tables | Sonnet · low | FC1 | | | not started |
+| FT5 | `opponents` tables | Haiku · medium | FC1 | | | not started |
+| FT6 | `finals` tables | Haiku · medium | FC1 | | | not started |
+| FT7 | Export command | Sonnet · low | FT1–FT6 | | | not started |
+| FV1 | Theme adapter | Haiku · medium | FC1 | | | not started |
+| FV2 | No literal colours in `src/viz` | Sonnet · medium | — | | | not started |
+| FV3 | Lab route | Sonnet · low | FN1 | | | not started |
+| FV4 | G2 host | Sonnet · medium | FP1, FV1, FV3 | | | not started |
+| FV5 | G6 host | Sonnet · medium | FP1, FV1, FV3 | | | not started |
+| FV6 | Chain spec | Sonnet · low | FC1 | | | not started |
+| FV7 | Player card | Haiku · medium | — | | | not started |
+| FV8 | Chain view | Haiku · medium | FV5, FV6, FV7 | | | not started |
+| FV9 | Games-by-season spec | Haiku · medium | FC1, FP1 | | | not started |
+| FV10 | Finals grid spec | Haiku · medium | FC1, FP1 | | | not started |
+| FV11 | Chart lab entries | Haiku · medium | FV4, FV9, FV10 | | | not started |
+| FR1 | Speed harness | Sonnet · medium | FC1, FV3 | | | not started |
+| FR2 | G6 canvas renderer | Sonnet · low | FC1, FP1 | | | not started |
+| FR3 | G6 WebGL renderer | Sonnet · low | FC1, FP1 | | | not started |
+| FR4 | cosmos.gl renderer | Sonnet · low | FC1, FP1 | | | not started |
+| FR5 | Speed gate | Orchestrator | FR1–FR4, FT7 | | | not started |
+| FS1 | Frame runtime | Sonnet · high | FC1, FP1 | | | not started |
+| FS2 | Frame bundle | Sonnet · low | FS1 | | | not started |
+| FS3 | Frame headers | Sonnet · low | FN1 | | | not started |
+| FS4 | Frame lifecycle | Sonnet · medium | FC1 | | | not started |
+| FS5 | Frame host | Sonnet · low | FS2, FS4, FV3 | | | not started |
+| FS6 | Boundary tests | Sonnet · high | FS3, FS5 | | | not started |
+| FM1 | Code check | Haiku · medium | FC1 | | | not started |
+| FM2 | Prompts | Sonnet · medium | FC1, FP2 | | | not started |
+| FM3 | Generate and repair | Sonnet · low | FC1 | | | not started |
+| FM4 | Generate command | Haiku · low | FM2, FM3 | | | not started |
+| FE1 | Render harness | Sonnet · medium | FS5 | | | not started |
+| FE2 | Bake-off runner | Sonnet · low | FM3, FE1 | | | not started |
+| FE3 | Bake-off report | Haiku · medium | — | | | not started |
+| FE4 | Bake-off gate | Orchestrator | FE2, FE3, FM2, FT7 | | | not started |
+| FX1 | History client for the web app | Sonnet · low | — | | | not started |
+| FJ1 | Decide and write the explorer cards | Orchestrator | FZ3, FV8, FV11, FR5, FS6, FE4 | | | not started |
 
 ## Later
 
 Out of scope for this plan. The API contract above is what these will call.
 
-- **Web explorer.** Player search, a player's clubs, rosters, a visible chain with undo, the evidence sheet behind any link, the path view with filters, and the played-against lists. §Frontend fixes the approach and runs a spike; **F11** writes these cards.
+- **Web explorer.** Player search, a player's clubs, rosters, a visible chain with undo, the evidence sheet behind any link, the path view with filters, and the played-against lists. §Frontend fixes the approach and runs a spike; **FJ1** writes these cards.
 - **Game.** A daily challenge between two well-known players, move-by-move checking, chain verification and a longest-chain score, and a Finals streak view. It needs a fame floor: the farthest pair is Amos Arbour and Trevor Kuntar, nine hops apart, and nobody can play that.
 - **User state.** Accounts, saved chains, and leaderboards, in Postgres (D13).
 
