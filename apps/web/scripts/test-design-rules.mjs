@@ -1,6 +1,6 @@
 import { logInfo } from '../../../lib/logger.mjs'
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rmdir, writeFile, rm } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -63,9 +63,65 @@ const cases = [
 for (const prop of ['textShadowColor', 'caretColor', 'borderBlockColor', 'borderBlockStartColor', 'borderBlockEndColor', 'borderInlineColor', 'borderInlineStartColor', 'borderInlineEndColor', 'borderStartColor', 'borderEndColor']) cases.push([prop, `<View ${prop}="#fff" />`, false])
 for (const prop of ['paddingInline', 'paddingBlockStart', 'marginInlineEnd', 'marginBlock', 'insetBlockEnd', 'insetInlineStart', 'paddingStart', 'marginEnd', 'inlineSize', 'maxBlockSize', 'flexBasis', 'borderStartStartRadius', 'borderTopEndRadius', 'borderInlineWidth', 'borderBlockStartWidth']) cases.push([prop, `<View ${prop}={15} />`, false])
 for (const prop of ['border', 'borderBlock', 'borderInline', 'borderInlineStart']) cases.push([prop, `<View ${prop}="1px solid #fff" />`, false])
+const vizCases = [
+  ['viz theme colour', 'const fill = theme.series[0]; export default fill', true],
+  ['viz hex literal', 'const fill = "#ff0000"; export default fill', false],
+  ['viz prose mentioning rgb()', 'export const label = "Convert rgb() to hex"', true],
+  ['viz rgb function', 'export const fill = "rgb(255, 0, 0)"', false],
+  ['viz field named gold', 'type Key = "gold" | "brand"; const key: Key = theme.gold; export default [theme["gold"], { gold: key }]', true],
+  ['viz named colour value', 'const fill = "gold"; export default fill', false],
+  ['viz token in JSX conditional', 'const on = Math.random() > 0.5; export default <View borderColor={on ? "gold" : "rule"} />', true],
+  ['viz token in styled options', 'import { styled, View } from "tamagui"; export default styled(View, { borderColor: "gold" })', true],
+  ['viz named colour in JSX', 'export default <View borderColor="red" />', false],
+  ['viz token in plain object', 'export const spec = { fill: "gold" }', false],
+  ['viz token in nested style object', 'export const spec = { style: { fill: "gold" } }', false],
+  ['viz named colour property value', 'export default { fill: "gold" }', false],
+  ['viz chart theme object', 'const t = { background: theme.background, node: { style: { fill: theme.surface, stroke: theme.rule } } }; export default t', true],
+  ['viz chart spec keys', "const spec = { type: 'interval', style: { fill: theme.win }, width: 640, padding: 12 }; export default spec", true],
+  ['viz spread with colour key', 'const merged = { ...base, color: theme.color }; export default merged', true],
+  ['viz chart spec hex', "const spec = { style: { fill: '#ff0000' } }; export default spec", false],
+  ['viz styled options still checked', 'import { styled, View } from "tamagui"; export default styled(View, { backgroundColor: theme.background })', false, 'design(semantic-colors)'],
+  ['viz nested rgb function', 'export const fill = "rgb(calc(100 + 28) 0 0)"', false],
+  ['viz empty rgb label', 'export const label = "rgb()"', true],
+  ['viz token on native element', 'export default <path fill="gold" />', false],
+  ['viz token in native spread', 'export default <path {...{ fill: "gold" }} />', false],
+  ['viz token in Tamagui object prop', 'export default <View bg={{ default: "gold", hover: "win" }} />', true],
+  ['viz token in Tamagui spread', 'export default <View {...{ bg: "gold" }} />', true],
+  ['viz spec passed inline', 'export default <G2Chart spec={{ style: { fill: theme.win } }} />', true],
+  ['viz colour literal in inline spec', 'export default <G2Chart spec={{ fill: "gold" }} />', false],
+  ['viz aliased styled options', 'import { styled as recipe, View } from "tamagui"; export default recipe(View, { gap: 15 })', false, 'design(token-values)'],
+  ['viz aliased styled token', 'import { styled as recipe, View } from "tamagui"; export default recipe(View, { borderColor: "gold" })', true],
+  ['viz JSX style still escapes', 'export default <View style={{ fill: theme.win }} />', false, 'design(no-style-escape)'],
+]
+const vizRoot = `${root}src/viz`
+const explorerRoot = `${root}src/explorer`
+const explorerDir = `${explorerRoot}/design-rule-test-${dir.split('-').at(-1)}`
+const createdExplorerRoot = (await mkdir(explorerRoot, { recursive: true })) !== undefined
+await mkdir(explorerDir)
+cases.push(
+  ['explorer RPC payload', "const payload = { from: 1, to: 2, filter: { competition: 'all' } }; export default payload", true, explorerDir],
+  ['explorer payload spread', "const payload = {}; const next = { ...payload, limit: 10 }; export default next", true, explorerDir],
+  ['explorer styled options still checked', 'import { styled, View } from "tamagui"; export default styled(View, { filter: "blur(2px)" })', false, explorerDir, 'design(no-style-escape)'],
+  ['explorer JSX style still escapes', 'export default <View style={{ filter: "blur(2px)" }} />', false, explorerDir, 'design(no-style-escape)'],
+)
+const frameDir = `${vizRoot}/frame`
+const frameFile = `${frameDir}/frame.ts`
+// The override applies to exactly this path, so lint the fixture there only when no real file would be overwritten.
+const frameFree = !(await readFile(frameFile, 'utf8').then(() => true, () => false))
+const frameSource = 'const mod = await import(URL.createObjectURL(blob)); document.documentElement.style.setProperty("--bg", theme.background); export default mod'
+const rmdirIfEmpty = (path) => rmdir(path).catch((error) => { if (!['ENOTEMPTY', 'EEXIST', 'ENOENT'].includes(error.code)) throw error })
+const createdVizRoot = (await mkdir(vizRoot, { recursive: true })) !== undefined
+const vizDir = `${root}src/viz/design-rule-test-${dir.split('-').at(-1)}`
+await mkdir(vizDir)
+for (const [name, source, pass, code = 'design(viz-theme-colors)'] of vizCases) cases.push([name, source, pass, vizDir, code])
+if (frameFree) cases.push(['frame page blob import and setProperty', frameSource, true, frameDir, undefined, 'frame.ts'])
+else logInfo('skipping the frame.ts fixture: a real src/viz/frame/frame.ts exists')
+cases.push(['frame page source elsewhere in src/viz', frameSource, false, vizDir, 'design(no-css-imports)'])
+cases.push(['chart theme object outside src/viz', 'const t = { background: theme.background, node: { style: { fill: theme.surface, stroke: theme.rule } } }; export default t', false, dir, 'design(semantic-colors)'])
 try {
-  for (const [name, source, pass] of cases) {
-    const file = `${dir}/case.tsx`
+  for (const [name, source, pass, caseDir = dir, expected, fileName = 'case.tsx'] of cases) {
+    if (caseDir === frameDir) await mkdir(frameDir, { recursive: true })
+    const file = `${caseDir}/${fileName}`
     await writeFile(file, source)
     const result = spawnSync(`${root}../../node_modules/.bin/effect-tsgo`, ['--tsrs-lint', 'oxlint', '--format', 'json', file], { cwd: root, encoding: 'utf8' })
     assert.equal(result.error, undefined, name)
@@ -73,6 +129,7 @@ try {
     assert.ok(!diagnostics.some((d) => d.message.includes('Error running JS plugin')), `${name}: plugin crashed`)
     const errors = diagnostics.filter((d) => d.severity === 'error')
     assert.equal(errors.length === 0, pass, `${name}: ${result.stdout}`)
+    if (expected) assert.ok(pass ? errors.length === 0 : errors.some((d) => d.code === expected), `${name}: expected ${expected}: ${result.stdout}`)
     assert.equal(result.status === 0, pass, `${name}: wrong process status`)
   }
   const css = `${dir}/unused.css`
@@ -80,4 +137,11 @@ try {
   const result = spawnSync(process.execPath, ['scripts/check-design-files.mjs'], { cwd: root, encoding: 'utf8' })
   assert.equal(result.status, 1, 'unused CSS must fail')
   logInfo(`${cases.length} Oxlint rule cases and unused CSS check passed`)
-} finally { await rm(dir, { recursive: true, force: true }) }
+} finally {
+  await rm(dir, { recursive: true, force: true })
+  await rm(vizDir, { recursive: true, force: true })
+  await rm(explorerDir, { recursive: true, force: true })
+  if (createdExplorerRoot) await rmdirIfEmpty(explorerRoot)
+  if (frameFree) { await rm(frameFile, { force: true }); await rmdirIfEmpty(frameDir) }
+  if (createdVizRoot) await rmdirIfEmpty(vizRoot)
+}
