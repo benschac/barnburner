@@ -1,11 +1,12 @@
 import { existsSync } from 'node:fs'
-import { parseArgs } from 'node:util'
 import { fileURLToPath } from 'node:url'
-import { Effect, Match, Result, Schema } from 'effect'
+import { NodeServices } from '@effect/platform-node'
+import { Console, Effect, Option, Result, Schema } from 'effect'
+import { Argument, CliError, Command, Flag } from 'effect/cli'
 import {
   DEFAULT_FILTER, HistoryUnavailable, farthest, finalsCoverage, findPaths, link, makeGraph, opponents,
 } from '@nhl-reddit-stats/history'
-import type { Filter, FinalsYear, HistoryStore, PlayerRow, Relation, StintRow } from '@nhl-reddit-stats/history'
+import type { Filter, FinalsYear, HistoryStore, PlayerRow, StintRow } from '@nhl-reddit-stats/history'
 import { fillOpponentHops } from '../src/history-routes.ts'
 import { openHistoryStore } from '../src/history-store.ts'
 import type { WireHop } from '../src/history-routes.ts'
@@ -13,21 +14,10 @@ import type { WireHop } from '../src/history-routes.ts'
 // Query the history serving file from the terminal. It runs the same package functions as the API
 // handlers (findPaths, link, opponents, farthest, finalsCoverage, fillOpponentHops) on the opened store.
 //
-//   node scripts/history-query.ts [--db <file>] <command> ...
+//   node scripts/history-query.ts [--db <file>] <command> ...   (--help lists commands and flags)
 //
 // `--db` defaults to $HISTORY_DB, else the first existing of apps/web/history-data/nhl-serve.sqlite and
 // data/history/nhl-serve.sqlite.
-
-const USAGE = `Usage: history-query.ts [--db <file>] <command> [options]
-  path <a> <b>        shortest chain(s) between two players
-  player <name>       player summary and stints
-  link <a> <b>        how two players are linked
-  opponents <name>    most-faced opponents
-  farthest <name>     the player's farthest reachable teammate chain
-  finals <name>       Cup Finals coverage [--from 1980 --to 2026]
-Players are names (accent-folded) or numeric IDs.
-Options: --regular | --playoff, --from-season <id>, --to-season <id>, --no-partners,
-         --relation with|against|either, --limit <n>`
 
 class UsageError extends Schema.TaggedError<UsageError, { readonly brand: unique symbol }>()('UsageError', {
   message: Schema.String,
@@ -64,11 +54,6 @@ const competitionLabel = (gameType: 2 | 3): string => (gameType === 2 ? 'regular
 
 const describePlayer = (p: PlayerRow): string =>
   `${p.name} (id ${p.playerId}, ${p.position}, ${seasonLabel(p.firstSeason)} to ${seasonLabel(p.lastSeason)})`
-
-const parseCount = (flag: string, text: string | undefined, fallback: number) => {
-  if (text === undefined) return Effect.succeed(fallback)
-  return /^\d+$/.test(text) ? Effect.succeed(Number(text)) : Effect.fail(new UsageError({ message: `${flag} needs a whole number.` }))
-}
 
 const resolve = (store: HistoryStore, text: string): Effect.Effect<PlayerRow, HistoryUnavailable | NoMatch | AmbiguousName> =>
   Effect.gen(function* () {
@@ -141,137 +126,183 @@ const finalsLine = (names: Names, year: FinalsYear) => Effect.gen(function* () {
   return `${year.year}: ${who} (Final game ${year.finalGameId}, shared game ${year.sharedGameId})`
 })
 
-const Command = Schema.Literals(['path', 'player', 'link', 'opponents', 'farthest', 'finals'])
+const print = (lines: ReadonlyArray<string>) => Console.log(lines.join('\n'))
 
-const program = (argv: ReadonlyArray<string>) => Effect.gen(function* () {
-  const parsed = yield* Effect.try({
-    try: () => parseArgs({
-      args: [...argv],
-      allowPositionals: true,
-      options: {
-        db: { type: 'string' }, regular: { type: 'boolean' }, playoff: { type: 'boolean' },
-        'from-season': { type: 'string' }, 'to-season': { type: 'string' }, 'no-partners': { type: 'boolean' },
-        relation: { type: 'string' }, limit: { type: 'string' }, from: { type: 'string' }, to: { type: 'string' },
-      },
-    }),
-    // foreign: parseArgs throws its own errors for unknown flags
-    catch: () => new UsageError({ message: `Bad arguments.\n${USAGE}` }),
-  })
-  const { values, positionals } = parsed
-  const [name, ...args] = positionals
-  if (name === undefined) return yield* new UsageError({ message: USAGE })
-  const command = yield* Schema.decodeUnknownEffect(Command)(name).pipe(
-    Effect.mapError(() => new UsageError({ message: `Unknown command "${name}".\n${USAGE}` })),
+const player = (name: string) =>
+  Argument.String(name).pipe(Argument.withDescription('A player name (accent-folded) or numeric ID.'))
+
+const count = (name: string, fallback: number, description: string) =>
+  Flag.Int(name).pipe(
+    Flag.filter((n) => n >= 0, (n) => `--${name} must be zero or more, got ${n}.`),
+    Flag.withDefault(fallback),
+    Flag.withDescription(description),
   )
-  const arity = command === 'path' || command === 'link' ? 2 : 1
-  if (args.length !== arity) return yield* new UsageError({ message: `${command} takes ${arity} player argument(s).\n${USAGE}` })
-  if (values.regular === true && values.playoff === true) {
-    return yield* new UsageError({ message: 'Use only one of --regular and --playoff.' })
-  }
-  const relation: Relation = yield* Match.value(values.relation ?? 'with').pipe(
-    Match.when('with', () => Effect.succeed<Relation>('with')),
-    Match.when('against', () => Effect.succeed<Relation>('against')),
-    Match.when('either', () => Effect.succeed<Relation>('either')),
-    Match.orElse(() => Effect.fail(new UsageError({ message: '--relation must be with, against, or either.' }))),
-  )
-  const fromSeason = values['from-season'] === undefined ? null : yield* parseCount('--from-season', values['from-season'], 0)
-  const toSeason = values['to-season'] === undefined ? null : yield* parseCount('--to-season', values['to-season'], 0)
-  const filter: Filter = {
+
+const season = (name: string, description: string) =>
+  Flag.Int(name).pipe(Flag.optional, Flag.withDescription(`${description} season ID, such as 19801981.`))
+
+const filterFlags = {
+  regular: Flag.Boolean('regular').pipe(Flag.withDefault(false), Flag.withDescription('Regular-season games only.')),
+  playoff: Flag.Boolean('playoff').pipe(Flag.withDefault(false), Flag.withDescription('Playoff games only.')),
+  fromSeason: season('from-season', 'First'),
+  toSeason: season('to-season', 'Last'),
+  partners: Flag.Boolean('partners').pipe(
+    Flag.withDefault(true),
+    Flag.withDescription('Count goalie partners as links; --no-partners leaves them out.'),
+  ),
+}
+
+type FilterFlags = {
+  readonly regular: boolean
+  readonly playoff: boolean
+  readonly fromSeason: Option.Option<number>
+  readonly toSeason: Option.Option<number>
+  readonly partners: boolean
+}
+
+const toFilter = (flags: FilterFlags): Effect.Effect<Filter, UsageError> => {
+  if (flags.regular && flags.playoff) return Effect.fail(new UsageError({ message: 'Use only one of --regular and --playoff.' }))
+  return Effect.succeed({
     ...DEFAULT_FILTER,
-    competition: values.regular === true ? 'regular' : values.playoff === true ? 'playoff' : 'all',
-    fromSeason, toSeason, goaliePartners: values['no-partners'] !== true,
-  }
+    competition: flags.regular ? 'regular' : flags.playoff ? 'playoff' : 'all',
+    fromSeason: Option.getOrNull(flags.fromSeason),
+    toSeason: Option.getOrNull(flags.toSeason),
+    goaliePartners: flags.partners,
+  })
+}
 
-  // A one-shot command: the store stays open until the process exits.
-  const store = yield* openHistoryStore(values.db ?? defaultDb())
-  const graph = makeGraph(store.graph.arrays)
-  const names = makeNames(store)
-  const [a, b] = yield* Effect.forEach(args, (text) => resolve(store, text))
+const root = Command.make('history-query').pipe(
+  Command.withSharedFlags({
+    db: Flag.String('db').pipe(Flag.optional, Flag.withDescription('Serving file; defaults to $HISTORY_DB or the local build.')),
+  }),
+  Command.withDescription('Query the NHL history serving file.'),
+)
 
-  switch (command) {
-    case 'path': {
-      const limit = yield* parseCount('--limit', values.limit, 1)
-      const found = findPaths(graph, a.playerId, b.playerId, filter, relation, Math.min(Math.max(limit, 1), 10))
-      if (Result.isFailure(found)) {
-        if (found.failure._tag === 'NoPath') return yield* new NoChain({ from: a.name, to: b.name })
-        return yield* found.failure
-      }
-      const filled = yield* fillOpponentHops(store, found.success)
-      const out: Array<string> = [
-        `${filled.distance} hop(s); ${filled.pathCount}${filled.pathCountCapped ? '+' : ''} shortest chain(s).`,
-      ]
-      for (const [index, path] of filled.paths.entries()) {
-        if (filled.paths.length > 1) out.push(`Chain ${index + 1}:`)
-        for (const hop of path) out.push(yield* hopLine(names, hop))
-      }
-      return out
-    }
-    case 'player': {
-      const { player, stints } = yield* store.player(a.playerId)
-      const out = [
-        describePlayer(player),
-        `${player.games} games, ${player.points} points, ${player.teammates} teammates.`,
-      ]
-      for (const s of stints) {
-        out.push(`  ${seasonLabel(s.seasonId)} ${competitionLabel(s.gameType)}: ${s.teamAbbrev} (${s.teamName}), ${s.games} games`)
-      }
-      return out
-    }
-    case 'link': {
-      const result = link(graph, a.playerId, b.playerId, filter)
-      if (Result.isFailure(result)) return yield* result.failure
-      const { spans, totalGames, evidenceGameId, opposedGames } = result.success
-      if (spans.length === 0) {
-        return [`${a.name} and ${b.name}: not teammates with these filters; ${opposedGames} games against each other.`]
-      }
-      const out = [
-        `${a.name} and ${b.name}: ${totalGames} games together, ${opposedGames} against; evidence game ${evidenceGameId}.`,
-      ]
-      for (const span of spans) {
-        const team = yield* names.team(a.playerId, span.teamId)
-        const kind = span.link === 'GoaliePartners' ? ', goalie partners' : ''
-        out.push(`  ${team} ${seasonLabel(span.seasonId)} ${competitionLabel(span.gameType)}: ${span.games} games${kind}, first game ${span.firstGameId}`)
-      }
-      return out
-    }
-    case 'opponents': {
-      const limit = yield* parseCount('--limit', values.limit, 20)
-      const found = opponents(graph, a.playerId)
-      if (Result.isFailure(found)) return yield* found.failure
-      const out = [`${a.name}: ${found.success.length} opponents.`]
-      for (const o of found.success.slice(0, limit)) {
-        out.push(`  ${yield* names.name(o.playerId)}: ${o.games} games`)
-      }
-      return out
-    }
-    case 'farthest': {
-      const found = farthest(graph, a.playerId, filter)
-      if (Result.isFailure(found)) return yield* found.failure
-      const { distance, atDistance, reachable, unreachable, example } = found.success
-      const out = [
-        `${a.name}: farthest teammate chain is ${distance} hop(s), ${atDistance} player(s) at that distance; ${reachable} reachable, ${unreachable} not.`,
-      ]
-      for (const hop of example) out.push(yield* hopLine(names, hop))
-      return out
-    }
-    case 'finals': {
-      const fromYear = yield* parseCount('--from', values.from, 1980)
-      const toYear = yield* parseCount('--to', values.to, 2026)
-      const years = yield* finalsCoverage(graph, store, a.playerId, fromYear, toYear)
-      const out = [`${a.name}: Cup Finals ${fromYear}-${toYear}.`]
-      for (const year of years) out.push(yield* finalsLine(names, year))
-      return out
-    }
-  }
+// A one-shot command: the store stays open until the process exits.
+const session = Effect.gen(function* () {
+  const { db } = yield* root
+  const store = yield* openHistoryStore(Option.getOrElse(db, defaultDb))
+  return { store, graph: makeGraph(store.graph.arrays), names: makeNames(store) }
 })
+
+const pathCommand = Command.make('path', {
+  ...filterFlags,
+  relation: Flag.Literals('relation', ['with', 'against', 'either']).pipe(
+    Flag.withDefault('with'),
+    Flag.withDescription('Link through teammates (with), opponents (against), or either.'),
+  ),
+  limit: count('limit', 1, 'Chains to list, 1 to 10 (default 1).'),
+  from: player('from'),
+  to: player('to'),
+}, (config) => Effect.gen(function* () {
+  const filter = yield* toFilter(config)
+  const { store, graph, names } = yield* session
+  const a = yield* resolve(store, config.from)
+  const b = yield* resolve(store, config.to)
+  const found = findPaths(graph, a.playerId, b.playerId, filter, config.relation, Math.min(Math.max(config.limit, 1), 10))
+  if (Result.isFailure(found)) {
+    if (found.failure._tag === 'NoPath') return yield* new NoChain({ from: a.name, to: b.name })
+    return yield* found.failure
+  }
+  const filled = yield* fillOpponentHops(store, found.success)
+  const out: Array<string> = [
+    `${filled.distance} hop(s); ${filled.pathCount}${filled.pathCountCapped ? '+' : ''} shortest chain(s).`,
+  ]
+  for (const [index, path] of filled.paths.entries()) {
+    if (filled.paths.length > 1) out.push(`Chain ${index + 1}:`)
+    for (const hop of path) out.push(yield* hopLine(names, hop))
+  }
+  yield* print(out)
+})).pipe(Command.withDescription('Shortest chain(s) between two players.'))
+
+const playerCommand = Command.make('player', { player: player('player') }, (config) => Effect.gen(function* () {
+  const { store } = yield* session
+  const a = yield* resolve(store, config.player)
+  const { player: row, stints } = yield* store.player(a.playerId)
+  const out = [describePlayer(row), `${row.games} games, ${row.points} points, ${row.teammates} teammates.`]
+  for (const s of stints) {
+    out.push(`  ${seasonLabel(s.seasonId)} ${competitionLabel(s.gameType)}: ${s.teamAbbrev} (${s.teamName}), ${s.games} games`)
+  }
+  yield* print(out)
+})).pipe(Command.withDescription('Player summary and stints.'))
+
+const linkCommand = Command.make('link', {
+  ...filterFlags,
+  from: player('from'),
+  to: player('to'),
+}, (config) => Effect.gen(function* () {
+  const filter = yield* toFilter(config)
+  const { store, graph, names } = yield* session
+  const a = yield* resolve(store, config.from)
+  const b = yield* resolve(store, config.to)
+  const result = link(graph, a.playerId, b.playerId, filter)
+  if (Result.isFailure(result)) return yield* result.failure
+  const { spans, totalGames, evidenceGameId, opposedGames } = result.success
+  if (spans.length === 0) {
+    return yield* print([`${a.name} and ${b.name}: not teammates with these filters; ${opposedGames} games against each other.`])
+  }
+  const out = [`${a.name} and ${b.name}: ${totalGames} games together, ${opposedGames} against; evidence game ${evidenceGameId}.`]
+  for (const span of spans) {
+    const team = yield* names.team(a.playerId, span.teamId)
+    const kind = span.link === 'GoaliePartners' ? ', goalie partners' : ''
+    out.push(`  ${team} ${seasonLabel(span.seasonId)} ${competitionLabel(span.gameType)}: ${span.games} games${kind}, first game ${span.firstGameId}`)
+  }
+  yield* print(out)
+})).pipe(Command.withDescription('How two players are linked.'))
+
+const opponentsCommand = Command.make('opponents', {
+  limit: count('limit', 20, 'Opponents to list (default 20).'),
+  player: player('player'),
+}, (config) => Effect.gen(function* () {
+  const { store, graph, names } = yield* session
+  const a = yield* resolve(store, config.player)
+  const found = opponents(graph, a.playerId)
+  if (Result.isFailure(found)) return yield* found.failure
+  const out = [`${a.name}: ${found.success.length} opponents.`]
+  for (const o of found.success.slice(0, config.limit)) out.push(`  ${yield* names.name(o.playerId)}: ${o.games} games`)
+  yield* print(out)
+})).pipe(Command.withDescription('Most-faced opponents.'))
+
+const farthestCommand = Command.make('farthest', {
+  ...filterFlags,
+  player: player('player'),
+}, (config) => Effect.gen(function* () {
+  const filter = yield* toFilter(config)
+  const { store, graph, names } = yield* session
+  const a = yield* resolve(store, config.player)
+  const found = farthest(graph, a.playerId, filter)
+  if (Result.isFailure(found)) return yield* found.failure
+  const { distance, atDistance, reachable, unreachable, example } = found.success
+  const out = [
+    `${a.name}: farthest teammate chain is ${distance} hop(s), ${atDistance} player(s) at that distance; ${reachable} reachable, ${unreachable} not.`,
+  ]
+  for (const hop of example) out.push(yield* hopLine(names, hop))
+  yield* print(out)
+})).pipe(Command.withDescription("The player's farthest reachable teammate chain."))
+
+const finalsCommand = Command.make('finals', {
+  from: count('from', 1980, 'First Final year (default 1980).'),
+  to: count('to', 2026, 'Last Final year (default 2026).'),
+  player: player('player'),
+}, (config) => Effect.gen(function* () {
+  const { store, graph, names } = yield* session
+  const a = yield* resolve(store, config.player)
+  const years = yield* finalsCoverage(graph, store, a.playerId, config.from, config.to)
+  const out = [`${a.name}: Cup Finals ${config.from}-${config.to}.`]
+  for (const year of years) out.push(yield* finalsLine(names, year))
+  yield* print(out)
+})).pipe(Command.withDescription('Stanley Cup Finals coverage through teammates.'))
+
+const app = root.pipe(
+  Command.withSubcommands([pathCommand, playerCommand, linkCommand, opponentsCommand, farthestCommand, finalsCommand]),
+)
 
 const fail = (message: string) => Effect.sync(() => {
   process.stderr.write(`${message}\n`)
   process.exitCode = 1
 })
 
-const run = (argv: ReadonlyArray<string>) => program(argv).pipe(
-  Effect.flatMap((lines) => Effect.sync(() => { process.stdout.write(`${lines.join('\n')}\n`) })),
+const run = Command.run(app, { version: '0.0.0' }).pipe(
   Effect.catchTags({
     UsageError: (e) => fail(e.message),
     NoMatch: (e) => fail(`No player matches "${e.query}".`),
@@ -281,6 +312,9 @@ const run = (argv: ReadonlyArray<string>) => program(argv).pipe(
     UnknownPlayer: (e) => fail(`Unknown player ${e.playerId}.`),
     UnsupportedFilter: (e) => fail(`--relation ${e.relation} supports no competition, season, or partner flags.`),
   }),
+  // effect/cli has already printed parse errors and help; only the exit code is left.
+  Effect.catchIf(CliError.isCliError, () => Effect.sync(() => { process.exitCode = 1 })),
+  Effect.provide(NodeServices.layer),
 )
 
-await Effect.runPromise(run(process.argv.slice(2)))
+await Effect.runPromise(run)
