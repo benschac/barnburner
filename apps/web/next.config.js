@@ -27,6 +27,8 @@ const keepApiExternal = (config, { isServer, nextRuntime }) => {
 export default plugin({
   typescript: { tsconfigPath: 'tsconfig.next.json' },
   serverExternalPackages: ['@nhl-reddit-stats/api', '@resvg/resvg-js'],
+  // The history file is read from disk by the handler, so the tracer cannot see it. Ship it with /api/history only.
+  outputFileTracingIncludes: { '/api/history': ['./history-data/nhl-serve.sqlite'] },
   transpilePackages: ['react-native-web', 'expo-linear-gradient', '@nhl-reddit-stats/viz', '@nhl-reddit-stats/history', '@nhl-reddit-stats/season'],
   webpack: keepApiExternal,
 })
