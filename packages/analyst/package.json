@@ -9,7 +9,7 @@
   "scripts": {
     "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.json",
     "lint": "effect-tsgo --tsrs-lint oxlint src tests evals scripts && node ../../scripts/check-error-model.mjs src && node ../../scripts/test-union-rules.mjs .",
-    "test": "node --test \"tests/*.test.ts\" \"evals/*.test.ts\"",
+    "test": "node --test \"tests/*.test.ts\" \"evals/*.test.ts\" \"evals/viz/*.test.ts\"",
     "ask": "node scripts/ask.ts",
     "insights:generate": "node scripts/generate-insights.ts",
     "insights:review": "node scripts/review-insights.ts",
@@ -19,10 +19,12 @@
   },
   "dependencies": {
     "@duckdb/node-api": "2.0.0-r.1",
+    "@nhl-reddit-stats/viz": "workspace:*",
     "ai": "7.0.173",
     "effect": "4.1.2"
   },
   "devDependencies": {
-    "@types/node": "^24.19.2"
+    "@types/node": "^24.19.2",
+    "playwright": "1.65.1"
   }
 }
