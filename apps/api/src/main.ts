@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { NodeHttpServer, NodeRuntime, NodeServices } from '@effect/platform-node'
 import { Effect, Layer } from 'effect'
 import { HttpRouter } from 'effect/http'
+import { loggerLayer } from '../../../lib/logger.mjs'
 import { BoxScores } from './boxscores.ts'
 import { History, HistoryRoutes } from './history-routes.ts'
 import { ApiRoutes } from './routes.ts'
@@ -34,4 +35,4 @@ const program = Effect.gen(function* () {
   )
 })
 
-NodeRuntime.runMain(program)
+NodeRuntime.runMain(program.pipe(Effect.provide(loggerLayer)))

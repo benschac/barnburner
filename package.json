@@ -35,6 +35,9 @@
     "history:accept": "bun run --cwd apps/api history:accept",
     "history:query": "bun run --cwd apps/api history:query"
   },
+  "dependencies": {
+    "effect": "4.1.2"
+  },
   "devDependencies": {
     "turbo": "2.11.10",
     "@effect/tsgo": "0.67.1"
