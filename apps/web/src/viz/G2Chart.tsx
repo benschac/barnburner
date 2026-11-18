@@ -38,6 +38,20 @@ function cloneSpec<T>(value: T): T {
   return value
 }
 
+// G2 resolves `theme` per view and a child view that has none falls back to the built-in light theme, so a facet's
+// axes would be light-theme text (black at 0.45 opacity) on a dark chart. Give every child the theme.
+function withTheme(node: unknown, theme: unknown): unknown {
+  if (typeof node !== 'object' || node === null || Array.isArray(node)) return node
+  const record: Record<string, unknown> = Object.fromEntries(Object.entries(node))
+  if (Array.isArray(record.children)) {
+    record.children = record.children.map((child: unknown) => {
+      const themed = withTheme(child, theme)
+      return typeof themed === 'object' && themed !== null && !Object.hasOwn(themed, 'theme') ? { ...themed, theme } : themed
+    })
+  }
+  return record
+}
+
 /**
  * Hosts one G2 chart. Each spec or theme change builds a fresh chart, so nothing of the previous spec
  * survives. The host owns the size: the measured width and the height token are applied after the spec.
@@ -65,7 +79,7 @@ export function G2Chart({ spec, height }: G2ChartProps) {
     }
     setFailed(false)
     const instance = new Chart({ container: node, width: node.clientWidth, height: heightPx })
-    instance.options({ ...cloneSpec(spec), theme: g2, autoFit: false, width: node.clientWidth, height: heightPx })
+    instance.options({ ...Object.fromEntries(Object.entries(withTheme(cloneSpec(spec), g2) ?? {})), theme: g2, autoFit: false, width: node.clientWidth, height: heightPx })
     instance.render().catch(onFailure)
     const observer = new ResizeObserver(() => {
       if (disposed || node.clientWidth === 0) return
