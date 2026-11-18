@@ -1,0 +1,146 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+import { Text, View } from 'tamagui'
+import { Effect, Fiber, Match, Option, Schema, Scope } from 'effect'
+import { createEffectActor } from '@xstate/effect'
+import { FrameReport, VizTheme } from '@nhl-reddit-stats/viz'
+import type { Tables } from '@nhl-reddit-stats/viz'
+import { frameMachine } from '../viz/frame/frame-machine.ts'
+import { useVizTheme } from '../viz/theme.ts'
+
+// The host of the sandboxed visualization frame (plan section C-viz, decision D17). The frame is an untrusted
+// iframe: every message from it is checked against its window and decoded, and `Rendered` and `Failed` only
+// drive what this island shows, because a view can forge them.
+
+const FRAME_URL = '/viz-frame/viz-frame.html'
+const LIMIT_MS = 10_000
+const MAX_TIMEOUTS = 3
+
+const themeKey = Schema.encodeSync(Schema.fromJsonString(VizTheme))
+
+type Phase = 'loading' | 'rendering' | 'rendered' | 'failed'
+
+type FrameProps = {
+  code: string
+  tables: Tables
+  theme: VizTheme
+  onTimedOut: () => void
+  onReport?: ((report: FrameReport) => void) | undefined
+}
+
+type Latest = Pick<FrameProps, 'code' | 'tables' | 'theme' | 'onTimedOut' | 'onReport'>
+
+// One iframe, one machine, one piece of code. A redraw of the same code (a new theme) reuses the frame.
+function Frame(props: FrameProps) {
+  const frame = useRef<HTMLIFrameElement>(null)
+  const latest = useRef<Latest>(props)
+  const [phase, setPhase] = useState<Phase>('loading')
+  const [message, setMessage] = useState('')
+  const draw = useRef<() => void>(() => {})
+  const key = themeKey(props.theme)
+
+  useEffect(() => {
+    let ready = false
+    let count = 0
+    let lastId = ''
+    const program = Effect.gen(function* () {
+      const scope = yield* Scope.Scope
+      const actor = yield* createEffectActor(frameMachine, { input: { limitMs: LIMIT_MS } })
+      actor.subscribe((snapshot) => {
+        if (snapshot.matches('timedOut')) latest.current.onTimedOut()
+        else if (snapshot.matches('failed')) setPhase('failed')
+        else if (snapshot.matches('rendered')) setPhase('rendered')
+        else if (snapshot.matches('rendering')) setPhase('rendering')
+      })
+      draw.current = () => {
+        const target = frame.current?.contentWindow
+        if (!ready || !target) return
+        count += 1
+        lastId = `render-${count}`
+        actor.send({ type: 'Render', id: lastId })
+        const { code, tables, theme } = latest.current
+        target.postMessage({ _tag: 'Render', id: lastId, code, tables, theme }, '*')
+      }
+      const onMessage = (event: MessageEvent): void => {
+        // The frame has an opaque origin, so its window is the only thing that identifies it.
+        if (event.source !== frame.current?.contentWindow) return
+        Option.match(Schema.decodeUnknownOption(FrameReport)(event.data), {
+          onNone: () => undefined,
+          onSome: (report) => {
+            latest.current.onReport?.(report)
+            Match.valueTags(report, {
+              Ready: () => {
+                ready = true
+                actor.send({ type: 'Ready' })
+                draw.current()
+              },
+              Rendered: ({ id }) => actor.send({ type: 'Rendered', id }),
+              Failed: ({ id, message: text }) => {
+                if (id === lastId) setMessage(text)
+                actor.send({ type: 'Failed', id })
+              },
+              FrameRate: () => undefined,
+            })
+          },
+        })
+      }
+      window.addEventListener('message', onMessage)
+      yield* Scope.addFinalizer(scope, Effect.sync(() => {
+        window.removeEventListener('message', onMessage)
+        draw.current = () => {}
+      }))
+      return yield* Effect.never
+    }).pipe(Effect.scoped)
+    const fiber = Effect.runFork(program)
+    return () => { Effect.runFork(Fiber.interrupt(fiber)) }
+  }, [])
+
+  useEffect(() => { latest.current = props })
+
+  // The same code with new tables or a new theme: redraw in this frame.
+  useEffect(() => { draw.current() }, [key, props.tables])
+
+  return (
+    <View gap="2">
+      <View h="seasonChart" w="100%">
+        <iframe
+          ref={frame}
+          title="Visualization"
+          src={FRAME_URL}
+          sandbox="allow-scripts"
+          width="100%"
+          height="100%"
+        />
+      </View>
+      {phase === 'failed' ? <Text fontFamily="body" color="color">{`Failed: ${message}`}</Text> : null}
+    </View>
+  )
+}
+
+export type VizFrameIslandProps = {
+  code: string
+  tables: Tables
+  /** Every valid report the frame posts, for a page that wants to show them. */
+  onReport?: ((report: FrameReport) => void) | undefined
+}
+
+export function VizFrameIsland({ code, tables, onReport }: VizFrameIslandProps) {
+  const theme = useVizTheme()
+  // Different code goes to a fresh frame, because the frame cannot tell which view an uncaught error came from.
+  const [slot, setSlot] = useState({ code, frame: 0, timeouts: 0 })
+  if (slot.code !== code) setSlot({ code, frame: slot.frame + 1, timeouts: 0 })
+  if (slot.timeouts >= MAX_TIMEOUTS) return <Text fontFamily="body" color="color">The view did not answer in time.</Text>
+  return (
+    <Frame
+      key={slot.frame}
+      code={code}
+      tables={tables}
+      theme={theme}
+      onReport={onReport}
+      onTimedOut={() => setSlot((current) => ({ code: current.code, frame: current.frame + 1, timeouts: current.timeouts + 1 }))}
+    />
+  )
+}
+
+export default VizFrameIsland
