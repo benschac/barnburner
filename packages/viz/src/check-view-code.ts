@@ -54,7 +54,7 @@ function maskCode(source: string): string {
   const expressionDepths: number[] = []
   let inTemplate = false
   while (i < source.length) {
-    const ch = source[i]!
+    const ch = source[i]
     if (inTemplate) {
       if (ch === '\\') {
         out += blank(source.slice(i, i + 2))
@@ -138,7 +138,7 @@ export function checkViewCode(code: string): ReadonlyArray<ViewCodeProblem> {
   }
 
   // A name the module declares itself is its own, not the global, so a bare use of it is not reported.
-  const declared = new Set([...masked.matchAll(declaration)].map((match) => match[1]!))
+  const declared = new Set([...masked.matchAll(declaration)].map((match) => match[1]))
   for (const match of masked.matchAll(identifier)) {
     const name = match[0]
     const before = masked.slice(Math.max(0, match.index - CONTEXT), match.index)
