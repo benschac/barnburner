@@ -110,5 +110,61 @@
     "compatibility": "Pinned upstream API source. Check installed Effect types for compatibility.",
     "document": "effect/logger.txt",
     "index": "effect/logger-index.md"
+  },
+  "effect-api-reactivity": {
+    "url": "node_modules/effect/dist/reactivity/*.d.ts",
+    "fetchedAt": "2026-11-18T18:43:07.040Z",
+    "retrieval": "installed-package",
+    "sha256": "ca30ae39591da033df5fc4ef872bef18d2b78e63047e9b34d28aa204789e4f78",
+    "bytes": 125325,
+    "package": "effect",
+    "targetPackageVersion": "4.1.2",
+    "upstreamVersion": "4.1.2",
+    "upstreamRevision": null,
+    "compatibility": "Generated from the installed effect@4.1.2 declarations; matches that version exactly. Regenerate after an effect upgrade.",
+    "document": "effect-api/reactivity.txt",
+    "index": "effect-api/reactivity-index.md"
+  },
+  "effect-api-rpc": {
+    "url": "node_modules/effect/dist/rpc/*.d.ts",
+    "fetchedAt": "2026-11-18T18:43:07.077Z",
+    "retrieval": "installed-package",
+    "sha256": "da135344a59d12badc94c4ca3a6a5cb1a8ff80ea616e2ec29aab32dd0df81e5f",
+    "bytes": 113455,
+    "package": "effect",
+    "targetPackageVersion": "4.1.2",
+    "upstreamVersion": "4.1.2",
+    "upstreamRevision": null,
+    "compatibility": "Generated from the installed effect@4.1.2 declarations; matches that version exactly. Regenerate after an effect upgrade.",
+    "document": "effect-api/rpc.txt",
+    "index": "effect-api/rpc-index.md"
+  },
+  "effect-api-persistence": {
+    "url": "node_modules/effect/dist/persistence/*.d.ts",
+    "fetchedAt": "2026-11-18T18:43:07.084Z",
+    "retrieval": "installed-package",
+    "sha256": "140e138c8a6ac42ee3ae31fffdd54a30b8304ca1d2fae956a91c15241007761e",
+    "bytes": 115235,
+    "package": "effect",
+    "targetPackageVersion": "4.1.2",
+    "upstreamVersion": "4.1.2",
+    "upstreamRevision": null,
+    "compatibility": "Generated from the installed effect@4.1.2 declarations; matches that version exactly. Regenerate after an effect upgrade.",
+    "document": "effect-api/persistence.txt",
+    "index": "effect-api/persistence-index.md"
+  },
+  "effect-api-atom-react": {
+    "url": "node_modules/@effect/atom-react/dist/*.d.ts",
+    "fetchedAt": "2026-11-18T18:43:07.087Z",
+    "retrieval": "installed-package",
+    "sha256": "c70d414c4b1046632c9469a6baa1a1dc909f019ebe62336ee8fc34ce26d0204d",
+    "bytes": 19268,
+    "package": "@effect/atom-react",
+    "targetPackageVersion": "4.1.2",
+    "upstreamVersion": "4.1.2",
+    "upstreamRevision": null,
+    "compatibility": "Generated from the installed @effect/atom-react@4.1.2 declarations; matches that version exactly. Regenerate after a @effect/atom-react upgrade.",
+    "document": "effect-api/atom-react.txt",
+    "index": "effect-api/atom-react-index.md"
   }
 }

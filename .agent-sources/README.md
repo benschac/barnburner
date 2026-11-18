@@ -59,7 +59,7 @@ Use the named directory's generated index to select a section before reading its
 | --- | --- | --- |
 | `ratstack/` | General engineering guidelines, services, schemas, testing, infrastructure, and ecosystem patterns | [Agent guide](https://ratstack.sh/llms.txt) and [full corpus](https://ratstack.sh/llms-full.txt) |
 | `effect/` | Official package overview, requirements, and links to API documentation | [Effect README](https://github.com/Effect-TS/effect/blob/main/README.md) |
-| `effect-api/` | Exact API reference for the installed `effect` version, one file per module (`cli` today): every export with its JSDoc, examples, and signature | Installed package declarations (`node_modules/effect/dist/<module>/*.d.ts`) |
+| `effect-api/` | Exact API reference for the installed Effect packages, one file per module: every export with its JSDoc, examples, and signature. `cli` for command-line tools. `reactivity` for Atom state, `AtomRpc` queries, `Atom.searchParam`, and `Hydration`. `atom-react` for the React hooks, `RegistryProvider`, and `HydrationBoundary` of `@effect/atom-react`. `rpc` for RPC groups, clients, servers, and streaming calls. `persistence` for key-value stores and persisted caches. | Installed package declarations (`node_modules/effect/dist/<module>/*.d.ts`, `node_modules/@effect/atom-react/dist/*.d.ts`) |
 | [Effect Logger](effect/logger-index.md) | Logging events, installing a logger, and selecting an output format or stream. The cached source includes the API examples. | [Effect v4 Logger API](https://effect.website/docs/v4/api/effect/Logger) |
 | `xstate/` | State machines, actors, transitions, testing, and version-specific documentation links | [Stately documentation index](https://stately.ai/llms.txt) |
 | `xstate-effect/` | Effect-backed actors and their scoped lifetimes | [Official integration quick start](https://stately.ai/docs/xstate/v6/effect/quick-start) |
@@ -76,9 +76,13 @@ For an Effect module API, search `effect-api/<module>-index.md` by module and ex
 
 ```sh
 rg -n '\| Command \| (make|withSubcommands|run) \|' .agent-sources/effect-api/cli-index.md
+rg -n '\| Atom \| (searchParam|family|serializable) \|' .agent-sources/effect-api/reactivity-index.md
+rg -n '\| Hooks \| useAtom' .agent-sources/effect-api/atom-react-index.md
 ```
 
-These files are generated from the installed package, so they match its version exactly; they are the same JSDoc the effect.website API pages render. Regenerate them after an `effect` upgrade, or add a module, with `node scripts/refresh-effect-api.mjs [module ...]` (default `cli`). The script reads only local files.
+These files are generated from the installed packages, so they match their versions exactly; they are the same JSDoc the effect.website API pages render. Regenerate them after an upgrade, or add a module, with `node scripts/refresh-effect-api.mjs [target ...]` (default `cli`). A target is a module of `effect`, such as `reactivity`, or a scoped package whose declarations sit directly in its `dist` folder, such as `@effect/atom-react`. The script reads only local files.
+
+The core `effect` modules (`Effect`, `Schema`, `Layer`, `Stream`, and the rest) are not cached: together they are 6.9 MB of declarations. Read them in `node_modules/effect/dist/<Module>.d.ts` after `bun install`.
 
 Refresh these references explicitly with `node scripts/refresh-pattern-sources.mjs`. Review the downloaded documents, indexes, and `sources.json` together. This fetch does not run during install or build.
 
