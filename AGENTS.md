@@ -1,3 +1,7 @@
+# Skill selection
+
+Use `pstack:poteto-mode` only when the user explicitly requests it. Choose specialist skills independently when they help with the task.
+
 # Response style
 
 - Use short, straightforward bullet points for progress updates and final responses.
