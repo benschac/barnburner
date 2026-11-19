@@ -1,7 +1,7 @@
 // oxlint-disable effecttsgo/node-builtin-import, effecttsgo/process-env, effecttsgo/global-date -- runs inside oxlint's plugin host, outside any Effect runtime
 
 import { execFileSync } from "node:child_process";
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { dirname, relative, sep } from "node:path";
 
 import { errorMessage } from "../shared/error-message.ts";
@@ -20,6 +20,20 @@ export type ChangedLines = ReadonlySet<number> | "all";
 export const DEFAULT_BRANCHES: ReadonlyArray<string> = ["origin/main", "origin/master", "main", "master"];
 
 const BASE_ENV = "ANTI_SLOP_BASE";
+
+/**
+ * Names a JSON file of changes that `modes/with-changes.ts` computed before starting the linter.
+ * When it is set, rules read it instead of running git: a type-aware linter on Linux can be too
+ * large to fork, and git then fails with ENOMEM.
+ */
+export const CHANGES_ENV = "ANTI_SLOP_CHANGES";
+
+interface SavedChanges {
+	readonly root: string;
+	/** The rule-level `base` the file was computed for; `null` means none, so `ANTI_SLOP_BASE` or the default branch. */
+	readonly base: string | null;
+	readonly files: Readonly<Record<string, ReadonlyArray<number> | "all">> | null;
+}
 
 interface RepoChanges {
 	readonly root: string;
@@ -119,7 +133,42 @@ function computeChanges(root: string, base: string | undefined): RepoChanges {
 	return { root, files, computedAt };
 }
 
+let saved: { readonly path: string; readonly changes: SavedChanges } | null = null;
+
+/** The precomputed changes for `base`, `null` when the file cannot be read, or `undefined` when there is none for `base`. */
+function savedChanges(base: string | undefined, warn: (message: string) => void): RepoChanges | null | undefined {
+	const path = process.env[CHANGES_ENV]?.trim() ?? "";
+	if (path === "") return undefined;
+	try {
+		if (saved?.path !== path) saved = { path, changes: JSON.parse(readFileSync(path, "utf8")) as SavedChanges };
+	} catch (error) {
+		warn(`changed-lines mode could not read ${CHANGES_ENV}=${path}, checking every line: ${errorMessage(error).trim()}`);
+		return null;
+	}
+	const { root, files } = saved.changes;
+	if (saved.changes.base !== (base ?? null)) return undefined;
+	return {
+		root,
+		files: files === null ? null : new Map(Object.entries(files).map(([file, lines]) => [file, lines === "all" ? "all" : new Set(lines)])),
+		computedAt: Date.now(),
+	};
+}
+
+/** The changes of the repository containing `dir`, as the JSON `CHANGES_ENV` names. Throws when git cannot answer. */
+export function changesJson(dir: string, base?: string): string {
+	const root = realpathSync(git(dir, ["rev-parse", "--show-toplevel"]).trim());
+	const { files } = computeChanges(root, base);
+	const saved: SavedChanges = {
+		root,
+		base: base ?? null,
+		files: files === null ? null : Object.fromEntries([...files].map(([file, lines]) => [file, lines === "all" ? "all" : [...lines]])),
+	};
+	return JSON.stringify(saved);
+}
+
 function repoChanges(dir: string, base: string | undefined, warn: (message: string) => void): RepoChanges | null {
+	const precomputed = savedChanges(base, warn);
+	if (precomputed !== undefined) return precomputed;
 	let root = rootByDir.get(dir);
 	try {
 		if (root === undefined) {
