@@ -37,8 +37,29 @@ function isTestFrameworkObject(
   });
 }
 
+/** `mock` imported from `node:test`, or the `mock` property of a test context such as `t.mock`. Local addition; see ../UPSTREAM.md. */
+function isNodeTestMock(sourceCode: SourceCode, expression: ESTree.Expression): boolean {
+  if (expression.type === "MemberExpression") {
+    return !expression.computed && expression.property.type === "Identifier" && expression.property.name === "mock";
+  }
+  if (expression.type !== "Identifier") return false;
+
+  const variable = resolveVariable(sourceCode, expression);
+  if (variable === null) return false;
+  return variable.defs.some((definition) => {
+    if (definition.type !== "ImportBinding" || definition.parent?.type !== "ImportDeclaration") {
+      return false;
+    }
+    const source = definition.parent.source.value;
+    return (source === "node:test" || source === "test") && importedName(definition.node) === "mock";
+  });
+}
+
 function moduleMockCall(sourceCode: SourceCode, callee: ESTree.Expression): boolean {
   if (!("property" in callee) || !("object" in callee) || !("computed" in callee)) return false;
+  if (!callee.computed && callee.property.type === "Identifier" && callee.property.name === "module") {
+    return isNodeTestMock(sourceCode, callee.object);
+  }
   if (!isTestFrameworkObject(sourceCode, callee.object)) return false;
   const property = callee.property;
   const method = callee.computed
@@ -60,7 +81,7 @@ export const noModuleMockingRule = defineRule({
     type: "problem",
     docs: {
       description:
-        "Disallow Vitest and Jest module mocking; tests must replace dependencies through real interfaces.",
+        "Disallow Vitest, Jest, and node:test module mocking; tests must replace dependencies through real interfaces.",
     },
     messages: {
       moduleMock:

@@ -78,12 +78,6 @@
         "mode": "changed"
       }
     ],
-    "anti-slop/no-instanceof": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
     "anti-slop/no-known-value-widening": [
       "error",
       {
@@ -138,18 +132,6 @@
         "mode": "changed"
       }
     ],
-    "anti-slop/no-unknown-parameters": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-unknown-returns": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
     "anti-slop/no-unknown-type-aliases": [
       "error",
       {
@@ -157,12 +139,6 @@
       }
     ],
     "anti-slop/no-widen-then-assert": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/require-readable-spacing": [
       "error",
       {
         "mode": "changed"
@@ -180,31 +156,7 @@
         "mode": "changed"
       }
     ],
-    "anti-slop-effect/no-manual-tag-comparison": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/no-manual-tagged-construction": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/no-manual-tagged-type": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
     "anti-slop-effect/no-ordie-in-service-construction": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/no-service-constructor-imports": [
       "error",
       {
         "mode": "changed"
@@ -229,12 +181,6 @@
       }
     ],
     "anti-slop-effect/no-unbounded-retry": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/prefer-effect-match": [
       "error",
       {
         "mode": "changed"
@@ -324,25 +270,7 @@
         "mode": "changed"
       }
     ],
-    "landmines/strict-msw": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
     "landmines/no-fixed-sleep": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "landmines/no-unsignaled-poll": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "landmines/no-flake-masking": [
       "error",
       {
         "mode": "changed"
@@ -437,12 +365,6 @@
       {
         "mode": "changed"
       }
-    ],
-    "enfect/prefer-option-over-null": [
-      "error",
-      {
-        "mode": "changed"
-      }
     ]
   },
   "overrides": [
@@ -459,7 +381,8 @@
         "anti-slop-effect/throw-in-effect-gen": "off",
         "enfect/effect-promise-vs-trypromise": "off",
         "enfect/avoid-option-getorthrow": "off",
-        "enfect/effect-run-in-body": "off"
+        "enfect/effect-run-in-body": "off",
+        "anti-slop/no-runtime-typeof": "off"
       }
     },
     {
@@ -470,6 +393,23 @@
       ],
       "rules": {
         "enfect/effect-run-in-body": "off"
+      }
+    },
+    {
+      "files": [
+        "**/src/use-*.ts",
+        "**/src/tools/*.ts"
+      ],
+      "rules": {
+        "enfect/effect-run-in-body": "off"
+      }
+    },
+    {
+      "files": [
+        "**/lint/**"
+      ],
+      "rules": {
+        "anti-slop/no-runtime-typeof": "off"
       }
     }
   ]

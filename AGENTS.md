@@ -84,8 +84,18 @@ For web UI changes, follow [the enforced design contract](apps/web/design/README
 - Those rules set `mode: "changed"`: they report only lines changed since the merge base with `main` (set `ANTI_SLOP_BASE` for another base). New and edited code must pass them; existing code is cleaned up as it is touched. `ANTI_SLOP_MODE=all bun run lint` lists every finding.
 - Each workspace's `lint` script runs its steps with `bun run --parallel --no-exit-on-error`. The `lint:oxlint` step runs oxlint through `tools/oxlint/anti-slop/modes/with-changes.ts`, which computes the changed lines with git before oxlint starts; keep that prefix. In `apps/web` the rule-fixture tests (`lint:design`, `lint:patterns`, `lint:xstate`, `lint:core`) run after `lint:oxlint`, because they write fixtures into files the main run reads.
 - `typescript/no-non-null-assertion` and `complexity` are built-in rules that cannot take a mode; they run at `warn` until the existing findings are fixed.
+- Rules left out of `lint/anti-slop.oxlintrc.json` on purpose. Do not re-enable one without changing the rule it conflicts with:
+  - `anti-slop-effect/no-manual-tagged-type`, `no-manual-tagged-construction`, and `no-manual-tag-comparison` reject hand-written `_tag` unions and closed `switch` statements, which the union model above requires.
+  - `anti-slop-effect/prefer-effect-match` asks for `Match` on string ternaries; the union model keeps `Match` for unions.
+  - `enfect/prefer-option-over-null` rejects `T | null` in wire contracts and React state, with no boundary exemption.
+  - `anti-slop/no-instanceof` rejects `instanceof Error` where the error model allows it and DOM checks such as `instanceof Element`. `effecttsgo/instance-of-schema` still covers Schema types.
+  - `anti-slop/no-unknown-parameters` and `no-unknown-returns` reject the decoders the JSON boundary needs, which take `unknown`.
+  - `anti-slop-effect/no-service-constructor-imports` reports every imported `make*` function; here those are mostly plain factories.
+  - `anti-slop/require-readable-spacing` is a blank-line style rule with no autofix (1,915 findings).
+  - `landmines/no-flake-masking` assumes a default test timeout; `node:test` has none, so `{ timeout }` adds a bound. `landmines/strict-msw` and `no-unsignaled-poll` need MSW and Vitest, which this repository does not use.
+- `enfect/effect-run-in-body` is off for entry points, React hooks (`src/use-*.ts`), and tool callbacks (`src/tools/*.ts`), where a foreign caller needs a promise or a fiber. `anti-slop/no-runtime-typeof` is off in tests and lint plugins.
 - `bun run test:anti-slop` runs the vendored rule tests.
-- `bun run lint:jev` runs the paid Jev rules in `lint/anti-slop-jev.oxlintrc.json` on changed lines. It needs `TYPESAFE_API_KEY` or `AI_GATEWAY_API_KEY`; without one it warns and skips, and under `CI` it fails. It is not part of `bun run lint`. Keep the key out of the editor's environment, or the Oxlint extension asks Jev on every edit.
+- `bun run lint:jev` runs the paid Jev rules in `lint/anti-slop-jev.oxlintrc.json` on changed lines. It needs `TYPESAFE_API_KEY` or `AI_GATEWAY_API_KEY`; without one it warns and skips, and under `CI` it fails. It is not part of `bun run lint`. `error-as-value` is off there: it reports `Result` and `ok: false` returns, which the error model accepts. Keep the key out of the editor's environment, or the Oxlint extension asks Jev on every edit.
 - XState 6 transition and action purity is enforced by `xstate6/pure-transitions` (`apps/web/lint/xstate-plugin.mjs`, proven by `apps/web/scripts/test-xstate-rules.mjs`), not by the XState 5 rules anti-slop shipped; those were removed. Queue effects with `enq` or invoke actor logic.
 
 # Secrets

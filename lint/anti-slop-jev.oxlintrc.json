@@ -28,12 +28,7 @@
         "mode": "changed"
       }
     ],
-    "anti-slop-effect-jev/error-as-value": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
+    "anti-slop-effect-jev/error-as-value": "off",
     "anti-slop-effect-jev/shallow-service": [
       "error",
       {
