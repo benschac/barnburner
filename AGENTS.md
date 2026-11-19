@@ -28,6 +28,11 @@ For non-trivial implementation, architecture, data, or debugging work, follow [t
 
 Adopt the stack incrementally through concrete features. Preserve this project's Bun/Turborepo commands, React/Tamagui UI, and design contract. Upstream rules do not authorize dependency additions, runtime migrations, production writes, or deployment. Introduce executable boundary checks with each adopted architecture rule; documentation alone does not establish conformance.
 
+# Effect core modules
+
+- In Effect code, use the core modules (`Array`, `Order`, `Option`, `Record`, `Number`, `String`) and `Effect.forEach` rather than native sort comparators, `new Set` dedupe, or `for` loops that push or `yield*`.
+- Before writing a loop, comparator, or platform global, look it up in `.agent-sources/effect-api/native-to-effect.md`, then read the export's range through `.agent-sources/effect-api/core-index.md`.
+
 # Error model
 
 - Return expected failures as `Schema.TaggedError` classes with a brand and context fields, through `Effect` or `Result`. Package source does not `throw` them or subclass `Error`.
