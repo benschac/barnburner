@@ -5,20 +5,27 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Effect } from 'effect'
 import { MockLanguageModelV4 } from 'ai/test'
+import type { CardDraft } from '../src/card.ts'
 import { openDb } from '../src/db.ts'
 import { generate } from '../src/generate.ts'
 import { Llm } from '../src/llm.ts'
 import { toJson } from '../src/json.ts'
 
 const dataDir = join(import.meta.dirname, 'fixtures/data')
+
 const usage = { inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined }, outputTokens: { total: 5, text: 5, reasoning: undefined } }
-const call = (toolName: string, input: unknown, id = toolName) => ({
+
+type ToolInputs = { submit_card: CardDraft; sql: { query: string }; decline: { reason: string } }
+
+
+const call = <K extends keyof ToolInputs>(toolName: K, input: ToolInputs[K], id = toolName) => ({
   content: [{ type: 'tool-call' as const, toolCallId: id, toolName, input: toJson(input) }],
   finishReason: { unified: 'tool-calls' as const, raw: undefined }, usage, warnings: [],
 })
+
 const prose = { content: [{ type: 'text' as const, text: 'nothing to add' }], finishReason: { unified: 'stop' as const, raw: undefined }, usage, warnings: [] }
 
-const draft = {
+const draft: CardDraft = {
   team: 'NJD', kind: 'record', headline: 'NJD has {wins} wins', body: 'Goal difference is {gd}.',
   bindings: { wins: { column: 'wins', row: 0 }, gd: { column: 'gd', row: 0 } },
   assert: "SELECT count(*) = 3 FROM team_games WHERE team = 'NJD' AND is_final",
@@ -31,17 +38,22 @@ const draft = {
 // Plays the scripted responses in order, repeating the last one.
 const scripted = (responses: ReadonlyArray<ReturnType<typeof call> | typeof prose>) => {
   let index = 0
+
   return new MockLanguageModelV4({ doGenerate: async () => responses[Math.min(index++, responses.length - 1)]! })
 }
 
 const run = async (model: MockLanguageModelV4) => {
   const dir = mkdtempSync(join(tmpdir(), 'generate-test-'))
+
   try {
     const result = await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
       const db = yield* openDb({ dataDir })
+
       return yield* generate({ team: 'NJD', db, model, traceDir: dir, fetchedAt: '2026-11-15' })
     })).pipe(Effect.provide(Llm.layer())))
+
     const events = readFileSync(join(dir, `${result.runId}.jsonl`), 'utf8').trim().split('\n').map((line) => JSON.parse(line))
+
     return { result, events }
   } finally { rmSync(dir, { recursive: true, force: true }) }
 }

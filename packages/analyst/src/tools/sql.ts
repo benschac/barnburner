@@ -31,7 +31,7 @@ export const runSql = (deps: SqlDeps, query: string): Effect.Effect<string> => {
   )
 }
 
-export const makeSqlTool = (deps: SqlDeps) =>
+export const sqlTool = (deps: SqlDeps) =>
   tool({
     description:
       'Run one read-only DuckDB SELECT against the analyst views. Returns JSON { rows, rowCount, truncated } or ERROR: <reason>.',
@@ -43,3 +43,5 @@ export const makeSqlTool = (deps: SqlDeps) =>
     }),
     execute: ({ query }, { abortSignal }) => Effect.runPromise(runSql(deps, query), { signal: abortSignal }),
   })
+
+export const makeSqlTool = sqlTool
