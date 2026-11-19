@@ -2,8 +2,17 @@
 
 A shared “Season at a Glance” poster for all 32 NHL teams, using saved NHL schedules, results, standings, special teams, and player leaders. Built with Vite, React, TypeScript, and Tamagui in a Bun workspace managed by Turborepo.
 
+**Live:** https://web-eight-iota-57.vercel.app
+
 > [!NOTE]
 > I coded this for fun. It's still early and a bit messy, so expect rough edges and bugs.
+
+## Architecture
+
+- **API ([`apps/api`](apps/api))** is an [Effect](https://effect.website) HTTP server. Snapshots, box scores, and history are each an Effect service provided as a `Layer`, so the Node server and the Vercel function wire up the same routes with different data sources. The frontend calls it through a typed RPC contract.
+- **UI state ([`apps/web/src/team-machine.ts`](apps/web/src/team-machine.ts))** is modeled with [XState](https://stately.ai/docs/xstate) and `@xstate/effect`. Loading, ready, error, and retry are explicit states, and the data loader is an Effect that the machine invokes.
+- **Analyst ([`packages/analyst`](packages/analyst))** is an LLM agent built with Effect and the AI SDK. It answers questions about a team using read-only SQL over DuckDB views. It must either record an answer it checked against the data or decline, and it may never answer from memory. Every run is traced, and an eval suite grades the agent on easy questions, multi-step questions, and questions it should decline.
+- **Errors are typed.** Failures are `Schema.TaggedError` values rather than thrown exceptions. Custom lint rules flag native patterns that have an Effect core equivalent.
 
 ## Preview
 
@@ -70,4 +79,3 @@ Use Bun 1.4.3 for installation and script orchestration. Node 24 remains require
 ## Tamagui configuration
 
 The existing provider and configuration are retained. `apps/web/tamagui.config.ts` uses `@tamagui/config/v6`; `apps/web/tamagui.build.ts` owns compiler options. Vite generates `apps/web/src/tamagui.generated.css` (ignored) before resolving its import. After configuration changes, run `bun run generate:tamagui` to refresh `apps/web/tamagui-prompt.md`.
-# barnburner
