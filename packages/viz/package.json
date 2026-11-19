@@ -10,7 +10,12 @@
   },
   "scripts": {
     "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.json",
-    "lint": "node ../../tools/oxlint/anti-slop/modes/with-changes.ts effect-tsgo --tsrs-lint oxlint src tests && node ../../scripts/check-error-model.mjs src && node ../../scripts/test-union-rules.mjs . && node ../../scripts/test-effect-core-rules.mjs . && node ../../scripts/index-effect-core.mjs --check",
+    "lint": "bun run --parallel --no-exit-on-error lint:oxlint lint:errors lint:unions lint:core lint:index",
+    "lint:oxlint": "node ../../tools/oxlint/anti-slop/modes/with-changes.ts effect-tsgo --tsrs-lint oxlint src tests",
+    "lint:errors": "node ../../scripts/check-error-model.mjs src",
+    "lint:unions": "node ../../scripts/test-union-rules.mjs .",
+    "lint:core": "node ../../scripts/test-effect-core-rules.mjs .",
+    "lint:index": "node ../../scripts/index-effect-core.mjs --check",
     "test": "node --test \"tests/*.test.ts\""
   },
   "dependencies": {
