@@ -1,7 +1,7 @@
 import { ChainTables, type LabEntry } from '@nhl-reddit-stats/viz'
 import { samples } from '@nhl-reddit-stats/viz/samples'
-import { Result, Schema } from 'effect'
-import { useMemo, useState } from 'react'
+import { Effect, Match, Result, Schema } from 'effect'
+import { useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
 import { Text, View } from 'tamagui'
 import { G6Graph, type G6NodeProps } from '../../G6Graph'
@@ -12,15 +12,62 @@ import { chainGraph, type ChainGraph, type ChainNodeData } from '../../specs/cha
 const ChainFile = Schema.Struct({ tables: ChainTables, notes: Schema.String })
 const decodeChainText = Schema.decodeUnknownResult(Schema.fromJsonString(ChainFile))
 
-/** A file that decodes can still name a player the tables do not list; chainGraph would throw on that. */
-function chainFileProblem(tables: ChainTables): string | undefined {
-  if (tables.summary.length === 0) return 'the file has no summary row'
-  const known = new Set(tables.players.map((player) => player.playerId))
+class ChainFileReadError extends Schema.TaggedError<ChainFileReadError>()('ChainFileReadError', {
+  fileName: Schema.String,
+  reason: Schema.String,
+}) {}
+
+class ChainFileDecodeError extends Schema.TaggedError<ChainFileDecodeError>()('ChainFileDecodeError', {
+  fileName: Schema.String,
+}) {}
+
+class ChainFileNoSummary extends Schema.TaggedError<ChainFileNoSummary>()('ChainFileNoSummary', {}) {}
+
+/** A summary or hop names a player the players table does not list; chainGraph would throw on that. */
+class ChainFileMissingPlayer extends Schema.TaggedError<ChainFileMissingPlayer>()('ChainFileMissingPlayer', {
+  row: Schema.Literals(['summary', 'hop']),
+  playerId: Schema.Int,
+}) {}
+
+type ChainFileFailure = ChainFileReadError | ChainFileDecodeError | ChainFileNoSummary | ChainFileMissingPlayer
+
+function chainFileProblem(tables: ChainTables): Result.Result<ChainTables, ChainFileNoSummary | ChainFileMissingPlayer> {
   const summary = tables.summary[0]
-  if (summary === undefined || !known.has(summary.from) || !known.has(summary.to)) return 'the summary names a player the file does not list'
-  const stray = tables.hops.find((hop) => !known.has(hop.from) || !known.has(hop.to))
-  return stray === undefined ? undefined : 'a hop names a player the file does not list'
+  if (summary === undefined) return Result.fail(new ChainFileNoSummary({}))
+  const known = new Set(tables.players.map((player) => player.playerId))
+  for (const playerId of [summary.from, summary.to]) {
+    if (!known.has(playerId)) return Result.fail(new ChainFileMissingPlayer({ row: 'summary', playerId }))
+  }
+  for (const hop of tables.hops) {
+    for (const playerId of [hop.from, hop.to]) {
+      if (!known.has(playerId)) return Result.fail(new ChainFileMissingPlayer({ row: 'hop', playerId }))
+    }
+  }
+  return Result.succeed(tables)
 }
+
+const describeFailure = (failure: ChainFileFailure): string =>
+  Match.valueTags(failure, {
+    ChainFileReadError: ({ fileName, reason }) => `${fileName} could not be read: ${reason}.`,
+    ChainFileDecodeError: ({ fileName }) => `${fileName} is not a chain export.`,
+    ChainFileNoSummary: () => 'the file has no summary row.',
+    ChainFileMissingPlayer: ({ row, playerId }) => `the ${row} names player ${playerId}, which the players table does not list.`,
+  })
+
+/** Reads, decodes, and checks one picked file. Every failure is a tagged error. */
+const loadChainFile = (picked: File) =>
+  Effect.gen(function* () {
+    // foreign: the browser's read error is translated into a tagged error here.
+    const text = yield* Effect.tryPromise({
+      try: () => picked.text(),
+      catch: (cause) => new ChainFileReadError({ fileName: picked.name, reason: String(cause) }),
+    })
+    const decoded = decodeChainText(text)
+    if (!Result.isSuccess(decoded)) return yield* new ChainFileDecodeError({ fileName: picked.name })
+    const checked = chainFileProblem(decoded.success.tables)
+    if (!Result.isSuccess(checked)) return yield* checked.failure
+    return checked.success
+  })
 
 function ChainPlayer({ data }: G6NodeProps) {
   // foreign: G6 hands node data back untyped; chainGraph wrote exactly these fields.
@@ -50,6 +97,7 @@ function ChainView() {
   const [tables, setTables] = useState<ChainTables>(samples.chain.tables)
   const [note, setNote] = useState('Sample: 11 to 14.')
   const [hovered, setHovered] = useState<string | null>(null)
+  const latestPick = useRef(0)
   const graph = useMemo(() => chainGraph(tables), [tables])
   // Hovering an edge highlights every edge of every chain that uses it.
   const highlightedEdges = useMemo(
@@ -64,18 +112,17 @@ function ChainView() {
   async function onFile(event: ChangeEvent<HTMLInputElement>) {
     const picked = event.target.files?.[0]
     if (picked === undefined) return
-    const decoded = decodeChainText(await picked.text())
-    if (!Result.isSuccess(decoded)) {
-      setNote(`${picked.name} is not a chain export.`)
-      return
+    const pick = latestPick.current + 1
+    latestPick.current = pick
+    const outcome = await Effect.runPromise(Effect.result(loadChainFile(picked)))
+    // Only the latest pick may update the graph or the status.
+    if (pick !== latestPick.current) return
+    if (Result.isSuccess(outcome)) {
+      setTables(outcome.success)
+      setNote(`Loaded ${picked.name}.`)
+    } else {
+      setNote(describeFailure(outcome.failure))
     }
-    const problem = chainFileProblem(decoded.success.tables)
-    if (problem !== undefined) {
-      setNote(`${picked.name}: ${problem}.`)
-      return
-    }
-    setTables(decoded.success.tables)
-    setNote(`Loaded ${picked.name}.`)
   }
 
   return (
