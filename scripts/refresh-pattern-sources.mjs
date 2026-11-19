@@ -8,8 +8,6 @@ const root = new URL('../.agent-sources/', import.meta.url)
 const registry = [
   { id: 'ratstack-guide', title: 'Ratstack agent guide', url: 'https://ratstack.sh/llms.txt', file: 'ratstack-llms.txt', document: 'ratstack/guide.txt', index: 'ratstack/guide-index.md', package: null },
   { id: 'ratstack', title: 'Ratstack patterns and guidelines', url: 'https://ratstack.sh/llms-full.txt', file: 'ratstack-full.txt', document: 'ratstack/docs.txt', index: 'ratstack/index.md', package: null },
-  { id: 'xstate', title: 'XState documentation map', url: 'https://stately.ai/llms.txt', file: 'xstate-llms.txt', document: 'xstate/docs.txt', index: 'xstate/index.md', package: 'xstate' },
-  { id: 'xstate-effect', title: 'XState Effect quick start', url: 'https://stately.ai/docs/xstate/v6/effect/quick-start.mdx', file: 'xstate-effect.md', document: 'xstate-effect/docs.txt', index: 'xstate-effect/index.md', package: '@xstate/effect' },
 ]
 const args = process.argv.slice(2)
 if (args.length && (args.length !== 4 || args[0] !== '--from-dir' || args[2] !== '--fetched-at')) {

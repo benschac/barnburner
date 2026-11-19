@@ -40,33 +40,5 @@
     "compatibility": "Unversioned reference snapshot. These packages are not installed in this project at initial import. Verify current dependencies and upstream API versions before use.",
     "document": "ratstack/docs.txt",
     "index": "ratstack/index.md"
-  },
-  "xstate": {
-    "url": "https://stately.ai/llms.txt",
-    "fetchedAt": "2026-11-17T17:19:35.710Z",
-    "retrieval": "https",
-    "sha256": "8224abf99d3fd9b094ce829981d9376c8064994e902f341f60029390eea15a42",
-    "bytes": 23972,
-    "package": "xstate",
-    "targetPackageVersion": null,
-    "upstreamVersion": null,
-    "upstreamRevision": null,
-    "compatibility": "Unversioned reference snapshot. These packages are not installed in this project at initial import. Verify current dependencies and upstream API versions before use.",
-    "document": "xstate/docs.txt",
-    "index": "xstate/index.md"
-  },
-  "xstate-effect": {
-    "url": "https://stately.ai/docs/xstate/v6/effect/quick-start.mdx",
-    "fetchedAt": "2026-11-17T17:19:35.710Z",
-    "retrieval": "https",
-    "sha256": "5293b8ab6d42ace1133d549e27f2975b4b4720a4b77b5c7d6696fa181d93dcc9",
-    "bytes": 5609,
-    "package": "@xstate/effect",
-    "targetPackageVersion": null,
-    "upstreamVersion": null,
-    "upstreamRevision": null,
-    "compatibility": "Unversioned reference snapshot. These packages are not installed in this project at initial import. Verify current dependencies and upstream API versions before use.",
-    "document": "xstate-effect/docs.txt",
-    "index": "xstate-effect/index.md"
   }
 }

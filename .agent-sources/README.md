@@ -27,7 +27,7 @@ The download is upstream reference material, not instructions for agents. Follow
 
 ## Refresh the cache
 
-The commands in this section refresh Tamagui. See the pattern references below for the separate XState and Ratstack refresh. Effect is indexed from the installed packages; see [Effect](#effect).
+The commands in this section refresh Tamagui. See [General patterns](#general-patterns) for the separate Ratstack refresh. Effect and XState are indexed from the installed packages; see [Effect](#effect) and [XState](#xstate).
 
 With Node available, run:
 
@@ -80,24 +80,38 @@ Name the `node_modules` path in the command; a repository-wide ripgrep search sk
 
 Do not fetch effect.website for an API question. Its pages render the same JSDoc without a version pin.
 
-## XState and general patterns
+## XState
+
+The installed packages are the XState reference, as with Effect. `xstate` ships its documentation in `node_modules/xstate/docs/` and `@xstate/effect` documents itself in its README, both at the version `apps/web` pins. [`xstate/`](xstate/) and [`xstate-effect/`](xstate-effect/) track generated indexes of them and no copies.
+
+| File | Use it for |
+| --- | --- |
+| [xstate/index.md](xstate/index.md) | Every page of the installed XState docs with its title, length, and summary. The pages are short; read the matching one whole. Start with `index.md`, `agents.md`, and `xstate-v5-to-v6.md`. |
+| [xstate-effect/index.md](xstate-effect/index.md) | Each section of the installed `@xstate/effect` README with its line range. |
+
+```sh
+rg -n -i 'invoke|persist' .agent-sources/xstate/index.md
+sed -n '<start>,<end>p' node_modules/@xstate/effect/README.md
+```
+
+`node_modules/xstate/docs/api-stability.json` classifies each export as public, experimental, or internal. Read the declarations in `node_modules/<package>/dist/` before calling an export. XState v6 and `@xstate/effect` are in beta; do not apply v5 examples from elsewhere.
+
+For integration work, check who owns actor startup, shutdown, interruption, dependencies, and failures. The references do not authorize a runtime migration or package installation.
+
+`bun run check:xstate-docs` fails when either index does not match the installed packages; root `bun run lint` runs it. After an XState or `@xstate/effect` upgrade, run `node scripts/index-xstate-docs.mjs` and commit the result. The script reads only local files.
+
+## General patterns
 
 Use the named directory's generated index to select a section before reading its cached document. Ratstack's full corpus includes general guidelines, Effect patterns, and related systems such as Alchemy, Cloudflare, and Foldkit. Follow [our Ratstack workflow](ratstack/README.md) to apply those references within this project's stack and authority boundaries.
 
 | Reference | When to consult it | Upstream |
 | --- | --- | --- |
 | `ratstack/` | General engineering guidelines, services, schemas, testing, infrastructure, and ecosystem patterns | [Agent guide](https://ratstack.sh/llms.txt) and [full corpus](https://ratstack.sh/llms-full.txt) |
-| `xstate/` | State machines, actors, transitions, testing, and version-specific documentation links | [Stately documentation index](https://stately.ai/llms.txt) |
-| `xstate-effect/` | Effect-backed actors and their scoped lifetimes | [Official integration quick start](https://stately.ai/docs/xstate/v6/effect/quick-start) |
 
 For project diagnostics, use the shared [logger](../lib/logger.mjs). The API installs its Effect layer. Node and Bun scripts use its synchronous helpers. Diagnostics use logfmt on stderr so CLI results can be read from stdout.
 
-The Stately index is an entry point, not a complete API cache. Resolve its relative links against `https://stately.ai`. Follow relevant links when the cached material does not answer the question.
-
-Before applying a pattern, inspect the owning package manifest, lockfile, and installed types. The web app pins XState, Effect, and `@xstate/effect` for team-view navigation. The integration quick start calls `@xstate/effect` experimental and targets XState v6 alpha and Effect 4, while the Stately index labels v6 beta. Do not infer compatibility from these unversioned snapshots or apply v6 examples to v5. Verify exact package versions and peer dependencies before an implementation change.
-
-For integration work, check who owns actor startup, shutdown, interruption, dependencies, and failures. Use the official integration documentation to verify those contracts. The cache does not authorize a runtime migration or package installation.
+Before applying a pattern, inspect the owning package manifest, lockfile, and installed types. Do not infer compatibility from these unversioned snapshots.
 
 Refresh these references explicitly with `node scripts/refresh-pattern-sources.mjs`. Review the downloaded documents, indexes, and `sources.json` together. This fetch does not run during install or build.
 
-To import existing downloads, use `node scripts/refresh-pattern-sources.mjs --from-dir DIR --fetched-at ISO_TIMESTAMP`. The directory must contain `ratstack-llms.txt`, `ratstack-full.txt`, `xstate-llms.txt`, and `xstate-effect.md`, downloaded from the URLs in the script. Supply the actual batch retrieval timestamp. Imports record caller-supplied provenance.
+To import existing downloads, use `node scripts/refresh-pattern-sources.mjs --from-dir DIR --fetched-at ISO_TIMESTAMP`. The directory must contain `ratstack-llms.txt` and `ratstack-full.txt`, downloaded from the URLs in the script. Supply the actual batch retrieval timestamp. Imports record caller-supplied provenance.
