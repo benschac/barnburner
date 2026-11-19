@@ -1,5 +1,6 @@
 import { View } from 'tamagui'
 import type { PublishedInsight } from '@nhl-reddit-stats/season/rpc'
+import { InsightSource } from './InsightSource'
 import { Copy, List, Row, RuledHeading } from './primitives'
 
 export function Notes({ insights }: { insights: readonly PublishedInsight[] }) {
@@ -13,7 +14,7 @@ export function Notes({ insights }: { insights: readonly PublishedInsight[] }) {
           <View render="li" key={insight.headline} gap="1.5">
             <Row justify="space-between" items="baseline" gap="2">
               <Copy render="h3" fontWeight="700">{insight.headline}</Copy>
-              {/* N3: the "Source" control that opens the evidence drawer goes here. */}
+              <InsightSource insight={insight} />
             </Row>
             <Copy render="p">{insight.body}</Copy>
           </View>
