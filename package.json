@@ -31,12 +31,13 @@
     "test:anti-slop": "node --test 'tools/oxlint/anti-slop/rules/{max,no,require-readable-spacing.,require-safety}*.test.ts' 'tools/oxlint/anti-slop/{effect,martinfowler,xstate}/rules/*.test.ts' tools/oxlint/anti-slop/jev/effect-rules.test.ts tools/oxlint/anti-slop/martinfowler/jev-rules.test.ts 'tools/oxlint/anti-slop/diff-rules/{git,input,runner}.test.ts' tools/oxlint/anti-slop/modes/wrap.test.ts tools/oxlint/anti-slop/modes/with-changes.test.ts",
     "lint": "bun run check:effect-api && bun run check:xstate-docs && bun run check:node-scripts && turbo run lint",
     "preview": "turbo run preview",
-    "ask": "bun run --cwd packages/analyst ask",
-    "insights:generate": "bun run --cwd packages/analyst insights:generate",
+    "ask": "varlock run -- bun run --cwd packages/analyst ask",
+    "insights:generate": "varlock run -- bun run --cwd packages/analyst insights:generate",
     "insights:review": "bun run --cwd packages/analyst insights:review",
     "insights:report": "bun run --cwd packages/analyst insights:report",
     "insights:recheck": "bun run --cwd packages/analyst insights:recheck",
-    "evals": "bun run --cwd packages/analyst evals",
+    "evals": "varlock run -- bun run --cwd packages/analyst evals",
+    "env:check": "varlock load --agent",
     "history:accept": "bun run --cwd apps/api history:accept",
     "history:query": "bun run --cwd apps/api history:query"
   },
@@ -53,6 +54,7 @@
     "eslint-plugin-ai-guard": "1.4.7",
     "@typescript-eslint/parser": "8.73.0",
     "@enfect/oxlint": "0.10.0",
-    "oxlint-plugin-jev": "file:./tools/oxlint/oxlint-plugin-jev"
+    "oxlint-plugin-jev": "file:./tools/oxlint/oxlint-plugin-jev",
+    "varlock": "1.23.0"
   }
 }
