@@ -9,7 +9,7 @@
   },
   "scripts": {
     "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.json",
-    "lint": "effect-tsgo --tsrs-lint oxlint src"
+    "lint": "effect-tsgo --tsrs-lint oxlint src && node ../../scripts/test-effect-core-rules.mjs . && node ../../scripts/index-effect-core.mjs --check"
   },
   "dependencies": {
     "effect": "4.1.2"
