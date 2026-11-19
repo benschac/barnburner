@@ -81,7 +81,7 @@ function GamesBySeasonPage() {
         <input type="file" accept="application/json" onChange={(event) => { void onFile(event) }} />
       </label>
       <p role="status">{note || 'Showing the pair sample.'}</p>
-      <G2Chart spec={spec} height="seasonChart" />
+      <G2Chart spec={spec} height="drawer" />
     </section>
   )
 }

@@ -31,19 +31,30 @@ export interface OrdinalColorScale {
   range: string[]
 }
 
+/** What G2's facet hands the guide function: the facet's position and its rows. */
+export interface FacetCell {
+  columnIndex: number
+}
+/** The y guide of one facet. A function, because G2 5.4.8 lets a plain `{ title }` override its own "left-most facet only". */
+export type YAxis = (facet: FacetCell, data: unknown[]) => { title: string | false; tick?: null; label?: null; grid?: null }
+
 /** The stacked bars inside each competition facet. */
 export interface BarsChild {
   type: 'interval'
   encode: { x: 'season'; y: 'games'; color: 'series' }
   transform: { type: 'stackY' }[]
   scale: { x: { domain: string[] }; color: OrdinalColorScale }
-  axis: { y: { title: string } }
+  axis: { y: YAxis }
   legend: { color: { position: 'top' } }
 }
 
 /** The shared-games facet: one column per competition present, each holding stacked bars. */
 export interface GamesFacetSpec {
   type: 'facetRect'
+  paddingLeft: number
+  paddingRight: number
+  paddingTop: number
+  paddingBottom: number
   data: SeasonBarRow[]
   encode: { x: 'competition' }
   scale: { x: { domain: Competition[] }; color: OrdinalColorScale }
@@ -61,6 +72,18 @@ export interface NoSharedGamesSpec {
 }
 
 export type GamesBySeasonSpec = GamesFacetSpec | NoSharedGamesSpec
+
+// G2 draws each facet's axes outside the facet, in the parent view's padding, and sizes that padding only from the
+// parent's own components (the legend and the facet titles), so the facet's tick labels and season labels fall
+// outside the canvas unless the spec reserves room. Pixels: two-digit y ticks and the title on the left, the legend and the facet titles on top, one line of season labels
+// and the x title below.
+const PADDING = { left: 56, right: 8, top: 88, bottom: 40 }
+
+// Only the left-most facet carries the y ticks and the title; the others keep their grid, and none when empty.
+const yAxis: YAxis = (facet, data) => {
+  const grid = data.length > 0 ? {} : { grid: null }
+  return facet.columnIndex === 0 ? { title: 'Games', ...grid } : { title: false, tick: null, label: null, ...grid }
+}
 
 const COMPETITIONS: Competition[] = ['Regular season', 'Playoffs']
 const GOALIE_PARTNERS = 'Goalie partners'
@@ -121,6 +144,10 @@ export function gamesBySeason(tables: GamesBySeasonTables, theme: VizTheme, club
 
   return {
     type: 'facetRect',
+    paddingLeft: PADDING.left,
+    paddingRight: PADDING.right,
+    paddingTop: PADDING.top,
+    paddingBottom: PADDING.bottom,
     data: rows,
     encode: { x: 'competition' },
     scale: { x: { domain: COMPETITIONS.filter((name) => rows.some((row) => row.competition === name)) }, color },
@@ -130,7 +157,7 @@ export function gamesBySeason(tables: GamesBySeasonTables, theme: VizTheme, club
         encode: { x: 'season', y: 'games', color: 'series' },
         transform: [{ type: 'stackY' }],
         scale: { x: { domain: seasons }, color },
-        axis: { y: { title: 'Games' } },
+        axis: { y: yAxis },
         legend: { color: { position: 'top' } },
       },
     ],

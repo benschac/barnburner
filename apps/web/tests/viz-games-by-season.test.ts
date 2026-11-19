@@ -130,3 +130,13 @@ test('no shared games: a text note in the theme muted colour, not a facet', () =
   assert.equal(spec.data[0].text, 'These two players never played together.')
   assert.deepEqual(spec.style, { fill: 'theme-muted', textAlign: 'center' })
 })
+
+test('the facet reserves room for its axes, and only the left-most facet carries the y title and ticks', () => {
+  const spec = facetOf(gamesBySeason(pairSample.tables, theme, clubColor))
+  assert.ok(spec.paddingLeft > 0 && spec.paddingBottom > 0)
+  const yAxis = spec.children[0].axis.y
+  const rows = [{}]
+  assert.deepEqual(yAxis({ columnIndex: 0 }, rows), { title: 'Games' })
+  assert.deepEqual(yAxis({ columnIndex: 1 }, rows), { title: false, tick: null, label: null })
+  assert.deepEqual(yAxis({ columnIndex: 1 }, []), { title: false, tick: null, label: null, grid: null })
+})

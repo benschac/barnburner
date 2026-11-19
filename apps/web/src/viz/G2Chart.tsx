@@ -7,7 +7,7 @@ import { useG2Chart } from '../use-g2-chart'
 import { cssVariables, g2Theme, useVizTheme } from './theme'
 
 /** The chart heights, as size tokens of the design contract. */
-export type G2ChartHeight = 'hero' | 'seasonChart' | 'playoffChart'
+export type G2ChartHeight = 'hero' | 'seasonChart' | 'playoffChart' | 'drawer'
 
 export type G2ChartProps = {
   spec: G2Spec
@@ -22,6 +22,7 @@ const Frame = styled(View, {
       hero: { h: 'hero' },
       seasonChart: { h: 'seasonChart' },
       playoffChart: { h: 'playoffChart' },
+      drawer: { h: 'drawer' },
     },
   } as const,
 })
