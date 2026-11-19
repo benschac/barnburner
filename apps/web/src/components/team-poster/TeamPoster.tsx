@@ -5,6 +5,7 @@ import { Chart } from '../../Charts'
 import { idleInspection, inspectGame, inspectedGame } from '../../game-inspection'
 import type { TeamPosterData } from '../../stats'
 import { teamLogo } from '../../team-season'
+import { Notes } from './Notes'
 import { Division } from './Division'
 import { AnimatedRecord } from './AnimatedRecord'
 import { PlayoffPicture } from './PlayoffPicture'
@@ -68,6 +69,7 @@ export const TeamPoster = memo(function TeamPoster({ data, onPrefetchTeam }: { d
               </View>
               <PlayoffPicture data={data} onPrefetchTeam={onPrefetchTeam} />
               <Schedule data={data} onPrefetchTeam={onPrefetchTeam} />
+              <Notes insights={data.insights} />
             </View>
           </View>
           <Row render="footer" flexWrap="wrap" mx="4 sm:6 poster:12 print:12" mt="10" mb="8" minH="6" gap="6">
