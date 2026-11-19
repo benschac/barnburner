@@ -22,9 +22,9 @@ cur AS (
   return [
     {
       team,
-      kind: 'comparative',
+      kind: 'trend',
       headline: '{team} are on a {len}-game {label} streak',
-      body: 'It ties the longest {label} streak of their season, which is {longest} games.',
+      body: 'Their longest {label} streak this season is {longest} games.',
       bindings: {
         team: { column: 'team', row: 0 },
         len: { column: 'len', row: 0 },
@@ -42,9 +42,6 @@ FROM cur`,
         gamesQuery: `${base}
 SELECT game_id FROM f WHERE seq > (SELECT last_seq - len FROM cur)`,
       },
-      // True exactly while the current run is still the longest of its type (the claim the body makes).
-      assert: `${base}
-SELECT cur.len = (SELECT max(len) FROM runs WHERE runs.result = cur.result) AS holds FROM cur`,
     },
   ]
 }
