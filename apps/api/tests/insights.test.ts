@@ -4,10 +4,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { NodeServices } from '@effect/platform-node'
-import { Effect, Layer } from 'effect'
-import { Insights, loadPublishedInsights } from '../src/insights.ts'
+import { Effect, FileSystem } from 'effect'
+import { filesInsights, loadPublishedInsights } from '../src/insights.ts'
 
-const card = (status: string, id: string, extra: Record<string, unknown> = {}) => ({
+import type { InsightCard } from '@nhl-reddit-stats/analyst/card'
+
+const card = (status: InsightCard['status'], id: string, extra: Partial<Pick<InsightCard, 'bindings' | 'review'>> = {}) => ({
   id, status, team: 'TOR', kind: 'record',
   headline: '{wins} wins in {games}',
   body: 'Toronto has {wins} wins.',
@@ -19,11 +21,12 @@ const card = (status: string, id: string, extra: Record<string, unknown> = {}) =
 })
 
 const load = (directory: string, teams: string[]) => Effect.runPromise(
-  loadPublishedInsights(teams).pipe(Effect.provide(Insights.layerFiles(directory).pipe(Layer.provide(NodeServices.layer)))),
+  Effect.flatMap(FileSystem.FileSystem, (fs) => loadPublishedInsights(filesInsights(fs, directory), teams)).pipe(Effect.provide(NodeServices.layer)),
 )
 
 test('only approved cards are served, with headline and body rendered', async () => {
   const root = await mkdtemp(join(tmpdir(), 'insights-'))
+
   try {
     await writeFile(join(root, 'TOR.json'), JSON.stringify([
       card('pending', 'a'), card('approved', 'b'), card('rejected', 'c', { review: { by: 'ben', at: 'x', reason: 'wrong' } }), card('stale', 'd'),
@@ -41,6 +44,7 @@ test('only approved cards are served, with headline and body rendered', async ()
 
 test('a missing file or directory means no insights', async () => {
   const root = await mkdtemp(join(tmpdir(), 'insights-'))
+
   try {
     assert.deepEqual(await load(root, ['TOR']), [])
     assert.deepEqual(await load(join(root, 'absent'), ['TOR']), [])
@@ -51,6 +55,7 @@ test('a missing file or directory means no insights', async () => {
 
 test('an approved card that cannot render is dropped; an unreadable file fails the load', async () => {
   const root = await mkdtemp(join(tmpdir(), 'insights-'))
+
   try {
     await mkdir(root, { recursive: true })
     await writeFile(join(root, 'TOR.json'), JSON.stringify([card('approved', 'b', { bindings: {} })]))

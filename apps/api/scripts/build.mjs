@@ -8,6 +8,7 @@ const fetchHistory = spawnSync(process.execPath, [fileURLToPath(new URL('./fetch
 if (fetchHistory.status !== 0) process.exit(1)
 
 const archiveDirectory = fileURLToPath(new URL('../../../data/boxscores/20262027/', import.meta.url))
+
 const insightsDirectory = fileURLToPath(new URL('../../../data/insights/20262027/', import.meta.url))
 const outdir = fileURLToPath(new URL('../dist', import.meta.url))
 
@@ -29,6 +30,7 @@ const archive = {
 const teams = existsSync(insightsDirectory)
   ? readdirSync(insightsDirectory).flatMap((file) => /^[A-Z]{3}\.json$/.test(file) ? [file.slice(0, -5)] : []).sort()
   : []
+
 const insights = {
   name: 'insights-archive',
   setup(build) {
@@ -50,6 +52,7 @@ if (!result.success) {
   for (const log of result.logs) logError(Bun.inspect(log))
   process.exit(1)
 }
+
 logInfo(`Bundled web handler with ${ids.length} lazily loaded box scores and ${teams.length} insight files`)
 
 // The history function is its own bundle: it reads one serving file and needs no snapshot JSON or archive.
