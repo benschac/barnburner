@@ -1,17 +1,12 @@
 import { Graph, GraphEvent } from '@antv/g6'
+import { Array, Order } from 'effect'
 import type { BenchRenderer } from '@nhl-reddit-stats/viz/contracts'
 
-/** A loop, not `Math.max(...rows)`: the real export has hundreds of thousands of links, past the argument limit. */
-const maxOf = <T>(rows: ReadonlyArray<T>, pick: (row: T) => number) => {
-  let max = 1
-  for (const row of rows) {
-    const value = pick(row)
-    if (value > max) max = value
-  }
-  return max
-}
+/** `Array.max`, not `Math.max(...rows)`: the real export has hundreds of thousands of links, past the argument limit. The prepended 1 is the floor that avoids dividing by zero on empty data. */
+const maxOf = <T>(rows: ReadonlyArray<T>, pick: (row: T) => number) =>
+  Array.max(Array.prepend(Array.map(rows, pick), 1), Order.Number)
 
-const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value))
+const clampNumber = Order.clamp(Order.Number)
 
 const renderer: BenchRenderer = {
   name: 'g6-canvas',
@@ -47,7 +42,7 @@ const renderer: BenchRenderer = {
         style: {
           stroke: theme.chartLine,
           lineWidth: 1,
-          strokeOpacity: (datum) => clamp(Number(datum.data?.games ?? 0) / maxLinkGames, 0.05, 1),
+          strokeOpacity: (datum) => clampNumber(Number(datum.data?.games ?? 0) / maxLinkGames, { minimum: 0.05, maximum: 1 }),
         },
       },
       layout: { type: 'd3-force', animation: false },
