@@ -92,7 +92,8 @@ For web UI changes, follow [the enforced design contract](apps/web/design/README
   - `anti-slop/no-unknown-parameters` and `no-unknown-returns` reject the decoders the JSON boundary needs, which take `unknown`.
   - `anti-slop-effect/no-service-constructor-imports` reports every imported `make*` function; here those are mostly plain factories.
   - `anti-slop/require-readable-spacing` is a blank-line style rule with no autofix (1,915 findings).
-  - `landmines/no-flake-masking` assumes a default test timeout; `node:test` has none, so `{ timeout }` adds a bound. `landmines/strict-msw` and `no-unsignaled-poll` need MSW and Vitest, which this repository does not use.
+  - `landmines/no-flake-masking` assumes a default test timeout; `node:test` has none, so `{ timeout }` adds a bound. Turn it on when a workspace moves to Vitest.
+- `landmines/strict-msw` and `landmines/no-unsignaled-poll` are on but check MSW and Vitest APIs, so they report nothing until a workspace uses those.
 - `enfect/effect-run-in-body` is off for entry points, React hooks (`src/use-*.ts`), and tool callbacks (`src/tools/*.ts`), where a foreign caller needs a promise or a fiber. `anti-slop/no-runtime-typeof` is off in tests and lint plugins.
 - `bun run test:anti-slop` runs the vendored rule tests.
 - `bun run lint:jev` runs the paid Jev rules in `lint/anti-slop-jev.oxlintrc.json` on changed lines. It needs `TYPESAFE_API_KEY` or `AI_GATEWAY_API_KEY`; without one it warns and skips, and under `CI` it fails. It is not part of `bun run lint`. `error-as-value` is off there: it reports `Result` and `ok: false` returns, which the error model accepts. Keep the key out of the editor's environment, or the Oxlint extension asks Jev on every edit.

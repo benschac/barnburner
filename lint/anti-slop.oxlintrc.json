@@ -270,7 +270,19 @@
         "mode": "changed"
       }
     ],
+    "landmines/strict-msw": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
     "landmines/no-fixed-sleep": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "landmines/no-unsignaled-poll": [
       "error",
       {
         "mode": "changed"
