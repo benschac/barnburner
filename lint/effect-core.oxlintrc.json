@@ -1,0 +1,36 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "effecttsgo"
+  ],
+  "jsPlugins": [
+    "./effect-core-plugin.mjs"
+  ],
+  "rules": {
+    "core/no-native-sort": "error",
+    "core/no-set-dedupe": "error",
+    "core/no-yield-in-loop": "error",
+    "effecttsgo/abort-controller-in-effect": "error",
+    "effecttsgo/crypto-random-uuid": "error",
+    "effecttsgo/crypto-random-uuid-in-effect": "error",
+    "effecttsgo/global-console": "error",
+    "effecttsgo/global-console-in-effect": "error",
+    "effecttsgo/global-date": "error",
+    "effecttsgo/global-date-in-effect": "error",
+    "effecttsgo/global-fetch": "error",
+    "effecttsgo/global-fetch-in-effect": "error",
+    "effecttsgo/global-random": "error",
+    "effecttsgo/global-random-in-effect": "error",
+    "effecttsgo/global-timers": "error",
+    "effecttsgo/global-timers-in-effect": "error",
+    "effecttsgo/new-promise": "error",
+    "effecttsgo/process-env": "error",
+    "effecttsgo/process-env-in-effect": "error",
+    "effecttsgo/instance-of-schema": "error",
+    "effecttsgo/all-of-map-to-for-each": "error",
+    "effecttsgo/yield-in-call-argument": "error"
+  },
+  "options": {
+    "typeAware": true
+  }
+}

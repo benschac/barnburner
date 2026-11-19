@@ -33,7 +33,8 @@ Adopt the stack incrementally through concrete features. Preserve this project's
 - In Effect code, use the core modules (`Array`, `Order`, `Option`, `Record`, `Number`, `String`) and `Effect.forEach` rather than native sort comparators, `new Set` dedupe, or `for` loops that push or `yield*`.
 - Before writing a loop, comparator, or platform global, look it up in `.agent-sources/effect-api/native-to-effect.md`, then read the export's range through `.agent-sources/effect-api/core-index.md`.
 - A `yield*` loop that must stop early or poll may stay a loop; put a `// loop: <reason>` comment on the line above it.
-- `lint/effect-core-plugin.mjs` enforces this (`core/no-native-sort`, `core/no-set-dedupe`, `core/no-yield-in-loop`) in files that import Effect, and `scripts/test-effect-core-rules.mjs` proves the rules. Add the plugin to a package's `.oxlintrc.json` and the test to its `lint` script when that package adopts the rule.
+- `lint/effect-core-plugin.mjs` enforces this (`core/no-native-sort`, `core/no-set-dedupe`, `core/no-yield-in-loop`) in files that import Effect. `lint/effect-core.oxlintrc.json` bundles those rules with the `@effect/tsgo` rules for platform globals (`Date`, `Math.random`, timers, `console`, `process.env`, `fetch`, `new Promise`) and `Effect.all` over a `map`.
+- `packages/viz` enforces this in `bun run lint`, which also runs `scripts/test-effect-core-rules.mjs` and `scripts/index-effect-core.mjs --check`. A package adopts the rule by adding `"extends": ["../../lint/effect-core.oxlintrc.json"]` to its `.oxlintrc.json` and both scripts to its `lint` script.
 
 # Error model
 

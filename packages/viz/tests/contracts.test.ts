@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Schema } from 'effect'
+import { Order, Schema } from 'effect'
 import {
   ChainTables, EgoLinkRow, EgoTables, FinalsTables, FinalsRow, FrameMessage, FrameReport, HostMessage, LeagueLinkRow, LeagueTables, OpponentsTables, PairSummaryRow, PairTables, Row, Tables,
   ViewData, VizTheme,
@@ -145,13 +145,15 @@ test('every player and team ID in a row has a players or teams row', () => {
   reached(finals.players, finals.finals.map((f) => f.playerId))
 })
 
+// Strictly ascending: in order, with no two equal.
+const ascending = <A>(xs: ReadonlyArray<A>, order: Order.Order<A>) => xs.every((x, i) => i === 0 || order(xs[i - 1], x) < 0)
+
 test('every a is below b', () => {
   for (const s of pairSample.tables.summary) assert.ok(s.a < s.b)
   for (const l of egoSample.tables.links) assert.ok(l.a < l.b)
   for (const l of leagueSample.tables.links) assert.ok(l.a < l.b)
   // Links are listed once each, in order.
-  const keys = leagueSample.tables.links.map((l) => l.a * 100 + l.b)
-  assert.deepEqual(keys, [...new Set(keys)].sort((x, y) => x - y))
+  assert.ok(ascending(leagueSample.tables.links.map((l) => l.a * 100 + l.b), Order.Number))
 })
 
 test('chain hops are in D6 order, from 0, and join up', () => {
@@ -162,7 +164,7 @@ test('chain hops are in D6 order, from 0, and join up', () => {
   assert.deepEqual([...chains.keys()], Array.from({ length: chains.size }, (_, i) => i))
   assert.equal(chains.size, Math.min(pathCount, 10))
   // Rows are listed chain by chain, step by step.
-  assert.deepEqual(hops.map((h) => [h.chain, h.step]), [...hops].map((h) => [h.chain, h.step]).sort((x, y) => x[0] - y[0] || x[1] - y[1]))
+  assert.ok(ascending(hops, Order.Struct({ chain: Order.Number, step: Order.Number })))
   for (const steps of chains.values()) {
     assert.deepEqual(steps.map((h) => h.step), Array.from({ length: distance }, (_, i) => i))
     assert.equal(steps[0].from, from)
