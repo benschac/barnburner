@@ -1,0 +1,74 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "plugins": [],
+  "categories": {
+    "correctness": "off"
+  },
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "fs",
+            "message": "Use the FileSystem service from effect (readFileString, writeFileString, readDirectory, makeDirectory). See \"Node scripts\" in .agent-sources/effect/native-to-effect.md."
+          },
+          {
+            "name": "node:fs",
+            "message": "Use the FileSystem service from effect (readFileString, writeFileString, readDirectory, makeDirectory). See \"Node scripts\" in .agent-sources/effect/native-to-effect.md."
+          },
+          {
+            "name": "fs/promises",
+            "message": "Use the FileSystem service from effect (readFileString, writeFileString, readDirectory, makeDirectory). See \"Node scripts\" in .agent-sources/effect/native-to-effect.md."
+          },
+          {
+            "name": "node:fs/promises",
+            "message": "Use the FileSystem service from effect (readFileString, writeFileString, readDirectory, makeDirectory). See \"Node scripts\" in .agent-sources/effect/native-to-effect.md."
+          },
+          {
+            "name": "path",
+            "message": "Use the Path service from effect (join, resolve, dirname, relative)."
+          },
+          {
+            "name": "node:path",
+            "message": "Use the Path service from effect (join, resolve, dirname, relative)."
+          },
+          {
+            "name": "url",
+            "message": "Use Path.fromFileUrl from effect instead of fileURLToPath."
+          },
+          {
+            "name": "node:url",
+            "message": "Use Path.fromFileUrl from effect instead of fileURLToPath."
+          },
+          {
+            "name": "child_process",
+            "message": "Use ChildProcess.make with ChildProcessSpawner (string, lines, exitCode, spawn) from effect/process."
+          },
+          {
+            "name": "node:child_process",
+            "message": "Use ChildProcess.make with ChildProcessSpawner (string, lines, exitCode, spawn) from effect/process."
+          }
+        ]
+      }
+    ],
+    "no-restricted-properties": [
+      "error",
+      {
+        "object": "process",
+        "property": "argv",
+        "message": "Parse arguments with Command, Flag, and Argument from effect/cli."
+      },
+      {
+        "object": "process",
+        "property": "exit",
+        "message": "Fail the program with a tagged error; NodeRuntime.runMain sets the exit code."
+      },
+      {
+        "object": "process",
+        "property": "exitCode",
+        "message": "Fail the program with a tagged error; NodeRuntime.runMain sets the exit code."
+      }
+    ]
+  }
+}

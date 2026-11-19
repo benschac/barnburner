@@ -1,3 +1,4 @@
+/* oxlint-disable no-restricted-imports, no-restricted-properties -- legacy: port to the Effect platform services, see "Node scripts" in AGENTS.md */
 // Index the core `effect` modules (Array, Order, Effect, Schema, ...) for agents.
 // Each row names one export, the first sentence of its JSDoc, and its line range in the
 // installed declaration file, so a search by name or intent leads straight to the source.

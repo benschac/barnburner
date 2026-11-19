@@ -47,7 +47,7 @@ Adopt the stack incrementally through concrete features. Preserve this project's
 
 - Write a Node script as an Effect program run by `NodeRuntime.runMain` with `NodeServices.layer` from `@effect/platform-node`. Use `FileSystem`, `Path`, `ChildProcess` with `ChildProcessSpawner` (`effect/process`), and `effect/cli` instead of `node:fs`, `node:path`, `node:url`, `node:child_process`, `process.argv`, and `process.exit`.
 - Look up each replacement under "Node scripts" in `.agent-sources/effect/native-to-effect.md`, and follow `node_modules/effect/ai-docs/src/60_child-process/` and `70_cli/`.
-- `scripts/check-node-scripts.mjs` enforces this for `scripts/` and `lib/` in root `bun run lint`. Its `LEGACY` list names older scripts; when you port one, delete its entry.
+- `lint/node-scripts.oxlintrc.json` enforces this for `scripts/` and `lib/` in root `bun run lint` (`bun run check:node-scripts`) with oxlint's `no-restricted-imports` and `no-restricted-properties`. Older scripts open with an `oxlint-disable` comment marked `legacy`; when you port one, delete the comment. Lint fails on a disable comment that no longer suppresses anything.
 
 # Error model
 

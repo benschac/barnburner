@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* oxlint-disable no-restricted-imports, no-restricted-properties -- legacy: port to the Effect platform services, see "Node scripts" in AGENTS.md */
 // Enforces the error model in AGENTS.md: package source returns expected failures as tagged
 // errors. It rejects a class that extends Error directly and any throw that is not marked as a
 // defect by a "// defect: <reason>" comment on the line above it.
