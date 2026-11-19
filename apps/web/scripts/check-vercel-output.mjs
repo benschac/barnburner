@@ -1,12 +1,12 @@
-import { logInfo } from '../../../lib/logger.mjs'
+import { logError, logInfo } from '../../../lib/logger.mjs'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { cp, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises'
+import { rmSync } from 'node:fs'
+import { cp, mkdtemp, readdir, readFile, readlink, realpath, rm, stat, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { basename, dirname, join, relative, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { Effect, Layer } from 'effect'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { Effect, Layer, Result, Schema } from 'effect'
 import { FetchHttpClient } from 'effect/http'
 import { RpcClient, RpcSerialization } from 'effect/rpc'
 import { HistoryRpcs } from '@nhl-reddit-stats/history/rpc'
@@ -35,16 +35,65 @@ const outputArg = args.find((arg) => !arg.startsWith('--'))
 assert.ok(outputArg, 'Pass the standalone Vercel build output directory')
 const output = resolve(outputArg)
 
-const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'))
-const sizeOf = (path) => stat(path).then((file) => (file.isFile() ? file.size : null), () => null)
+// A packaged function is copied here and served from a separate Node process. The directory is created first so a manifest
+// failure can remove it. Resolved paths come back as real paths (/var is /private/var on macOS), so keep it in that form.
+const directory = await realpath(await mkdtemp(join(tmpdir(), 'rinkside-vercel-')))
+const cleanup = () => rm(directory, { recursive: true, force: true })
+// An assertion that fails before the final cleanup still leaves no temporary files.
+process.once('exit', () => rmSync(directory, { recursive: true, force: true }))
 
-const config = await readJson(join(output, 'config.json')).catch((cause) => {
-  throw new assert.AssertionError({ message: `${output}/config.json must exist and be JSON, found: ${cause.message}` })
+const SNAPSHOT_NAME = 'nhl-serve.sqlite'
+const sizeOf = (path) => stat(path).then((file) => (file.isFile() ? file.size : null), () => null)
+const inside = (root, path) => {
+  const from = relative(root, path)
+  return from !== '..' && !from.startsWith(`..${sep}`) && !isAbsolute(from)
+}
+
+// The build manifests are the only JSON this script reads. A missing or malformed one is a tagged failure that names the file.
+class OutputManifestError extends Schema.TaggedError()('OutputManifestError', {
+  path: Schema.String,
+  reason: Schema.String,
+}) {
+  get message() {
+    return `${this.path}: ${this.reason}`
+  }
+}
+const RoutesManifest = Schema.Struct({
+  routes: Schema.Array(Schema.Struct({ src: Schema.optionalKey(Schema.String), status: Schema.optionalKey(Schema.Number) })),
 })
-assert.ok(Array.isArray(config.routes), `config.json must list routes, found ${typeof config.routes}`)
+const FunctionManifest = Schema.Struct({
+  runtime: Schema.String,
+  handler: Schema.String,
+  supportsCancellation: Schema.optionalKey(Schema.Boolean),
+  filePathMap: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
+})
+const readManifest = async (path, schema) => {
+  const text = await readFile(path, 'utf8').then(
+    (value) => Result.succeed(value),
+    (cause) => Result.fail(new OutputManifestError({ path, reason: `cannot read the file: ${cause.message}` })),
+  )
+  return Result.flatMap(text, (value) =>
+    Result.mapError(Schema.decodeUnknownResult(Schema.fromJsonString(schema))(value), (error) => new OutputManifestError({ path, reason: `not the expected manifest: ${error.message}` })))
+}
+// The command line is the end of the tagged failure: report it by tag, remove the temporary files, and exit non-zero.
+const must = async (result) => {
+  if (Result.isSuccess(result)) return result.success
+  logError(`${result.failure._tag}: ${result.failure.message}`)
+  await cleanup()
+  process.exit(1)
+}
+
+const routesManifest = await must(await readManifest(join(output, 'config.json'), RoutesManifest))
+const routeMatches = (route, pathname) => {
+  try {
+    return route.src !== undefined && new RegExp(route.src).test(pathname)
+  } catch {
+    return false
+  }
+}
 assert.ok(
-  config.routes.some((route) => route.status === 308 && new RegExp(route.src).test('/api/rpc/')),
-  `RPC trailing slash must preserve POST via HTTP 308: no route in config.json has status 308 and matches /api/rpc/ (${config.routes.length} routes, ${config.routes.filter((route) => route.status !== undefined).length} with a status)`,
+  routesManifest.routes.some((route) => route.status === 308 && routeMatches(route, '/api/rpc/')),
+  `RPC trailing slash must preserve POST via HTTP 308: no route in config.json has status 308 and matches /api/rpc/ (${routesManifest.routes.length} routes, ${routesManifest.routes.filter((route) => route.status !== undefined).length} with a status)`,
 )
 
 // Every <pathname>.func directory below functions/, following symlinks (a function may be shared by several routes).
@@ -66,11 +115,8 @@ const found = `found ${functions.size} functions${apiFunctions.length > 0 ? `; a
 const readConfig = async (name) => {
   const directory = functions.get(name)
   assert.ok(directory, `functions/${name}.func is missing from ${output}; ${found}`)
-  const vc = await readJson(join(directory, '.vc-config.json')).catch((cause) => {
-    throw new assert.AssertionError({ message: `functions/${name}.func/.vc-config.json must exist and be JSON, found: ${cause.message}` })
-  })
+  const vc = await must(await readManifest(join(directory, '.vc-config.json'), FunctionManifest))
   assert.match(vc.runtime, /^nodejs/, `functions/${name}.func runtime must be a Node runtime, found ${vc.runtime}`)
-  assert.equal(typeof vc.handler, 'string', `functions/${name}.func must name a handler file, found ${typeof vc.handler}`)
   assert.ok(
     vc.filePathMap === undefined || Object.keys(vc.filePathMap).length === 0,
     `functions/${name}.func lists filePathMap entries (files kept outside the function directory); build with --standalone so the function carries its own files`,
@@ -84,6 +130,48 @@ for (const [name] of apiFunctions) {
   assert.equal(vc.supportsCancellation, true, `functions/${name}.func must have supportsCancellation: true in .vc-config.json, found ${vc.supportsCancellation}`)
 }
 logInfo(`All ${apiFunctions.length} packaged API functions support cancellation`)
+
+// Walk a function without following symlinks. A symlink that leaves the function directory would be copied into the
+// temporary directory by the dereferencing copy below and then look contained, so it is judged here, on the original.
+const scans = new Map()
+const scanFunction = async (source) => {
+  const root = await realpath(source)
+  const cached = scans.get(root)
+  if (cached) return cached
+  const scan = { root, escapes: [], snapshots: [] }
+  const walk = async (current) => {
+    for (const entry of await readdir(current, { withFileTypes: true })) {
+      const path = join(current, entry.name)
+      if (entry.isSymbolicLink()) {
+        const target = await realpath(path).catch(() => null)
+        if (target === null || !inside(root, target)) scan.escapes.push(`${relative(root, path)} -> ${await readlink(path)}`)
+        else if (entry.name === SNAPSHOT_NAME) scan.snapshots.push(relative(root, path))
+      } else if (entry.isDirectory()) await walk(path)
+      else if (entry.name === SNAPSHOT_NAME) scan.snapshots.push(relative(root, path))
+    }
+  }
+  await walk(root)
+  scans.set(root, scan)
+  return scan
+}
+
+// The snapshot is traced for /api/history only: that route needs its own function, and no other function may carry the file.
+const historyRoot = await realpath((await readConfig('api/history')).directory)
+const owners = new Map()
+for (const [name, directory] of functions) {
+  const root = await realpath(directory)
+  owners.set(root, [...(owners.get(root) ?? []), name])
+}
+for (const [root, names] of owners) {
+  if (root === historyRoot) {
+    const shared = names.filter((name) => !name.startsWith('api/history'))
+    assert.deepEqual(shared, [], `functions/api/history.func must be its own function, but it is shared with ${shared.join(', ')}; give the history route its own function config so the snapshot ships with it only`)
+    continue
+  }
+  const { snapshots } = await scanFunction(root)
+  assert.deepEqual(snapshots, [], `${names.map((name) => `functions/${name}.func`).join(', ')} must not carry ${SNAPSHOT_NAME}; the history file is traced for /api/history only. Found: ${snapshots.join(', ')}`)
+}
+logInfo(`${owners.size} packaged functions checked; the snapshot is in the history function only`)
 
 // A copy of the function outside the checkout, served from its own Node process so one Next server never shares globals with another.
 const harness = `
@@ -107,14 +195,14 @@ const server = createServer((req, res) => {
 server.listen(0, '127.0.0.1', () => console.log('LISTENING ' + server.address().port))
 `
 
-// Resolved paths come back as real paths (/var is /private/var on macOS), so keep the temporary directory in that form.
-const directory = await realpath(await mkdtemp(join(tmpdir(), 'rinkside-vercel-')))
 const harnessFile = join(directory, 'harness.mjs')
 await writeFile(harnessFile, harness)
 // HISTORY_DB would hide a missing bundled file, so no packaged function sees it.
 const { HISTORY_DB: _ignoredHistoryDb, ...childEnv } = process.env
 
 const startFunction = async (name, vc, source) => {
+  const scan = await scanFunction(source)
+  assert.deepEqual(scan.escapes, [], `functions/${name}.func must carry its own dependencies, but these symlinks leave the function directory: ${scan.escapes.slice(0, 5).join('; ')}`)
   const isolated = join(directory, name.replaceAll('/', '_'))
   await cp(source, isolated, { recursive: true, dereference: true })
   const launcher = join(isolated, vc.handler)
@@ -144,19 +232,20 @@ const startFunction = async (name, vc, source) => {
   const fetchFunction = (input, init) => {
     const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined))
     headers.set('x-matched-path', pathname)
-    return fetch(input, { ...init, headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
+    // A redirect would let a live endpoint answer for the packaged function, so it fails the request.
+    return fetch(input, { ...init, headers, redirect: 'error', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
   }
   return {
     isolated,
     launcherDirectory: dirname(launcher),
     url: `http://127.0.0.1:${port}${pathname}`,
     fetch: fetchFunction,
-    // A failed assertion is more useful with whatever the function logged.
+    // A failed check is more useful with whatever the function logged. The error is rethrown untouched: a fetch timeout is a DOMException whose message is read-only.
     async run(check) {
       try {
         return await check()
       } catch (error) {
-        if (error instanceof Error) error.message += `\n--- functions/${name}.func output ---\n${log || '(none)'}`
+        logError(`functions/${name}.func output:\n${log || '(none)'}`)
         throw error
       }
     },
@@ -168,9 +257,26 @@ const startFunction = async (name, vc, source) => {
 }
 
 // The packaged API is the built apps/api/dist, imported at run time (it stays external to webpack). The function must carry
-// its handler and every box-score chunk as separate files, found the way the route finds them.
-const sourceDist = fileURLToPath(new URL('../../api/dist/', import.meta.url))
-const sourceChunks = (await readdir(sourceDist).catch(() => [])).filter((file) => /^chunk-.*\.js$/.test(file))
+// its handler and every box-score chunk that handler imports as separate files, found the way the route finds them.
+const chunkImports = async (handlerDirectory, entry) => {
+  const referenced = new Set()
+  const missing = []
+  const pending = [entry]
+  for (const file of pending) {
+    const text = await readFile(join(handlerDirectory, file), 'utf8').catch(() => null)
+    if (text === null) {
+      missing.push(file)
+      continue
+    }
+    for (const match of text.matchAll(/['"]\.\/(chunk-[\w-]+\.js)['"]/g)) {
+      if (!referenced.has(match[1])) {
+        referenced.add(match[1])
+        pending.push(match[1])
+      }
+    }
+  }
+  return { referenced, missing }
+}
 const assertPackagedApi = async (name, running, handlerFile, withChunks) => {
   const specifier = `@nhl-reddit-stats/api/${basename(handlerFile, '.js')}`
   let resolved
@@ -180,19 +286,14 @@ const assertPackagedApi = async (name, running, handlerFile, withChunks) => {
     assert.fail(`functions/${name}.func must carry ${specifier} (apps/api/dist/${handlerFile}) where the launcher can resolve it, found: ${cause.message}`)
   }
   assert.ok(
-    !relative(running.isolated, resolved).startsWith('..'),
+    inside(running.isolated, resolved),
     `functions/${name}.func resolved ${specifier} to ${resolved}, outside the function directory`,
   )
   assert.equal(basename(resolved), handlerFile, `functions/${name}.func resolved ${specifier} to ${resolved}, expected a file named ${handlerFile}`)
   if (!withChunks) return
-  const chunks = (await readdir(dirname(resolved))).filter((file) => /^chunk-.*\.js$/.test(file))
-  assert.ok(chunks.length > 0, `functions/${name}.func carries no box-score chunk-*.js beside ${handlerFile}; found 0`)
-  const missing = sourceChunks.filter((file) => !chunks.includes(file))
-  assert.equal(
-    missing.length,
-    0,
-    `functions/${name}.func must carry all ${sourceChunks.length} box-score chunks of ${sourceDist}, found ${chunks.length} and missing ${missing.length} (${missing.slice(0, 3).join(', ')})`,
-  )
+  const { referenced, missing } = await chunkImports(dirname(resolved), handlerFile)
+  assert.ok(referenced.size > 0, `${resolved} imports no box-score chunk-*.js; expected the archive's lazy imports, found 0`)
+  assert.deepEqual(missing, [], `functions/${name}.func must carry every chunk ${handlerFile} imports (${referenced.size} referenced), missing ${missing.length}: ${missing.slice(0, 3).join(', ')}`)
 }
 
 try {
@@ -224,10 +325,6 @@ try {
       })
     } finally {
       await running.stop()
-    }
-    // The snapshot is traced for /api/history only.
-    for (const candidate of [HISTORY_FILE, 'history-data/nhl-serve.sqlite']) {
-      assert.equal(await sizeOf(join(source, candidate)), null, `functions/${name}.func must not carry ${candidate}; the history file is traced for /api/history only`)
     }
   }
   logInfo('Isolated Vercel RPC and all three GET functions passed')
@@ -277,5 +374,5 @@ try {
     await running.stop()
   }
 } finally {
-  await rm(directory, { recursive: true, force: true })
+  await cleanup()
 }
