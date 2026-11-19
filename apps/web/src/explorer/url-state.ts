@@ -6,11 +6,34 @@ import { findPath } from './history-atoms.ts'
 type Filter = typeof FilterSchema.Type
 
 /** A non-negative whole number (empty text is rejected, which `FiniteFromString` would read as 0) written in the URL, such as a player ID or a season ID. */
-const WholeNumber = Schema.String.check(Schema.isPattern(/^\d+$/)).pipe(
+export const WholeNumber = Schema.String.check(Schema.isPattern(/^\d+$/)).pipe(
   Schema.decodeTo(Schema.Int, SchemaTransformation.numberFromString),
 )
-const Competition = Schema.Literals(['all', 'regular', 'playoff'])
-const Partners = Schema.Literals(['on', 'off'])
+export const Competition = Schema.Literals(['all', 'regular', 'playoff'])
+export const Partners = Schema.Literals(['on', 'off'])
+
+/** Decodes one URL parameter's text; the atoms and the lab fields both use these, so they agree on what is valid. */
+export const decodeParam = <S extends Schema.Codec<unknown, string>>(schema: S) => Schema.decodeOption(schema)
+export const encodeParam = <S extends Schema.Codec<unknown, string>>(schema: S) => Schema.encodeOption(schema)
+
+/**
+ * Writes one parameter to the URL at once, as a new history entry, and tells the parameter atoms to re-read it.
+ * `Atom.searchParam`'s own setter queues the write for 500 ms and cannot be cancelled, so a Back pressed in that
+ * window is undone when the write fires. Debounce in the caller instead, and cancel on `popstate`.
+ * `null` removes the parameter.
+ */
+export const writeSearchParam = (name: string, text: string | null) => {
+  if (typeof window === 'undefined') return
+  const params = new URLSearchParams(window.location.search)
+  if (text === null || text.length === 0) params.delete(name)
+  else params.set(name, text)
+  const search = params.toString()
+  const next = `${window.location.pathname}${search.length > 0 ? `?${search}` : ''}${window.location.hash}`
+  if (next === `${window.location.pathname}${window.location.search}${window.location.hash}`) return
+  window.history.pushState({}, '', next)
+  // `Atom.searchParam` listens for this event name and re-reads the URL.
+  window.dispatchEvent(new Event('pushstate'))
+}
 
 /** Each parameter decodes synchronously; a missing or malformed value becomes `Option.none()`. */
 export const fromAtom = Atom.searchParam('from', { schema: WholeNumber })

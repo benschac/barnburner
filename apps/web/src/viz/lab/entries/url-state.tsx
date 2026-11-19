@@ -1,34 +1,48 @@
 'use client'
 
 import { Option } from 'effect'
-import { useAtom, useAtomValue } from '@effect/atom-react'
-import { useState } from 'react'
+import { useAtomValue } from '@effect/atom-react'
+import { useEffect, useRef, useState } from 'react'
 import type { LabEntry } from '@nhl-reddit-stats/viz'
 import type { Atom } from 'effect/reactivity'
+import type { Schema } from 'effect'
 import type { ReactNode } from 'react'
+import { RelationSchema } from '@nhl-reddit-stats/history/rpc'
 import {
-  competitionAtom, filterAtom, fromAtom, fromSeasonAtom, partnersAtom, relationAtom, toAtom, toSeasonAtom,
+  Competition, Partners, WholeNumber, competitionAtom, decodeParam, encodeParam, filterAtom, fromAtom, fromSeasonAtom,
+  partnersAtom, relationAtom, toAtom, toSeasonAtom, writeSearchParam,
 } from '../../../explorer/url-state.ts'
 
-const whole = (text: string) => (/^\d+$/.test(text) ? Option.some(Number(text)) : Option.none())
-const oneOf = <T extends string>(choices: ReadonlyArray<T>) => (text: string) =>
-  Option.fromNullishOr(choices.find((choice) => choice === text))
-
 const show = (value: Option.Option<string | number>) => Option.match(value, { onNone: () => '', onSome: String })
+const settleMs = 500
 
 type FieldProps<A extends string | number> = {
   readonly name: string
-  readonly atom: Atom.Writable<Option.Option<A>, Option.Option<A>>
-  readonly parse: (text: string) => Option.Option<A>
+  readonly atom: Atom.Atom<Option.Option<A>>
+  readonly schema: Schema.Codec<A, string>
 }
 
-/** Typing writes the decoded value, or none when the text does not decode; the URL follows the atom. */
-function Field<A extends string | number>({ name, atom, parse }: FieldProps<A>) {
-  const [value, set] = useAtom(atom)
-  const [typed, setText] = useState(show(value))
-  // A URL change (back button, load) refills the field when it no longer matches the typed text.
-  const same = Option.makeEquivalence<A>((a, b) => a === b)(parse(typed), value)
-  const text = same ? typed : show(value)
+/**
+ * Typing is debounced here, not in the atom: the URL gets the encoded value once typing settles, or loses the
+ * parameter when the text does not decode. History navigation drops the draft and any queued write, and the
+ * field shows the atom again.
+ */
+function Field<A extends string | number>({ name, atom, schema }: FieldProps<A>) {
+  const value = useAtomValue(atom)
+  const [draft, setDraft] = useState<string | null>(null)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => {
+    const onHistory = () => {
+      clearTimeout(timer.current)
+      setDraft(null)
+    }
+    window.addEventListener('popstate', onHistory)
+    return () => {
+      window.removeEventListener('popstate', onHistory)
+      clearTimeout(timer.current)
+    }
+  }, [])
+  const text = draft ?? show(value)
   return (
     <div>
       <label>
@@ -37,8 +51,12 @@ function Field<A extends string | number>({ name, atom, parse }: FieldProps<A>) 
           name={name}
           value={text}
           onChange={(event) => {
-            setText(event.target.value)
-            set(parse(event.target.value))
+            const next = event.target.value
+            setDraft(next)
+            clearTimeout(timer.current)
+            timer.current = setTimeout(() => {
+              writeSearchParam(name, Option.getOrNull(Option.flatMap(decodeParam(schema)(next), encodeParam(schema))))
+            }, settleMs)
           }}
         />
       </label>
@@ -51,13 +69,13 @@ function Panel() {
   const filter = useAtomValue(filterAtom)
   return (
     <div>
-      <Field name="from" atom={fromAtom} parse={whole} />
-      <Field name="to" atom={toAtom} parse={whole} />
-      <Field name="relation" atom={relationAtom} parse={oneOf(['with', 'against', 'either'])} />
-      <Field name="competition" atom={competitionAtom} parse={oneOf(['all', 'regular', 'playoff'])} />
-      <Field name="fromSeason" atom={fromSeasonAtom} parse={whole} />
-      <Field name="toSeason" atom={toSeasonAtom} parse={whole} />
-      <Field name="partners" atom={partnersAtom} parse={oneOf(['on', 'off'])} />
+      <Field name="from" atom={fromAtom} schema={WholeNumber} />
+      <Field name="to" atom={toAtom} schema={WholeNumber} />
+      <Field name="relation" atom={relationAtom} schema={RelationSchema} />
+      <Field name="competition" atom={competitionAtom} schema={Competition} />
+      <Field name="fromSeason" atom={fromSeasonAtom} schema={WholeNumber} />
+      <Field name="toSeason" atom={toSeasonAtom} schema={WholeNumber} />
+      <Field name="partners" atom={partnersAtom} schema={Partners} />
       <p>
         filter: competition {filter.competition}, from {filter.fromSeason ?? 'none'}, to {filter.toSeason ?? 'none'},
         goalie partners {filter.goaliePartners ? 'on' : 'off'}

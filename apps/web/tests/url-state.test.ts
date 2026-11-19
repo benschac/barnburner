@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { Option } from 'effect'
 import { AtomRegistry } from 'effect/reactivity'
-import { fromAtom, filterAtom, makeFilter } from '../src/explorer/url-state.ts'
+import { Competition, Partners, WholeNumber, decodeParam, encodeParam, filterAtom, makeFilter } from '../src/explorer/url-state.ts'
 
 const none = { competition: Option.none(), fromSeason: Option.none(), toSeason: Option.none(), partners: Option.none() }
 
@@ -25,7 +25,17 @@ test('filterAtom reads the defaults outside a browser', () => {
   assert.deepEqual(registry.get(filterAtom), makeFilter(none))
 })
 
-test('an empty or malformed parameter decodes to none', () => {
-  const registry = AtomRegistry.make()
-  assert.equal(Option.isNone(registry.get(fromAtom)), true)
+test('the decoders reject malformed text and accept well-formed text', () => {
+  const whole = decodeParam(WholeNumber)
+  for (const bad of ['', 'abc', '-1', '1.5', '1e3', ' 7', '7 ', '0x10', '99999999999999999999999']) {
+    assert.equal(Option.isNone(whole(bad)), true, `whole number should reject ${JSON.stringify(bad)}`)
+  }
+  assert.deepEqual(whole('8478402'), Option.some(8478402))
+  assert.equal(Option.isNone(decodeParam(Competition)('hockey')), true)
+  assert.equal(Option.isNone(decodeParam(Partners)('yes')), true)
+  assert.deepEqual(decodeParam(Partners)('off'), Option.some('off'))
+})
+
+test('encoding returns the text the URL carries', () => {
+  assert.deepEqual(Option.flatMap(decodeParam(WholeNumber)('007'), encodeParam(WholeNumber)), Option.some('7'))
 })
