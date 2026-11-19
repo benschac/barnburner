@@ -14,13 +14,13 @@ type LoadTeamCards = (team: string) => Effect.Effect<Option.Option<unknown>, Sna
 /** One lazy loader per team file, bundled by scripts/build.mjs. */
 export const archiveInsights = (archive: Readonly<Record<string, () => Promise<{ default: unknown }>>>): LoadTeamCards =>
   (team) => Object.hasOwn(archive, team)
-    ? Effect.tryPromise({ try: async () => Option.fromNullishOr((await archive[team]()).default), catch: loadError })
+    ? Effect.tryPromise({ try: async () => Option.some((await archive[team]()).default), catch: loadError })
     : Effect.succeedNone
 
 export const filesInsights = (fs: FileSystem.FileSystem, directory: string): LoadTeamCards =>
   (team) => fs.readFileString(`${directory}/${team}.json`).pipe(
     Effect.flatMap((text) => Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unknown))(text)),
-    Effect.map(Option.fromNullishOr),
+    Effect.map(Option.some),
     Effect.catchReason('PlatformError', 'NotFound', () => Effect.succeedNone),
     Effect.mapError(loadError),
   )
