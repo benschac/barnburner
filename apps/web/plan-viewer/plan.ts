@@ -65,46 +65,44 @@ export const parseAnalystPlan = (source: string) => Result.gen(function* () {
   }
   const cardText = yield* section('Task cards')
   const groups = [...cardText.matchAll(/^### (.+)$/gm)].map((match) => match[1])
-  const cards: PlanCard[] = []
-  for (const match of cardText.matchAll(/^#### (.+)\n([\s\S]*?)(?=^### |^#### |$(?![\s\S]))/gm)) {
+  const cards = yield* Result.all([...cardText.matchAll(/^#### (.+)\n([\s\S]*?)(?=^### |^#### |$(?![\s\S]))/gm)].map((match): Result.Result<PlanCard, PlanParseError> => {
     const group = [...cardText.slice(0, match.index).matchAll(/^### (.+)$/gm)].at(-1)?.[1]
-    if (!group) return yield* refuse('Task card has no workstream', match[1])
-    cards.push({ heading: match[1], body: match[2].trim(), ids: expandIds(match[1].split(' · ')[0]), group })
-  }
-  const tasks: PlanTask[] = []
-  for (const [ledgerId, model, needs, branch, pr, status, notes] of tableRows(yield* section('Ledger')).slice(1)) {
-    for (const id of expandIds(ledgerId)) {
-      if (!/^[A-Za-z][A-Za-z0-9-]*$/.test(id)) return yield* refuse('Invalid task ID', id)
-      const card = id.startsWith('P-')
-        ? { heading: 'Prerequisites (you)', group: groups[0], body: cardText.split('\n').find((line) => line.startsWith('- **' + id + ':**')), ids: [id] }
-        : cards.find((item) => item.ids.includes(id))
-      if (!card?.body || !card.group) return yield* refuse('No task card for', id)
-      const evalRow = card.ids.length > 1 && id.startsWith('E') ? tableRows(card.body).find((row) => row[0] === id) : undefined
-      let title = id.startsWith('P-') ? prerequisiteTitles[id] : card.heading.split(' · ')[1]?.split(' (')[0]
-      if (!title) return yield* refuse('No task title for', id)
-      if (evalRow) title += ' / ' + evalRow[2].split('/').at(-1)?.replaceAll('`', '').replace('.json', '')
-      if (card.ids.length > 1 && id.startsWith('X')) title += ' / ' + card.body.match(new RegExp('\\*\\*' + id + ', ([^:*]+)'))?.[1]
-      tasks.push({
-        id, group: card.ids.length > 1 ? card.heading.split(' · ')[0] : id,
-        category: card.group, model: evalRow?.[1] ?? model,
-        needs: needs === '–' ? [] : needs.split(',').flatMap((need) => expandIds(need.trim())),
-        branch, pr, status, notes, title, heading: card.heading, body: card.body,
-        parent: card.body.match(/\*\*Stack on:\*\* ([A-Z]+\d+[a-z]?)/)?.[1] ?? null,
-      })
+    return group
+      ? Result.succeed({ heading: match[1], body: match[2].trim(), ids: expandIds(match[1].split(' · ')[0]), group })
+      : refuse('Task card has no workstream', match[1])
+  }))
+  const buildTask = ([, model, needs, branch, pr, status, notes]: string[], id: string) => Result.gen(function* () {
+    if (!/^[A-Za-z][A-Za-z0-9-]*$/.test(id)) return yield* refuse('Invalid task ID', id)
+    const card = id.startsWith('P-')
+      ? { heading: 'Prerequisites (you)', group: groups[0], body: cardText.split('\n').find((line) => line.startsWith('- **' + id + ':**')), ids: [id] }
+      : cards.find((item) => item.ids.includes(id))
+    if (!card?.body || !card.group) return yield* refuse('No task card for', id)
+    const evalRow = card.ids.length > 1 && id.startsWith('E') ? tableRows(card.body).find((row) => row[0] === id) : undefined
+    const baseTitle = id.startsWith('P-') ? prerequisiteTitles[id] : card.heading.split(' · ')[1]?.split(' (')[0]
+    if (!baseTitle) return yield* refuse('No task title for', id)
+    const title = baseTitle
+      + (evalRow ? ' / ' + evalRow[2].split('/').at(-1)?.replaceAll('`', '').replace('.json', '') : '')
+      + (card.ids.length > 1 && id.startsWith('X') ? ' / ' + card.body.match(new RegExp('\\*\\*' + id + ', ([^:*]+)'))?.[1] : '')
+    const task: PlanTask = {
+      id, group: card.ids.length > 1 ? card.heading.split(' · ')[0] : id,
+      category: card.group, model: evalRow?.[1] ?? model,
+      needs: needs === '–' ? [] : needs.split(',').flatMap((need) => expandIds(need.trim())),
+      branch, pr, status, notes, title, heading: card.heading, body: card.body,
+      parent: card.body.match(/\*\*Stack on:\*\* ([A-Z]+\d+[a-z]?)/)?.[1] ?? null,
     }
-  }
+    return task
+  })
+  const tasks = yield* Result.all(tableRows(yield* section('Ledger')).slice(1)
+    .flatMap((row) => expandIds(row[0]).map((id) => buildTask(row, id))))
   const taskIds = tasks.map((task) => task.id)
   const duplicate = taskIds.find((id, index) => taskIds.indexOf(id) !== index)
   if (duplicate !== undefined) return yield* refuse('Duplicate ledger task ID', duplicate)
-  for (const card of cards) {
-    for (const id of card.ids) if (!taskIds.includes(id)) return yield* refuse('Task card missing from ledger', id)
-  }
-  for (const task of tasks) {
-    if (!task.status) return yield* refuse('Missing ledger status', task.id)
-    for (const dependency of [...task.needs, ...(task.parent ? [task.parent] : [])]) {
-      if (!taskIds.includes(dependency)) return yield* refuse('Unknown dependency for ' + task.id, dependency)
-    }
-  }
+  yield* Result.all(cards.flatMap((card) => card.ids).map((id) =>
+    taskIds.includes(id) ? Result.void : refuse('Task card missing from ledger', id)))
+  yield* Result.all(tasks.map((task) => task.status
+    ? Result.all([...task.needs, ...(task.parent ? [task.parent] : [])].map((dependency) =>
+      taskIds.includes(dependency) ? Result.void : refuse('Unknown dependency for ' + task.id, dependency)))
+    : refuse('Missing ledger status', task.id)))
   const contracts = (yield* section('Contracts')).split('\n### ').slice(1).map((part) => {
     const [title, ...body] = part.split('\n')
     return { title, body: body.join('\n').trim() }

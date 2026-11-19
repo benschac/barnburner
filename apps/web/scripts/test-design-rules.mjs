@@ -70,7 +70,7 @@ const vizCases = [
   ['viz rgb function', 'export const fill = "rgb(255, 0, 0)"', false],
   ['viz field named gold', 'type Key = "gold" | "brand"; const key: Key = theme.gold; export default [theme["gold"], { gold: key }]', true],
   ['viz named colour value', 'const fill = "gold"; export default fill', false],
-  ['viz token in JSX conditional', 'const on = Math.random() > 0.5; export default <View borderColor={on ? "gold" : "rule"} />', true],
+  ['viz token in JSX conditional', 'export default ({ on }: { on: boolean }) => <View borderColor={on ? "gold" : "rule"} />', true],
   ['viz token in styled options', 'import { styled, View } from "tamagui"; export default styled(View, { borderColor: "gold" })', true],
   ['viz named colour in JSX', 'export default <View borderColor="red" />', false],
   ['viz token in plain object', 'export const spec = { fill: "gold" }', false],

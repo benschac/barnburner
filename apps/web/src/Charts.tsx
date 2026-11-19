@@ -3,7 +3,7 @@ import type { KeyboardEvent, MouseEvent } from 'react'
 import { getConfig, getVariableValue, Text, useTheme, View } from 'tamagui'
 import contract from '../design/contract.json'
 import { fontsReady } from './fonts'
-import { describePlayoffComparison, gameDateTime, playoffGap } from './stats'
+import { describePlayoffComparison, formatDate, gameDateTime, playoffGap } from './stats'
 import type { TeamPosterData } from './stats'
 
 const { chartPlot: plotWidth, chartAxis: axisWidth } = contract.size
@@ -125,7 +125,7 @@ function drawChart(ctx: CanvasRenderingContext2D, axis: CanvasRenderingContext2D
     let labelEnd = 0
     seasonGames.forEach(({ date }, index) => {
       if (date.slice(0, 7) !== seasonGames[index - 1]?.date.slice(0, 7)) {
-        const label = monthName.format(new Date(date))
+        const label = formatDate(monthName, date)
         const position = Math.max(x(index) - 6, labelEnd)
         ctx.fillText(label, position, 240)
         labelEnd = position + ctx.measureText(label).width + 8
