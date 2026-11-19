@@ -1,0 +1,7 @@
+[
+  { "id": "chain", "prompt": "Show how McDavid connects to Ted Lindsay, and make each hop feel like a jump through time." },
+  { "id": "ego", "prompt": "Draw Jágr's career as a galaxy of teammates, clustered by club, brightest where he played the most." },
+  { "id": "league", "prompt": "Animate the league's teammate network growing season by season from 1917." },
+  { "id": "opponents", "prompt": "Compare who Gretzky and Ovechkin played against. Who did both face, and how often?" },
+  { "id": "finals", "prompt": "Make something wild out of the 45 Finals that Jágr's teammates played in." }
+]
