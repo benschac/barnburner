@@ -6,8 +6,8 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { NodeHttpServer, NodeServices } from '@effect/platform-node'
-import { Deferred, Effect, Fiber, Layer, Schema } from 'effect'
-import { HttpRouter, HttpServer } from 'effect/http'
+import { Deferred, Effect, Fiber, Layer, Schema, Stream } from 'effect'
+import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter, HttpServer } from 'effect/http'
 import { PosterSnapshot, TeamData } from '@nhl-reddit-stats/season'
 import { SnapshotLoadError } from '@nhl-reddit-stats/season/rpc'
 import { SeasonSource, rpcSeasonSourceLayer } from '../../web/src/season-source.ts'
@@ -71,20 +71,20 @@ test('missing poster returns the declared RPC error while games remain readable'
   const snapshots = await Effect.runPromise(makeSnapshots({ season, poster: null }))
   await Effect.runPromise(Effect.gen(function* () {
     const error = yield* Effect.flip(sourceLoad())
-    assert.ok(error instanceof SnapshotLoadError)
+    assert.ok(Schema.is(SnapshotLoadError)(error))
     assert.match(error.message, /Poster data is unavailable/)
     const server = yield* HttpServer.HttpServer
     const base = HttpServer.formatAddress(server.address)
-    const response = yield* Effect.promise(() => fetch(`${base}/api/games?team=NJD`))
+    const response = yield* HttpClient.get(`${base}/api/games?team=NJD`)
     assert.equal(response.status, 200)
-    yield* Effect.promise(() => response.arrayBuffer())
-  }).pipe(Effect.provide(apiLayer(snapshots))))
+    yield* response.arrayBuffer
+  }).pipe(Effect.provide(FetchHttpClient.layer), Effect.provide(apiLayer(snapshots))))
 })
 
 test('RPC transport failures are translated into the SeasonSource error type', async () => {
   const snapshots = await Effect.runPromise(makeSnapshots({ season, poster }))
   const error = await Effect.runPromise(Effect.flip(sourceLoad('/missing')).pipe(Effect.provide(apiLayer(snapshots))))
-  assert.ok(error instanceof SnapshotLoadError)
+  assert.ok(Schema.is(SnapshotLoadError)(error))
   assert.match(error.message, /could not be loaded/)
 })
 
@@ -94,14 +94,16 @@ test('oversized chunked RPC bodies are rejected before invoking the handler', as
   await Effect.runPromise(Effect.gen(function* () {
     const server = yield* HttpServer.HttpServer
     const body = JSON.stringify({ _tag: 'Request', id: 0, tag: 'GetTeamData', payload: { padding: 'x'.repeat(16384) }, headers: [] })
-    const init = { method: 'POST', headers: { 'content-type': 'application/json' }, body: new Blob([body]).stream(), duplex: 'half' }
-    const response = yield* Effect.promise(() => fetch(`${HttpServer.formatAddress(server.address)}/api/rpc`, init))
+    const request = HttpClientRequest.post(`${HttpServer.formatAddress(server.address)}/api/rpc`).pipe(
+      HttpClientRequest.bodyStream(Stream.make(new TextEncoder().encode(body)), { contentType: 'application/json' }),
+    )
+    const response = yield* HttpClient.execute(request)
     assert.equal(response.status, 413)
-    yield* Effect.promise(() => response.arrayBuffer())
+    yield* response.arrayBuffer
     assert.equal(calls, 0)
     yield* sourceLoad()
     assert.equal(calls, 1)
-  }).pipe(Effect.provide(apiLayer({ ...snapshots, load: Effect.sync(() => { calls += 1 }).pipe(Effect.andThen(snapshots.load)) }))))
+  }).pipe(Effect.provide(FetchHttpClient.layer), Effect.provide(apiLayer({ ...snapshots, load: Effect.sync(() => { calls += 1 }).pipe(Effect.andThen(snapshots.load)) }))))
 })
 
 test('interrupting a browser load aborts the HTTP request and server handler', { timeout: 10000 }, async () => {

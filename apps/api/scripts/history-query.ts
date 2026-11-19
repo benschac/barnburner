@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { NodeServices } from '@effect/platform-node'
-import { Console, Effect, Option, Result, Schema } from 'effect'
+import { Config, Console, Effect, Option, Result, Schema } from 'effect'
 import { Argument, CliError, Command, Flag } from 'effect/cli'
 import {
   DEFAULT_FILTER, HistoryUnavailable, farthest, finalsCoverage, findPaths, link, makeGraph, opponents,
@@ -36,12 +36,12 @@ class NoChain extends Schema.TaggedError<NoChain, { readonly brand: unique symbo
 
 const rootFile = (relative: string) => fileURLToPath(new URL(`../../../${relative}`, import.meta.url))
 
-const defaultDb = (): string => {
-  const fromEnv = process.env.HISTORY_DB
-  if (fromEnv !== undefined && fromEnv !== '') return fromEnv
+const defaultDb = Effect.gen(function* () {
+  const fromEnv = yield* Config.String('HISTORY_DB').pipe(Config.withDefault(''), Effect.orDie)
+  if (fromEnv !== '') return fromEnv
   const candidates = [rootFile('apps/web/history-data/nhl-serve.sqlite'), rootFile('data/history/nhl-serve.sqlite')]
   return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0]
-}
+})
 
 const foldName = (name: string): string => name.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 
@@ -181,7 +181,8 @@ const root = Command.make('history-query').pipe(
 // A one-shot command: the store stays open until the process exits.
 const session = Effect.gen(function* () {
   const { db } = yield* root
-  const store = yield* openHistoryStore(Option.getOrElse(db, defaultDb))
+  const path = yield* Option.match(db, { onNone: () => defaultDb, onSome: Effect.succeed })
+  const store = yield* openHistoryStore(path)
   return { store, graph: makeGraph(store.graph.arrays), names: makeNames(store) }
 })
 
@@ -205,14 +206,14 @@ const pathCommand = Command.make('path', {
     return yield* found.failure
   }
   const filled = yield* fillOpponentHops(store, found.success)
-  const out: Array<string> = [
+  const chains = yield* Effect.forEach(filled.paths, (path, index) => Effect.map(
+    Effect.forEach(path, (hop) => hopLine(names, hop)),
+    (lines) => (filled.paths.length > 1 ? [`Chain ${index + 1}:`, ...lines] : lines),
+  ))
+  yield* print([
     `${filled.distance} hop(s); ${filled.pathCount}${filled.pathCountCapped ? '+' : ''} shortest chain(s).`,
-  ]
-  for (const [index, path] of filled.paths.entries()) {
-    if (filled.paths.length > 1) out.push(`Chain ${index + 1}:`)
-    for (const hop of path) out.push(yield* hopLine(names, hop))
-  }
-  yield* print(out)
+    ...chains.flat(),
+  ])
 })).pipe(Command.withDescription('Shortest chain(s) between two players.'))
 
 const playerCommand = Command.make('player', { player: player('player') }, (config) => Effect.gen(function* () {
@@ -241,13 +242,11 @@ const linkCommand = Command.make('link', {
   if (spans.length === 0) {
     return yield* print([`${a.name} and ${b.name}: not teammates with these filters; ${opposedGames} games against each other.`])
   }
-  const out = [`${a.name} and ${b.name}: ${totalGames} games together, ${opposedGames} against; evidence game ${evidenceGameId}.`]
-  for (const span of spans) {
-    const team = yield* names.team(a.playerId, span.teamId)
+  const spanLines = yield* Effect.forEach(spans, (span) => Effect.map(names.team(a.playerId, span.teamId), (team) => {
     const kind = span.link === 'GoaliePartners' ? ', goalie partners' : ''
-    out.push(`  ${team} ${seasonLabel(span.seasonId)} ${competitionLabel(span.gameType)}: ${span.games} games${kind}, first game ${span.firstGameId}`)
-  }
-  yield* print(out)
+    return `  ${team} ${seasonLabel(span.seasonId)} ${competitionLabel(span.gameType)}: ${span.games} games${kind}, first game ${span.firstGameId}`
+  }))
+  yield* print([`${a.name} and ${b.name}: ${totalGames} games together, ${opposedGames} against; evidence game ${evidenceGameId}.`, ...spanLines])
 })).pipe(Command.withDescription('How two players are linked.'))
 
 const opponentsCommand = Command.make('opponents', {
@@ -258,9 +257,8 @@ const opponentsCommand = Command.make('opponents', {
   const a = yield* resolve(store, config.player)
   const found = opponents(graph, a.playerId)
   if (Result.isFailure(found)) return yield* found.failure
-  const out = [`${a.name}: ${found.success.length} opponents.`]
-  for (const o of found.success.slice(0, config.limit)) out.push(`  ${yield* names.name(o.playerId)}: ${o.games} games`)
-  yield* print(out)
+  const rows = yield* Effect.forEach(found.success.slice(0, config.limit), (o) => Effect.map(names.name(o.playerId), (name) => `  ${name}: ${o.games} games`))
+  yield* print([`${a.name}: ${found.success.length} opponents.`, ...rows])
 })).pipe(Command.withDescription('Most-faced opponents.'))
 
 const farthestCommand = Command.make('farthest', {
@@ -273,11 +271,11 @@ const farthestCommand = Command.make('farthest', {
   const found = farthest(graph, a.playerId, filter)
   if (Result.isFailure(found)) return yield* found.failure
   const { distance, atDistance, reachable, unreachable, example } = found.success
-  const out = [
+  const hops = yield* Effect.forEach(example, (hop) => hopLine(names, hop))
+  yield* print([
     `${a.name}: farthest teammate chain is ${distance} hop(s), ${atDistance} player(s) at that distance; ${reachable} reachable, ${unreachable} not.`,
-  ]
-  for (const hop of example) out.push(yield* hopLine(names, hop))
-  yield* print(out)
+    ...hops,
+  ])
 })).pipe(Command.withDescription("The player's farthest reachable teammate chain."))
 
 const finalsCommand = Command.make('finals', {
@@ -288,9 +286,8 @@ const finalsCommand = Command.make('finals', {
   const { store, graph, names } = yield* session
   const a = yield* resolve(store, config.player)
   const years = yield* finalsCoverage(graph, store, a.playerId, config.from, config.to)
-  const out = [`${a.name}: Cup Finals ${config.from}-${config.to}.`]
-  for (const year of years) out.push(yield* finalsLine(names, year))
-  yield* print(out)
+  const lines = yield* Effect.forEach(years, (year) => finalsLine(names, year))
+  yield* print([`${a.name}: Cup Finals ${config.from}-${config.to}.`, ...lines])
 })).pipe(Command.withDescription('Stanley Cup Finals coverage through teammates.'))
 
 const app = root.pipe(

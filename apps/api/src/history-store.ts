@@ -1,5 +1,5 @@
 import { SqliteClient } from '@effect/sql-sqlite-node'
-import { Effect, Schema, Scope } from 'effect'
+import { Array, Effect, Order, Schema, Scope } from 'effect'
 import { Reactivity } from 'effect/reactivity'
 import { SqlSchema } from 'effect/sql'
 import type { SqlClient, SqlError } from 'effect/sql'
@@ -180,7 +180,8 @@ const buildHistoryStore = (sql: SqlClient.SqlClient, path: string): Effect.Effec
   const opposedQuery = SqlSchema.findAll({ Request: PairRequest, Result: OpposedRowSchema, execute: opposedSql })
   const finalsQuery = SqlSchema.findAll({ Request: YearsRequest, Result: FinalGameRowSchema, execute: finalsSql })
 
-  const blobInfo = yield* Schema.decodeUnknownEffect(Schema.Array(BlobInfoSchema))(yield* blobInfoSql.pipe(queried)).pipe(
+  const blobRows = yield* blobInfoSql.pipe(queried)
+  const blobInfo = yield* Schema.decodeUnknownEffect(Schema.Array(BlobInfoSchema))(blobRows).pipe(
     Effect.mapError(invalid),
   )
   const sizes = new Map(blobInfo.map((row) => [row.name, row.size] as const))
@@ -217,7 +218,8 @@ const buildHistoryStore = (sql: SqlClient.SqlClient, path: string): Effect.Effec
   // which is a defect rather than an expected error.
   type Opponents = { readonly a: Uint16Array; readonly b: Uint16Array; readonly games: Uint16Array }
   let opponents: Opponents | null | undefined
-  const runSync = Effect.runSyncWith(yield* Effect.context())
+  const context = yield* Effect.context()
+  const runSync = Effect.runSyncWith(context)
   const readOpponents = Effect.scoped(Effect.gen(function* () {
     const own = yield* connect(path)
     const again = yield* metaOf(own)('snapshot_id').pipe(queried)
@@ -237,7 +239,7 @@ const buildHistoryStore = (sql: SqlClient.SqlClient, path: string): Effect.Effec
     get oppB() { return loadOpponents()?.b },
     get oppGames() { return loadOpponents()?.games },
   }
-  const graph: Graph = { arrays, indexOf: new Map(Array.from(playerIds, (id, index) => [id, index] as const)) }
+  const graph: Graph = { arrays, indexOf: new Map(Array.fromIterable(playerIds).map((id, index) => [id, index] as const)) }
 
   const requireKnown = (playerId: number) => knownQuery({ playerId }).pipe(
     queried,
@@ -283,7 +285,7 @@ const buildHistoryStore = (sql: SqlClient.SqlClient, path: string): Effect.Effec
 
   const finals: HistoryStore['finals'] = (fromYear, toYear) => Effect.gen(function* () {
     const rows = yield* finalsQuery({ fromYear, toYear }).pipe(queried)
-    const bySeason = new Map<number, { gameIds: Array<number>; participants: Map<number, FinalParticipant> }>()
+    const bySeason = new Map<number, { gameIds: number[]; participants: Map<number, FinalParticipant> }>()
     for (const row of rows) {
       const entry = bySeason.get(row.seasonId) ?? { gameIds: [], participants: new Map<number, FinalParticipant>() }
       bySeason.set(row.seasonId, entry)
@@ -293,12 +295,13 @@ const buildHistoryStore = (sql: SqlClient.SqlClient, path: string): Effect.Effec
         entry.participants.set(row.playerId, { playerId: row.playerId, teamId: row.teamId, firstGameId: row.gameId })
       }
     }
-    return [...bySeason.entries()].map(([seasonId, entry]): FinalRow => ({
+    const finalRows = [...bySeason.entries()].map(([seasonId, entry]): FinalRow => ({
       year: seasonId % 10000,
       seasonId,
       gameIds: entry.gameIds,
-      participants: [...entry.participants.values()].sort((x, y) => x.playerId - y.playerId),
-    })).sort((x, y) => x.year - y.year)
+      participants: Array.sortWith([...entry.participants.values()], (participant) => participant.playerId, Order.Number),
+    }))
+    return Array.sortWith(finalRows, (row) => row.year, Order.Number)
   })
 
   return { snapshotId, graph, searchPlayers, player, roster, sharedGames, opposedGames, finals } satisfies HistoryStore

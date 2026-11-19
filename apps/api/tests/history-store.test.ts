@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { DatabaseSync } from 'node:sqlite'
-import { Effect, Exit, Scope } from 'effect'
+import { Effect, Exit, Schema, Scope } from 'effect'
 import { HistoryUnavailable, UnknownPlayer, UnknownRoster } from '@nhl-reddit-stats/history'
 import type { GraphArrays } from '@nhl-reddit-stats/history'
 import { MINI_ARRAYS, MINI_GAMES, MINI_SNAPSHOT_ID, makeMiniStore } from '../../../packages/history/tests/fakes.ts'
@@ -198,7 +198,7 @@ test('finals groups flagged games by season with participants', () => withMini(a
 }))
 
 test('a missing file is HistoryUnavailable', () => withDirectory(async (directory) => {
-  assert.ok((await fail(openHistoryStore(join(directory, 'absent.sqlite')))) instanceof HistoryUnavailable)
+  assert.ok(Schema.is(HistoryUnavailable)(await fail(openHistoryStore(join(directory, 'absent.sqlite')))))
 }))
 
 test('a wrong schema version, a missing table, and a missing blob are HistoryUnavailable', () => withDirectory(async (directory) => {
@@ -208,7 +208,7 @@ test('a wrong schema version, a missing table, and a missing blob are HistoryUna
     const db = new DatabaseSync(path)
     change(db)
     db.close()
-    assert.ok((await fail(openHistoryStore(path))) instanceof HistoryUnavailable, name)
+    assert.ok(Schema.is(HistoryUnavailable)(await fail(openHistoryStore(path))), name)
   }
   await mutate('version', (db) => db.exec("UPDATE meta SET value = '2' WHERE key = 'schema_version'"))
   await mutate('no-snapshot', (db) => db.exec("DELETE FROM meta WHERE key = 'snapshot_id'"))
@@ -242,5 +242,5 @@ test('a scoped store closes its connection with the scope', () => withDirectory(
     yield* Scope.close(scope, Exit.void)
     return opened
   }))
-  assert.ok((await fail(store.player(11))) instanceof HistoryUnavailable)
+  assert.ok(Schema.is(HistoryUnavailable)(await fail(store.player(11))))
 }))

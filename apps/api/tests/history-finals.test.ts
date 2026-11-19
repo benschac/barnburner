@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Effect, Layer } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { FetchHttpClient, HttpRouter } from 'effect/http'
 import { RpcClient, RpcClientError, RpcSerialization } from 'effect/rpc'
 import { UnknownPlayer } from '@nhl-reddit-stats/history'
@@ -54,6 +54,6 @@ test('GetFinalsCoverage honors the year range', () => withFake(async (client) =>
 
 test('GetFinalsCoverage on an unknown player is UnknownPlayer', () => withFake(async (client) => {
   const error = await Effect.runPromise(Effect.flip(client.GetFinalsCoverage({ playerId: 999, fromYear: 1952, toYear: 1952 })))
-  assert.ok(error instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(error))
   assert.equal(error.playerId, 999)
 }))
