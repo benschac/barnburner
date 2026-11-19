@@ -45,7 +45,7 @@ node scripts/refresh-agent-sources.mjs --from-file /path/to/llms.txt --fetched-a
 
 The timestamp above is an example. Importing a file records caller-supplied provenance rather than claiming a new network fetch.
 
-After changing project configuration, run `npm run generate:tamagui` separately to update `apps/web/tamagui-prompt.md`.
+After changing project configuration, run `bun run generate:tamagui` separately to update `apps/web/tamagui-prompt.md`.
 
 ## Add another library
 

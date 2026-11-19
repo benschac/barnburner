@@ -42,3 +42,7 @@ apps/web/history-data/*
 
 # varlock: keep .env.schema, exclude local values (*.local covers .env.local)
 .env
+
+# Claude Code: agent worktrees and personal settings
+.claude/worktrees/
+.claude/settings.local.json
