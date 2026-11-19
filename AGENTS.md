@@ -43,6 +43,12 @@ Adopt the stack incrementally through concrete features. Preserve this project's
 - `lint/effect-core-plugin.mjs` enforces this (`core/no-native-sort`, `core/no-set-dedupe`, `core/no-yield-in-loop`) in files that import Effect. `lint/effect-core.oxlintrc.json` bundles those rules with the `@effect/tsgo` rules for platform globals (`Date`, `Math.random`, timers, `console`, `process.env`, `fetch`, `new Promise`) and `Effect.all` over a `map`.
 - `packages/viz` enforces this in `bun run lint`, which also runs `scripts/test-effect-core-rules.mjs` and `scripts/index-effect-core.mjs --check`. A package adopts the rule by adding `"extends": ["../../lint/effect-core.oxlintrc.json"]` to its `.oxlintrc.json` and both scripts to its `lint` script.
 
+# Node scripts
+
+- Write a Node script as an Effect program run by `NodeRuntime.runMain` with `NodeServices.layer` from `@effect/platform-node`. Use `FileSystem`, `Path`, `ChildProcess` with `ChildProcessSpawner` (`effect/process`), and `effect/cli` instead of `node:fs`, `node:path`, `node:url`, `node:child_process`, `process.argv`, and `process.exit`.
+- Look up each replacement under "Node scripts" in `.agent-sources/effect/native-to-effect.md`, and follow `node_modules/effect/ai-docs/src/60_child-process/` and `70_cli/`.
+- `scripts/check-node-scripts.mjs` enforces this for `scripts/` and `lib/` in root `bun run lint`. Its `LEGACY` list names older scripts; when you port one, delete its entry.
+
 # Error model
 
 - Return expected failures as `Schema.TaggedError` classes with a brand and context fields, through `Effect` or `Result`. Package source does not `throw` them or subclass `Error`.
