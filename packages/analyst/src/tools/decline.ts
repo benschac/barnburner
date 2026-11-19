@@ -25,7 +25,7 @@ export const runDecline = (deps: DeclineDeps, raw: unknown): Effect.Effect<strin
   return 'ok'
 })
 
-export const makeDeclineTool = (deps: DeclineDeps) =>
+export const declineTool = (deps: DeclineDeps) =>
   tool({
     description:
       'Decline the question because it is out of scope or cannot be answered from the available data. Give a short reason.',
@@ -47,3 +47,5 @@ export const makeDeclineTool = (deps: DeclineDeps) =>
     ),
     execute: (input, { abortSignal }) => Effect.runPromise(runDecline(deps, input), { signal: abortSignal }),
   })
+
+export const makeDeclineTool = declineTool

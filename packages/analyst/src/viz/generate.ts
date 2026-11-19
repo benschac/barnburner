@@ -1,4 +1,4 @@
-import { Effect, Match, Schema } from 'effect'
+import { Array, Effect, Match, Schema } from 'effect'
 import type { LanguageModel, LanguageModelUsage } from 'ai'
 import { checkViewCode } from '@nhl-reddit-stats/viz/check-view-code'
 import type { ViewCodeProblem } from '@nhl-reddit-stats/viz/check-view-code'
@@ -59,7 +59,8 @@ export const describeTables = (tables: Tables): ReadonlyArray<{
 }> =>
   Object.entries(tables).map(([name, rows]) => {
     const sampleRows = rows.slice(0, SAMPLE_ROWS)
-    return { name, rowCount: rows.length, columns: [...new Set(rows.flatMap((row) => Object.keys(row)))], sampleRows }
+
+    return { name, rowCount: rows.length, columns: Array.dedupe(rows.flatMap((row) => Object.keys(row))), sampleRows }
   })
 
 const describeProblem = (problem: ViewCodeProblem): string =>
@@ -118,6 +119,7 @@ export const generateChecked = (input: GenerateViewInput): Effect.Effect<Generat
     let current = yield* generateView(input)
     let problems = checkViewCode(current.code)
     let repairs = 0
+    // loop: stop repairing as soon as the generated code passes validation.
     while (problems.length > 0 && repairs < MAX_REPAIRS) {
       const next = yield* repairView({ code: current.code, failure: problems, system: input.system, ...(input.model === undefined ? {} : { model: input.model }) })
       current = { ...next, usage: addUsage(current.usage, next.usage) }
