@@ -110,10 +110,12 @@ const draftInputSchema = jsonSchema<CardDraft>(
   },
 )
 
-export const makeSubmitCardTool = (deps: SubmitCardDeps) =>
+export const submitCardTool = (deps: SubmitCardDeps) =>
   tool({
     description:
       'Submit a draft insight card. The system runs the queries, fills in the evidence and verifies the card. Returns "ok" or the failed check.',
     inputSchema: draftInputSchema,
     execute: (input: CardDraft, { abortSignal }) => Effect.runPromise(abortSignal?.aborted ? Effect.interrupt : submitCardText(deps, input), { signal: abortSignal }),
   })
+
+export const makeSubmitCardTool = submitCardTool
