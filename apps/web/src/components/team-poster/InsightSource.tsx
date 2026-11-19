@@ -9,7 +9,9 @@ function columnsOf(result: PublishedInsight['result']): readonly string[] {
 
 function ResultTable({ result }: { result: PublishedInsight['result'] }) {
   const columns = columnsOf(result)
+
   if (columns.length === 0) return <Copy color="muted">The query returned no rows.</Copy>
+
   return (
     <View overflow="auto" borderWidth={1} borderColor="rule" rounded="sm">
       <View render="table" w="100%" aria-label="Query result">
@@ -36,6 +38,7 @@ function ResultTable({ result }: { result: PublishedInsight['result'] }) {
 
 export function InsightSource({ insight }: { insight: PublishedInsight }) {
   const { coverage } = insight
+
   return (
     <Dialog>
       <Dialog.Trigger minH="8" px="1" items="center" justify="center" bg="transparent hover:surface" rounded="sm" borderWidth={1} cursor="pointer"
