@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto'
-import { Array, Cause, Effect, Exit, Match, Result, Schema } from 'effect'
+import { Array, Cause, Clock, DateTime, Effect, Exit, Match, Result, Schema, Stream } from 'effect'
+import { SecureRandom } from 'effect/crypto'
 import type { LanguageModel, StopCondition, ToolExecuteFunction, ToolSet } from 'ai'
 import { stepCountIs } from 'ai'
 import type { InsightCard } from './card.ts'
@@ -62,7 +62,7 @@ const hasFailureStreak = (steps: GenerateSteps): boolean => {
 
 export const generate = (input: GenerateInput): Effect.Effect<GenerateResult, GenerateError, Llm> => Effect.gen(function* () {
   const llm = yield* Llm
-  const runId = randomUUID()
+  const runId = yield* Effect.sync(() => SecureRandom.uuidV4Unsafe())
   const model = input.model ?? llm.config.generateModel
   const label = typeof model === 'string' ? model : `${model.provider}/${model.modelId}`
   const { team, db } = input
@@ -88,8 +88,9 @@ export const generate = (input: GenerateInput): Effect.Effect<GenerateResult, Ge
   const finalRows = (yield* db.query(
     `SELECT game_id FROM team_games WHERE team = '${sqlText(team)}' AND is_final`,
   ).pipe(Effect.mapError(fail))).rows
-  const finals = new Set<number>()
-  for (const row of finalRows) if (typeof row['game_id'] === 'number') finals.add(row['game_id'])
+  // The verifier takes a ReadonlySet of game IDs.
+  const finals = new Set(Array.filterMap(finalRows, (row) =>
+    typeof row['game_id'] === 'number' ? Result.succeed(row['game_id']) : Result.failVoid))
 
   const bounded: Db = {
     query: (sql, opts) => db.query(sql, { ...opts, timeoutMs: 10_000, rowCap: 200 }),
@@ -100,31 +101,39 @@ export const generate = (input: GenerateInput): Effect.Effect<GenerateResult, Ge
   const events: ToolCallEvent[] = []
   const failedDurations = new Map<string, number[]>()
   let tracedSteps = 0
+  const context = yield* Effect.context<Llm>()
+  const runTool = Effect.runPromiseWith(context)
   const traced = <I, C>(name: string, execute: ToolExecuteFunction<I, string, C>) =>
-    async (toolInput: I, options: Parameters<ToolExecuteFunction<I, string, C>>[1]) => {
-      const start = performance.now()
-      let completed = false
-      try {
-        const result = await execute(toolInput, options)
-        let output = ''
-        if (typeof result === 'string') output = result
-        else for await (const part of result) output = part
-        events.push({
-          type: 'tool_call', tool: name, input: toolInput, output,
-          durationMs: performance.now() - start,
-          ...(isFailureText(output) ? { error: output } : {}),
-        })
-        completed = true
-        return output
-      } finally {
-        if (!completed) {
-          const durations = failedDurations.get(options.toolCallId) ?? []
-          durations.push(performance.now() - start)
-          failedDurations.set(options.toolCallId, durations)
-        }
-      }
-    }
-  const fetchedAt = input.fetchedAt ?? new Date().toISOString()
+    (toolInput: I, options: Parameters<ToolExecuteFunction<I, string, C>>[1]) =>
+      runTool(Effect.gen(function* () {
+        const start = yield* Clock.monotonicTimeNanos
+
+        return yield* Effect.gen(function* () {
+          const result = yield* Effect.tryPromise(() => Promise.resolve(execute(toolInput, options)))
+          const output = typeof result === 'string'
+            ? result
+            : yield* Stream.fromAsyncIterable(result, (cause) => new Cause.UnknownError(cause)).pipe(
+              Stream.runFold(() => '', (_previous, part) => part),
+            )
+          const end = yield* Clock.monotonicTimeNanos
+          events.push({
+            type: 'tool_call', tool: name, input: toolInput, output,
+            durationMs: Number(end - start) / 1_000_000,
+            ...(isFailureText(output) ? { error: output } : {}),
+          })
+          return output
+        }).pipe(
+          Effect.onError(() => Effect.gen(function* () {
+            const end = yield* Clock.monotonicTimeNanos
+            const durations = failedDurations.get(options.toolCallId) ?? []
+            durations.push(Number(end - start) / 1_000_000)
+            failedDurations.set(options.toolCallId, durations)
+          })),
+          // The SDK receives the original rejection for its tool error response.
+          Effect.catchTag('UnknownError', (error) => Effect.die(error.cause)),
+        )
+      }), { signal: options.abortSignal })
+  const fetchedAt = input.fetchedAt ?? (yield* Effect.map(DateTime.now, DateTime.formatIso))
   const sql = makeSqlTool({ db: bounded, guard: guardQuery })
   const submit = makeSubmitCardTool({
     db: bounded, guard: guardQuery, verify: makeVerify({ db: bounded, guard: guardQuery }), finals,
@@ -139,17 +148,16 @@ export const generate = (input: GenerateInput): Effect.Effect<GenerateResult, Ge
   }
   let failureStop = false
   const stopWhen: StopCondition<ToolSet> = ({ steps }) => {
-    for (const step of steps.slice(tracedSteps)) {
-      for (const part of step.content) {
-        if (part.type !== 'tool-error') continue
+    Array.forEach(Array.flatMap(Array.drop(steps, tracedSteps), (step) => step.content),
+      (part) => {
+        if (part.type !== 'tool-error') return
         const error = String(part.error)
         events.push({
           type: 'tool_call', tool: part.toolName, input: part.input ?? null,
           output: `ERROR: ${error}`, error,
           durationMs: failedDurations.get(part.toolCallId)?.shift() ?? null,
         })
-      }
-    }
+      })
     tracedSteps = steps.length
     if (declined !== undefined || cards.length >= GENERATE_MAX_CARDS || stepCountIs(GENERATE_MAX_STEPS)({ steps })) return true
     if (!hasFailureStreak(steps)) return false
@@ -157,15 +165,16 @@ export const generate = (input: GenerateInput): Effect.Effect<GenerateResult, Ge
     return true
   }
 
-  const start = Date.now()
+  const start = yield* Clock.monotonicTimeNanos
   const result = yield* llm.run({
     prompt: buildPrompt({ team, views: VIEWS, coverage, posterFacts: input.posterFacts ?? [] }),
     model, tools, stopWhen,
   }).pipe(Effect.exit)
-  const latencyMs = Date.now() - start
-  if (Exit.isFailure(result) && result.cause.reasons.some(Cause.isInterruptReason)) return yield* Effect.interrupt
-  for (const event of events) yield* append(event)
-  for (const card of cards) yield* append({ type: 'card', cardId: card.id, card })
+  const end = yield* Clock.monotonicTimeNanos
+  const latencyMs = Number(end - start) / 1_000_000
+  if (Exit.isFailure(result) && Array.some(result.cause.reasons, Cause.isInterruptReason)) return yield* Effect.interrupt
+  yield* Effect.forEach(events, append, { discard: true })
+  yield* Effect.forEach(cards, (card) => append({ type: 'card', cardId: card.id, card }), { discard: true })
   const finish = (outcome: Outcome, reason: string | null, usage: Pick<GenerateResult, 'steps' | 'inputTokens' | 'outputTokens'>) =>
     append({ type: 'outcome', status: outcome, ...(reason === null ? {} : { detail: reason }) }).pipe(
       Effect.as({ outcome, cards, reason, runId, model: label, latencyMs, ...usage } satisfies GenerateResult),
