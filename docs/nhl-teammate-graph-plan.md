@@ -1306,8 +1306,8 @@ Filled as the gates run. Snapshot 4b755090e186 (8,842 players, latest game 2026-
 | FM2 | Prompts | Sonnet · medium | FC1, FP1, FP2, FM1 | `web/fm2-view-prompts` | #164 | PR open; reviewed, fixes in a second commit |
 | FM3 | Generate and repair | Sonnet · low | FC1, FP1 | `web/fm3-generate-repair` | #135 | PR open; reviewed |
 | FM4 | Generate command | Haiku · low | FM2, FM3 | `web/fm4-generate-command` | #169 | PR open; reviewed, fixes in a second commit |
-| FE1 | Render harness | Sonnet · medium | FS5 | `web/fe1-render-harness` | #177 | PR open; Codex review running. Ran against the real sandbox page |
-| FE2 | Bake-off runner | Sonnet · low | FM3, FE1 | `web/fe2-bakeoff-runner` | #178 | PR open; Codex review running |
+| FE1 | Render harness | Sonnet · medium | FS5 | `web/fe1-render-harness` | #177 | PR open; reviewed, fixes in a second commit. Ran against the real sandbox page |
+| FE2 | Bake-off runner | Sonnet · low | FM3, FE1 | `web/fe2-bakeoff-runner` | #178 | PR open; reviewed, fixes in a second commit. No model called yet |
 | FE3 | Bake-off report | Haiku · medium | — | `web/fe3-bakeoff-report` | #153 | PR open; reviewed |
 | FE4 | Bake-off gate | Orchestrator | FE2, FE3, FM2, FT7 | | | not started |
 | FX1 | History query atoms | Sonnet · medium | FP1 | `web/fx1-history-atoms` | #152 | PR open; reviewed |
