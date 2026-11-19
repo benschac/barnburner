@@ -28,10 +28,11 @@ try {
     assert.equal(result.error, undefined, name)
     const { diagnostics } = JSON.parse(result.stdout)
     assert.ok(!diagnostics.some((d) => d.message.includes('Error running JS plugin')), `${name}: plugin crashed`)
-    const errors = diagnostics.filter((d) => d.severity === 'error')
+    // anti-slop rules also report on the fixture, a new file; count only the rules under test.
+    const errors = diagnostics.filter((d) => d.severity === 'error' && !/^(anti-slop[a-z-]*|landmines|ai-guard|enfect)\(/.test(d.code))
     if (expected) assert.ok(errors.some((d) => d.code === expected), `${name}: ${result.stdout}`)
     else assert.equal(errors.length, 0, `${name}: ${result.stdout}`)
-    assert.equal(result.status, expected ? 1 : 0, name)
+    assert.equal(result.status, diagnostics.some((d) => d.severity === 'error') ? 1 : 0, name)
   }
   logInfo(`${cases.length} actor-pattern lint cases passed`)
 } finally {

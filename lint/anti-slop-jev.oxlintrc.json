@@ -1,0 +1,195 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "plugins": [],
+  "categories": {
+    "correctness": "off"
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/.next/**",
+    "**/.content-collections/**",
+    "**/public/**",
+    "**/*.d.ts"
+  ],
+  "jsPlugins": [
+    {
+      "name": "anti-slop-effect-jev",
+      "specifier": "../tools/oxlint/anti-slop/jev/plugin.ts"
+    },
+    {
+      "name": "anti-slop-martinfowler-jev",
+      "specifier": "../tools/oxlint/anti-slop/martinfowler/jev-plugin.ts"
+    }
+  ],
+  "rules": {
+    "anti-slop-effect-jev/single-use-abstraction": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-effect-jev/error-as-value": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-effect-jev/shallow-service": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-effect-jev/swallow-without-capture": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-effect-jev/unbounded-retry": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-effect-jev/network-call-in-transaction": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-effect-jev/read-then-write-race": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-effect-jev/unbounded-fanout": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-effect-jev/decode-after-status": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-effect-jev/cache-in-method": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-effect-jev/test-cannot-fail": "off",
+    "anti-slop-martinfowler-jev/mysterious-name": [
+      "warn",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-martinfowler-jev/feature-envy": [
+      "warn",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-martinfowler-jev/data-clumps": [
+      "warn",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-martinfowler-jev/primitive-obsession": [
+      "warn",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-martinfowler-jev/middle-man": [
+      "warn",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-martinfowler-jev/lazy-element": [
+      "warn",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-martinfowler-jev/speculative-generality": [
+      "warn",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-martinfowler-jev/temporary-field": [
+      "warn",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-martinfowler-jev/insider-trading": [
+      "warn",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-martinfowler-jev/data-class": [
+      "warn",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-martinfowler-jev/comments": "off",
+    "anti-slop-martinfowler-jev/repeated-switches": [
+      "warn",
+      {
+        "mode": "changed"
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.test.*",
+        "**/*.spec.*",
+        "**/test/**",
+        "**/tests/**",
+        "**/__tests__/**"
+      ],
+      "rules": {
+        "anti-slop-effect-jev/single-use-abstraction": "off",
+        "anti-slop-effect-jev/error-as-value": "off",
+        "anti-slop-effect-jev/shallow-service": "off",
+        "anti-slop-effect-jev/swallow-without-capture": "off",
+        "anti-slop-effect-jev/unbounded-retry": "off",
+        "anti-slop-effect-jev/network-call-in-transaction": "off",
+        "anti-slop-effect-jev/read-then-write-race": "off",
+        "anti-slop-effect-jev/unbounded-fanout": "off",
+        "anti-slop-effect-jev/decode-after-status": "off",
+        "anti-slop-effect-jev/cache-in-method": "off",
+        "anti-slop-martinfowler-jev/mysterious-name": "off",
+        "anti-slop-martinfowler-jev/feature-envy": "off",
+        "anti-slop-martinfowler-jev/data-clumps": "off",
+        "anti-slop-martinfowler-jev/primitive-obsession": "off",
+        "anti-slop-martinfowler-jev/middle-man": "off",
+        "anti-slop-martinfowler-jev/lazy-element": "off",
+        "anti-slop-martinfowler-jev/speculative-generality": "off",
+        "anti-slop-martinfowler-jev/temporary-field": "off",
+        "anti-slop-martinfowler-jev/insider-trading": "off",
+        "anti-slop-martinfowler-jev/data-class": "off",
+        "anti-slop-martinfowler-jev/comments": "off",
+        "anti-slop-martinfowler-jev/repeated-switches": "off",
+        "anti-slop-effect-jev/test-cannot-fail": [
+          "error",
+          {
+            "mode": "changed"
+          }
+        ]
+      }
+    }
+  ]
+}

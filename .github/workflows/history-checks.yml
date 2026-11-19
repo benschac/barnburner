@@ -13,7 +13,8 @@ on:
       - 'scripts/index-effect-core.mjs'
       - 'scripts/*.mjs'
       - 'lib/**'
-      - 'lint/node-scripts.oxlintrc.json'
+      - 'lint/**'
+      - 'tools/oxlint/**'
       - '.agent-sources/effect/**'
       - 'tests/**'
       - 'packages/history/**'
@@ -39,9 +40,13 @@ jobs:
   history:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      ANTI_SLOP_BASE: origin/${{ github.base_ref }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          # anti-slop rules set to mode "changed" diff against the merge base with the PR's base branch.
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -54,6 +59,8 @@ jobs:
         run: bun run check:effect-api
       - name: Node scripts use the Effect platform services
         run: bun run check:node-scripts
+      - name: anti-slop rule tests
+        run: bun run test:anti-slop
       - name: Python history checks
         run: bun run test:history
       - name: History package checks

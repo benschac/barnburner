@@ -47,7 +47,7 @@
   "devDependencies": {
     "@content-collections/core": "0.15.3",
     "@content-collections/mdx": "0.2.2",
-    "@oxlint/plugins": "1.90.0",
+    "@oxlint/plugins": "1.91.0",
     "@resvg/resvg-js": "^2.6.2",
     "@tamagui/cli": "3.3.1",
     "@types/d3": "7.4.3",

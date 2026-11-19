@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
-  "extends": ["../../lint/effect-core.oxlintrc.json"],
+  "extends": ["../../lint/effect-core.oxlintrc.json", "../../lint/anti-slop.oxlintrc.json"],
   "options": {
     "typeAware": true
   },

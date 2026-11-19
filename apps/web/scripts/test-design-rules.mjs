@@ -127,10 +127,11 @@ try {
     assert.equal(result.error, undefined, name)
     const diagnostics = JSON.parse(result.stdout).diagnostics
     assert.ok(!diagnostics.some((d) => d.message.includes('Error running JS plugin')), `${name}: plugin crashed`)
-    const errors = diagnostics.filter((d) => d.severity === 'error')
+    // anti-slop rules also report on the fixture, a new file; count only the rules under test.
+    const errors = diagnostics.filter((d) => d.severity === 'error' && !/^(anti-slop[a-z-]*|landmines|ai-guard|enfect)\(/.test(d.code))
     assert.equal(errors.length === 0, pass, `${name}: ${result.stdout}`)
     if (expected) assert.ok(pass ? errors.length === 0 : errors.some((d) => d.code === expected), `${name}: expected ${expected}: ${result.stdout}`)
-    assert.equal(result.status === 0, pass, `${name}: wrong process status`)
+    assert.equal(result.status === 0, !diagnostics.some((d) => d.severity === 'error'), `${name}: wrong process status`)
   }
   const css = `${dir}/unused.css`
   await writeFile(css, 'body {}')
