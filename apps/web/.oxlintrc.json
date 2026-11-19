@@ -11,6 +11,7 @@
   ],
   "rules": {
     "react/rules-of-hooks": "error",
+    "anti-slop/no-instanceof": "off",
     "react/only-export-components": [
       "warn",
       {

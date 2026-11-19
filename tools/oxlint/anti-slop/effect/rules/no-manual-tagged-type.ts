@@ -4,6 +4,21 @@ const isTagKey = (key: ESTree.Node): boolean =>
 	(key.type === "Identifier" && key.name === "_tag") ||
 	(key.type === "Literal" && key.value === "_tag");
 
+/**
+ * `Extract<Union, { _tag: "A" }>` and `Exclude<...>` select members of a union that is defined
+ * elsewhere; they declare nothing. Local change; see ../../UPSTREAM.md.
+ */
+const isMemberSelection = (node: ESTree.Node): boolean => {
+	const literal = node.parent;
+	const args = literal?.type === "TSTypeLiteral" ? literal.parent : undefined;
+	const reference = args?.type === "TSTypeParameterInstantiation" ? args.parent : undefined;
+	return (
+		reference?.type === "TSTypeReference" &&
+		reference.typeName.type === "Identifier" &&
+		(reference.typeName.name === "Extract" || reference.typeName.name === "Exclude")
+	);
+};
+
 export const noManualTaggedTypeRule = defineRule({
 	meta: {
 		type: "problem",
@@ -19,7 +34,7 @@ export const noManualTaggedTypeRule = defineRule({
 	createOnce(context) {
 		return {
 			TSPropertySignature(node) {
-				if (isTagKey(node.key)) {
+				if (isTagKey(node.key) && !isMemberSelection(node)) {
 					context.report({ node, messageId: "manualTaggedType" });
 				}
 			},

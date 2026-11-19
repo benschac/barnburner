@@ -52,7 +52,8 @@ Adopt the stack incrementally through concrete features. Preserve this project's
 # Error model
 
 - Return expected failures as `Schema.TaggedError` classes with a brand and context fields, through `Effect` or `Result`. Package source does not `throw` them or subclass `Error`.
-- Handle failures by tag (`Effect.catchTag`, `_tag`). Avoid `try`/`catch` with `instanceof Error` except where a foreign exception is translated into a tagged error.
+- Handle failures by tag with `Effect.catchTag` or `Effect.catchTags`, not by comparing `_tag` in a handler.
+- When a foreign exception becomes a tagged error, keep the original in a `cause: Schema.Defect()` field. Do not inspect it with `instanceof`; use `Predicate.isError` when the message is needed. `apps/web` may use `instanceof` for DOM checks such as `event.target instanceof Element`.
 - A genuine programming defect may `throw`; put a `// defect: <reason>` comment on the line above it.
 - Read `/lore/error-model` through `.agent-sources/ratstack/index.md` before adding an error. House examples: `packages/season/src/contracts.ts` and `packages/analyst/src/render.ts`.
 - `packages/analyst` also fails `bun run typecheck` on the `effect-tsgo` diagnostics `extendsNativeError`, `globalErrorInEffectFailure`, `globalErrorInEffectCatch`, and `tryCatchInEffectGen`, set in its `tsconfig.json`.
@@ -62,11 +63,14 @@ Adopt the stack incrementally through concrete features. Preserve this project's
 # JSON boundary
 
 - Package source does not call `JSON.parse` or `JSON.stringify`. Decode text with `Schema.fromJsonString(<schema>)`, or use `parseJson`, `toJson`, and `toPrettyJson` from `packages/analyst/src/json.ts` when the value is still `unknown`.
+- Source functions do not take or return `unknown`. Decode at the edge with the schema (`Schema.decodeUnknownEffect(<schema>)(input)`) and pass the typed value inward. A `src/json.ts` helper module, a `cause` parameter, and a type predicate's subject are exempt; so are tests.
 - `packages/analyst` fails `bun run typecheck` on the `effect-tsgo` diagnostics `globalJson` and `globalJsonInEffect` in `src` and `scripts`. Tests are exempt.
 
 # Union model
 
-- Give every member of a union of object shapes a `_tag`. Branch on it with `Match.valueTags` or `Match.tagsExhaustive`, so a new member fails to compile until it is handled.
+- Define a union of object shapes once, as a schema or a tagged enum, and infer its type: `Schema.TaggedStruct` members in a `Schema.Union`, `Schema.TaggedUnion`, or `Data.TaggedEnum` with `Data.taggedEnum`. Do not write a `_tag` type by hand; a hand-written copy beside a schema drifts from it. `Extract<Union, { _tag: 'A' }>` to select a member is fine. House example: `packages/history/src/contracts.ts`.
+- In source, build a member with the schema's `make` or the enum's constructor, not a literal `{ _tag: ... }` object. Tests may write literals.
+- Branch with `Match.valueTags` or `Match.tagsExhaustive`, or a `switch` over `_tag`, so a new member fails to compile until it is handled. Do not compare `_tag` with `===` outside tests.
 - A boolean literal such as `ok: true` / `ok: false` is an accepted discriminant for two-way outcomes; prefer `Result` for new ones.
 - Do not narrow with `'key' in value`. For untyped external data, put a `// foreign: <reason>` comment on the line above.
 - Keep plain guard chains over numbers and strings as `if` statements; `Match` is for unions.
@@ -84,17 +88,15 @@ For web UI changes, follow [the enforced design contract](apps/web/design/README
 - Those rules set `mode: "changed"`: they report only lines changed since the merge base with `main` (set `ANTI_SLOP_BASE` for another base). New and edited code must pass them; existing code is cleaned up as it is touched. `ANTI_SLOP_MODE=all bun run lint` lists every finding.
 - Each workspace's `lint` script runs its steps with `bun run --parallel --no-exit-on-error`. The `lint:oxlint` step runs oxlint through `tools/oxlint/anti-slop/modes/with-changes.ts`, which computes the changed lines with git before oxlint starts; keep that prefix. In `apps/web` the rule-fixture tests (`lint:design`, `lint:patterns`, `lint:xstate`, `lint:core`) run after `lint:oxlint`, because they write fixtures into files the main run reads.
 - `typescript/no-non-null-assertion` and `complexity` are built-in rules that cannot take a mode; they run at `warn` until the existing findings are fixed.
-- Rules left out of `lint/anti-slop.oxlintrc.json` on purpose. Do not re-enable one without changing the rule it conflicts with:
-  - `anti-slop-effect/no-manual-tagged-type`, `no-manual-tagged-construction`, and `no-manual-tag-comparison` reject hand-written `_tag` unions and closed `switch` statements, which the union model above requires.
+- These rules enforce the models above on changed lines: `anti-slop-effect/no-manual-tagged-type`, `no-manual-tagged-construction`, and `no-manual-tag-comparison` (union model); `anti-slop/no-instanceof` and `anti-slop-effect/require-cause-when-narrowing` (error model); `anti-slop/no-unknown-parameters` and `no-unknown-returns` (JSON boundary). Our copies of `no-manual-tag-comparison` and `no-manual-tagged-type` allow a `switch` over `_tag` and `Extract`/`Exclude` member selection.
+- Scoping: construction, tag comparison, `unknown` parameters and returns, and `anti-slop/no-runtime-typeof` are off in tests. `no-instanceof` is off in `apps/web`. `enfect/effect-run-in-body` is off for entry points, React hooks (`src/use-*.ts`), and tool callbacks (`src/tools/*.ts`), where a foreign caller needs a promise or a fiber. `no-runtime-typeof` is off in lint plugins.
+- Rules left out of `lint/anti-slop.oxlintrc.json` on purpose:
+  - `enfect/prefer-option-over-null` rejects `T | null` in wire contracts and React state, with no boundary exemption. JSON has no `Option`.
   - `anti-slop-effect/prefer-effect-match` asks for `Match` on string ternaries; the union model keeps `Match` for unions.
-  - `enfect/prefer-option-over-null` rejects `T | null` in wire contracts and React state, with no boundary exemption.
-  - `anti-slop/no-instanceof` rejects `instanceof Error` where the error model allows it and DOM checks such as `instanceof Element`. `effecttsgo/instance-of-schema` still covers Schema types.
-  - `anti-slop/no-unknown-parameters` and `no-unknown-returns` reject the decoders the JSON boundary needs, which take `unknown`.
   - `anti-slop-effect/no-service-constructor-imports` reports every imported `make*` function; here those are mostly plain factories.
   - `anti-slop/require-readable-spacing` is a blank-line style rule with no autofix (1,915 findings).
   - `landmines/no-flake-masking` assumes a default test timeout; `node:test` has none, so `{ timeout }` adds a bound. Turn it on when a workspace moves to Vitest.
 - `landmines/strict-msw` and `landmines/no-unsignaled-poll` are on but check MSW and Vitest APIs, so they report nothing until a workspace uses those.
-- `enfect/effect-run-in-body` is off for entry points, React hooks (`src/use-*.ts`), and tool callbacks (`src/tools/*.ts`), where a foreign caller needs a promise or a fiber. `anti-slop/no-runtime-typeof` is off in tests and lint plugins.
 - `bun run test:anti-slop` runs the vendored rule tests.
 - `bun run lint:jev` runs the paid Jev rules in `lint/anti-slop-jev.oxlintrc.json` on changed lines. It needs `TYPESAFE_API_KEY` or `AI_GATEWAY_API_KEY`; without one it warns and skips, and under `CI` it fails. It is not part of `bun run lint`. `error-as-value` is off there: it reports `Result` and `ok: false` returns, which the error model accepts. Keep the key out of the editor's environment, or the Oxlint extension asks Jev on every edit.
 - XState 6 transition and action purity is enforced by `xstate6/pure-transitions` (`apps/web/lint/xstate-plugin.mjs`, proven by `apps/web/scripts/test-xstate-rules.mjs`), not by the XState 5 rules anti-slop shipped; those were removed. Queue effects with `enq` or invoke actor logic.

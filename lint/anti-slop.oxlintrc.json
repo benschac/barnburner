@@ -78,6 +78,12 @@
         "mode": "changed"
       }
     ],
+    "anti-slop/no-instanceof": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
     "anti-slop/no-known-value-widening": [
       "error",
       {
@@ -132,6 +138,18 @@
         "mode": "changed"
       }
     ],
+    "anti-slop/no-unknown-parameters": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop/no-unknown-returns": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
     "anti-slop/no-unknown-type-aliases": [
       "error",
       {
@@ -151,6 +169,24 @@
       }
     ],
     "anti-slop-effect/no-manual-effect-error-tag": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-effect/no-manual-tag-comparison": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-effect/no-manual-tagged-construction": [
+      "error",
+      {
+        "mode": "changed"
+      }
+    ],
+    "anti-slop-effect/no-manual-tagged-type": [
       "error",
       {
         "mode": "changed"
@@ -394,7 +430,11 @@
         "enfect/effect-promise-vs-trypromise": "off",
         "enfect/avoid-option-getorthrow": "off",
         "enfect/effect-run-in-body": "off",
-        "anti-slop/no-runtime-typeof": "off"
+        "anti-slop/no-runtime-typeof": "off",
+        "anti-slop/no-unknown-parameters": "off",
+        "anti-slop/no-unknown-returns": "off",
+        "anti-slop-effect/no-manual-tagged-construction": "off",
+        "anti-slop-effect/no-manual-tag-comparison": "off"
       }
     },
     {
@@ -422,6 +462,15 @@
       ],
       "rules": {
         "anti-slop/no-runtime-typeof": "off"
+      }
+    },
+    {
+      "files": [
+        "**/src/json.ts"
+      ],
+      "rules": {
+        "anti-slop/no-unknown-parameters": "off",
+        "anti-slop/no-unknown-returns": "off"
       }
     }
   ]

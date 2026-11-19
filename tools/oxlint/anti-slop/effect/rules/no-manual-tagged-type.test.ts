@@ -20,6 +20,14 @@ new RuleTester().run("no-manual-tagged-type", noManualTaggedTypeRule, {
 			filename: "value.ts",
 			code: 'type ValueTag = Value["_tag"];',
 		},
+		{
+			filename: "value.ts",
+			code: 'type Answered = Extract<Answer, { readonly _tag: "Answered" }>;',
+		},
+		{
+			filename: "value.ts",
+			code: 'type Rest = Exclude<Hop, { readonly _tag: "PlayedAgainst" }>;',
+		},
 	],
 	invalid: [
 		{

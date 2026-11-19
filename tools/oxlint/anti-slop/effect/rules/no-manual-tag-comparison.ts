@@ -1,23 +1,19 @@
 import { defineRule } from "@oxlint/plugins";
 
-import {
-	isInsideBroadEffectHandler,
-	isTagMember,
-	tagMemberFromComparison,
-} from "../shared/tagged-values.ts";
+import { isInsideBroadEffectHandler, tagMemberFromComparison } from "../shared/tagged-values.ts";
 
+// Local change (see ../../UPSTREAM.md): a `switch` over `_tag` is allowed, because
+// typescript/switch-exhaustiveness-check already fails one that misses a member.
 export const noManualTagComparisonRule = defineRule({
 	meta: {
 		type: "problem",
 		docs: {
 			description:
-				"Use Effect Match or Predicate helpers instead of manually branching on `_tag`.",
+				"Use Effect Match, Predicate helpers, or an exhaustive `switch` instead of comparing `_tag` by hand.",
 		},
 		messages: {
 			manualComparison:
-				"Use Match.tag/Match.tags for tagged-value branching, or Predicate.isTagged for a simple reusable predicate.",
-			manualSwitch:
-				"Use Match.value(value).pipe(Match.tag/Match.tags/Match.tagsExhaustive) or the tagged enum `$match` helper instead of switching on `_tag`.",
+				"Use Match.valueTags or Match.tagsExhaustive for tagged-value branching, a `switch` that covers every member, or Predicate.isTagged for a simple reusable predicate.",
 		},
 	},
 	createOnce(context) {
@@ -30,15 +26,6 @@ export const noManualTagComparisonRule = defineRule({
 					return;
 				}
 				context.report({ node, messageId: "manualComparison" });
-			},
-			SwitchStatement(node) {
-				if (
-					!isTagMember(node.discriminant) ||
-					isInsideBroadEffectHandler(node)
-				) {
-					return;
-				}
-				context.report({ node, messageId: "manualSwitch" });
 			},
 		};
 	},
