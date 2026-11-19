@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { Cause, Effect, Exit, Result, Schema } from 'effect'
+import { Array, Cause, Effect, Exit, Match, Result, Schema } from 'effect'
 import type { LanguageModel, StopCondition, ToolExecuteFunction, ToolSet } from 'ai'
 import { stepCountIs } from 'ai'
 import type { InsightCard } from './card.ts'
@@ -46,6 +46,19 @@ export interface GenerateResult {
 
 const sqlText = (value: string): string => value.replaceAll("'", "''")
 const isFailureText = (output: string): boolean => output.startsWith('ERROR:') || output.startsWith('FAILED check')
+
+type GenerateSteps = Parameters<StopCondition<ToolSet>>[0]['steps']
+
+const hasFailureStreak = (steps: GenerateSteps): boolean => {
+  const parts = Array.flatMap(steps, (step) => step.content)
+  const streaks = Array.scan(parts, 0, (failures, part) => Match.value(part).pipe(
+    Match.when({ type: 'tool-error' }, () => failures + 1),
+    Match.when({ type: 'tool-result' }, ({ output }) =>
+      typeof output === 'string' && isFailureText(output) ? failures + 1 : 0),
+    Match.orElse(() => failures),
+  ))
+  return Array.some(streaks, (failures) => failures >= 3)
+}
 
 export const generate = (input: GenerateInput): Effect.Effect<GenerateResult, GenerateError, Llm> => Effect.gen(function* () {
   const llm = yield* Llm
@@ -139,17 +152,9 @@ export const generate = (input: GenerateInput): Effect.Effect<GenerateResult, Ge
     }
     tracedSteps = steps.length
     if (declined !== undefined || cards.length >= GENERATE_MAX_CARDS || stepCountIs(GENERATE_MAX_STEPS)({ steps })) return true
-    let failures = 0
-    for (const step of steps) {
-      for (const part of step.content) {
-        if (part.type === 'tool-error') failures++
-        else if (part.type === 'tool-result') {
-          failures = typeof part.output === 'string' && isFailureText(part.output) ? failures + 1 : 0
-        }
-        if (failures >= 3) { failureStop = true; return true }
-      }
-    }
-    return false
+    if (!hasFailureStreak(steps)) return false
+    failureStop = true
+    return true
   }
 
   const start = Date.now()
