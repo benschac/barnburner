@@ -3,8 +3,9 @@ import { AsyncResult, Atom, AtomRpc } from 'effect/reactivity'
 import { FetchHttpClient } from 'effect/http'
 import { RpcClient, RpcClientError, RpcSerialization } from 'effect/rpc'
 import {
-  FindPathInput, GetFarthestInput, GetFinalsCoverageInput, GetLinkInput, GetOpponentsInput, GetOpposedGamesInput,
-  GetPlayerInput, GetRosterInput, GetSharedGamesInput, HistoryRpcs, HistoryUnavailable, SearchPlayersInput,
+  FindPath, FindPathInput, GetFarthest, GetFarthestInput, GetFinalsCoverage, GetFinalsCoverageInput, GetLink, GetLinkInput,
+  GetOpponents, GetOpponentsInput, GetOpposedGames, GetOpposedGamesInput, GetPlayer, GetPlayerInput, GetRoster,
+  GetRosterInput, GetSharedGames, GetSharedGamesInput, HistoryRpcs, HistoryUnavailable, SearchPlayers, SearchPlayersInput,
 } from '@nhl-reddit-stats/history/rpc'
 
 type Payload<S extends Schema.Top> = S['Type']
@@ -35,76 +36,80 @@ const queryFamily = <P extends object, T extends object>(build: (payload: P) => 
 const filterKey = (filter: Filter) =>
   [filter.competition, filter.fromSeason ?? '', filter.toSeason ?? '', filter.goaliePartners ? 'gp' : 'no-gp'].join(',')
 
-const isTransportError = (error: unknown): error is RpcClientError.RpcClientError => (
-  typeof error === 'object' && error !== null && (error as { readonly _tag?: unknown })._tag === 'RpcClientError'
-)
+const isTransportError = Schema.is(RpcClientError.RpcClientError)
 
 const transportFailed = new HistoryUnavailable({ message: 'The history service could not be reached. Try again.' })
 
-/** What every query atom reports: the call's own errors, with a transport failure translated to `HistoryUnavailable`. */
-type Translated<E> = Exclude<E, RpcClientError.RpcClientError> | HistoryUnavailable
-type Result<A, E> = AsyncResult.AsyncResult<A, Translated<E>>
+/** What every query atom reports: the call's own errors `E`, with a transport failure translated to `HistoryUnavailable`. */
+type Result<A, E> = AsyncResult.AsyncResult<A, E | HistoryUnavailable>
 
-const translateError = <E>(error: E): Translated<E> => (
-  isTransportError(error) ? transportFailed : error as Exclude<E, RpcClientError.RpcClientError>
+const translateError = <E>(error: E | RpcClientError.RpcClientError): E | HistoryUnavailable => (
+  isTransportError(error) ? transportFailed : error
 )
 
-const translateSuccess = <A, E>(success: AsyncResult.Success<A, E>): AsyncResult.Success<A, Translated<E>> => (
+const translateSuccess = <A, E>(
+  success: AsyncResult.Success<A, E | RpcClientError.RpcClientError>,
+): AsyncResult.Success<A, E | HistoryUnavailable> => (
   AsyncResult.success(success.value, { waiting: success.waiting, timestamp: success.timestamp })
 )
 
 /** Every variant is handled, so a new one fails to compile here. */
-const translate = <A, E>(result: AsyncResult.AsyncResult<A, E>): Result<A, E> => Match.valueTags(result, {
-  Initial: (initial): Result<A, E> => AsyncResult.initial(initial.waiting),
-  Success: translateSuccess,
-  Failure: (failure): Result<A, E> => AsyncResult.failure(Cause.map(failure.cause, translateError), {
-    previousSuccess: Option.map(failure.previousSuccess, translateSuccess),
-    waiting: failure.waiting,
-  }),
-})
-
-/** AtomRpc owns the codec. Preserve a hydrated snapshot until an explicit refresh. */
-const fromQuery = <A, E>(query: Atom.Atom<AsyncResult.AsyncResult<A, E>>) => {
-  // defect: every history query supplies a serialization key and returns a unary RPC result
-  if (!Atom.isSerializable(query)) throw new Error('History query is missing AtomRpc serialization')
-  const serialization = query[Atom.SerializableTypeId]
-  const hydrating = Object.assign(Atom.setIdleTTL(query, timeToLive), {
-    [Atom.SerializableTypeId]: {
-      ...serialization,
-      // Keep server-rendered history snapshots readable across the switch to AtomRpc's codec.
-      key: serialization.key.replace(/^AtomRpc:/, 'history:'),
-      skipInitialRun: true,
-    },
+const translate = <A, E>(result: AsyncResult.AsyncResult<A, E | RpcClientError.RpcClientError>): Result<A, E> =>
+  Match.valueTags(result, {
+    Initial: (initial): Result<A, E> => AsyncResult.initial(initial.waiting),
+    Success: (success): Result<A, E> => translateSuccess<A, E>(success),
+    Failure: (failure): Result<A, E> => AsyncResult.failure(Cause.map(failure.cause, translateError<E>), {
+      previousSuccess: Option.map(failure.previousSuccess, translateSuccess<A, E>),
+      waiting: failure.waiting,
+    }),
   })
-  return Atom.map(hydrating, translate)
-}
+
+/** Hydration decodes synchronously, so neither schema may need services. */
+type NoServices = Schema.Top & Schema.ConstraintCodec<unknown, unknown>
+
+/**
+ * Makes a query atom hydratable under `history:<tag>:<key>`, with the RPC's own success and error schemas plus the
+ * transport error. A hydrated snapshot is kept until an explicit refresh, since a snapshot's answers never change.
+ */
+
+const fromQuery = <S extends NoServices, F extends NoServices>(
+  rpc: { readonly _tag: string, readonly successSchema: S, readonly errorSchema: F },
+  key: string,
+  query: Atom.Atom<AsyncResult.AsyncResult<S['Type'], F['Type'] | RpcClientError.RpcClientError>>,
+) => Atom.map(Atom.serializable(query, {
+  key: `history:${rpc._tag}:${key}`,
+  schema: AsyncResult.Schema({ success: rpc.successSchema, error: Schema.Union([rpc.errorSchema, RpcClientError.RpcClientError]) }),
+  skipInitialRun: true,
+}), translate<S['Type'], F['Type']>)
+
+const options = { timeToLive } as const
 
 export const searchPlayers = queryFamily((p: Payload<typeof SearchPlayersInput>) =>
-  fromQuery(HistoryClient.query('SearchPlayers', p, { serializationKey: `${p.query.length}:${p.query}:${p.limit}` })))
+  fromQuery(SearchPlayers, `${p.query.length}:${p.query}:${p.limit}`, HistoryClient.query(SearchPlayers._tag, p, options)))
 
 export const player = queryFamily((p: Payload<typeof GetPlayerInput>) =>
-  fromQuery(HistoryClient.query('GetPlayer', p, { serializationKey: String(p.playerId) })))
+  fromQuery(GetPlayer, String(p.playerId), HistoryClient.query(GetPlayer._tag, p, options)))
 
 export const roster = queryFamily((p: Payload<typeof GetRosterInput>) =>
-  fromQuery(HistoryClient.query('GetRoster', p, { serializationKey: `${p.teamId}:${p.seasonId}:${p.gameType}:${p.focusPlayerId ?? ''}` })))
+  fromQuery(GetRoster, `${p.teamId}:${p.seasonId}:${p.gameType}:${p.focusPlayerId ?? ''}`, HistoryClient.query(GetRoster._tag, p, options)))
 
 export const link = queryFamily((p: Payload<typeof GetLinkInput>) =>
-  fromQuery(HistoryClient.query('GetLink', p, { serializationKey: `${p.a}:${p.b}:${filterKey(p.filter)}` })))
+  fromQuery(GetLink, `${p.a}:${p.b}:${filterKey(p.filter)}`, HistoryClient.query(GetLink._tag, p, options)))
 
 export const sharedGames = queryFamily((p: Payload<typeof GetSharedGamesInput>) =>
-  fromQuery(HistoryClient.query('GetSharedGames', p, { serializationKey: `${p.a}:${p.b}:${p.seasonId}:${p.gameType}:${p.teamId}:${p.link}` })))
+  fromQuery(GetSharedGames, `${p.a}:${p.b}:${p.seasonId}:${p.gameType}:${p.teamId}:${p.link}`, HistoryClient.query(GetSharedGames._tag, p, options)))
 
 export const opponents = queryFamily((p: Payload<typeof GetOpponentsInput>) =>
-  fromQuery(HistoryClient.query('GetOpponents', p, { serializationKey: `${p.playerId}:${p.limit}:${p.offset}` })))
+  fromQuery(GetOpponents, `${p.playerId}:${p.limit}:${p.offset}`, HistoryClient.query(GetOpponents._tag, p, options)))
 
 export const opposedGames = queryFamily((p: Payload<typeof GetOpposedGamesInput>) =>
-  fromQuery(HistoryClient.query('GetOpposedGames', p, { serializationKey: `${p.a}:${p.b}` })))
+  fromQuery(GetOpposedGames, `${p.a}:${p.b}`, HistoryClient.query(GetOpposedGames._tag, p, options)))
 
 export const findPath = queryFamily((p: Payload<typeof FindPathInput>) =>
-  fromQuery(HistoryClient.query('FindPath', p, { serializationKey: `${p.from}:${p.to}:${p.relation}:${p.limit}:${filterKey(p.filter)}` })))
+  fromQuery(FindPath, `${p.from}:${p.to}:${p.relation}:${p.limit}:${filterKey(p.filter)}`, HistoryClient.query(FindPath._tag, p, options)))
 
 export const farthest = queryFamily((p: Payload<typeof GetFarthestInput>) =>
-  fromQuery(HistoryClient.query('GetFarthest', p, { serializationKey: `${p.playerId}:${filterKey(p.filter)}` })))
+  fromQuery(GetFarthest, `${p.playerId}:${filterKey(p.filter)}`, HistoryClient.query(GetFarthest._tag, p, options)))
 
 export const finalsCoverage = queryFamily((p: Payload<typeof GetFinalsCoverageInput>) =>
-  fromQuery(HistoryClient.query('GetFinalsCoverage', p, { serializationKey: `${p.playerId}:${p.fromYear}:${p.toYear}` })))
+  fromQuery(GetFinalsCoverage, `${p.playerId}:${p.fromYear}:${p.toYear}`, HistoryClient.query(GetFinalsCoverage._tag, p, options)))

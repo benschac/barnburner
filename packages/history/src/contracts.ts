@@ -243,55 +243,66 @@ export const GetFinalsCoverageResult = Schema.Struct({
   years: Schema.Array(FinalsYear),
 })
 
+export const SearchPlayers = Rpc.make('SearchPlayers', {
+  payload: SearchPlayersInput,
+  success: SearchPlayersResult,
+  error: HistoryUnavailable,
+})
+
+export const GetPlayer = Rpc.make('GetPlayer', {
+  payload: GetPlayerInput,
+  success: GetPlayerResult,
+  error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
+})
+
+export const GetRoster = Rpc.make('GetRoster', {
+  payload: GetRosterInput,
+  success: GetRosterResult,
+  error: Schema.Union([HistoryUnavailable, UnknownRoster, UnknownPlayer]),
+})
+
+export const GetLink = Rpc.make('GetLink', {
+  payload: GetLinkInput,
+  success: GetLinkResult,
+  error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
+})
+
+export const GetSharedGames = Rpc.make('GetSharedGames', {
+  payload: GetSharedGamesInput,
+  success: GetSharedGamesResult,
+  error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
+})
+
+export const GetOpponents = Rpc.make('GetOpponents', {
+  payload: GetOpponentsInput,
+  success: GetOpponentsResult,
+  error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
+})
+
+export const GetOpposedGames = Rpc.make('GetOpposedGames', {
+  payload: GetOpposedGamesInput,
+  success: GetOpposedGamesResult,
+  error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
+})
+
+export const FindPath = Rpc.make('FindPath', {
+  payload: FindPathInput,
+  success: FindPathResult,
+  error: Schema.Union([HistoryUnavailable, UnknownPlayer, NoPath, UnsupportedFilter]),
+})
+
+export const GetFarthest = Rpc.make('GetFarthest', {
+  payload: GetFarthestInput,
+  success: GetFarthestResult,
+  error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
+})
+
+export const GetFinalsCoverage = Rpc.make('GetFinalsCoverage', {
+  payload: GetFinalsCoverageInput,
+  success: GetFinalsCoverageResult,
+  error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
+})
+
 export const HistoryRpcs = RpcGroup.make(
-  Rpc.make('SearchPlayers', {
-    payload: SearchPlayersInput,
-    success: SearchPlayersResult,
-    error: HistoryUnavailable,
-  }),
-  Rpc.make('GetPlayer', {
-    payload: GetPlayerInput,
-    success: GetPlayerResult,
-    error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
-  }),
-  Rpc.make('GetRoster', {
-    payload: GetRosterInput,
-    success: GetRosterResult,
-    error: Schema.Union([HistoryUnavailable, UnknownRoster, UnknownPlayer]),
-  }),
-  Rpc.make('GetLink', {
-    payload: GetLinkInput,
-    success: GetLinkResult,
-    error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
-  }),
-  Rpc.make('GetSharedGames', {
-    payload: GetSharedGamesInput,
-    success: GetSharedGamesResult,
-    error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
-  }),
-  Rpc.make('GetOpponents', {
-    payload: GetOpponentsInput,
-    success: GetOpponentsResult,
-    error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
-  }),
-  Rpc.make('GetOpposedGames', {
-    payload: GetOpposedGamesInput,
-    success: GetOpposedGamesResult,
-    error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
-  }),
-  Rpc.make('FindPath', {
-    payload: FindPathInput,
-    success: FindPathResult,
-    error: Schema.Union([HistoryUnavailable, UnknownPlayer, NoPath, UnsupportedFilter]),
-  }),
-  Rpc.make('GetFarthest', {
-    payload: GetFarthestInput,
-    success: GetFarthestResult,
-    error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
-  }),
-  Rpc.make('GetFinalsCoverage', {
-    payload: GetFinalsCoverageInput,
-    success: GetFinalsCoverageResult,
-    error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
-  }),
+  SearchPlayers, GetPlayer, GetRoster, GetLink, GetSharedGames, GetOpponents, GetOpposedGames, FindPath, GetFarthest, GetFinalsCoverage,
 )
