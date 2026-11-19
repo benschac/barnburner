@@ -2,16 +2,16 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { Array, Effect, Order, Schema } from 'effect'
 import {
-  FarthestResultSchema, FilterSchema, FinalsYearSchema, FindPathInput, FindPathResult, GetFarthestInput,
+  FarthestResultSchema, FilterSchema, FindPathInput, FindPathResult, GetFarthestInput,
   GetFarthestResult, GetFinalsCoverageInput, GetFinalsCoverageResult, GetLinkInput, GetLinkResult, GetOpponentsInput,
   GetOpponentsResult, GetOpposedGamesInput, GetOpposedGamesResult, GetPlayerInput, GetPlayerResult, GetRosterInput,
   GetRosterResult, GetSharedGamesInput, GetSharedGamesResult, HistoryRpcs, HistoryUnavailable, LinkResultSchema,
-  NoPath, PathHopSchema, PathResultSchema, RosterLinkSchema, SearchPlayersInput, SearchPlayersResult, UnknownPlayer,
-  UnknownRoster, UnsupportedFilter,
+  NoPath, PathResultSchema, RosterLinkSchema, SearchPlayersInput, SearchPlayersResult, UnknownPlayer,
+  UnknownRoster, UnsupportedFilter, WireHop,
 } from '../src/contracts.ts'
-import { DEFAULT_FILTER } from '../src/shapes.ts'
+import { DEFAULT_FILTER, FinalsYear } from '../src/shapes.ts'
 import type {
-  FarthestResult, Filter, FinalsYear, GraphArrays, LinkResult, PathResult, TeammateHop,
+  FarthestResult, Filter, GraphArrays, LinkResult, PathResult, TeammateHop,
 } from '../src/shapes.ts'
 import { MINI_ARRAYS, MINI_GAMES, MINI_SNAPSHOT_ID, makeMiniStore } from './fakes.ts'
 
@@ -63,9 +63,9 @@ test('shape schemas round-trip and stay assignable to the plain shapes', () => {
   assert.deepEqual(asFilter, filter)
   roundTrip(LinkResultSchema, link)
   roundTrip(PathResultSchema, path)
-  roundTrip(PathHopSchema, goaliePartners)
+  roundTrip(WireHop, goaliePartners)
   for (const year of finalsYears) {
-    const asYear: FinalsYear = Schema.decodeSync(FinalsYearSchema)(Schema.encodeSync(FinalsYearSchema)(year))
+    const asYear: FinalsYear = Schema.decodeSync(FinalsYear)(Schema.encodeSync(FinalsYear)(year))
     assert.deepEqual(asYear, year)
   }
   roundTrip(RosterLinkSchema, { _tag: 'NoLink' })

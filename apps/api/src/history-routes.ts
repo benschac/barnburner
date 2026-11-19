@@ -5,7 +5,8 @@ import {
   DEFAULT_FILTER, HistoryUnavailable, farthest, finalsCoverage, findPaths, link, linkKind, makeGraph, opponents,
 } from '@nhl-reddit-stats/history'
 import type { Hop, HistoryStore, PathResult, PlayerRow, TeammateGraph, UnknownPlayer } from '@nhl-reddit-stats/history'
-import { HistoryRpcs } from '@nhl-reddit-stats/history/rpc'
+import { HistoryRpcs, WirePlayedAgainst } from '@nhl-reddit-stats/history/rpc'
+import type { PathResultSchema, WireHop } from '@nhl-reddit-stats/history/rpc'
 import { openScopedHistoryStore } from './history-store.ts'
 
 type HistoryValue = {
@@ -41,9 +42,7 @@ const summary = ({ playerId, name, position, firstSeason, lastSeason, games }: P
 export const FINALS_RULE = 'A teammate is anyone credited in the same NHL regular-season or playoff game for the same team; ' +
   'international games do not count. Cup Finals are flagged from the 1926-27 season (1927) on, when the Final became an NHL-only series.'
 
-/** A hop as it goes on the wire: `PlayedAgainst` also carries `gameId`. */
-export type WireHop = Exclude<Hop, { readonly _tag: 'PlayedAgainst' }> | (Extract<Hop, { readonly _tag: 'PlayedAgainst' }> & { readonly gameId: number })
-export type WirePathResult = Omit<PathResult, 'paths'> & { readonly paths: ReadonlyArray<ReadonlyArray<WireHop>> }
+export type WirePathResult = typeof PathResultSchema.Type
 
 /** Fills every `PlayedAgainst` hop with the first game (earliest by date, then game ID) the pair played against each other. */
 export const fillOpponentHops = (store: HistoryStore, result: PathResult): Effect.Effect<WirePathResult, HistoryUnavailable | UnknownPlayer> =>
@@ -60,7 +59,7 @@ export const fillOpponentHops = (store: HistoryStore, result: PathResult): Effec
         if (first === undefined) {
           return yield* new HistoryUnavailable({ message: `No opposed game on record for players ${h.from} and ${h.to}.` })
         }
-        return { ...h, gameId: first.gameId } satisfies WireHop
+        return WirePlayedAgainst.make({ from: h.from, to: h.to, games: h.games, gameId: first.gameId })
       }),
     })
     const paths = yield* Effect.forEach(result.paths, (path) => Effect.forEach(path, fillHop))

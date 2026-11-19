@@ -5,7 +5,7 @@ import { NoPath, UnknownPlayer } from './contracts.ts'
 import { evidenceSpan, hopKind, linkPassingGames, linkPasses } from './graph.ts'
 import type { TeammateGraph } from './graph.ts'
 import { findRelationPaths } from './relation-paths.ts'
-import { PATH_COUNT_CAP } from './shapes.ts'
+import { GoaliePartners, PATH_COUNT_CAP, PlayedWith } from './shapes.ts'
 import type { Filter, GameType, PathResult, Relation, TeammateHop } from './shapes.ts'
 
 /** Distance value for a node the search did not reach. */
@@ -85,8 +85,8 @@ export const teammateHop = (graph: TeammateGraph, linkId: number, from: number, 
     gameId: spanFirstGame[span],
   }
   return hopKind(graph, linkId, filter) === 'GoaliePartners'
-    ? { _tag: 'GoaliePartners', ...hop }
-    : { _tag: 'PlayedWith', ...hop }
+    ? GoaliePartners.make(hop)
+    : PlayedWith.make(hop)
 }
 
 /**

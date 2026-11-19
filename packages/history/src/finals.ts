@@ -2,6 +2,7 @@
 import { Array, Effect, Order } from 'effect'
 import { HistoryUnavailable, UnknownPlayer } from './contracts.ts'
 import type { TeammateGraph } from './graph.ts'
+import { FinalsHit, FinalsMiss } from './shapes.ts'
 import type { FinalRow, FinalsYear } from './shapes.ts'
 import type { HistoryStore } from './store.ts'
 
@@ -40,15 +41,14 @@ const coverFinal = (teammates: ReadonlyMap<number, Teammate>, playerId: number, 
       best = { playerId: participant.playerId, firstGameId: participant.firstGameId, teammate }
     }
   }
-  if (best === null) return { _tag: 'Miss', year: final.year, seasonId: final.seasonId }
-  return {
-    _tag: 'Hit',
+  if (best === null) return FinalsMiss.make({ year: final.year, seasonId: final.seasonId })
+  return FinalsHit.make({
     year: final.year,
     seasonId: final.seasonId,
     playerId: best.playerId,
     finalGameId: best.firstGameId,
     sharedGameId: best.teammate.sharedGameId,
-  }
+  })
 }
 
 /**

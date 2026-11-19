@@ -1,11 +1,14 @@
-// Plain data shapes shared by the search lane, the store port, and the RPC contract.
+// Data shapes shared by the search lane, the store port, and the RPC contract.
 // Player IDs, never indexes, cross every boundary except `GraphArrays` itself.
+// The tagged shapes (hops and Finals years) are schemas, defined once here; `contracts.ts` reuses them.
+import { Schema } from 'effect'
 
 /** The five positions in the players table (C-serve). */
 export type Position = 'C' | 'L' | 'R' | 'D' | 'G'
 
 /** 2 for the regular season, 3 for the playoffs. */
-export type GameType = 2 | 3
+export const GameTypeSchema = Schema.Literals([2, 3])
+export type GameType = typeof GameTypeSchema.Type
 
 /**
  * Every C-graph blob as its typed array, little-endian on disk. `n` players, `m` links, `s` spans,
@@ -66,39 +69,42 @@ export const PATH_COUNT_CAP = 1_000_000
 
 export type LinkKind = 'PlayedWith' | 'GoaliePartners'
 
+/** A game or link count: a non-negative integer. */
+export const Count = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
+
+const TeammateFields = {
+  from: Schema.Int,
+  to: Schema.Int,
+  games: Count,
+  teamId: Schema.Int,
+  seasonId: Schema.Int,
+  gameType: GameTypeSchema,
+  gameId: Schema.Int,
+}
+
 /** One teammate hop. `games` is the link's total over passing spans; the rest is the evidence span. */
-export type PlayedWith = {
-  readonly _tag: 'PlayedWith'
-  readonly from: number
-  readonly to: number
-  readonly games: number
-  readonly teamId: number
-  readonly seasonId: number
-  readonly gameType: GameType
-  readonly gameId: number
-}
+export const PlayedWith = Schema.TaggedStruct('PlayedWith', TeammateFields)
+export type PlayedWith = typeof PlayedWith.Type
 
-export type GoaliePartners = {
-  readonly _tag: 'GoaliePartners'
-  readonly from: number
-  readonly to: number
-  readonly games: number
-  readonly teamId: number
-  readonly seasonId: number
-  readonly gameType: GameType
-  readonly gameId: number
-}
+export const GoaliePartners = Schema.TaggedStruct('GoaliePartners', TeammateFields)
+export type GoaliePartners = typeof GoaliePartners.Type
 
-/** Opponents carry a game count only; the API handler adds the first game from the store. */
-export type PlayedAgainst = {
-  readonly _tag: 'PlayedAgainst'
-  readonly from: number
-  readonly to: number
-  readonly games: number
-}
+/**
+ * Opponents carry a game count only: the pure search leaves `PlayedAgainst` without a game. The RPC wire
+ * member (`WirePlayedAgainst` in `contracts.ts`) extends this one with the `gameId` the API handler adds
+ * from the store.
+ */
+export const PlayedAgainst = Schema.TaggedStruct('PlayedAgainst', {
+  from: Schema.Int,
+  to: Schema.Int,
+  games: Count,
+})
+export type PlayedAgainst = typeof PlayedAgainst.Type
 
-export type TeammateHop = PlayedWith | GoaliePartners
-export type Hop = PlayedWith | GoaliePartners | PlayedAgainst
+export const TeammateHop = Schema.Union([PlayedWith, GoaliePartners])
+export type TeammateHop = typeof TeammateHop.Type
+export const Hop = Schema.Union([PlayedWith, GoaliePartners, PlayedAgainst])
+export type Hop = typeof Hop.Type
 
 /** Paths in D6 order. `paths` holds at most the requested limit; `pathCount` is the full tie count. */
 export type PathResult = {
@@ -147,24 +153,22 @@ export type Opponent = {
 }
 
 /** A Final year is the season's ending year: the 2021-22 Final is 2022. */
-export type FinalsHit = {
-  readonly _tag: 'Hit'
-  readonly year: number
-  readonly seasonId: number
+export const FinalsHit = Schema.TaggedStruct('Hit', {
+  year: Schema.Int,
+  seasonId: Schema.Int,
   /** A teammate of the focus player who played in that Final. */
-  readonly playerId: number
-  readonly finalGameId: number
+  playerId: Schema.Int,
+  finalGameId: Schema.Int,
   /** A game the focus player and `playerId` shared (the link's evidence game). */
-  readonly sharedGameId: number
-}
+  sharedGameId: Schema.Int,
+})
+export type FinalsHit = typeof FinalsHit.Type
 
-export type FinalsMiss = {
-  readonly _tag: 'Miss'
-  readonly year: number
-  readonly seasonId: number
-}
+export const FinalsMiss = Schema.TaggedStruct('Miss', { year: Schema.Int, seasonId: Schema.Int })
+export type FinalsMiss = typeof FinalsMiss.Type
 
-export type FinalsYear = FinalsHit | FinalsMiss
+export const FinalsYear = Schema.Union([FinalsHit, FinalsMiss])
+export type FinalsYear = typeof FinalsYear.Type
 
 // Store rows (C-store). Names follow the C-serve columns.
 

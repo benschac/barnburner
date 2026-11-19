@@ -1,5 +1,6 @@
-import { Schema } from 'effect'
+import { Schema, Struct } from 'effect'
 import { Rpc, RpcGroup } from 'effect/rpc'
+import { Count, FinalsYear, GameTypeSchema, GoaliePartners, PlayedAgainst, PlayedWith, TeammateHop } from './shapes.ts'
 
 // Expected failures (C-rpc). Each carries the context a caller needs to explain it.
 
@@ -37,11 +38,10 @@ export class UnsupportedFilter extends Schema.TaggedError<UnsupportedFilter, { r
   relation: Schema.Literals(['against', 'either']),
 }) {}
 
-// Schemas mirroring `shapes.ts`. They carry a `Schema` suffix so both can be exported side by side;
-// `tests/contracts.test.ts` checks each decoded type is assignable to its plain shape.
+// Schemas for the plain shapes in `shapes.ts`. They carry a `Schema` suffix so both can be exported side by side;
+// `tests/contracts.test.ts` checks each decoded type is assignable to its plain shape. The tagged hop and
+// Finals year schemas live in `shapes.ts` and are used here as they are.
 
-const Count = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
-const GameTypeSchema = Schema.Literals([2, 3])
 const PositionSchema = Schema.Literals(['C', 'L', 'R', 'D', 'G'])
 
 export const FilterSchema = Schema.Struct({
@@ -52,33 +52,16 @@ export const FilterSchema = Schema.Struct({
 })
 export const RelationSchema = Schema.Literals(['with', 'against', 'either'])
 
-const TeammateFields = {
-  from: Schema.Int,
-  to: Schema.Int,
-  games: Count,
-  teamId: Schema.Int,
-  seasonId: Schema.Int,
-  gameType: GameTypeSchema,
-  gameId: Schema.Int,
-}
-const PlayedWithSchema = Schema.TaggedStruct('PlayedWith', TeammateFields)
-const GoaliePartnersSchema = Schema.TaggedStruct('GoaliePartners', TeammateFields)
-export const TeammateHopSchema = Schema.Union([PlayedWithSchema, GoaliePartnersSchema])
-
-/** The pure search leaves `PlayedAgainst` without a game; the API handler fills `gameId` from the store. */
-const PlayedAgainstSchema = Schema.TaggedStruct('PlayedAgainst', {
-  from: Schema.Int,
-  to: Schema.Int,
-  games: Count,
-  gameId: Schema.Int,
-})
-export const PathHopSchema = Schema.Union([PlayedWithSchema, GoaliePartnersSchema, PlayedAgainstSchema])
+/** On the wire a `PlayedAgainst` hop also carries `gameId`: the API handler fills it from the store. */
+export const WirePlayedAgainst = PlayedAgainst.mapFields(Struct.assign({ gameId: Schema.Int }))
+export const WireHop = Schema.Union([PlayedWith, GoaliePartners, WirePlayedAgainst])
+export type WireHop = typeof WireHop.Type
 
 export const PathResultSchema = Schema.Struct({
   distance: Count,
   pathCount: Count,
   pathCountCapped: Schema.Boolean,
-  paths: Schema.Array(Schema.Array(PathHopSchema)),
+  paths: Schema.Array(Schema.Array(WireHop)),
 })
 
 export const FarthestResultSchema = Schema.Struct({
@@ -86,7 +69,7 @@ export const FarthestResultSchema = Schema.Struct({
   atDistance: Count,
   reachable: Count,
   unreachable: Count,
-  example: Schema.Array(TeammateHopSchema),
+  example: Schema.Array(TeammateHop),
 })
 
 const LinkKindSchema = Schema.Literals(['PlayedWith', 'GoaliePartners'])
@@ -104,17 +87,6 @@ export const LinkResultSchema = Schema.Struct({
   evidenceGameId: Schema.NullOr(Schema.Int),
   opposedGames: Count,
 })
-
-export const FinalsYearSchema = Schema.Union([
-  Schema.TaggedStruct('Hit', {
-    year: Schema.Int,
-    seasonId: Schema.Int,
-    playerId: Schema.Int,
-    finalGameId: Schema.Int,
-    sharedGameId: Schema.Int,
-  }),
-  Schema.TaggedStruct('Miss', { year: Schema.Int, seasonId: Schema.Int }),
-])
 
 // Player rows as served: the players table without `searchName`.
 export const PlayerSummarySchema = Schema.Struct({
@@ -268,7 +240,7 @@ export const GetFinalsCoverageResult = Schema.Struct({
   snapshotId: Schema.String,
   /** The competition rule the answer rests on (D8), as text for display. */
   rule: Schema.String,
-  years: Schema.Array(FinalsYearSchema),
+  years: Schema.Array(FinalsYear),
 })
 
 export const HistoryRpcs = RpcGroup.make(

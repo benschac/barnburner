@@ -7,9 +7,9 @@ import {
   DEFAULT_FILTER, HistoryUnavailable, farthest, finalsCoverage, findPaths, link, makeGraph, opponents,
 } from '@nhl-reddit-stats/history'
 import type { Filter, FinalsYear, HistoryStore, PlayerRow, StintRow } from '@nhl-reddit-stats/history'
+import type { WireHop } from '@nhl-reddit-stats/history/rpc'
 import { fillOpponentHops } from '../src/history-routes.ts'
 import { openHistoryStore } from '../src/history-store.ts'
-import type { WireHop } from '../src/history-routes.ts'
 
 // Query the history serving file from the terminal. It runs the same package functions as the API
 // handlers (findPaths, link, opponents, farthest, finalsCoverage, fillOpponentHops) on the opened store.

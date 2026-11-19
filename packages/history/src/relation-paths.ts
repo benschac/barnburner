@@ -7,8 +7,8 @@ import { HistoryUnavailable, NoPath, UnsupportedFilter } from './contracts.ts'
 import { linkIdBetween, linkPassingGames, opponentAdjacency } from './graph.ts'
 import type { OpponentAdjacency, TeammateGraph } from './graph.ts'
 import { UNREACHED, countChainsBy, enumerateBy, teammateHop } from './paths.ts'
-import { DEFAULT_FILTER, PATH_COUNT_CAP } from './shapes.ts'
-import type { Filter, Hop, PathResult, PlayedAgainst, Relation } from './shapes.ts'
+import { DEFAULT_FILTER, PATH_COUNT_CAP, PlayedAgainst } from './shapes.ts'
+import type { Filter, Hop, PathResult, Relation } from './shapes.ts'
 
 const isDefaultFilter = (filter: Filter): boolean =>
   filter.competition === DEFAULT_FILTER.competition &&
@@ -61,12 +61,8 @@ const relationDistances = (
   return distance
 }
 
-const opponentHop = (graph: TeammateGraph, from: number, to: number, games: number): PlayedAgainst => ({
-  _tag: 'PlayedAgainst',
-  from: graph.arrays.playerIds[from],
-  to: graph.arrays.playerIds[to],
-  games,
-})
+const opponentHop = (graph: TeammateGraph, from: number, to: number, games: number): PlayedAgainst =>
+  PlayedAgainst.make({ from: graph.arrays.playerIds[from], to: graph.arrays.playerIds[to], games })
 
 /** One step towards the target: a teammate link (`linkId >= 0`) or an opponent link (`linkId === -1`). */
 type Step = { readonly other: number; readonly games: number; readonly linkId: number }
