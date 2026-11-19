@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Result } from 'effect'
+import { Effect, Result } from 'effect'
 import type { InsightCard } from '../src/card.ts'
 import { applyDecision, formatForReview } from '../src/review.ts'
 import { readCards, writeCards } from '../src/store.ts'
@@ -144,16 +144,16 @@ test('CLI prints the first card before stdin closes', async () => {
   const script = new URL('../scripts/review-insights.ts', import.meta.url).pathname
   const child = spawn(process.execPath, [script, '--dir', dir], { stdio: ['pipe', 'pipe', 'inherit'] })
   let output = ''
-  const sawPrompt = new Promise<void>((resolveSeen) => {
+  const sawPrompt = Effect.runPromise(Effect.callback<void>((resume) => {
     child.stdout.on('data', (chunk: Buffer) => {
       output += chunk.toString()
-      if (output.includes('skip:')) resolveSeen()
+      if (output.includes('skip:')) resume(Effect.void)
     })
-  })
+  }))
   await sawPrompt // stdin is still open here
   child.stdin.write('a\n')
   child.stdin.end()
-  await new Promise((resolveExit) => child.on('close', resolveExit))
+  await Effect.runPromise(Effect.callback<void>((resume) => { child.on('close', () => resume(Effect.void)) }))
   assert.match(output, /approved 1/)
   assert.equal(Result.getOrThrow(readCards(dir, 'TOR'))[0]?.status, 'approved')
 })

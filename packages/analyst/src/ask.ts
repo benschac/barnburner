@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { Cause, Effect, Exit, Result, Schema } from 'effect'
+import { Cause, Clock, Effect, Exit, Result, Schema } from 'effect'
 import type { LanguageModel } from 'ai'
 import { Llm } from './llm.ts'
 import type { Answer, Db } from './shapes.ts'
@@ -47,15 +47,15 @@ export const ask = (input: AskInput): Effect.Effect<AskResult, AskError, Llm> =>
     ? Effect.fail(new AskError({ message: result.failure.message }))
     : Effect.void))
   const toolset = makeToolset(input.db, input.team)
-  const start = Date.now()
+  const start = yield* Clock.currentTimeMillis
   const result = yield* llm.run({
     system: ASK_SYSTEM,
     prompt: `Team: ${input.team}\nQuestion: ${input.question}`,
     model, tools: toolset.tools, stopWhen: toolset.stopWhen,
   }).pipe(Effect.exit)
-  const latencyMs = Date.now() - start
+  const latencyMs = (yield* Clock.currentTimeMillis) - start
   if (Exit.isFailure(result) && result.cause.reasons.some(Cause.isInterruptReason)) return yield* Effect.interrupt
-  for (const event of toolset.events) yield* append(event)
+  yield* Effect.forEach(toolset.events, (event) => append(event), { discard: true })
   if (Exit.isFailure(result)) {
     const reason = String(Cause.squash(result.cause))
     yield* append({ type: 'outcome', status: 'crashed', detail: reason })

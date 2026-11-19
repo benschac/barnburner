@@ -1,7 +1,7 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Result, Schema, Tuple } from "effect";
+import { DateTime, Result, Schema, Tuple } from "effect";
 import { toJson } from "./json.ts";
 
 export class InvalidRunIdError extends Schema.TaggedError<
@@ -136,7 +136,7 @@ export function openTrace(options: TraceOptions): Result.Result<TraceWriter, Inv
     return Result.fail(new InvalidRunIdError({ runId: options.runId }));
   }
   const dir = options.dir ?? defaultTraceDir();
-  const now = options.now ?? (() => new Date());
+  const now = options.now ?? (() => DateTime.toDateUtc(DateTime.nowUnsafe()));
   const maxToolOutput = options.maxToolOutputChars ?? DEFAULT_MAX_TOOL_OUTPUT_CHARS;
   mkdirSync(dir, { recursive: true });
   const path = join(dir, `${options.runId}.jsonl`);

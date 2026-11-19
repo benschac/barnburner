@@ -66,8 +66,7 @@ export const runEvals = (input: {
   readonly answerer: Answerer
 }): Effect.Effect<EvalRun> =>
   Effect.gen(function* () {
-    const results: CaseResult[] = []
-    for (const c of input.cases) results.push(yield* runCase(c, input.db, input.answerer))
+    const results = yield* Effect.forEach(input.cases, (c) => runCase(c, input.db, input.answerer))
     const passed = results.filter((r) => r.pass).length
     const total = results.length
     return { results, passed, total, score: total === 0 ? 0 : passed / total }
