@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { NodeServices } from '@effect/platform-node'
 import { Effect, FileSystem } from 'effect'
+import { SnapshotLoadError } from '@nhl-reddit-stats/season/rpc'
 import { archiveInsights, filesInsights, loadPublishedInsights } from '../src/insights.ts'
 
 import type { InsightCard } from '@nhl-reddit-stats/analyst/card'
@@ -49,7 +50,7 @@ test('a missing file or directory means no insights, while a present null file f
     assert.deepEqual(await load(root, ['TOR']), [])
     assert.deepEqual(await load(join(root, 'absent'), ['TOR']), [])
     await writeFile(join(root, 'TOR.json'), 'null')
-    await assert.rejects(load(root, ['TOR']), { _tag: 'SnapshotLoadError' })
+    await assert.rejects(load(root, ['TOR']), SnapshotLoadError)
   } finally {
     await rm(root, { recursive: true, force: true })
   }
@@ -73,5 +74,5 @@ test('the archive distinguishes a missing team from a null card file', async () 
   const reader = archiveInsights({ TOR: () => Promise.resolve({ default: null }) })
 
   assert.deepEqual(await Effect.runPromise(loadPublishedInsights(reader, ['MTL'])), [])
-  await assert.rejects(Effect.runPromise(loadPublishedInsights(reader, ['TOR'])), { _tag: 'SnapshotLoadError' })
+  await assert.rejects(Effect.runPromise(loadPublishedInsights(reader, ['TOR'])), SnapshotLoadError)
 })
