@@ -1,6 +1,6 @@
 # Native pattern to Effect core module
 
-Look up the native pattern you are about to write, use the Effect API in the second column, and read its declaration through [core-index.md](core-index.md). The third column names the lint rule that reports the native pattern. `effecttsgo/*` rules come from `@effect/tsgo`; a package reports them once it adopts them in its `.oxlintrc.json`.
+Look up the native pattern you are about to write, use the Effect API in the second column, and read its declaration through [core-index.md](core-index.md). The third column names the lint rule that reports the native pattern. `core/*` rules come from `lint/effect-core-plugin.mjs` and `effecttsgo/*` rules from `@effect/tsgo`; a package reports them once it adopts them in its `.oxlintrc.json`.
 
 Check the declaration before replacing a call. Several Effect versions differ from the native one: `Array.findFirst` returns `Option`, `String.indexOf` returns `Option<number>`, and Effect callbacks take `(value, index)` only.
 
@@ -8,9 +8,9 @@ Check the declaration before replacing a call. Several Effect versions differ fr
 
 | Native | Effect | Rule |
 | --- | --- | --- |
-| `xs.sort((a, b) => a - b)`, `xs.toSorted(...)` | `Array.sort(xs, Order.Number)`; by a key, `Array.sortWith(xs, (x) => x.id, Order.Number)`; several keys, `Array.sortBy(...orders)`; descending, `Order.flip` | |
+| `xs.sort((a, b) => a - b)`, `xs.toSorted(...)` | `Array.sort(xs, Order.Number)`; by a key, `Array.sortWith(xs, (x) => x.id, Order.Number)`; several keys, `Array.sortBy(...orders)`; descending, `Order.flip` | `core/no-native-sort` |
 | An `Order` comparing fields | `Order.mapInput(Order.Number, (x) => x.games)`, `Order.combine`, `Order.Struct` | |
-| `[...new Set(xs)]`, `Array.from(new Set(xs))` | `Array.dedupe(xs)`; by a key, `Array.dedupeWith` | |
+| `[...new Set(xs)]`, `Array.from(new Set(xs))` | `Array.dedupe(xs)`; by a key, `Array.dedupeWith` | `core/no-set-dedupe` |
 | `for` loop that pushes into an array | `Array.map`, `Array.flatMap`, `Array.filterMap`, `Array.partition` | |
 | `xs.reduce((s, x) => s + x, 0)` | `Number.sumAll(xs)` | |
 | Largest or smallest element | `Array.max(xs, Order.Number)`, `Array.min` | |
@@ -24,9 +24,9 @@ Check the declaration before replacing a call. Several Effect versions differ fr
 
 | Native | Effect | Rule |
 | --- | --- | --- |
-| `for (const x of xs) { yield* f(x) }` collecting results | `yield* Effect.forEach(xs, f)`; add `{ concurrency }` when the calls are independent | |
+| `for (const x of xs) { yield* f(x) }` collecting results | `yield* Effect.forEach(xs, f)`; add `{ concurrency }` when the calls are independent | `core/no-yield-in-loop` |
 | `Effect.all(xs.map(f))` | `Effect.forEach(xs, f)` | `effecttsgo/all-of-map-to-for-each` |
-| A loop that threads state through effects | `Effect.reduce` | |
+| A loop that threads state through effects | `Effect.reduce` | `core/no-yield-in-loop` |
 | `Promise.all`, `new Promise`, `async` functions | `Effect.forEach`, `Effect.callback`, `Effect.gen` | `effecttsgo/new-promise`, `effecttsgo/async-function` |
 | `yield*` written as a call argument | Yield into a `const` first, or `Effect.map` | `effecttsgo/yield-in-call-argument` |
 
