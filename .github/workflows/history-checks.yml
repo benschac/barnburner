@@ -40,8 +40,6 @@ jobs:
   history:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      ANTI_SLOP_BASE: origin/${{ github.base_ref }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -65,7 +63,11 @@ jobs:
         run: bun run test:history
       - name: History package checks
         working-directory: packages/history
+        env:
+          ANTI_SLOP_BASE: origin/${{ github.base_ref }}
         run: bun run typecheck && bun run lint && bun run test
       - name: API checks
         working-directory: apps/api
+        env:
+          ANTI_SLOP_BASE: origin/${{ github.base_ref }}
         run: bun run typecheck && bun run lint && bun run test
