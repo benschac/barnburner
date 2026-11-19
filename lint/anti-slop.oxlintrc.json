@@ -28,7 +28,7 @@
   ],
   "rules": {
     "oxc/no-accumulating-spread": "error",
-    "typescript/no-non-null-assertion": "warn",
+    "typescript/no-non-null-assertion": "error",
     "complexity": [
       "warn",
       {

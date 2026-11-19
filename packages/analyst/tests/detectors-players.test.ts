@@ -58,11 +58,12 @@ for (const [label, detect] of Object.entries(detectors)) {
 test('points-leader matches summed fixture points', async () => {
   await withDb(async (db) => {
     const [draft] = pointsLeader('NJD')
-    const { rows } = await Effect.runPromise(db.queryCanonical(draft!.evidence.query))
+    assert.ok(draft)
+    const { rows } = await Effect.runPromise(db.queryCanonical(draft.evidence.query))
     assert.equal(rows.length, 1)
     const top = await Effect.runPromise(
       db.query("select max(t) as m from (select sum(p) as t from skater_games where team = 'NJD' group by player_id)"),
     )
-    assert.equal(Number(rows[0]!.points), Number(top.rows[0]!.m))
+    assert.equal(Number(rows[0].points), Number(top.rows[0].m))
   })
 })

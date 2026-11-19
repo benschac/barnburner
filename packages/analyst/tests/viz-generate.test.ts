@@ -16,7 +16,7 @@ const stub = (texts: ReadonlyArray<string>) => {
   let n = 0
   return new MockLanguageModelV4({
     doGenerate: async () => ({
-      content: [{ type: 'text', text: texts[Math.min(n++, texts.length - 1)]! }],
+      content: [{ type: 'text', text: texts[Math.min(n++, texts.length - 1)] }],
       finishReason: { unified: 'stop', raw: undefined },
       usage,
       warnings: [],
@@ -45,19 +45,19 @@ test('generateView summarises a 1,000-row table: three rows, the count and the c
   const rows: Tables[string] = Array.from({ length: 1000 }, (_, i) => row(i))
   const model = stub([reply(good)])
   await run(generateView({ ...base, tables: { games: rows }, model }))
-  const prompt = JSON.stringify(model.doGenerateCalls[0]!.prompt)
+  const prompt = JSON.stringify(model.doGenerateCalls[0].prompt)
   assert.match(prompt, /1000/)
   assert.match(prompt, /team-0/)
   assert.match(prompt, /team-2\\"/)
   assert.doesNotMatch(prompt, /team-3\\"/)
   assert.doesNotMatch(prompt, /team-999/)
-  assert.deepEqual(describeTables({ games: rows })[0]!.columns, ['id', 'team', 'late'])
+  assert.deepEqual(describeTables({ games: rows })[0].columns, ['id', 'team', 'late'])
 })
 
 test('repairView sends the failure text', async () => {
   const model = stub([reply(good)])
   await run(repairView({ code: bad, failure: 'boom', system: 'sys', model }))
-  assert.match(JSON.stringify(model.doGenerateCalls[0]!.prompt), /boom/)
+  assert.match(JSON.stringify(model.doGenerateCalls[0].prompt), /boom/)
 })
 
 test('generateChecked: clean first answer makes one call', async () => {
@@ -74,7 +74,7 @@ test('generateChecked: one repaired answer', async () => {
   assert.equal(out.code, good)
   assert.equal(out.repairs, 1)
   assert.equal(model.doGenerateCalls.length, 2)
-  assert.match(JSON.stringify(model.doGenerateCalls[1]!.prompt), /not allowed/)
+  assert.match(JSON.stringify(model.doGenerateCalls[1].prompt), /not allowed/)
 })
 
 test('generateChecked: three bad answers fail after two repairs', async () => {

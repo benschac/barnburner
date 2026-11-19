@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { Effect } from 'effect'
+import { executeOf } from '../src/tools/execute-of.ts'
 import { makeSqlTool } from '../src/tools/sql.ts'
 import { makeAnswerTool } from '../src/tools/answer.ts'
 import { makeDeclineTool } from '../src/tools/decline.ts'
@@ -20,10 +21,11 @@ for (const kind of ['sql', 'answer'] as const) {
     }).pipe(Effect.ensuring(Effect.sync(() => { finalized = true })))
     const db = fakeDb({})
     const options = { toolCallId: 'cancel', messages: [], context: {}, abortSignal: controller.signal }
+    const sql = makeSqlTool({ db, guard })
+    const answer = makeAnswerTool({ db, guard, team: 'NJD', onAnswer: () => assert.fail('cancelled answer recorded') })
     const pending = kind === 'sql'
-      ? makeSqlTool({ db, guard }).execute!({ query: 'SELECT 1' }, options)
-      : makeAnswerTool({ db, guard, team: 'NJD', onAnswer: () => assert.fail('cancelled answer recorded') })
-        .execute!({ query: 'SELECT 1', row: 0, column: 'value' }, options)
+      ? executeOf(sql.execute)({ query: 'SELECT 1' }, options)
+      : executeOf(answer.execute)({ query: 'SELECT 1', row: 0, column: 'value' }, options)
     const rejected = assert.rejects(Promise.resolve(pending))
     await entered.opened
     controller.abort()
@@ -36,14 +38,14 @@ test('terminal tools do not record callbacks with an already aborted signal', as
   const signal = AbortSignal.abort()
   const options = { toolCallId: 'cancel', messages: [], context: {}, abortSignal: signal }
   const decline = makeDeclineTool({ onDecline: () => assert.fail('cancelled decline recorded') })
-  await assert.rejects(Promise.resolve(decline.execute!({ reason: 'no data' }, options)))
+  await assert.rejects(Promise.resolve(executeOf(decline.execute)({ reason: 'no data' }, options)))
   const submit = makeSubmitCardTool({
     db: fakeDb({}), guard: () => Effect.succeed({ ok: true, touchesBoxscores: false }),
     verify: () => Effect.succeed({ ok: true }), finals: new Set(),
     meta: { model: 'mock', runId: 'cancel', asOf: { fetchedAt: '2026-11-17', completedGameIds: 0 } },
     onCard: () => assert.fail('cancelled card recorded'),
   })
-  await assert.rejects(Promise.resolve(submit.execute!({
+  await assert.rejects(Promise.resolve(executeOf(submit.execute)({
     team: 'NJD', kind: 'trend', headline: 'test', body: 'test', bindings: {}, evidence: { query: 'SELECT 1' },
   }, options)))
 })
@@ -63,7 +65,7 @@ test('submit_card: abort interrupts verification and prevents recording', async 
     meta: { model: 'mock', runId: 'cancel', asOf: { fetchedAt: '2026-11-17', completedGameIds: 0 } },
     onCard: () => assert.fail('cancelled card recorded'),
   })
-  const rejected = assert.rejects(Promise.resolve(submit.execute!({
+  const rejected = assert.rejects(Promise.resolve(executeOf(submit.execute)({
     team: 'NJD', kind: 'trend', headline: 'test', body: 'test', bindings: {}, evidence: { query: 'SELECT 1' },
   }, { toolCallId: 'cancel', messages: [], context: {}, abortSignal: controller.signal })))
   await entered.opened

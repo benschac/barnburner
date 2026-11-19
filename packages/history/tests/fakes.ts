@@ -15,6 +15,13 @@ import type { HistoryStore } from '../src/store.ts'
  * Links in (a, b) order: 11-12, 11-13, 12-14, 13-14, 14-15, 15-16, 16-17, 17-18, 19-20.
  * Only 16-17 is a goalie-partner span (3 games, first game E). Opponent pairs are the 15 of C-mini.
  */
+/** The opponent arrays of C-mini, defined apart so tests can read them without optional access. */
+export const MINI_OPPONENTS = {
+  oppA: Uint16Array.of(0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4),
+  oppB: Uint16Array.of(4, 5, 8, 9, 4, 5, 6, 7, 5, 8, 9, 5, 6, 7, 5),
+  oppGames: Uint16Array.of(2, 2, 1, 1, 2, 3, 1, 1, 1, 1, 1, 4, 1, 1, 2),
+}
+
 export const MINI_ARRAYS: GraphArrays = {
   playerIds: Uint32Array.of(11, 12, 13, 14, 15, 16, 17, 18, 19, 20),
   seasonIds: Uint32Array.of(19501951, 19511952),
@@ -30,9 +37,7 @@ export const MINI_ARRAYS: GraphArrays = {
   spanFirstGame: Uint32Array.of(
     1950020001, 1950020003, 1951020001, 1951020003, 1951030111, 1950020001, 1951020001, 1951020002, 1950020003,
   ),
-  oppA: Uint16Array.of(0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4),
-  oppB: Uint16Array.of(4, 5, 8, 9, 4, 5, 6, 7, 5, 8, 9, 5, 6, 7, 5),
-  oppGames: Uint16Array.of(2, 2, 1, 1, 2, 3, 1, 1, 1, 1, 1, 4, 1, 1, 2),
+  ...MINI_OPPONENTS,
 }
 
 export const MINI_GRAPH: TeammateGraph = makeGraph(MINI_ARRAYS)

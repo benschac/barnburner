@@ -120,7 +120,8 @@ export const runCli = (
   const options = new Map<string, string>()
   let invalidOption: string | undefined
   for (let index = 0; index < args.length; index += 2) {
-    const key = args[index]!
+    const key = args[index]
+    if (key === undefined) break
     const value = args[index + 1]
     if (!['--data-dir', '--output-dir', '--cases-dir'].includes(key) || !value || value.startsWith('--') || options.has(key)) {
       invalidOption = key

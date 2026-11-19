@@ -9,7 +9,7 @@ import { FetchHttpClient, HttpRouter } from 'effect/http'
 import { RpcClient, RpcClientError, RpcSerialization } from 'effect/rpc'
 import { HistoryUnavailable, UnknownPlayer, UnknownRoster } from '@nhl-reddit-stats/history'
 import { HistoryRpcs } from '@nhl-reddit-stats/history/rpc'
-import { MINI_ARRAYS, MINI_GAMES, MINI_SNAPSHOT_ID, makeMiniStore } from '../../../packages/history/tests/fakes.ts'
+import { MINI_ARRAYS, MINI_OPPONENTS, MINI_GAMES, MINI_SNAPSHOT_ID, makeMiniStore } from '../../../packages/history/tests/fakes.ts'
 import { History, HistoryRoutes } from '../src/history-routes.ts'
 
 const fake = makeMiniStore()
@@ -26,13 +26,13 @@ const SERVE_TABLES = `
   CREATE TABLE graph_arrays (name TEXT PRIMARY KEY, bytes BLOB);
 `
 
-const blobs: Record<string, ArrayBufferView> = {
+const blobs = {
   player_ids: MINI_ARRAYS.playerIds, season_ids: MINI_ARRAYS.seasonIds, team_ids: MINI_ARRAYS.teamIds,
   edge_a: MINI_ARRAYS.edgeA, edge_b: MINI_ARRAYS.edgeB, span_start: MINI_ARRAYS.spanStart,
   span_season: MINI_ARRAYS.spanSeason, span_kind: MINI_ARRAYS.spanKind, span_team: MINI_ARRAYS.spanTeam,
   span_link: MINI_ARRAYS.spanLink, span_games: MINI_ARRAYS.spanGames, span_first_game: MINI_ARRAYS.spanFirstGame,
-  opp_a: MINI_ARRAYS.oppA!, opp_b: MINI_ARRAYS.oppB!, opp_games: MINI_ARRAYS.oppGames!,
-}
+  opp_a: MINI_OPPONENTS.oppA, opp_b: MINI_OPPONENTS.oppB, opp_games: MINI_OPPONENTS.oppGames,
+} satisfies Record<string, ArrayBufferView>
 
 /** Writes the C-mini serving database. Rows come from the in-memory fake so both sides share one source. */
 const writeMini = (path: string) => {

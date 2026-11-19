@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { SqlError } from '../src/shapes.ts'
 import type { Row } from '../src/shapes.ts'
+import { executeOf } from '../src/tools/execute-of.ts'
 import { makeSqlTool, runSql } from '../src/tools/sql.ts'
 import { fakeDb, fakeGuard } from './fakes.ts'
 
@@ -37,6 +38,6 @@ test('sql: rows are capped', async () => {
 test('sql: tool wraps runSql', async () => {
   const db = fakeDb({ q: [{ a: 1 }] })
   const t = makeSqlTool({ db, guard: ok })
-  const out = await t.execute!({ query: 'q' }, { toolCallId: 't', messages: [] } as never)
+  const out = await executeOf(t.execute)({ query: 'q' }, { toolCallId: 't', messages: [], context: {} })
   assert.equal(JSON.parse(out as string).rowCount, 1)
 })

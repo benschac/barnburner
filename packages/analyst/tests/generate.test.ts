@@ -39,7 +39,7 @@ const draft: CardDraft = {
 const scripted = (responses: ReadonlyArray<ReturnType<typeof call> | typeof prose>) => {
   let index = 0
 
-  return new MockLanguageModelV4({ doGenerate: async () => responses[Math.min(index++, responses.length - 1)]! })
+  return new MockLanguageModelV4({ doGenerate: async () => responses[Math.min(index++, responses.length - 1)] })
 }
 
 const run = async (model: MockLanguageModelV4) => {
@@ -62,9 +62,9 @@ test('generate returns the verified card and traces it', async () => {
   const { result, events } = await run(scripted([call('submit_card', draft), prose]))
   assert.equal(result.outcome, 'cards')
   assert.equal(result.cards.length, 1)
-  assert.equal(result.cards[0]!.status, 'pending')
-  assert.equal(result.cards[0]!.runId, result.runId)
-  assert.equal(result.cards[0]!.asOf.completedGameIds, 3)
+  assert.equal(result.cards[0].status, 'pending')
+  assert.equal(result.cards[0].runId, result.runId)
+  assert.equal(result.cards[0].asOf.completedGameIds, 3)
   assert.deepEqual(events.map((event) => event.type), ['tool_call', 'card', 'model_call', 'outcome'])
   assert.equal(events[0].output, 'ok')
   assert.equal(events.at(-1).status, 'cards')

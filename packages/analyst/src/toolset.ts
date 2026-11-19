@@ -5,6 +5,7 @@ import { guardQuery } from './guard.ts'
 import { makeSqlTool } from './tools/sql.ts'
 import { makeAnswerTool } from './tools/answer.ts'
 import { makeDeclineTool } from './tools/decline.ts'
+import { executeOf } from './tools/execute-of.ts'
 import type { ToolCallEvent } from './trace.ts'
 
 export const MAX_STEPS = 12
@@ -45,9 +46,9 @@ export const makeToolset = (db: Db, team: string) => {
   const answerTool = makeAnswerTool({ db: bounded, guard: guardQuery, team, onAnswer: (value) => { answer ??= value } })
   const decline = makeDeclineTool({ onDecline: (reason) => { answer ??= { _tag: 'Declined', reason } } })
   const tools = {
-    sql: { ...sql, execute: traced('sql', sql.execute!) },
-    answer: { ...answerTool, execute: traced('answer', answerTool.execute!) },
-    decline: { ...decline, execute: traced('decline', decline.execute!) },
+    sql: { ...sql, execute: traced('sql', executeOf(sql.execute)) },
+    answer: { ...answerTool, execute: traced('answer', executeOf(answerTool.execute)) },
+    decline: { ...decline, execute: traced('decline', executeOf(decline.execute)) },
   }
   const stopWhen: StopCondition<ToolSet> = ({ steps }) => {
     for (const step of steps.slice(tracedSteps)) {

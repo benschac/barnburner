@@ -7,7 +7,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { Effect, Exit, Schema, Scope } from 'effect'
 import { HistoryUnavailable, UnknownPlayer, UnknownRoster } from '@nhl-reddit-stats/history'
 import type { GraphArrays } from '@nhl-reddit-stats/history'
-import { MINI_ARRAYS, MINI_GAMES, MINI_SNAPSHOT_ID, makeMiniStore } from '../../../packages/history/tests/fakes.ts'
+import { MINI_ARRAYS, MINI_OPPONENTS, MINI_GAMES, MINI_SNAPSHOT_ID, makeMiniStore } from '../../../packages/history/tests/fakes.ts'
 import { openHistoryStore, openScopedHistoryStore } from '../src/history-store.ts'
 
 const fake = makeMiniStore()
@@ -34,13 +34,13 @@ const DRESSED_TABLE = `
 const DRESSED_ROWS: ReadonlyArray<readonly [number, number, number]> = [1951020001, 1951020002, 1951020003]
   .flatMap((gameId) => [16, 17].map((playerId) => [gameId, 3, playerId] as const))
 
-const blobs: Record<string, ArrayBufferView> = {
+const blobs = {
   player_ids: MINI_ARRAYS.playerIds, season_ids: MINI_ARRAYS.seasonIds, team_ids: MINI_ARRAYS.teamIds,
   edge_a: MINI_ARRAYS.edgeA, edge_b: MINI_ARRAYS.edgeB, span_start: MINI_ARRAYS.spanStart,
   span_season: MINI_ARRAYS.spanSeason, span_kind: MINI_ARRAYS.spanKind, span_team: MINI_ARRAYS.spanTeam,
   span_link: MINI_ARRAYS.spanLink, span_games: MINI_ARRAYS.spanGames, span_first_game: MINI_ARRAYS.spanFirstGame,
-  opp_a: MINI_ARRAYS.oppA!, opp_b: MINI_ARRAYS.oppB!, opp_games: MINI_ARRAYS.oppGames!,
-}
+  opp_a: MINI_OPPONENTS.oppA, opp_b: MINI_OPPONENTS.oppB, opp_games: MINI_OPPONENTS.oppGames,
+} satisfies Record<string, ArrayBufferView>
 
 /** Writes the C-mini serving database. Rows come from the in-memory fake so both sides share one source. */
 const writeMini = (path: string, withDressed = true) => {
@@ -113,9 +113,11 @@ test('loads the snapshot id and teammate arrays equal to the fixture', () => wit
 }))
 
 test('opponent arrays load lazily and match the fixture', () => withMini(async (store) => {
-  assert.deepEqual(plain(store.graph.arrays.oppA!), plain(MINI_ARRAYS.oppA!))
-  assert.deepEqual(plain(store.graph.arrays.oppB!), plain(MINI_ARRAYS.oppB!))
-  assert.deepEqual(plain(store.graph.arrays.oppGames!), plain(MINI_ARRAYS.oppGames!))
+  const { oppA, oppB, oppGames } = store.graph.arrays
+  assert.ok(oppA && oppB && oppGames)
+  assert.deepEqual(plain(oppA), plain(MINI_OPPONENTS.oppA))
+  assert.deepEqual(plain(oppB), plain(MINI_OPPONENTS.oppB))
+  assert.deepEqual(plain(oppGames), plain(MINI_OPPONENTS.oppGames))
   assert.equal(store.graph.arrays.oppA, store.graph.arrays.oppA)
 }))
 

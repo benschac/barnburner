@@ -1,4 +1,4 @@
-import { Array, Effect, Order, Result, Schema } from 'effect'
+import { Array, Effect, Option, Order, Result, Schema } from 'effect'
 import type { LanguageModel } from 'ai'
 import { Llm } from './llm.ts'
 import type { LlmError } from './llm.ts'
@@ -146,10 +146,10 @@ export const rank = (input: RankInput): Effect.Effect<RankResult, RankError | Ll
     }).pipe(Effect.catchTag('LlmOutputError', (error) => Effect.fail(new RankError({ message: error.message, ...(error.raw === undefined ? {} : { raw: error.raw }) }))))
     const parsed = yield* validateScores(result.object, new Set(cards.map((c) => c.id)))
     const byId = new Map(parsed.scores.map((s) => [s.id, s]))
-    const ranked = cards.map((card): RankedCard => {
-      const s = byId.get(card.id)!
-      return { card, novelty: s.novelty, specificity: s.specificity, readability: s.readability, total: s.novelty + s.specificity + s.readability }
-    })
+    const ranked = yield* Effect.forEach(cards, (card) => Option.match(Option.fromNullishOr(byId.get(card.id)), {
+      onNone: () => Effect.fail(new RankError({ message: `No score for card ${card.id}` })),
+      onSome: (s): Effect.Effect<RankedCard> => Effect.succeed({ card, novelty: s.novelty, specificity: s.specificity, readability: s.readability, total: s.novelty + s.specificity + s.readability }),
+    }))
     const top = Array.sort(ranked, byRank).slice(0, TOP_N)
     return { ranked: top, dropped }
   })
