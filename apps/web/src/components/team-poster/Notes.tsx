@@ -4,6 +4,7 @@ import { Copy, List, Row, RuledHeading } from './primitives'
 
 export function Notes({ insights }: { insights: readonly PublishedInsight[] }) {
   if (insights.length === 0) return null
+
   return (
     <View render="section" aria-labelledby="notes-heading" gridColumn="md:1 / -1 poster:auto print:auto">
       <RuledHeading id="notes-heading">Notes</RuledHeading>
