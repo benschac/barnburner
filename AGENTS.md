@@ -87,3 +87,10 @@ For web UI changes, follow [the enforced design contract](apps/web/design/README
 - `bun run test:anti-slop` runs the vendored rule tests.
 - `bun run lint:jev` runs the paid Jev rules in `lint/anti-slop-jev.oxlintrc.json` on changed lines. It needs `TYPESAFE_API_KEY` or `AI_GATEWAY_API_KEY`; without one it warns and skips, and under `CI` it fails. It is not part of `bun run lint`. Keep the key out of the editor's environment, or the Oxlint extension asks Jev on every edit.
 - The `anti-slop-xstate` rules target XState 5 and are not registered.
+
+# Secrets
+
+- varlock `1.23.0` declares environment variables in the root `.env.schema`. Mark secrets `@sensitive=true`. Add a key to the schema before code reads it.
+- Real values live in gitignored `.env.local`. Agents never read, print, or edit `.env.local` or any `.env*` file other than `.env.schema`.
+- Check that values resolve with `bun run env:check` (`varlock load --agent`), which never prints sensitive values.
+- Live commands (`ask`, `evals`, `insights:generate`) run through `varlock run --`, which injects the values and masks them in output.
