@@ -1,4 +1,4 @@
-import { Context, Effect, FileSystem, Layer, Schema } from 'effect'
+import { Array, Context, Effect, FileSystem, Layer, Order, Schema, String as Str } from 'effect'
 import { BoxscoreLoadError, BoxscoreNotArchived, UnknownGame } from '@nhl-reddit-stats/season/rpc'
 import type { GameBoxscore } from '@nhl-reddit-stats/season/rpc'
 import { boxScoreMatchesGame } from '../../../lib/nhl-boxscores.mjs'
@@ -20,13 +20,18 @@ const ArchivedBoxscore = Schema.Struct({
   id: Schema.Int, date: Schema.String, decision: Schema.Literals(['REG', 'OT', 'SO']), awayTeam: ArchivedTeam, homeTeam: ArchivedTeam,
 })
 
+const byText = Order.make<string>((self, that) => Str.localeCompare(that)(self))
+const byScorer = Order.combineAll<typeof ArchivedSkater.Type>([
+  Order.flip(Order.mapInput(Order.Number, (player) => player.points)),
+  Order.flip(Order.mapInput(Order.Number, (player) => player.goals)),
+  Order.mapInput(byText, (player) => player.name.default),
+])
+
 const summarizeTeam = (team: typeof ArchivedTeam.Type): GameBoxscore['homeTeam'] => ({
   abbrev: team.abbrev,
   score: team.score,
   shotsOnGoal: team.shotsOnGoal,
-  scorers: [...team.players.forwards, ...team.players.defense]
-    .filter((player) => player.points > 0)
-    .sort((a, b) => b.points - a.points || b.goals - a.goals || a.name.default.localeCompare(b.name.default))
+  scorers: Array.sort([...team.players.forwards, ...team.players.defense].filter((player) => player.points > 0), byScorer)
     .map(({ playerId, name, goals, assists, points }) => ({ playerId, name: name.default, goals, assists, points })),
   goalies: team.players.goalies
     .filter((goalie) => goalie.toi !== '00:00')

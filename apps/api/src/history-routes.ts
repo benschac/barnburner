@@ -1,4 +1,4 @@
-import { ByteSize, Context, Effect, Layer, Match, Result, Scope } from 'effect'
+import { Array, ByteSize, Context, Effect, Layer, Match, Order, Result, Scope } from 'effect'
 import { HttpIncomingMessage, HttpRouter } from 'effect/http'
 import { RpcSerialization, RpcServer } from 'effect/rpc'
 import {
@@ -53,7 +53,10 @@ export const fillOpponentHops = (store: HistoryStore, result: PathResult): Effec
       GoaliePartners: (h) => Effect.succeed<WireHop>(h),
       PlayedAgainst: (h) => Effect.gen(function* () {
         const games = yield* store.opposedGames(h.from, h.to)
-        const first = [...games].sort((x, y) => x.gameDate.localeCompare(y.gameDate) || x.gameId - y.gameId)[0]
+        const first = Array.sortBy(
+          Order.mapInput(Order.String, (game: typeof games[number]) => game.gameDate),
+          Order.mapInput(Order.Number, (game: typeof games[number]) => game.gameId),
+        )(games)[0]
         if (first === undefined) {
           return yield* new HistoryUnavailable({ message: `No opposed game on record for players ${h.from} and ${h.to}.` })
         }

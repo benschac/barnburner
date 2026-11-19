@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Effect, Layer } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { FetchHttpClient, HttpRouter } from 'effect/http'
 import { RpcClient, RpcClientError, RpcSerialization } from 'effect/rpc'
 import { NoPath, UnknownPlayer, UnsupportedFilter } from '@nhl-reddit-stats/history'
@@ -40,19 +40,19 @@ test('FindPath returns tied chains in order with the full count', () => withFake
 
 test('FindPath fails with UnknownPlayer and NoPath', () => withFake(async (client) => {
   const unknown = await flip(client.FindPath({ from: 99, to: 11, filter: DEFAULT, relation: 'with', limit: 1 }))
-  assert.ok(unknown instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(unknown))
   assert.equal(unknown.playerId, 99)
   const none = await flip(client.FindPath({ from: 11, to: 19, filter: DEFAULT, relation: 'with', limit: 1 }))
-  assert.ok(none instanceof NoPath)
+  assert.ok(Schema.is(NoPath)(none))
   assert.deepEqual([none.from, none.to], [11, 19])
-  assert.ok((await flip(client.FindPath({ from: 11, to: 18, filter: NO_PARTNERS, relation: 'with', limit: 1 }))) instanceof NoPath)
+  assert.ok(Schema.is(NoPath)(await flip(client.FindPath({ from: 11, to: 18, filter: NO_PARTNERS, relation: 'with', limit: 1 }))))
 }))
 
 test('FindPath serves the opponent relations and rejects their filters', () => withFake(async (client) => {
   const error = await flip(client.FindPath({ from: 11, to: 14, filter: NO_PARTNERS, relation: 'against', limit: 1 }))
-  assert.ok(error instanceof UnsupportedFilter)
+  assert.ok(Schema.is(UnsupportedFilter)(error))
   assert.equal(error.relation, 'against')
-  assert.ok((await flip(client.FindPath({ from: 11, to: 14, filter: NO_PARTNERS, relation: 'either', limit: 1 }))) instanceof UnsupportedFilter)
+  assert.ok(Schema.is(UnsupportedFilter)(await flip(client.FindPath({ from: 11, to: 14, filter: NO_PARTNERS, relation: 'either', limit: 1 }))))
   const against = await Effect.runPromise(client.FindPath({ from: 11, to: 19, filter: DEFAULT, relation: 'against', limit: 1 }))
   assert.equal(against.distance, 1)
   assert.deepEqual(against.paths[0].map((hop) => hop._tag), ['PlayedAgainst'])
@@ -72,5 +72,5 @@ test('GetFarthest reports the farthest teammates and an example chain', () => wi
   assert.equal(result.example[0]?.from, 11)
   assert.ok(result.atDistance >= 1)
   assert.ok(result.unreachable >= 2)
-  assert.ok((await flip(client.GetFarthest({ playerId: 99, filter: DEFAULT }))) instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(await flip(client.GetFarthest({ playerId: 99, filter: DEFAULT }))))
 }))

@@ -10,6 +10,7 @@ import { promisify } from 'node:util'
 import { execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
+import { Effect } from 'effect'
 
 const execFileAsync = promisify(execFile)
 const script = fileURLToPath(new URL('../scripts/fetch-history.ts', import.meta.url))
@@ -35,7 +36,9 @@ before(async () => {
     }
     response.writeHead(200, { 'content-type': 'application/gzip' }).end(gzipped)
   })
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  await Effect.runPromise(Effect.callback<void>((resume) => {
+    server.listen(0, '127.0.0.1', () => resume(Effect.void))
+  }))
   const { port } = server.address() as AddressInfo
   baseUrl = `http://127.0.0.1:${port}`
 })
