@@ -1,3 +1,4 @@
+import { Array, DateTime, Order } from 'effect'
 import { teams, teamSeason } from '@nhl-reddit-stats/season'
 import type { Standing, TeamData, TeamGame } from '@nhl-reddit-stats/season'
 
@@ -25,12 +26,15 @@ const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: '
 const longDate = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })
 const retrievedDate = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' })
 
+// Formats an ISO date or timestamp with an Intl formatter.
+export const formatDate = (formatter: Intl.DateTimeFormat, input: string) => DateTime.formatIntl(DateTime.makeUnsafe(input), formatter)
+
 export function ordinal(value: number) {
   const lastTwo = value % 100
   return `${value}${lastTwo >= 11 && lastTwo <= 13 ? 'th' : value % 10 === 1 ? 'st' : value % 10 === 2 ? 'nd' : value % 10 === 3 ? 'rd' : 'th'}`
 }
 export function gameDateTime(game: SeasonGame) {
-  return `${shortDate.format(new Date(game.date))}, ${easternTime.format(new Date(game.startTime))} ET`
+  return `${formatDate(shortDate, game.date)}, ${formatDate(easternTime, game.startTime)} ET`
 }
 export function playoffGap({ selectedPoints, teamPoints }: PlayoffComparison) {
   return selectedPoints - teamPoints
@@ -71,12 +75,12 @@ export function teamPoster(data: TeamData, selectedTeam: string) {
   const currentStanding = data.poster.standings.find((entry) => entry.team === selectedTeam)
   const latestComparison = playoffComparison(data.poster.standings, selectedTeam)
   const latestPlayoffCushion = latestComparison && describePlayoffComparison(latestComparison)
-  const divisionStandings = data.poster.standings.filter((entry) =>
-    teams.find((team) => team.abbrev === entry.team)?.division === metadata.division && entry.divisionSequence <= 3)
-    .sort((a, b) => a.divisionSequence - b.divisionSequence)
-  const wildcards = data.poster.standings.filter((entry) =>
-    teams.find((team) => team.abbrev === entry.team)?.conference === metadata.conference && entry.wildcardSequence > 0)
-    .sort((a, b) => a.wildcardSequence - b.wildcardSequence)
+  const divisionStandings = Array.sortWith(data.poster.standings.filter((entry) =>
+    teams.find((team) => team.abbrev === entry.team)?.division === metadata.division && entry.divisionSequence <= 3),
+  (entry) => entry.divisionSequence, Order.Number)
+  const wildcards = Array.sortWith(data.poster.standings.filter((entry) =>
+    teams.find((team) => team.abbrev === entry.team)?.conference === metadata.conference && entry.wildcardSequence > 0),
+  (entry) => entry.wildcardSequence, Order.Number)
   const cutoffRows = wildcards.slice(0, 5)
   const selectedWildcard = wildcards.find((row) => row.team === selectedTeam)
   if (selectedWildcard && !cutoffRows.includes(selectedWildcard)) cutoffRows.push(selectedWildcard)
@@ -103,16 +107,16 @@ export function teamPoster(data: TeamData, selectedTeam: string) {
   }))
   const upcoming = season.games.filter((game) => game.outcome === 'pending').slice(0, 5).map(({ game, opponent, venue }) => ({
     id: game.id, team: opponent, venue: venue === 'home' ? 'vs' : '@', date: Number(game.date.slice(-2)),
-    day: weekday.format(new Date(game.date)).toUpperCase(),
-    time: game.scheduleState === 'PPD' ? 'Postponed' : easternTime.format(new Date(game.startTimeUTC)),
+    day: formatDate(weekday, game.date).toUpperCase(),
+    time: game.scheduleState === 'PPD' ? 'Postponed' : formatDate(easternTime, game.startTimeUTC),
   }))
   return {
     team: metadata, seasonGames, completedGames, divisions, standings, recent, upcoming, latestPlayoffCushion,
     specialTeams: club?.specialTeams.map((entry) => ({ label: entry.label, rank: ordinal(entry.rank), value: entry.value.toFixed(1) })) ?? [],
     leaders: club?.leaders ?? [],
-    snapshotDate: longDate.format(new Date(throughDate)),
-    fetchedAt: retrievedDate.format(new Date(data.season.fetchedAt)),
-    posterFetchedAt: retrievedDate.format(new Date(data.poster.fetchedAt)),
+    snapshotDate: formatDate(longDate, throughDate),
+    fetchedAt: formatDate(retrievedDate, data.season.fetchedAt),
+    posterFetchedAt: formatDate(retrievedDate, data.poster.fetchedAt),
     seasonSummary: {
       record: record(final), points: season.points, divisionPlace: currentStanding ? ordinal(currentStanding.divisionSequence) : 'Unranked',
       home: record(final.filter((game) => game.venue === 'home')), road: record(final.filter((game) => game.venue === 'away')),

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Result } from 'effect'
+import { Array, Order, Result, Schema } from 'effect'
 import { HistoryUnavailable, NoPath, UnknownPlayer, UnsupportedFilter } from '../src/contracts.ts'
 import { link, makeGraph, opponentAdjacency, opponents } from '../src/graph.ts'
 import { findPaths } from '../src/paths.ts'
@@ -40,7 +40,10 @@ test('every player lists exactly the C-mini pairs, symmetric, most games first t
     expected.set(b, [...(expected.get(b) ?? []), { playerId: a, games }])
   }
   for (const playerId of MINI_ARRAYS.playerIds) {
-    const want = (expected.get(playerId) ?? []).sort((x, y) => y.games - x.games || x.playerId - y.playerId)
+    const want = Array.sortBy(
+      Order.mapInput(Order.flip(Order.Number), (row: { readonly games: number; readonly playerId: number }) => row.games),
+      Order.mapInput(Order.Number, (row: { readonly games: number; readonly playerId: number }) => row.playerId),
+    )(expected.get(playerId) ?? [])
     assert.deepEqual(opponentsOf(playerId), want, `opponents of ${playerId}`)
   }
 })
@@ -56,7 +59,7 @@ test('12 against 16 is 3 games: the dressed goalie in game D adds none', () => {
 test('goalie 21, dressed only, is unknown; a small-league player lists only who he faced', () => {
   const unknown = opponents(MINI_GRAPH, 21)
   assert.ok(Result.isFailure(unknown))
-  assert.ok(unknown.failure instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(unknown.failure))
   assert.deepEqual(opponentsOf(20), [{ playerId: 11, games: 1 }, { playerId: 13, games: 1 }])
 })
 
@@ -114,7 +117,7 @@ test('against only with no opponent pairs at all is NoPath, not HistoryUnavailab
     11, 19, DEFAULT_FILTER, 'against', 1,
   )
   assert.ok(Result.isFailure(none))
-  assert.ok(none.failure instanceof NoPath)
+  assert.ok(Schema.is(NoPath)(none.failure))
 })
 
 test('either relation, 11 to 18: distance 2, 11-12 as teammates then 12-18 as opponents', () => {
@@ -161,7 +164,7 @@ test('against and either reject any non-default filter with UnsupportedFilter', 
     for (const filter of filters) {
       const result = paths(11, 19, relation, filter)
       assert.ok(Result.isFailure(result), `${relation} with a non-default filter`)
-      assert.ok(result.failure instanceof UnsupportedFilter)
+      assert.ok(Schema.is(UnsupportedFilter)(result.failure))
       assert.equal(result.failure.relation, relation)
     }
   }
@@ -183,14 +186,14 @@ test('against and either on a graph without opponent arrays are HistoryUnavailab
   for (const relation of ['against', 'either'] as const) {
     const result = findPaths(graph, 11, 19, DEFAULT_FILTER, relation, 1)
     assert.ok(Result.isFailure(result))
-    assert.ok(result.failure instanceof HistoryUnavailable)
+    assert.ok(Schema.is(HistoryUnavailable)(result.failure))
   }
 })
 
 test('unknown players fail before the filter is considered', () => {
   const result = paths(99, 11, 'against', filterWith({ competition: 'regular' }))
   assert.ok(Result.isFailure(result))
-  assert.ok(result.failure instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(result.failure))
 })
 
 const manyPaths = (from: number, to: number, relation: Relation, limit: number): PathResult => {

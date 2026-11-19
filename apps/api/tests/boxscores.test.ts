@@ -4,7 +4,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { NodeHttpServer, NodeServices } from '@effect/platform-node'
-import { Effect, Layer } from 'effect'
+import { Array, Effect, Layer, Order, Schema } from 'effect'
 import { HttpRouter, HttpServer } from 'effect/http'
 import { BoxscoreLoadError, BoxscoreNotArchived, UnknownGame } from '@nhl-reddit-stats/season/rpc'
 import { BoxscoreSource, rpcBoxscoreSourceLayer } from '../../web/src/season-source.ts'
@@ -15,7 +15,7 @@ import season from '../../../data/nhl-20262027.json' with { type: 'json' }
 import poster from '../../../data/nhl-poster-20262027.json' with { type: 'json' }
 
 const archiveDirectory = fileURLToPath(new URL('../../../data/boxscores/20262027', import.meta.url))
-const archivedIds = readdirSync(archiveDirectory).map((file) => Number(file.replace('.json', ''))).sort((a, b) => a - b)
+const archivedIds = Array.sort(readdirSync(archiveDirectory).map((file) => Number(file.replace('.json', ''))), Order.Number)
 const readArchived = (id: number) => JSON.parse(readFileSync(`${archiveDirectory}/${id}.json`, 'utf8'))
 const archivedId = archivedIds[0]
 
@@ -28,7 +28,8 @@ const request = <A, E>(boxScores: Layer.Layer<BoxScores>, run: (source: typeof B
   return yield* Effect.gen(function* () {
     const http = yield* HttpServer.HttpServer
     return yield* Effect.gen(function* () {
-      return yield* run(yield* BoxscoreSource)
+      const source = yield* BoxscoreSource
+      return yield* run(source)
     }).pipe(Effect.provide(rpcBoxscoreSourceLayer(`${HttpServer.formatAddress(http.address)}/api/rpc`)))
   }).pipe(Effect.provide(server))
 }).pipe(Effect.scoped))
@@ -52,8 +53,8 @@ test('GetGameBoxscore returns a trimmed summary of the archived file', async () 
     assert.equal(box[side].shotsOnGoal, archived.shotsOnGoal)
     const skaters = [...archived.players.forwards, ...archived.players.defense]
     assert.deepEqual(
-      box[side].scorers.map((player) => player.playerId).sort(),
-      skaters.filter((player: { points: number }) => player.points > 0).map((player: { playerId: number }) => player.playerId).sort(),
+      Array.sort(box[side].scorers.map((player) => player.playerId), Order.Number),
+      Array.sort(skaters.filter((player: { points: number }) => player.points > 0).map((player: { playerId: number }) => player.playerId), Order.Number),
     )
     assert.equal(box[side].scorers.reduce((total, player) => total + player.goals, 0), skaters.reduce((total: number, player: { goals: number }) => total + player.goals, 0))
     const played = archived.players.goalies.filter((goalie: { toi: string }) => goalie.toi !== '00:00')
@@ -61,7 +62,7 @@ test('GetGameBoxscore returns a trimmed summary of the archived file', async () 
       played.map(({ playerId, saves, shotsAgainst }: { playerId: number, saves: number, shotsAgainst: number }) => ({ playerId, saves, shotsAgainst })))
     for (const goalie of box[side].goalies) assert.equal(goalie.savePct, goalie.shotsAgainst === 0 ? null : goalie.saves / goalie.shotsAgainst)
     const points = box[side].scorers.map((player) => player.points)
-    assert.deepEqual(points, [...points].sort((a, b) => b - a))
+    assert.deepEqual(points, Array.sort(points, Order.flip(Order.Number)))
   }
   assert.ok(JSON.stringify(box).length < 4096, 'the response is a summary, not the raw archive')
 })
@@ -70,7 +71,7 @@ test('an unknown game id fails with a typed error before storage is touched', as
   const { calls, layer } = counting(() => readArchived(archivedId))
   for (const gameId of [1, 2026029999, 2026020041 + 1e9]) {
     const error = await request(layer, (source) => Effect.flip(source.load(gameId)))
-    assert.ok(error instanceof UnknownGame)
+    assert.ok(Schema.is(UnknownGame)(error))
     assert.equal(error.gameId, gameId)
   }
   assert.deepEqual(calls, [])
@@ -81,12 +82,12 @@ test('a scheduled game without an archived box score reports not archived', asyn
   const pending = season.games.find((game) => game.result === null)
   assert.ok(final && pending)
   const missing = await request(files, (source) => Effect.flip(source.load(final.id)))
-  assert.ok(missing instanceof BoxscoreNotArchived)
+  assert.ok(Schema.is(BoxscoreNotArchived)(missing))
   assert.equal(missing.gameId, final.id)
   // A game that has not finished is never read from storage, even if a file existed for it.
   const { calls, layer } = counting(() => readArchived(archivedId))
   const unplayed = await request(layer, (source) => Effect.flip(source.load(pending.id)))
-  assert.ok(unplayed instanceof BoxscoreNotArchived)
+  assert.ok(Schema.is(BoxscoreNotArchived)(unplayed))
   assert.deepEqual(calls, [])
 })
 
@@ -96,7 +97,7 @@ test('unreadable or mismatched archive contents are a load failure, not a missin
   for (const contents of [{}, readArchived(other), { ...readArchived(archivedId), decision: 'REG' === readArchived(archivedId).decision ? 'SO' : 'REG' }]) {
     const { layer } = counting(() => contents)
     const error = await request(layer, (source) => Effect.flip(source.load(archivedId)))
-    assert.ok(error instanceof BoxscoreLoadError)
+    assert.ok(Schema.is(BoxscoreLoadError)(error))
   }
 })
 

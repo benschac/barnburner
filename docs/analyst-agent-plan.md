@@ -75,7 +75,7 @@ Rules that shaped this plan:
 2. Branch from the top of the stack (the orchestrator names it) as `analyst/<id>-<slug>`.
 3. Write only the files on the **Write** list. If the task needs a change anywhere else, stop and report.
 4. Read the card's **Read** list first. You may also read anything under `packages/analyst/` and the installed types of its dependencies. Do not explore the rest of the repo.
-5. For Effect APIs, copy the style of `packages/season/src/contracts.ts` and check the `node_modules/effect` types. `.agent-sources/effect` is only a README and has no Schema or Layer topics.
+5. For Effect APIs, copy the style of `packages/season/src/contracts.ts` and check the `node_modules/effect` types. `.agent-sources/effect/index.md` lists every module.
 6. A dependency that is not merged yet is a parameter, not an import. Use the types in `src/shapes.ts` and the fakes in `tests/fakes.ts`.
 7. Commit when **Done** passes. Do not push. Report the Done output.
 8. Follow AGENTS.md.

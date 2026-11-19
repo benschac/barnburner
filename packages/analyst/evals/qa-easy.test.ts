@@ -17,7 +17,7 @@ test('six easy cases decode and return one value column on fixture data', async 
     Effect.scoped(
       Effect.gen(function* () {
         const db = yield* openDb({ dataDir })
-        for (const c of cases) {
+        yield* Effect.forEach(cases, (c) => Effect.gen(function* () {
           assert.equal(c.expect, 'value', c.id)
           assert.ok(c.truthSql !== null, c.id)
           const { rows } = yield* db.query(c.truthSql)
@@ -27,7 +27,7 @@ test('six easy cases decode and return one value column on fixture data', async 
           assert.deepEqual(Object.keys(row), ['value'], c.id)
           assert.equal(typeof row.value, 'number', c.id)
           assert.ok(Number.isFinite(row.value), c.id)
-        }
+        }), { discard: true })
       }),
     ),
   )

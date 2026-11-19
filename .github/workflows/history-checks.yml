@@ -9,6 +9,12 @@ on:
       - 'scripts/check_nhl_*.py'
       - 'scripts/nhl-history-*.py'
       - 'scripts/nhl_*.py'
+      - 'scripts/refresh-effect-api.mjs'
+      - 'scripts/index-effect-core.mjs'
+      - 'scripts/*.mjs'
+      - 'lib/**'
+      - 'lint/node-scripts.oxlintrc.json'
+      - '.agent-sources/effect/**'
       - 'tests/**'
       - 'packages/history/**'
       - 'packages/season/**'
@@ -44,6 +50,10 @@ jobs:
         with:
           bun-version: 1.4.3
       - run: bun install --frozen-lockfile
+      - name: Effect API index matches the installed packages
+        run: bun run check:effect-api
+      - name: Node scripts use the Effect platform services
+        run: bun run check:node-scripts
       - name: Python history checks
         run: bun run test:history
       - name: History package checks

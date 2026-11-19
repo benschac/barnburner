@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
-import { Effect, Result, Schema } from 'effect'
+import { Array, Effect, Order, Result, Schema } from 'effect'
 import {
   DEFAULT_FILTER, farthest, finalsCoverage, findPaths, link, makeGraph,
 } from '@nhl-reddit-stats/history'
@@ -181,14 +181,12 @@ const componentCount = (graph: TeammateGraph, partners: boolean): number => {
 /** Runs `farthest` from every player (partners off). A component of size s is seen s times, so it counts 1/s each. */
 const sweepFarthest = (graph: TeammateGraph) => Effect.gen(function* () {
   const sizes = new Map<number, number>()
-  let diameter = 0
-  for (const playerId of graph.arrays.playerIds) {
-    const found = farthest(graph, playerId, PARTNERS_OFF)
-    if (Result.isFailure(found)) return yield* found.failure
-    const size = found.success.reachable + 1
-    sizes.set(size, (sizes.get(size) ?? 0) + 1)
-    diameter = Math.max(diameter, found.success.distance)
-  }
+  const diameter = yield* Effect.reduce(graph.arrays.playerIds, () => 0, (widest, playerId) =>
+    Effect.map(Effect.fromResult(farthest(graph, playerId, PARTNERS_OFF)), (found) => {
+      const size = found.reachable + 1
+      sizes.set(size, (sizes.get(size) ?? 0) + 1)
+      return Math.max(widest, found.distance)
+    }))
   let components = 0
   for (const [size, count] of sizes) components += count / size
   return { components, diameter }
@@ -206,7 +204,7 @@ const mulberry32 = (seed: number) => {
 }
 
 const median = (values: ReadonlyArray<number>) => {
-  const sorted = values.toSorted((x, y) => x - y)
+  const sorted = Array.sort(values, Order.Number)
   return sorted.length === 0 ? 0 : sorted[Math.floor(sorted.length / 2)]
 }
 
@@ -215,7 +213,7 @@ const spanKey = (season: number, type: number, team: number, games: number, firs
 
 const evaluate = (store: HistoryStore, graph: TeammateGraph, truth: Truth, baseline: boolean, skipDiameter: boolean) =>
   Effect.gen(function* () {
-    const lines: Array<Line> = []
+    const lines: Line[] = []
     const push = (status: Line['status'], name: string, detail: string) => { lines.push({ status, name, detail }) }
     const verdict = (name: string, ok: boolean, detail: string) => push(ok ? 'PASS' : 'FAIL', name, detail)
     // A case that needs data the truth file lacks: a failure on the baseline, a skip elsewhere.
@@ -306,11 +304,11 @@ const evaluate = (store: HistoryStore, graph: TeammateGraph, truth: Truth, basel
     const truthCleghorn = truth.cleghorn_1918020026 ?? null
     if (cleghorn === null || truthCleghorn === null) missing('Cleghorn in game 1918020026', 'Cleghorn is not in the truth file')
     else {
-      let found = 0
-      for (const entry of truthCleghorn) {
-        const shared = yield* store.sharedGames(cleghorn, entry.teammate_id, CLEGHORN_SEASON, 2, entry.team_id, 'PlayedWith')
-        if (shared.filter((g) => g.gameId === CLEGHORN_GAME).length === entry.shared_games) found += 1
-      }
+      const exact = yield* Effect.forEach(truthCleghorn, (entry) => Effect.map(
+        store.sharedGames(cleghorn, entry.teammate_id, CLEGHORN_SEASON, 2, entry.team_id, 'PlayedWith'),
+        (shared) => shared.filter((g) => g.gameId === CLEGHORN_GAME).length === entry.shared_games,
+      ))
+      const found = exact.filter((isExact) => isExact).length
       verdict('Cleghorn in game 1918020026', found === truthCleghorn.length && (!baseline || truthCleghorn.length > 0),
         `${found} of ${truthCleghorn.length} teammates in the game have exactly one shared game`)
     }
@@ -324,9 +322,11 @@ const evaluate = (store: HistoryStore, graph: TeammateGraph, truth: Truth, basel
       const together = link(graph, hill, samsonov, DEFAULT_FILTER)
       if (Result.isFailure(together)) return yield* together.failure
       const partner = together.success.spans.filter((s) => s.link === 'GoaliePartners')
-      const actualKeys = partner.map((s) => spanKey(s.seasonId, s.gameType, s.teamId, s.games, s.firstGameId)).toSorted()
-      const truthKeys = (truthHill.partner_spans ?? [])
-        .map((s) => spanKey(s.season_id, s.game_type, s.team_id, s.games, s.first_game_id)).toSorted()
+      const actualKeys = Array.sort(partner.map((s) => spanKey(s.seasonId, s.gameType, s.teamId, s.games, s.firstGameId)), Order.String)
+      const truthKeys = Array.sort(
+        (truthHill.partner_spans ?? []).map((s) => spanKey(s.season_id, s.game_type, s.team_id, s.games, s.first_game_id)),
+        Order.String,
+      )
       const { stints } = yield* store.player(hill)
       const vegas = new Set(stints.filter((s) => s.teamAbbrev === 'VGK').map((s) => s.teamId))
       const atVegas = partner.some((s) => s.seasonId === 20242025 && vegas.has(s.teamId))
@@ -366,11 +366,11 @@ const evaluate = (store: HistoryStore, graph: TeammateGraph, truth: Truth, basel
     }
 
     const finals = yield* store.finals(0, 9999)
-    const teamsBySeason = new Map(finals.map((f) => [f.seasonId, [...new Set(f.participants.map((p) => p.teamId))].toSorted((x, y) => x - y)] as const))
+    const teamsBySeason = new Map(finals.map((f) => [f.seasonId, Array.sort(Array.dedupe(f.participants.map((p) => p.teamId)), Order.Number)] as const))
     const notTwo = [...teamsBySeason].filter(([, teams]) => teams.length !== 2).length
     const differing = Object.entries(truth.cup_final_seasons.teams_by_season).filter(([season, teams]) => {
       const actual = teamsBySeason.get(Number(season))
-      return actual === undefined || actual.join(',') !== teams.toSorted((x, y) => x - y).join(',')
+      return actual === undefined || actual.join(',') !== Array.sort(teams, Order.Number).join(',')
     }).length
     const finalsCount = teamsBySeason.size
     const countOk = baseline
@@ -379,11 +379,14 @@ const evaluate = (store: HistoryStore, graph: TeammateGraph, truth: Truth, basel
     verdict('seasons with a flagged Cup Final', countOk && notTwo === 0 && differing === 0,
       `actual ${finalsCount}, truth ${truth.cup_final_seasons.count}${baseline ? `, baseline ${BASELINE.flaggedFinals}` : ''}; not two teams: ${notTwo}; differing from truth: ${differing}`)
 
-    const mismatches: Array<string> = []
+    const mismatches: string[] = []
     const badPairs = new Set<number>()
-    for (const [index, pair] of truth.pairs.entries()) {
-      const on = yield* answerOf(graph, pair.a, pair.b, DEFAULT_FILTER)
-      const off = yield* answerOf(graph, pair.a, pair.b, PARTNERS_OFF)
+    const answers = yield* Effect.forEach(truth.pairs, (pair) => Effect.all({
+      pair: Effect.succeed(pair),
+      on: answerOf(graph, pair.a, pair.b, DEFAULT_FILTER),
+      off: answerOf(graph, pair.a, pair.b, PARTNERS_OFF),
+    }))
+    for (const [index, { pair, on, off }] of answers.entries()) {
       if (!sameAnswer(on, pair.partners_on)) {
         badPairs.add(index)
         mismatches.push(`${pair.a}-${pair.b} on: ${describeAnswer(on)} vs ${describeAnswer(pair.partners_on)}`)
@@ -403,7 +406,7 @@ const medianFindPaths = (graph: TeammateGraph, calls: number) => {
   if (ids.length < 2) return 0
   const random = mulberry32(20240101)
   const pick = () => ids[Math.floor(random() * ids.length)]
-  const times: Array<number> = []
+  const times: number[] = []
   for (let i = 0; i < calls; i += 1) {
     const a = pick()
     const b = pick()

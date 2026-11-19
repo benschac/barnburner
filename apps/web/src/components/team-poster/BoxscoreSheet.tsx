@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from 'react'
+import { DateTime } from 'effect'
 import { Theme, View, useThemeName } from 'tamagui'
 import type { TamaguiElement } from 'tamagui'
 import type { GameBoxscore } from '@nhl-reddit-stats/season/rpc'
@@ -87,7 +88,7 @@ function Scoreboard({ boxscore }: { boxscore: GameBoxscore }) {
   const { awayTeam, homeTeam, decision } = boxscore
   return <View gap="4" py="6" borderBottomWidth={2} borderBottomColor="rule" role="status"
     aria-label={`${awayTeam.abbrev} ${awayTeam.score}, ${homeTeam.abbrev} ${homeTeam.score}, final${decision === 'REG' ? '' : ` in ${decision === 'OT' ? 'overtime' : 'a shootout'}`}. Shots on goal: ${awayTeam.abbrev} ${awayTeam.shotsOnGoal}, ${homeTeam.abbrev} ${homeTeam.shotsOnGoal}.`}>
-    <Label text="center" aria-hidden>{gameDate.format(new Date(`${boxscore.date}T12:00:00Z`))} · {decision === 'REG' ? 'FINAL' : `FINAL/${decision}`}</Label>
+    <Label text="center" aria-hidden>{DateTime.formatIntl(DateTime.makeUnsafe(`${boxscore.date}T12:00:00Z`), gameDate)} · {decision === 'REG' ? 'FINAL' : `FINAL/${decision}`}</Label>
     <Row justify="space-between" gap="4 sm:8" items="flex-start" aria-hidden>
       {[awayTeam, homeTeam].map((team, index) => <View key={team.abbrev} flex={1} minW="0" items="center" gap="3">
         <TeamBanner team={team} />

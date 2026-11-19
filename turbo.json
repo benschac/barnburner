@@ -1,6 +1,6 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
-  "globalDependencies": ["data/*.json", "lib/*.mjs", "data/history/serving.json"],
+  "globalDependencies": ["data/*.json", "lib/*.mjs", "lib/*.d.mts", "data/history/serving.json"],
   "tasks": {
     "@nhl-reddit-stats/api#history:fetch": {
       "cache": false

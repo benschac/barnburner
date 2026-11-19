@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, renameSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { DatabaseSync } from 'node:sqlite'
-import { Effect } from 'effect'
+import { Effect, Exit, Schema, Scope } from 'effect'
 import { HistoryUnavailable, UnknownPlayer, UnknownRoster } from '@nhl-reddit-stats/history'
 import type { GraphArrays } from '@nhl-reddit-stats/history'
 import { MINI_ARRAYS, MINI_GAMES, MINI_SNAPSHOT_ID, makeMiniStore } from '../../../packages/history/tests/fakes.ts'
-import { openHistoryStore } from '../src/history-store.ts'
+import { openHistoryStore, openScopedHistoryStore } from '../src/history-store.ts'
 
 const fake = makeMiniStore()
 const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect)
@@ -198,7 +198,7 @@ test('finals groups flagged games by season with participants', () => withMini(a
 }))
 
 test('a missing file is HistoryUnavailable', () => withDirectory(async (directory) => {
-  assert.ok((await fail(openHistoryStore(join(directory, 'absent.sqlite')))) instanceof HistoryUnavailable)
+  assert.ok(Schema.is(HistoryUnavailable)(await fail(openHistoryStore(join(directory, 'absent.sqlite')))))
 }))
 
 test('a wrong schema version, a missing table, and a missing blob are HistoryUnavailable', () => withDirectory(async (directory) => {
@@ -208,11 +208,39 @@ test('a wrong schema version, a missing table, and a missing blob are HistoryUna
     const db = new DatabaseSync(path)
     change(db)
     db.close()
-    assert.ok((await fail(openHistoryStore(path))) instanceof HistoryUnavailable, name)
+    assert.ok(Schema.is(HistoryUnavailable)(await fail(openHistoryStore(path))), name)
   }
   await mutate('version', (db) => db.exec("UPDATE meta SET value = '2' WHERE key = 'schema_version'"))
   await mutate('no-snapshot', (db) => db.exec("DELETE FROM meta WHERE key = 'snapshot_id'"))
   await mutate('no-table', (db) => db.exec('DROP TABLE stints'))
+  // Only the Finals query reads `cup_final`, so this fails at open only because every query is compiled there.
+  await mutate('no-column', (db) => db.exec('ALTER TABLE games RENAME COLUMN cup_final TO final_flag'))
   await mutate('no-blob', (db) => db.exec("DELETE FROM graph_arrays WHERE name = 'edge_a'"))
   await mutate('odd-blob', (db) => db.exec("UPDATE graph_arrays SET bytes = x'010203' WHERE name = 'span_games'"))
+}))
+
+test('the opponent arrays refuse a file replaced by another snapshot after open', () => withDirectory(async (directory) => {
+  const path = join(directory, 'nhl-serve.sqlite')
+  writeMini(path)
+  const store = await openMini(path)
+  const replacement = join(directory, 'next.sqlite')
+  writeMini(replacement)
+  const db = new DatabaseSync(replacement)
+  db.exec("UPDATE meta SET value = 'next' WHERE key = 'snapshot_id'")
+  db.close()
+  renameSync(replacement, path)
+  assert.throws(() => store.graph.arrays.oppA)
+}))
+
+test('a scoped store closes its connection with the scope', () => withDirectory(async (directory) => {
+  const path = join(directory, 'nhl-serve.sqlite')
+  writeMini(path)
+  const store = await run(Effect.gen(function* () {
+    const scope = yield* Scope.make()
+    const opened = yield* openScopedHistoryStore(path).pipe(Scope.provide(scope))
+    assert.equal((yield* opened.player(11)).player.playerId, 11)
+    yield* Scope.close(scope, Exit.void)
+    return opened
+  }))
+  assert.ok(Schema.is(HistoryUnavailable)(await fail(store.player(11))))
 }))

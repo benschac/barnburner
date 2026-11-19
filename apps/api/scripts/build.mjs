@@ -1,9 +1,10 @@
 import { spawnSync } from 'node:child_process'
+import { logError, logInfo } from '../../../lib/logger.mjs'
 import { readdirSync, rmSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 // The history serving file ships inside the history function, so a failed fetch fails the build.
-const fetchHistory = spawnSync(process.execPath, [fileURLToPath(new URL('./fetch-history.mjs', import.meta.url))], { stdio: 'inherit' })
+const fetchHistory = spawnSync(process.execPath, [fileURLToPath(new URL('./fetch-history.ts', import.meta.url))], { stdio: 'inherit' })
 if (fetchHistory.status !== 0) process.exit(1)
 
 const archiveDirectory = fileURLToPath(new URL('../../../data/boxscores/20262027/', import.meta.url))
@@ -27,21 +28,21 @@ const archive = {
 rmSync(outdir, { recursive: true, force: true })
 const result = await Bun.build({
   entrypoints: [fileURLToPath(new URL('../src/web-handler.ts', import.meta.url))],
-  outdir, target: 'node', format: 'esm', splitting: true, plugins: [archive],
+  outdir, throw: false, target: 'node', format: 'esm', splitting: true, plugins: [archive],
 })
 if (!result.success) {
-  for (const log of result.logs) console.error(log)
+  for (const log of result.logs) logError(Bun.inspect(log))
   process.exit(1)
 }
-console.log(`Bundled web handler with ${ids.length} lazily loaded box scores`)
+logInfo(`Bundled web handler with ${ids.length} lazily loaded box scores`)
 
 // The history function is its own bundle: it reads one serving file and needs no snapshot JSON or archive.
 const history = await Bun.build({
   entrypoints: [fileURLToPath(new URL('../src/history-handler.ts', import.meta.url))],
-  outdir, target: 'node', format: 'esm', splitting: false,
+  outdir, throw: false, target: 'node', format: 'esm', splitting: false,
 })
 if (!history.success) {
-  for (const log of history.logs) console.error(log)
+  for (const log of history.logs) logError(Bun.inspect(log))
   process.exit(1)
 }
-console.log('Bundled history handler')
+logInfo('Bundled history handler')

@@ -1,3 +1,5 @@
+/* oxlint-disable no-restricted-imports, no-restricted-properties -- legacy: port to the Effect platform services, see "Node scripts" in AGENTS.md */
+import { logInfo } from '../lib/logger.mjs'
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 
@@ -71,4 +73,4 @@ await mkdir(new URL('.agent-sources/tamagui/', root), { recursive: true })
 await writeFile(new URL('.agent-sources/tamagui/docs.txt', root), bytes)
 await writeFile(new URL('.agent-sources/tamagui/index.md', root), index)
 await writeFile(new URL('.agent-sources/sources.json', root), `${JSON.stringify({ ...sources, tamagui: source }, null, 2)}\n`)
-console.log(`Cached ${bytes.length} bytes and indexed ${topics.length} Tamagui topics`)
+logInfo(`Cached ${bytes.length} bytes and indexed ${topics.length} Tamagui topics`)

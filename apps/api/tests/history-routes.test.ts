@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { DatabaseSync } from 'node:sqlite'
-import { Context, Effect, Exit, Layer, Scope } from 'effect'
+import { Array, Context, Effect, Exit, Layer, Order, Schema, Scope } from 'effect'
 import { FetchHttpClient, HttpRouter } from 'effect/http'
 import { RpcClient, RpcClientError, RpcSerialization } from 'effect/rpc'
 import { HistoryUnavailable, UnknownPlayer, UnknownRoster } from '@nhl-reddit-stats/history'
@@ -106,7 +106,7 @@ test('SearchPlayers folds accents, orders by games, and honors the limit', () =>
   assert.deepEqual(accented.players.map((p) => p.playerId), [19])
   const all = await Effect.runPromise(client.SearchPlayers({ query: 'player', limit: 20 }))
   const games = all.players.map((p) => p.games)
-  assert.deepEqual(games, [...games].sort((a, b) => b - a))
+  assert.deepEqual(games, Array.sort(games, Order.flip(Order.Number)))
   assert.ok(all.players.length > 2)
   const limited = await Effect.runPromise(client.SearchPlayers({ query: 'player', limit: 2 }))
   assert.deepEqual(limited.players, all.players.slice(0, 2))
@@ -119,17 +119,17 @@ test('GetPlayer returns the player and stints; an unknown player is UnknownPlaye
   assert.equal(found.player.name, expected.player.name)
   assert.deepEqual(found.stints, expected.stints)
   const error = await flip(client.GetPlayer({ playerId: 999 }))
-  assert.ok(error instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(error))
   assert.equal(error.playerId, 999)
 }))
 
 test('a missing serving file is HistoryUnavailable on every call', () => withClient(join(tmpdir(), 'history-routes-missing.sqlite'), async (client) => {
-  assert.ok((await flip(client.SearchPlayers({ query: 'a', limit: 1 }))) instanceof HistoryUnavailable)
-  assert.ok((await flip(client.GetPlayer({ playerId: 11 }))) instanceof HistoryUnavailable)
+  assert.ok(Schema.is(HistoryUnavailable)(await flip(client.SearchPlayers({ query: 'a', limit: 1 }))))
+  assert.ok(Schema.is(HistoryUnavailable)(await flip(client.GetPlayer({ playerId: 11 }))))
 }))
 
 test('no configured file is HistoryUnavailable', () => withClient(undefined, async (client) => {
-  assert.ok((await flip(client.GetPlayer({ playerId: 11 }))) instanceof HistoryUnavailable)
+  assert.ok(Schema.is(HistoryUnavailable)(await flip(client.GetPlayer({ playerId: 11 }))))
 }))
 
 const DEFAULT = { competition: 'all', fromSeason: null, toSeason: null, goaliePartners: true } as const
@@ -165,8 +165,8 @@ test('GetRoster links a goalie partner, a roster-mate with none, and the focus r
 }))
 
 test('GetRoster fails with UnknownRoster and UnknownPlayer', () => withFake(async (client) => {
-  assert.ok((await flip(client.GetRoster({ teamId: 99, seasonId: 19511952, gameType: 2 }))) instanceof UnknownRoster)
-  assert.ok((await flip(client.GetRoster({ teamId: 3, seasonId: 19511952, gameType: 2, focusPlayerId: 999 }))) instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownRoster)(await flip(client.GetRoster({ teamId: 99, seasonId: 19511952, gameType: 2 }))))
+  assert.ok(Schema.is(UnknownPlayer)(await flip(client.GetRoster({ teamId: 3, seasonId: 19511952, gameType: 2, focusPlayerId: 999 }))))
 }))
 
 test('GetLink honors the goalie-partner filter and reports unknown players', () => withFake(async (client) => {
@@ -177,7 +177,7 @@ test('GetLink honors the goalie-partner filter and reports unknown players', () 
   const off = await Effect.runPromise(client.GetLink({ a: 16, b: 17, filter: { ...DEFAULT, goaliePartners: false } }))
   assert.equal(off.totalGames, 0)
   assert.equal(off.evidenceGameId, null)
-  assert.ok((await flip(client.GetLink({ a: 16, b: 999, filter: DEFAULT }))) instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(await flip(client.GetLink({ a: 16, b: 999, filter: DEFAULT }))))
 }))
 
 test('GetSharedGames returns the shared games for 11-12', () => withFake(async (client) => {
@@ -208,7 +208,7 @@ test('closing the History layer releases the SQLite connection, and the file ope
     assert.equal(store.snapshotId, MINI_SNAPSHOT_ID)
     assert.equal((await Effect.runPromise(store.searchPlayers('dvorak', 5))).length, 1)
     await Effect.runPromise(Scope.close(scope, Exit.void))
-    assert.ok((await flip(store.searchPlayers('dvorak', 5))) instanceof HistoryUnavailable)
+    assert.ok(Schema.is(HistoryUnavailable)(await flip(store.searchPlayers('dvorak', 5))))
     // The file is free again: it can be rewritten and a fresh layer reads it.
     rmSync(path)
     writeMini(path)

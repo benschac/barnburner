@@ -8,6 +8,7 @@ import { MockLanguageModelV4 } from 'ai/test'
 import { ask } from '../src/ask.ts'
 import { Llm } from '../src/llm.ts'
 import type { Db } from '../src/shapes.ts'
+import { makeGate, rejectOnAbort } from './gate.ts'
 const db: Db = { query: () => Effect.succeed({ rows: [], rowCount: 0 }), queryCanonical: () => Effect.succeed({ rows: [], rowCount: 0 }) }
 const usage = { inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined }, outputTokens: { total: 5, text: 5, reasoning: undefined } }
 for (const terminal of [true, false]) test(`ask records ${terminal ? 'decline' : 'crash for unverified prose'}`, async () => {
@@ -55,15 +56,11 @@ test('ask stops after three failed tools and does not fabricate an answer', asyn
 test('ask preserves cancellation rather than reporting a crash', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'ask-abort-'))
   const controller = new AbortController()
-  let started!: () => void
-  const start = new Promise<void>((resolve) => { started = resolve })
-  const model = new MockLanguageModelV4({ doGenerate: ({ abortSignal }) => new Promise((_resolve, reject) => {
-    started()
-    abortSignal!.addEventListener('abort', () => reject(new Error('aborted')), { once: true })
-  }) })
+  const gate = makeGate()
+  const model = new MockLanguageModelV4({ doGenerate: ({ abortSignal }) => rejectOnAbort(abortSignal, gate.open) })
   try {
     const running = Effect.runPromise(ask({ question: 'q', team: 'NJD', db, model, traceDir: dir }).pipe(Effect.provide(Llm.layer())), { signal: controller.signal })
-    await start
+    await gate.opened
     controller.abort()
     await assert.rejects(running)
   } finally { rmSync(dir, { recursive: true, force: true }) }

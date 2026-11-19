@@ -1,8 +1,9 @@
+import { logError } from '../../../lib/logger.mjs'
 import { readdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { join, relative } from 'node:path'
 const root = fileURLToPath(new URL('../', import.meta.url))
-const excluded = new Set(['node_modules', 'dist', '.tamagui', '.turbo', '.git'])
+const excluded = new Set(['node_modules', 'dist', '.tamagui', '.turbo', '.next', '.git'])
 const failures = []
 async function visit(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -13,6 +14,6 @@ async function visit(dir) {
 }
 await visit(root)
 if (failures.length) {
-  console.error(`Handwritten stylesheets are forbidden: ${failures.join(', ')}`)
+  logError(`Handwritten stylesheets are forbidden: ${failures.join(', ')}`)
   process.exitCode = 1
 }

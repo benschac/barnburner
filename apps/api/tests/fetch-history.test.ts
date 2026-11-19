@@ -10,9 +10,10 @@ import { promisify } from 'node:util'
 import { execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
+import { Effect } from 'effect'
 
 const execFileAsync = promisify(execFile)
-const script = fileURLToPath(new URL('../scripts/fetch-history.mjs', import.meta.url))
+const script = fileURLToPath(new URL('../scripts/fetch-history.ts', import.meta.url))
 
 const payload = Buffer.from('SQLite format 3\u0000 fake serving payload for the fetch test')
 const payloadSha = createHash('sha256').update(payload).digest('hex')
@@ -25,13 +26,19 @@ let hits = 0
 before(async () => {
   server = createServer((request, response) => {
     hits += 1
+    if (request.url === '/not-gzip.gz') {
+      response.writeHead(200, { 'content-type': 'application/gzip' }).end(payload)
+      return
+    }
     if (request.url !== '/nhl-serve.sqlite.gz') {
       response.writeHead(404).end()
       return
     }
     response.writeHead(200, { 'content-type': 'application/gzip' }).end(gzipped)
   })
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  await Effect.runPromise(Effect.callback<void>((resume) => {
+    server.listen(0, '127.0.0.1', () => resume(Effect.void))
+  }))
   const { port } = server.address() as AddressInfo
   baseUrl = `http://127.0.0.1:${port}`
 })
@@ -57,9 +64,12 @@ function writePointer(dir: string, overrides: Record<string, unknown> = {}) {
   return pointerPath
 }
 
-async function run(args: string[]) {
+async function run(args: string[], env: Record<string, string> = {}) {
   try {
-    const { stdout, stderr } = await execFileAsync(process.execPath, [script, ...args], { encoding: 'utf8' })
+    const { stdout, stderr } = await execFileAsync(process.execPath, [script, ...args], {
+      encoding: 'utf8',
+      env: { ...process.env, HISTORY_KEEP_LOCAL: '', ...env },
+    })
     return { status: 0, stdout, stderr }
   } catch (error) {
     const failed = error as { code?: number; stdout?: string; stderr?: string }
@@ -174,6 +184,51 @@ test('concurrent fetches use their own temp files and leave a verified file', as
     for (const result of results) assert.equal(result.status, 0, result.stderr)
     assert.deepEqual(readFileSync(out), payload)
     assert.deepEqual(readdirSync(dir).filter((name) => name.endsWith('.part')), [])
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('HISTORY_KEEP_LOCAL=1 keeps a stale output like --keep-existing', async () => {
+  const dir = workDir()
+  try {
+    const out = join(dir, 'nhl-serve.sqlite')
+    writeFileSync(out, 'stale')
+    const kept = await run(['--pointer', join(dir, 'absent.json'), '--out', out], { HISTORY_KEEP_LOCAL: '1' })
+    assert.equal(kept.status, 0, kept.stderr)
+    assert.equal(readFileSync(out, 'utf8'), 'stale')
+    const removed = await run(['--pointer', join(dir, 'absent.json'), '--out', out], { HISTORY_KEEP_LOCAL: '0' })
+    assert.equal(removed.status, 0, removed.stderr)
+    assert.equal(existsSync(out), false)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('a flag without its value is a usage error, not a path', async () => {
+  const dir = workDir()
+  try {
+    const out = join(dir, 'nhl-serve.sqlite')
+    const result = await run(['--pointer', '--out', out])
+    assert.equal(result.status, 1)
+    assert.match(result.stderr + result.stdout, /Missing value for flag --pointer/)
+    assert.deepEqual(readdirSync(dir), [])
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('a failed download or a body that is not gzip exits 1 and leaves no file behind', async () => {
+  const dir = workDir()
+  try {
+    const out = join(dir, 'nhl-serve.sqlite')
+    for (const [path, pattern] of [['/missing.gz', /download failed/], ['/not-gzip.gz', /gunzip failed/]] as const) {
+      const result = await run(['--pointer', writePointer(dir, { url: `${baseUrl}${path}` }), '--out', out])
+      assert.equal(result.status, 1, path)
+      assert.match(result.stderr, pattern, path)
+      assert.equal(existsSync(out), false, path)
+      assert.deepEqual(readdirSync(dir).filter((name) => name.endsWith('.part')), [], path)
+    }
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }

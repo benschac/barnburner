@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Effect, Schema } from 'effect'
+import { Array, Effect, Order, Schema } from 'effect'
 import {
   FarthestResultSchema, FilterSchema, FinalsYearSchema, FindPathInput, FindPathResult, GetFarthestInput,
   GetFarthestResult, GetFinalsCoverageInput, GetFinalsCoverageResult, GetLinkInput, GetLinkResult, GetOpponentsInput,
@@ -154,7 +154,7 @@ test('tagged errors round-trip and carry their context', () => {
 })
 
 test('HistoryRpcs declares the ten calls', () => {
-  assert.deepEqual([...HistoryRpcs.requests.keys()].sort(), [
+  assert.deepEqual(Array.sort([...HistoryRpcs.requests.keys()], Order.String), [
     'FindPath', 'GetFarthest', 'GetFinalsCoverage', 'GetLink', 'GetOpponents', 'GetOpposedGames', 'GetPlayer',
     'GetRoster', 'GetSharedGames', 'SearchPlayers',
   ])
