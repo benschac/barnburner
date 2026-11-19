@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Result } from 'effect'
+import { Array, Order, Result, Schema } from 'effect'
 import { HistoryUnavailable, UnknownPlayer } from '../src/contracts.ts'
 import {
   evidenceSpan, hopKind, link, linkIdBetween, linkKind, linkPassingGames, linkPasses, makeGraph, opponents, spanPasses,
@@ -177,7 +177,7 @@ test('hop kind and evidence span on the mini league', () => {
 test('an unknown player is UnknownPlayer, whichever side', () => {
   const first = link(graph, 99, 11, DEFAULT_FILTER)
   assert.ok(Result.isFailure(first))
-  assert.ok(first.failure instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(first.failure))
   assert.equal(first.failure.playerId, 99)
   const second = link(graph, 11, 21, DEFAULT_FILTER)
   assert.ok(Result.isFailure(second))
@@ -199,7 +199,7 @@ test("adjacency lists each player's teammates in ascending ID order with matchin
   assert.equal(neighbours.length, 2 * MINI_ARRAYS.edgeA.length)
   const teammatesOf = (playerId: number): number[] => {
     const index = graph.indexOf.get(playerId) ?? -1
-    return Array.from(neighbours.subarray(offsets[index], offsets[index + 1]), (n) => MINI_ARRAYS.playerIds[n])
+    return Array.fromIterable(neighbours.subarray(offsets[index], offsets[index + 1])).map((n) => MINI_ARRAYS.playerIds[n])
   }
   assert.deepEqual(teammatesOf(11), [12, 13])
   assert.deepEqual(teammatesOf(14), [12, 13, 15])
@@ -208,8 +208,8 @@ test("adjacency lists each player's teammates in ascending ID order with matchin
   for (let p = 0; p < MINI_ARRAYS.playerIds.length; p += 1) {
     for (let k = offsets[p]; k < offsets[p + 1]; k += 1) {
       const e = linkIds[k]
-      const ends = [MINI_ARRAYS.edgeA[e], MINI_ARRAYS.edgeB[e]].sort((x, y) => x - y)
-      assert.deepEqual(ends, [p, neighbours[k]].sort((x, y) => x - y))
+      const ends = Array.sort([MINI_ARRAYS.edgeA[e], MINI_ARRAYS.edgeB[e]], Order.Number)
+      assert.deepEqual(ends, Array.sort([p, neighbours[k]], Order.Number))
     }
   }
   assert.equal(linkIdBetween(graph, 0, 3), -1)
@@ -254,7 +254,7 @@ test('without opponent arrays, link keeps opposedGames at 0 and opponents is His
   assert.equal(result.success.opposedGames, 0)
   const listed = opponents(bare, 16)
   assert.ok(Result.isFailure(listed))
-  assert.ok(listed.failure instanceof HistoryUnavailable)
+  assert.ok(Schema.is(HistoryUnavailable)(listed.failure))
 })
 
 test('linkKind takes player IDs and answers null for non-links, unknown IDs, and the same player', () => {

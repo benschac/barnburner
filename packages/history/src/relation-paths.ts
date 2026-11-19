@@ -2,7 +2,7 @@
 // walks teammate links (both kinds, default filter) and opponent links. Same shape as `paths.ts`: a
 // breadth-first sweep from the target, then a layer DP for the tied-chain count and a depth-first listing in D6
 // order. A pair linked both ways is ONE edge in `either`: a teammate link. Pure, typed arrays only.
-import { Result } from 'effect'
+import { Array, Order, Result } from 'effect'
 import { HistoryUnavailable, NoPath, UnsupportedFilter } from './contracts.ts'
 import { linkIdBetween, linkPassingGames, opponentAdjacency } from './graph.ts'
 import type { OpponentAdjacency, TeammateGraph } from './graph.ts'
@@ -129,7 +129,10 @@ const enumerateRelationChains = (
       found.push({ other, games: opponents.games[at], linkId: -1 })
     }
     // Player index ascends with player ID, so the tie-break on index is the lowest ID.
-    return found.sort((x, y) => y.games - x.games || x.other - y.other)
+    return Array.sortBy(
+      Order.mapInput(Order.flip(Order.Number), (step: Step) => step.games),
+      Order.mapInput(Order.Number, (step: Step) => step.other),
+    )(found)
   }
   return enumerateBy<Step, Hop>(
     distanceToTarget, from, limit, candidates, (step) => step.other,
