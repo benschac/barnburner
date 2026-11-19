@@ -1,12 +1,11 @@
 import { Context, Effect, Layer } from 'effect'
 import { FetchHttpClient } from 'effect/http'
 import { RpcClient, RpcSerialization } from 'effect/rpc'
-import type { TeamData } from '@nhl-reddit-stats/season'
 import { BoxscoreLoadError, SnapshotLoadError, TeamRpcs } from '@nhl-reddit-stats/season/rpc'
-import type { BoxscoreNotArchived, GameBoxscore, UnknownGame } from '@nhl-reddit-stats/season/rpc'
+import type { BoxscoreNotArchived, TeamDataWithInsights, GameBoxscore, UnknownGame } from '@nhl-reddit-stats/season/rpc'
 
 export class SeasonSource extends Context.Service<SeasonSource, {
-  readonly load: Effect.Effect<TeamData, SnapshotLoadError>
+  readonly load: Effect.Effect<TeamDataWithInsights, SnapshotLoadError>
 }>()('glanceboard/SeasonSource') {}
 
 export class BoxscoreSource extends Context.Service<BoxscoreSource, {
