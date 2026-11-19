@@ -11,6 +11,8 @@ on:
       - 'scripts/nhl_*.py'
       - 'scripts/refresh-effect-api.mjs'
       - 'scripts/index-effect-core.mjs'
+      - 'scripts/*.mjs'
+      - 'lib/**'
       - '.agent-sources/effect/**'
       - 'tests/**'
       - 'packages/history/**'
@@ -49,6 +51,8 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Effect API index matches the installed packages
         run: bun run check:effect-api
+      - name: Node scripts use the Effect platform services
+        run: bun run check:node-scripts
       - name: Python history checks
         run: bun run test:history
       - name: History package checks
