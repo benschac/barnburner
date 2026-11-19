@@ -59,6 +59,7 @@ For Next.js 16 App Router, route handlers, metadata and image routes, `next.conf
 
 - Do not pass `--push` or add the `reviewed` label unless the user asks for it in the current conversation. The label is the user's record that they reviewed that pull request; GitHub does not let an author approve their own.
 - When the stack does not sit on the current `main`, rebase and resubmit it, then wait for the checks before landing.
+- Restack by rebasing (`gt restack`), never by merging a base branch or `main` into a pull request. Landing fast-forwards `main`, so a merge commit would replace the pull request's own commit titles and messages in the history; the script refuses a stack that contains one.
 
 # Ratstack workflow
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { blockers, chainBreak, checkSummary, orderStack } from '../scripts/land-stack-plan.mjs'
+import { blockers, chainBreak, checkSummary, mergeBlocker, orderStack } from '../scripts/land-stack-plan.mjs'
 
 const pull = (number, headRefName, baseRefName, extra = {}) => ({
   number, headRefName, baseRefName, headRefOid: `oid-${number}`, isCrossRepository: false, isDraft: false,
@@ -67,4 +67,10 @@ test('chainBreak names the first pull request that is not a straight line from t
   assert.equal((await chainBreak(stack, 'trunk', staleTop)).number, 3)
   // A pull request with no commits of its own has nothing to land.
   assert.equal((await chainBreak([pull(1, 'a', 'main', { headRefOid: 'trunk' })], 'trunk', linear)).number, 1)
+})
+
+test('mergeBlocker refuses a pull request whose commits include a merge, naming the first one', () => {
+  assert.equal(mergeBlocker([]), undefined)
+  assert.match(mergeBlocker(["d3bb427 Merge commit 'd181060' into HEAD"]), /has 1 merge commit \(d3bb427 Merge commit 'd181060' into HEAD\); rebase/)
+  assert.match(mergeBlocker(['aaa Merge a', 'bbb Merge b']), /has 2 merge commits \(aaa Merge a, \.\.\.\)/)
 })

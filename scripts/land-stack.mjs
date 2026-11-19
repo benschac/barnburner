@@ -10,13 +10,14 @@
 //
 // GitHub marks a pull request merged when its head commits become reachable
 // from its base branch, so each one is retargeted to main before the push. The
-// commits keep the SHAs their checks ran on.
+// commits keep the SHAs their checks ran on, and main shows them as they are, so a
+// stack with merge commits is refused: rebase it instead.
 import { NodeRuntime, NodeServices } from '@effect/platform-node'
 import { Console, Effect, Match, Option, Path, Ref, Runtime, Schedule, Schema, Stream } from 'effect'
 import { Command, Flag } from 'effect/cli'
 import { ChildProcess, ChildProcessSpawner } from 'effect/process'
 import { loggerLayer } from '../lib/logger.mjs'
-import { blockers, chainBreak, checkSummary, orderStack } from './land-stack-plan.mjs'
+import { blockers, chainBreak, checkSummary, mergeBlocker, orderStack } from './land-stack-plan.mjs'
 
 const TRUNK = 'main'
 const REMOTE = 'origin'
@@ -167,10 +168,14 @@ const land = Effect.fn('land')(function* ({ branch, push }) {
   const answers = yield* Effect.forEach(pairs, ([a, b]) => isAncestor(a, b), { concurrency: 4 })
   const ancestry = new Map(pairs.map(([a, b], i) => [`${a}..${b}`, answers[i]]))
   const broken = yield* Effect.promise(() => chainBreak(stack, trunkOid, async (a, b) => ancestry.get(`${a}..${b}`) ?? false))
+  // The merge commits each pull request adds over the one below it, as "<sha> <subject>".
+  const merges = yield* Effect.forEach(pairs, ([a, b]) =>
+    sh('git', ['log', '--merges', '--format=%h %s', `${a}..${b}`]).pipe(Effect.map((out) => (out ? out.split('\n') : []))), { concurrency: 4 })
 
-  const rows = stack.map((pull) => {
+  const rows = stack.map((pull, i) => {
     const brokenReason = pull === broken ? [pull === stack[0] ? `does not sit on the current ${TRUNK}` : 'does not sit on the pull request below it'] : []
-    return { pull, checks: checkSummary(pull), reasons: [...brokenReason, ...blockers(pull)] }
+    const mergeReason = mergeBlocker(merges[i])
+    return { pull, checks: checkSummary(pull), reasons: [...brokenReason, ...(mergeReason ? [mergeReason] : []), ...blockers(pull)] }
   })
   const blocked = rows.filter((row) => row.reasons.length).length
 
@@ -181,7 +186,9 @@ const land = Effect.fn('land')(function* ({ branch, push }) {
     ...reasons.map((reason) => `      blocked: ${reason}`),
   ], (line) => Console.log(line), { discard: true }), { discard: true })
   if (blocked) {
-    if (broken) yield* Console.log('Rebase and resubmit first: gt sync, gt restack, gt submit --stack, then wait for the checks.')
+    if (broken || merges.some((list) => list.length)) {
+      yield* Console.log('Rebase and resubmit first: gt sync, gt restack, gt submit --stack, then wait for the checks. Do not merge a base branch in.')
+    }
     return yield* new StackBlocked({ blocked, total: stack.length })
   }
 
