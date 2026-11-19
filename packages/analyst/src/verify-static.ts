@@ -24,11 +24,12 @@ export const verifyStatic = (deps: { db: Db; guard: Guard }, input: unknown): Ef
       ['gamesQuery', card.evidence.gamesQuery],
       ['assert', card.assert],
     ]
-    for (const [name, sql] of others) {
-      if (sql === undefined) continue
-      const g = yield* deps.guard(deps.db, sql)
-      if (!g.ok) return fail(2, `${name}: ${g.reason}`)
-    }
+    const guarded = yield* Effect.result(Effect.forEach(others, ([name, sql]) =>
+      sql === undefined
+        ? Effect.void
+        : Effect.flatMap(deps.guard(deps.db, sql), (g) => (g.ok ? Effect.void : Effect.fail(fail(2, `${name}: ${g.reason}`)))),
+    { discard: true }))
+    if (Result.isFailure(guarded)) return guarded.failure
 
     // 3. Every placeholder resolves against evidence.result.
     const rows = card.evidence.result.map((r) => ({ ...r }))

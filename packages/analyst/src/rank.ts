@@ -1,4 +1,4 @@
-import { Array, Effect, Result, Schema } from 'effect'
+import { Array, Effect, Order, Result, Schema } from 'effect'
 import type { LanguageModel } from 'ai'
 import { Llm } from './llm.ts'
 import type { LlmError } from './llm.ts'
@@ -101,19 +101,30 @@ const buildPrompt = (cards: ReadonlyArray<RenderedCard>, posterFacts: ReadonlyAr
     })),
   })
 
-const validateScores = (parsed: RankScores, ids: ReadonlySet<string>): Effect.Effect<RankScores, RankError> =>
-  Effect.gen(function* () {
-    const seen = new Set<string>()
-    for (const s of parsed.scores) {
-      if (!ids.has(s.id)) return yield* new RankError({ message: `ranker scored unknown id ${s.id}` })
-      if (seen.has(s.id)) return yield* new RankError({ message: `ranker scored id ${s.id} twice` })
-      seen.add(s.id)
-    }
-    for (const id of ids) {
-      if (!seen.has(id)) return yield* new RankError({ message: `ranker did not score id ${id}` })
-    }
-    return parsed
-  })
+// The first reason the ranker's scores do not cover the cards exactly once; undefined when they do.
+const scoreProblem = (parsed: RankScores, ids: ReadonlySet<string>): string | undefined => {
+  const seen = new Set<string>()
+  for (const s of parsed.scores) {
+    if (!ids.has(s.id)) return `ranker scored unknown id ${s.id}`
+    if (seen.has(s.id)) return `ranker scored id ${s.id} twice`
+    seen.add(s.id)
+  }
+  for (const id of ids) {
+    if (!seen.has(id)) return `ranker did not score id ${id}`
+  }
+  return undefined
+}
+
+const validateScores = (parsed: RankScores, ids: ReadonlySet<string>): Effect.Effect<RankScores, RankError> => {
+  const problem = scoreProblem(parsed, ids)
+  return problem === undefined ? Effect.succeed(parsed) : Effect.fail(new RankError({ message: problem }))
+}
+
+// Highest total first; ties by card id.
+const byRank: Order.Order<RankedCard> = Order.combine(
+  Order.flip(Order.mapInput(Order.Number, (ranked: RankedCard) => ranked.total)),
+  Order.mapInput(Order.String, (ranked: RankedCard) => ranked.card.id),
+)
 
 export interface RankInput {
   readonly cards: ReadonlyArray<InsightCard>
@@ -139,8 +150,6 @@ export const rank = (input: RankInput): Effect.Effect<RankResult, RankError | Ll
       const s = byId.get(card.id)!
       return { card, novelty: s.novelty, specificity: s.specificity, readability: s.readability, total: s.novelty + s.specificity + s.readability }
     })
-    const top = ranked
-      .sort((a, b) => b.total - a.total || (a.card.id < b.card.id ? -1 : a.card.id > b.card.id ? 1 : 0))
-      .slice(0, TOP_N)
+    const top = Array.sort(ranked, byRank).slice(0, TOP_N)
     return { ranked: top, dropped }
   })

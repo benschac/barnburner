@@ -32,15 +32,15 @@ export const fillCard = (
       if (!gv.ok) return yield* new FillError({ message: gv.reason })
     }
     const result = yield* db.queryCanonical(query)
-    const gameIds: number[] = []
-    if (gamesQuery !== undefined) {
-      const games = yield* db.queryCanonical(gamesQuery)
-      for (const row of games.rows) {
-        const id = row['game_id']
-        if (typeof id !== 'number') return yield* new FillError({ message: 'gamesQuery must return an integer game_id column' })
-        gameIds.push(id)
-      }
-    }
+    const gameIds: number[] = gamesQuery === undefined
+      ? []
+      : yield* Effect.flatMap(db.queryCanonical(gamesQuery), (games) =>
+        Effect.forEach(games.rows, (row) => {
+          const id = row['game_id']
+          return typeof id === 'number'
+            ? Effect.succeed(id)
+            : Effect.fail(new FillError({ message: 'gamesQuery must return an integer game_id column' }))
+        }))
     let coverage: { archived: number; finals: number } | undefined
     if (verdict.touchesBoxscores) {
       const rows = (yield* db.query(

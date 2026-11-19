@@ -18,7 +18,7 @@ test('coverage cases decode and their truth SQL returns one value column on fixt
     Effect.scoped(
       Effect.gen(function* () {
         const db = yield* openDb({ dataDir })
-        for (const c of cases) {
+        yield* Effect.forEach(cases, (c) => Effect.gen(function* () {
           assert.equal(c.expect, 'value', c.id)
           assert.equal(c.mustMentionCoverage, true, c.id)
           assert.ok(c.truthSql !== null, c.id)
@@ -26,7 +26,7 @@ test('coverage cases decode and their truth SQL returns one value column on fixt
           assert.equal(rowCount, 1, c.id)
           assert.equal(rows.length, 1, c.id)
           assert.deepEqual(Object.keys(rows[0] ?? {}), ['value'], c.id)
-        }
+        }), { discard: true })
       }),
     ),
   )

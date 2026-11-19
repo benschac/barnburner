@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Effect } from 'effect'
+import { Array, Effect, Order } from 'effect'
 import { SqlError, VIEWS } from '../src/shapes.ts'
 import { fakeDb, fakeGuard, fakeVerify } from './fakes.ts'
 
@@ -24,7 +24,7 @@ test('fakeGuard and fakeVerify return their fixed result', async () => {
 })
 
 test('VIEWS has the five tables', () => {
-  assert.deepEqual(Object.keys(VIEWS).sort(), [
+  assert.deepEqual(Array.sort(Object.keys(VIEWS), Order.String), [
     'boxscore_coverage', 'goalie_games', 'skater_games', 'standings_daily', 'team_games',
   ])
 })

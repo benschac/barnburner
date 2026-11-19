@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Result } from "effect";
+import { DateTime, Result } from "effect";
 import { defaultTraceDir, openTrace, parseTraceLine, truncateText, TRACE_EVENT_TYPES, type TraceOptions } from "../src/trace.ts";
 
 const fixturePath = fileURLToPath(new URL("./fixtures/trace.jsonl", import.meta.url));
@@ -43,7 +43,7 @@ test("fixture has one valid event of each type", () => {
 
 test("writer appends one JSONL line per event with ts and runId", () => {
   withTempDir((dir) => {
-    const trace = open({ runId: "run-1", dir, now: () => new Date("2026-01-02T03:04:05.000Z") });
+    const trace = open({ runId: "run-1", dir, now: () => DateTime.toDateUtc(DateTime.makeUnsafe("2026-01-02T03:04:05.000Z")) });
     trace.append({ type: "model_call", model: "m", inputTokens: 1, outputTokens: 2, latencyMs: 3 });
     trace.append({ type: "outcome", status: "cards" });
     assert.equal(trace.path, join(dir, "run-1.jsonl"));

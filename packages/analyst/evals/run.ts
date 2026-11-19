@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { Effect, Match, Schema } from 'effect'
+import { Array, DateTime, Effect, Match, Order, Schema } from 'effect'
 import { logError } from '../../../lib/logger.mjs'
 import { ask, ASK_SYSTEM } from '../src/ask.ts'
 import type { AskResult } from '../src/ask.ts'
@@ -26,17 +26,17 @@ const hash = (text: string) => createHash('sha256').update(text).digest('hex')
 const here = dirname(fileURLToPath(import.meta.url))
 
 export const loadCases = (dir: string) => Effect.gen(function* () {
-  const names = (yield* io(() => readdir(dir))).filter((name) => name.endsWith('.json')).sort()
-  const cases: EvalCase[] = []
-  const files: Array<{ file: string; sha256: string }> = []
-  for (const name of names) {
+  const entries = yield* io(() => readdir(dir))
+  const names = Array.sort(entries.filter((name) => name.endsWith('.json')), Order.String)
+  const loaded = yield* Effect.forEach(names, (name) => Effect.gen(function* () {
     const text = yield* io(() => readFile(join(dir, name), 'utf8'))
     const decoded = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(EvalCases))(text).pipe(
       Effect.mapError((error) => new EvalCliError({ message: `${name}: ${error.message}` })),
     )
-    cases.push(...decoded)
-    files.push({ file: name, sha256: hash(text) })
-  }
+    return { decoded, file: { file: name, sha256: hash(text) } }
+  }))
+  const cases: EvalCase[] = loaded.flatMap((item) => item.decoded)
+  const files = loaded.map((item) => item.file)
   if (!cases.length) return yield* new EvalCliError({ message: 'No eval cases found' })
   if (new Set(cases.map((item) => item.id)).size !== cases.length) {
     return yield* new EvalCliError({ message: 'Duplicate eval case IDs' })
@@ -74,15 +74,13 @@ export const evaluate = <E, R>(input: {
 })
 
 const snapshotData = (dir: string) => Effect.gen(function* () {
-  const names = ['nhl-20262027.json', 'nhl-poster-20262027.json', 'teams.json']
-  const boxscores = (yield* io(() => readdir(join(dir, 'boxscores/20262027')))).filter((name) => name.endsWith('.json')).sort()
-  names.push(...boxscores.map((name) => `boxscores/20262027/${name}`))
-  const files: Array<{ file: string; sha256: string }> = []
-  for (const file of names) {
-    const bytes = yield* io(() => readFile(join(dir, file)))
-    files.push({ file, sha256: createHash('sha256').update(bytes).digest('hex') })
-  }
-  return files
+  const entries = yield* io(() => readdir(join(dir, 'boxscores/20262027')))
+  const boxscores = Array.sort(entries.filter((name) => name.endsWith('.json')), Order.String)
+  const names = ['nhl-20262027.json', 'nhl-poster-20262027.json', 'teams.json', ...boxscores.map((name) => `boxscores/20262027/${name}`)]
+  return yield* Effect.forEach(names, (file) => Effect.map(
+    io(() => readFile(join(dir, file))),
+    (bytes) => ({ file, sha256: createHash('sha256').update(bytes).digest('hex') }),
+  ))
 })
 
 export const snapshotImplementation = (root: string) => io(async () => {
@@ -97,8 +95,8 @@ export const snapshotImplementation = (root: string) => io(async () => {
     }
   }
   await visit('packages/analyst/src')
-  const files: Array<{ file: string; sha256: string }> = []
-  for (const file of names.sort()) {
+  const files: { file: string; sha256: string }[] = []
+  for (const file of Array.sort(names, Order.String)) {
     const bytes = await readFile(join(root, file))
     files.push({ file, sha256: createHash('sha256').update(bytes).digest('hex') })
   }
@@ -120,22 +118,26 @@ export const runCli = (
     return
   }
   const options = new Map<string, string>()
+  let invalidOption: string | undefined
   for (let index = 0; index < args.length; index += 2) {
     const key = args[index]!
     const value = args[index + 1]
     if (!['--data-dir', '--output-dir', '--cases-dir'].includes(key) || !value || value.startsWith('--') || options.has(key)) {
-      return yield* new EvalCliError({ message: `Invalid or duplicate option: ${key}` })
+      invalidOption = key
+      break
     }
     options.set(key, value)
   }
+  if (invalidOption !== undefined) return yield* new EvalCliError({ message: `Invalid or duplicate option: ${invalidOption}` })
   const dataDir = options.get('--data-dir')
   if (!dataDir) return yield* new EvalCliError({ message: '--data-dir is required' })
   const dataset = yield* loadCases(resolve(options.get('--cases-dir') ?? join(here, 'qa')))
   const prompt = yield* io(() => readFile(join(here, '../src/ask.ts'), 'utf8'))
   const config = llmConfigFromEnv()
   const outputDir = resolve(options.get('--output-dir') ?? join(here, 'results'))
-  const runId = `${new Date().toISOString().replaceAll(':', '-')}-${randomUUID()}`
-  const startedAt = new Date().toISOString()
+  const startedNow = yield* DateTime.now
+  const startedAt = DateTime.formatIso(startedNow)
+  const runId = `${startedAt.replaceAll(':', '-')}-${randomUUID()}`
   const implementation = yield* snapshotImplementation(resolve(here, '../../..'))
   const dataSnapshot = yield* snapshotData(resolve(dataDir))
   const report = yield* Effect.scoped(Effect.gen(function* () {
@@ -150,7 +152,9 @@ export const runCli = (
   if (toPrettyJson(dataSnapshot) !== toPrettyJson(after)) return yield* new EvalCliError({ message: 'Data changed during evaluation; receipt not published' })
   const implementationAfter = yield* snapshotImplementation(resolve(here, '../../..'))
   if (toPrettyJson(implementation) !== toPrettyJson(implementationAfter)) return yield* new EvalCliError({ message: 'Implementation changed during evaluation; receipt not published' })
-  const receipt = { version: 1, implementation, runtime: { version: process.version, versions: process.versions, platform: process.platform, arch: process.arch }, mode: offline?.mode ?? 'live', runId, startedAt, completedAt: new Date().toISOString(), config,
+  const completedNow = yield* DateTime.now
+  const completedAt = DateTime.formatIso(completedNow)
+  const receipt = { version: 1, implementation, runtime: { version: process.version, versions: process.versions, platform: process.platform, arch: process.arch }, mode: offline?.mode ?? 'live', runId, startedAt, completedAt, config,
     dataDir: resolve(dataDir), dataset: dataset.files, dataSnapshot, systemPromptSha256: hash(ASK_SYSTEM), askSourceSha256: hash(prompt), ...report }
   yield* io(() => mkdir(outputDir, { recursive: true }))
   const path = join(outputDir, `${runId}-agent.json`)

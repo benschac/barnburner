@@ -3,9 +3,13 @@ import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Effect } from 'effect'
+import { Clock, Effect } from 'effect'
 import { openDb } from '../src/db.ts'
 import type { Db } from '../src/shapes.ts'
+import { makeGate } from './gate.ts'
+
+const now = () => Effect.runPromise(Clock.currentTimeMillis)
+const sleep = (ms: number) => Effect.runPromise(Effect.sleep(ms))
 
 const withDb = async (run: (db: Db) => Promise<void>): Promise<void> => {
   const dir = mkdtempSync(join(tmpdir(), 'db-limits-'))
@@ -27,13 +31,13 @@ const withDb = async (run: (db: Db) => Promise<void>): Promise<void> => {
 
 test('a slow query is interrupted and fails with SqlError', async () => {
   await withDb(async (db) => {
-    const started = Date.now()
+    const started = await now()
     const error = await Effect.runPromise(
       Effect.flip(db.query('select count(*) from range(100000) a, range(100000) b', { timeoutMs: 200 })),
     )
     assert.equal(error._tag, 'SqlError')
     assert.match(error.message, /timed out/)
-    assert.ok(Date.now() - started < 10000)
+    assert.ok((await now()) - started < 10000)
     // the connection stays usable afterwards
     assert.deepEqual(await Effect.runPromise(db.query('select 1 as x')), { rows: [{ x: 1 }], rowCount: 1 })
   })
@@ -83,7 +87,7 @@ test('aborting native work drains it before the connection is reused', { timeout
     const controller = new AbortController()
     const pending = Effect.runPromise(db.query('select count(*) from range(100000000) a, range(100000000) b'), { signal: controller.signal })
     const rejected = assert.rejects(pending)
-    await new Promise((resolve) => setTimeout(resolve, 30))
+    await sleep(30)
     controller.abort()
     await rejected
     assert.deepEqual(await Effect.runPromise(db.query('select 1 as x')), { rows: [{ x: 1 }], rowCount: 1 })
@@ -108,17 +112,16 @@ test('a cancelled queued query never runs or interrupts the active query', { tim
 test('scope cleanup waits for an aborted native query', { timeout: 4000 }, async () => {
   const dir = mkdtempSync(join(tmpdir(), 'db-abort-scope-'))
   const controller = new AbortController()
-  let opened!: () => void
-  const ready = new Promise<void>((resolve) => { opened = resolve })
+  const ready = makeGate()
   try {
     const pending = Effect.runPromise(Effect.scoped(Effect.gen(function* () {
       const db = yield* openDb({ dataDir: dir, viewsDir: dir })
-      opened()
+      ready.open()
       return yield* db.query('select count(*) from range(100000000) a, range(100000000) b')
     })), { signal: controller.signal })
     const rejected = assert.rejects(pending)
-    await ready
-    await new Promise((resolve) => setTimeout(resolve, 30))
+    await ready.opened
+    await sleep(30)
     controller.abort()
     await rejected
   } finally {

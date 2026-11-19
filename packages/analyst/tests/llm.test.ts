@@ -1,8 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { Effect } from 'effect'
+import { Effect, Schema } from 'effect'
 import { MockLanguageModelV4 } from 'ai/test'
 import { Llm, LlmError, defaultLlmConfig, llmConfigFromEnv } from '../src/llm.ts'
+import { makeGate, rejectOnAbort } from './gate.ts'
 
 const usage = {
   inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
@@ -33,7 +34,7 @@ test('llm: failures map to LlmError', async () => {
     doGenerate: async () => { throw new Error('boom') },
   })
   const error = await run(Llm.run({ prompt: 'hi', model, }).pipe(Effect.flip))
-  assert.ok(error instanceof LlmError)
+  assert.ok(Schema.is(LlmError)(error))
   assert.match(error.message, /boom/)
 })
 
@@ -46,23 +47,18 @@ test('llm: config defaults and env overrides', () => {
 })
 
 test('llm: structured generation forwards cancellation to the provider', async () => {
-  const { Schema } = await import('effect')
   const { makeLlm } = await import('../src/llm.ts')
-  let started!: () => void
-  const ready = new Promise<void>((resolve) => { started = resolve })
+  const ready = makeGate()
   let signal: AbortSignal | undefined
   const model = new MockLanguageModelV4({
     doGenerate: (options) => {
       signal = options.abortSignal
-      started()
-      return new Promise((_resolve, reject) => {
-        options.abortSignal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true })
-      })
+      return rejectOnAbort(options.abortSignal, ready.open)
     },
   })
   const controller = new AbortController()
   const pending = Effect.runPromiseExit(makeLlm().generateObject({ schema: Schema.Struct({ value: Schema.String }), prompt: 'hi', model }), { signal: controller.signal })
-  await ready
+  await ready.opened
   controller.abort()
   await pending
   assert.equal(signal?.aborted, true)

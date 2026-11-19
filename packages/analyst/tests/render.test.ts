@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Result } from "effect";
+import { Result, Schema } from "effect";
 import {
   literalDigits,
   MissingCellError,
@@ -54,7 +54,7 @@ test("a digit inside a placeholder name is a valid name", () => {
 
 test("an unknown placeholder fails with UnknownPlaceholderError", () => {
   const error = failure(render("{missing}", bindings, rows));
-  assert.ok(error instanceof UnknownPlaceholderError);
+  assert.ok(Schema.is(UnknownPlaceholderError)(error));
   assert.equal(error._tag, "UnknownPlaceholderError");
   assert.equal(error.placeholder, "missing");
   assert.equal(error.message, "Template placeholder {missing} has no binding");
@@ -63,7 +63,7 @@ test("an unknown placeholder fails with UnknownPlaceholderError", () => {
 test("a missing column fails with MissingCellError", () => {
   const bad = { gone: { column: "nope", row: 0 } };
   const error = failure(render("{gone}", bad, rows));
-  assert.ok(error instanceof MissingCellError);
+  assert.ok(Schema.is(MissingCellError)(error));
   assert.equal(error._tag, "MissingCellError");
   assert.deepEqual([error.placeholder, error.column, error.row], ["gone", "nope", 0]);
   assert.equal(
