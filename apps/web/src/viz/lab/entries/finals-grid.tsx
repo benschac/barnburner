@@ -1,5 +1,5 @@
-import { Result, Schema } from 'effect'
-import { useState } from 'react'
+import { Effect, Result, Schema } from 'effect'
+import { useRef, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
 import { FinalsTables } from '@nhl-reddit-stats/viz'
 import type { LabEntry } from '@nhl-reddit-stats/viz'
@@ -11,34 +11,60 @@ import { useVizTheme } from '../../theme'
 
 // The Final-by-year grid (plan FV11): the FV10 spec in the G2 host, on the finals sample, or on an exported finals file.
 
-const ExportFile = Schema.Struct({ tables: FinalsTables })
+/** An expected failure reading an exported finals file: unreadable, not JSON, or the wrong shape. */
+class FinalsFileError extends Schema.TaggedError<FinalsFileError, { readonly brand: unique symbol }>()('FinalsFileError', {
+  file: Schema.String,
+  message: Schema.String,
+}) {}
+
+const ExportFile = Schema.Struct({ tables: FinalsTables, notes: Schema.String })
 const decodeJson = Schema.decodeUnknownResult(Schema.fromJsonString(Schema.Unknown))
 const decodeExport = Schema.decodeUnknownResult(ExportFile)
 
-function readExport(text: string): Result.Result<FinalsTables, string> {
+const readText = (file: File) =>
+  Effect.tryPromise({
+    try: () => file.text(),
+    catch: (cause) => new FinalsFileError({ file: file.name, message: `could not read the file: ${String(cause)}` }),
+  })
+
+function readExport(name: string, text: string): Result.Result<FinalsTables, FinalsFileError> {
   const parsed = decodeJson(text)
-  if (Result.isFailure(parsed)) return Result.fail(`not JSON: ${parsed.failure.message}`)
-  const file = decodeExport(parsed.success)
-  if (Result.isFailure(file)) return Result.fail('expected an exported finals file: { tables, notes }')
-  return Result.succeed(file.success.tables)
+  if (Result.isFailure(parsed)) {
+    return Result.fail(new FinalsFileError({ file: name, message: `not JSON: ${parsed.failure.message}` }))
+  }
+  const decoded = decodeExport(parsed.success)
+  if (Result.isFailure(decoded)) {
+    return Result.fail(new FinalsFileError({ file: name, message: 'expected an exported finals file: { tables, notes }' }))
+  }
+  return Result.succeed(decoded.success.tables)
 }
 
 function FinalsGridPage() {
   const theme = useVizTheme()
   const [loaded, setLoaded] = useState<FinalsTables | undefined>(undefined)
   const [note, setNote] = useState('')
+  // Counts file selections, so a read that finishes after a newer selection is dropped.
+  const selection = useRef(0)
   const tables = loaded ?? samples.finals.tables
   const spec = finalsGrid(tables, theme)
 
   const onFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-    const decoded = readExport(await file.text())
+    selection.current += 1
+    const token = selection.current
+    const text = await Effect.runPromise(Effect.result(readText(file)))
+    if (Result.isFailure(text)) {
+      if (token === selection.current) setNote(text.failure.message)
+      return
+    }
+    const decoded = readExport(file.name, text.success)
+    if (token !== selection.current) return
     if (Result.isSuccess(decoded)) {
       setLoaded(decoded.success)
       setNote(`Loaded ${file.name}.`)
     } else {
-      setNote(decoded.failure)
+      setNote(decoded.failure.message)
     }
   }
 
