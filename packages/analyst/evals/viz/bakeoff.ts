@@ -2,7 +2,7 @@
 // failure at most twice, and write one record. The model and the renderer are injected, so tests stub both.
 // Largest run: 5 prompts x 2 vocabularies x (1 generate + 2 repairs) = 30 model calls.
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Effect, Schema } from 'effect'
@@ -28,6 +28,19 @@ export class BakeoffBudgetError extends Schema.TaggedError<BakeoffBudgetError, {
 
 export type BakeoffOutputRecord = BakeoffRecord & { readonly failureMessage: string | null }
 
+export class DatasetFileError extends Schema.TaggedError<DatasetFileError, { readonly brand: unique symbol }>()('DatasetFileError', {
+  directory: Schema.String,
+  dataset: Schema.String,
+  matches: Schema.Array(Schema.String),
+}) {
+  override get message(): string {
+    return `dataset ${this.dataset} in ${this.directory}: expected one file, found ${this.matches.length === 0 ? 'none' : this.matches.join(', ')}`
+  }
+}
+
+// A 1x1 transparent PNG.
+const PLACEHOLDER_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
+
 export const DEFAULT_CALL_BUDGET = 30
 export const VOCABULARIES = ['antv', 'd3'] as const
 export type Vocabulary = (typeof VOCABULARIES)[number]
@@ -41,9 +54,11 @@ export interface Generated {
   readonly tokens: number
 }
 
+export type ModelError = LlmError | LlmOutputError | BakeoffError
+
 export interface BakeoffModel {
-  readonly generate: (input: { readonly prompt: string; readonly tables: Tables; readonly notes: string; readonly system: string }) => Effect.Effect<Generated, BakeoffError>
-  readonly repair: (input: { readonly code: string; readonly failure: ViewFailure; readonly system: string }) => Effect.Effect<Generated, BakeoffError>
+  readonly generate: (input: { readonly prompt: string; readonly tables: Tables; readonly notes: string; readonly system: string }) => Effect.Effect<Generated, ModelError>
+  readonly repair: (input: { readonly code: string; readonly failure: ViewFailure; readonly system: string }) => Effect.Effect<Generated, ModelError>
 }
 
 export type BakeoffRenderer = (input: {
@@ -87,13 +102,26 @@ export const loadSystems = Effect.gen(function* () {
 })
 
 // The real model: generateView and repairView over the Llm service built from the environment.
+// For each dataset id: <id>.json if it exists, else the single <id>-*.json. Anything else is a DatasetFileError.
+export const resolveDatasetPaths = (directory: string, ids: ReadonlyArray<string>) =>
+  Effect.gen(function* () {
+    const names = yield* io(() => readdir(directory))
+    const paths: Record<string, string> = {}
+    for (const id of ids) {
+      const exact = names.filter((name) => name === `${id}.json`)
+      const matches = exact.length === 1 ? exact : names.filter((name) => name.startsWith(`${id}-`) && name.endsWith('.json')).sort()
+      if (matches.length !== 1) return yield* new DatasetFileError({ directory, dataset: id, matches })
+      paths[id] = join(directory, matches[0])
+    }
+    return paths
+  })
+
 export const llmModel = (model?: Parameters<typeof generateView>[0]['model']): BakeoffModel => {
   const layer = Llm.layer(llmConfigFromEnv())
   const run = (effect: Effect.Effect<{ readonly code: string; readonly model: string; readonly usage: { readonly totalTokens?: number | undefined } }, LlmError | LlmOutputError, Llm>) =>
     effect.pipe(
       Effect.provide(layer),
       Effect.map((result): Generated => ({ code: result.code, model: result.model, tokens: result.usage.totalTokens ?? 0 })),
-      Effect.mapError((error) => new BakeoffError({ message: error.message })),
     )
   const pick = model === undefined ? {} : { model }
   return {
@@ -102,7 +130,7 @@ export const llmModel = (model?: Parameters<typeof generateView>[0]['model']): B
   }
 }
 
-export const runBakeoff = (input: BakeoffInput): Effect.Effect<ReadonlyArray<BakeoffOutputRecord>, BakeoffError | BakeoffBudgetError | RenderHarnessError> =>
+export const runBakeoff = (input: BakeoffInput): Effect.Effect<ReadonlyArray<BakeoffOutputRecord>, BakeoffError | BakeoffBudgetError | RenderHarnessError | LlmError | LlmOutputError> =>
   Effect.gen(function* () {
     const budget = input.callBudget ?? DEFAULT_CALL_BUDGET
     let calls = 0
@@ -133,6 +161,9 @@ export const runBakeoff = (input: BakeoffInput): Effect.Effect<ReadonlyArray<Bak
           let failure: ViewFailure | undefined
           if (problems.length > 0) {
             failure = problems
+            // The candidate never reaches the renderer: its record gets a placeholder image the report can read.
+            yield* io(() => writeFile(screenshotPath, PLACEHOLDER_PNG))
+            result = { outcome: 'Failed', firstPaintMs: 0, medianFps: 0, screenshotPath, failureMessage: describeFailure(problems) }
           } else {
             result = yield* input.render({ code: current.code, tables: data.tables, notes: data.notes, screenshotPath })
             if (result.outcome === 'Failed') failure = typeof result.failureMessage === 'string' ? result.failureMessage : 'The frame reported Failed while rendering the module.'
@@ -168,17 +199,21 @@ export const runBakeoff = (input: BakeoffInput): Effect.Effect<ReadonlyArray<Bak
 // One command for the gate: prints the budget and the pair count, and runs only with --yes.
 const main = async () => {
   const { parseArgs } = await import('node:util')
-  const { values } = parseArgs({
-    options: {
-      'base-url': { type: 'string' },
-      datasets: { type: 'string' },
-      out: { type: 'string' },
-      budget: { type: 'string' },
-      yes: { type: 'boolean' },
-    },
-  })
-  const budget = values.budget === undefined ? DEFAULT_CALL_BUDGET : Number(values.budget)
   const program = Effect.gen(function* () {
+    const { values } = yield* Effect.try({
+      try: () =>
+        parseArgs({
+          options: {
+            'base-url': { type: 'string' },
+            datasets: { type: 'string' },
+            out: { type: 'string' },
+            budget: { type: 'string' },
+            yes: { type: 'boolean' },
+          },
+        }),
+      catch: (cause) => new BakeoffError({ message: `bad arguments: ${String(cause)}` }),
+    })
+    const budget = values.budget === undefined ? DEFAULT_CALL_BUDGET : Number(values.budget)
     const prompts = yield* loadPrompts()
     const pairs = prompts.length * VOCABULARIES.length
     console.log(`call budget: ${budget}; prompt and vocabulary pairs: ${pairs}`)
@@ -187,9 +222,8 @@ const main = async () => {
       return yield* new BakeoffError({ message: '--base-url, --datasets and an integer --budget are required with --yes' })
     }
     const baseUrl = values['base-url']
-    const datasets = values.datasets
     const { renderView } = yield* io(() => import('./render.ts'))
-    const datasetPaths = Object.fromEntries(prompts.map((item) => [item.id, join(datasets, `${item.id}.json`)]))
+    const datasetPaths = yield* resolveDatasetPaths(values.datasets, prompts.map((item) => item.id))
     const records = yield* runBakeoff({
       prompts,
       datasetPaths,
