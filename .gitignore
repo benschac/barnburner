@@ -39,3 +39,6 @@ data/history/*
 !data/history/manifest.json
 !data/history/serving.json
 apps/web/history-data/*
+
+# varlock: keep .env.schema, exclude local values (*.local covers .env.local)
+.env
