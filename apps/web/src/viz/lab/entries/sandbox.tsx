@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Option, Schema } from 'effect'
+import { Match, Result, Schema } from 'effect'
 import { Text, View } from 'tamagui'
 import { samples } from '@nhl-reddit-stats/viz/samples'
 import { ViewData } from '@nhl-reddit-stats/viz'
@@ -10,10 +10,17 @@ import { VizFrameIsland } from '../../../islands/VizFrameIsland'
 
 const toPrettyJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown, { space: 2 }))
 const toJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown))
-const decodeViewData = Schema.decodeUnknownOption(Schema.fromJsonString(ViewData))
+const decodeViewData = Schema.decodeUnknownResult(Schema.fromJsonString(ViewData))
+
+/** The view data text did not decode; `message` is the schema's diagnostic. */
+class ViewDataInvalid extends Schema.TaggedError<ViewDataInvalid, { readonly brand: unique symbol }>()('ViewDataInvalid', {
+  message: Schema.String,
+}) {}
+
+const MESSAGES_SHOWN = 8
+const REPORTS_KEPT = 50
 
 const starterData = toPrettyJson({ tables: samples.chain.tables, notes: samples.chain.notes })
-const badData = 'The view data is not valid JSON of the form { "tables": ..., "notes": ... }.'
 
 // A hand-written view module for the chain sample. It draws each hop as a list item in the theme's colours.
 const starter = [
@@ -32,56 +39,66 @@ const starter = [
   '}',
 ].join('\n')
 
-const describe = (report: FrameReport): string =>
-  report._tag === 'Ready' ? 'Ready'
-  : report._tag === 'Failed' ? `Failed ${report.id}: ${report.message}`
-  : `${report._tag} ${report.id}`
+// Every report variant gets its own formatter, so a new one must be given a display here.
+const describe = (report: FrameReport): string => Match.valueTags(report, {
+  Ready: () => 'Ready',
+  Rendered: ({ id, ms }) => `Rendered ${id} in ${ms} ms`,
+  Failed: ({ id, message }) => `Failed ${id}: ${message}`,
+  FrameRate: ({ id, fps }) => `FrameRate ${id}: ${fps}`,
+})
 
-const hasId = (report: FrameReport): report is Exclude<FrameReport, { _tag: 'Ready' }> => report._tag !== 'Ready'
+type Outcome = { reports: ReadonlyArray<FrameReport>; samples: number; fps: number | null }
+const noOutcome: Outcome = { reports: [], samples: 0, fps: null }
 
 function Sandbox() {
   const [draft, setDraft] = useState(starter)
   const [dataDraft, setDataDraft] = useState(starterData)
   const [code, setCode] = useState(starter)
   const [tables, setTables] = useState(samples.chain.tables as ViewData['tables'])
+  const [attempt, setAttempt] = useState(0)
   const [problem, setProblem] = useState('')
-  // The reports of the current render: a Run starts a new list, and so does a report with a new render id.
-  const [reports, setReports] = useState<ReadonlyArray<FrameReport>>([])
-  const currentId = useRef('')
+  // The log is every recent message; the outcome is only what the frame reported for the render id this page sent.
+  const [log, setLog] = useState<ReadonlyArray<string>>([])
+  const [outcome, setOutcome] = useState<Outcome>(noOutcome)
+  const renderId = useRef('')
   const run = () => {
     const decoded = decodeViewData(dataDraft)
-    if (Option.isNone(decoded)) { setProblem(badData); return }
-    setProblem('')
-    currentId.current = ''
-    setReports([])
-    setTables(decoded.value.tables)
-    setCode(draft)
-  }
-  const onReport = (report: FrameReport) => {
-    if (hasId(report) && report.id !== currentId.current) {
-      currentId.current = report.id
-      setReports([report])
+    if (Result.isFailure(decoded)) {
+      setProblem(new ViewDataInvalid({ message: decoded.failure.message }).message)
       return
     }
-    setReports((previous) => [...previous, report])
+    setProblem('')
+    setTables(decoded.success.tables)
+    setCode(draft)
+    setAttempt((n) => n + 1)
   }
-  const rates = reports.filter((report) => report._tag === 'FrameRate')
-  const latest = rates.at(-1)
-  const shown = reports.filter((report) => report._tag !== 'FrameRate').slice(-8)
+  const onRender = (id: string) => {
+    renderId.current = id
+    setOutcome(noOutcome)
+  }
+  const onReport = (report: FrameReport) => {
+    if (report._tag !== 'FrameRate') setLog((previous) => [...previous.slice(1 - MESSAGES_SHOWN), describe(report)])
+    if (report._tag === 'Ready' || report.id !== renderId.current) return
+    setOutcome((previous) => ({
+      reports: [...previous.reports.slice(1 - REPORTS_KEPT), report],
+      samples: previous.samples + (report._tag === 'FrameRate' ? 1 : 0),
+      fps: report._tag === 'FrameRate' ? report.fps : previous.fps,
+    }))
+  }
   return (
     <View gap="3">
       <textarea aria-label="View module" rows={14} cols={90} value={draft} onChange={(event) => setDraft(event.target.value)} />
       <textarea aria-label="View data" rows={8} cols={90} value={dataDraft} onChange={(event) => setDataDraft(event.target.value)} />
       <button type="button" aria-label="Run" onClick={run}>Run</button>
       {problem ? <Text role="alert" fontFamily="body" color="color">{problem}</Text> : null}
-      <VizFrameIsland code={code} tables={tables} onReport={onReport} />
+      <VizFrameIsland code={code} tables={tables} attempt={attempt} onReport={onReport} onRender={onRender} />
       <Text fontFamily="body" color="color">
-        {`Frame rate: ${latest?._tag === 'FrameRate' ? latest.fps : 'none yet'} (samples: ${rates.length})`}
+        {`Frame rate: ${outcome.fps ?? 'none yet'} (samples: ${outcome.samples})`}
       </Text>
       <View render="ol" aria-label="Last messages">
-        {shown.map((report, index) => <Text key={index} render="li" fontFamily="body" color="color">{describe(report)}</Text>)}
+        {log.map((line, index) => <Text key={index} render="li" fontFamily="body" color="color">{line}</Text>)}
       </View>
-      <pre data-testid="frame-reports" hidden>{toJson(reports)}</pre>
+      <pre data-testid="frame-reports" hidden>{toJson(outcome.reports)}</pre>
     </View>
   )
 }

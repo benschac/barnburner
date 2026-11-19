@@ -27,9 +27,10 @@ type FrameProps = {
   theme: VizTheme
   onTimedOut: () => void
   onReport?: ((report: FrameReport) => void) | undefined
+  onRender?: ((id: string) => void) | undefined
 }
 
-type Latest = Pick<FrameProps, 'code' | 'tables' | 'theme' | 'onTimedOut' | 'onReport'>
+type Latest = Pick<FrameProps, 'code' | 'tables' | 'theme' | 'onTimedOut' | 'onReport' | 'onRender'>
 
 // One iframe, one machine, one piece of code. A redraw of the same code (a new theme) reuses the frame.
 function Frame(props: FrameProps) {
@@ -60,6 +61,7 @@ function Frame(props: FrameProps) {
         lastId = `render-${count}`
         actor.send({ type: 'Render', id: lastId })
         const { code, tables, theme } = latest.current
+        latest.current.onRender?.(lastId)
         target.postMessage({ _tag: 'Render', id: lastId, code, tables, theme }, '*')
       }
       const onMessage = (event: MessageEvent): void => {
@@ -71,6 +73,8 @@ function Frame(props: FrameProps) {
             latest.current.onReport?.(report)
             Match.valueTags(report, {
               Ready: () => {
+                // The machine ignores a second Ready, so the host does too: a view cannot restart the render by repeating it.
+                if (ready) return
                 ready = true
                 actor.send({ type: 'Ready' })
                 draw.current()
@@ -123,13 +127,17 @@ export type VizFrameIslandProps = {
   tables: Tables
   /** Every valid report the frame posts, for a page that wants to show them. */
   onReport?: ((report: FrameReport) => void) | undefined
+  /** Called with the id of each render the island sends, so a page can tell which reports are for it. */
+  onRender?: ((id: string) => void) | undefined
+  /** A new value starts a fresh frame and a fresh timeout budget, even for unchanged code, as an explicit Run does. */
+  attempt?: number
 }
 
-export function VizFrameIsland({ code, tables, onReport }: VizFrameIslandProps) {
+export function VizFrameIsland({ code, tables, onReport, onRender, attempt = 0 }: VizFrameIslandProps) {
   const theme = useVizTheme()
   // Different code goes to a fresh frame, because the frame cannot tell which view an uncaught error came from.
-  const [slot, setSlot] = useState({ code, frame: 0, timeouts: 0 })
-  if (slot.code !== code) setSlot({ code, frame: slot.frame + 1, timeouts: 0 })
+  const [slot, setSlot] = useState({ code, attempt, frame: 0, timeouts: 0 })
+  if (slot.code !== code || slot.attempt !== attempt) setSlot({ code, attempt, frame: slot.frame + 1, timeouts: 0 })
   if (slot.timeouts >= MAX_TIMEOUTS) return <Text fontFamily="body" color="color">The view did not answer in time.</Text>
   return (
     <Frame
@@ -138,7 +146,8 @@ export function VizFrameIsland({ code, tables, onReport }: VizFrameIslandProps) 
       tables={tables}
       theme={theme}
       onReport={onReport}
-      onTimedOut={() => setSlot((current) => ({ code: current.code, frame: current.frame + 1, timeouts: current.timeouts + 1 }))}
+      onRender={onRender}
+      onTimedOut={() => setSlot((current) => ({ code: current.code, attempt: current.attempt, frame: current.frame + 1, timeouts: current.timeouts + 1 }))}
     />
   )
 }
