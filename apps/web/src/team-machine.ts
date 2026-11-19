@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 import { createEffectLogic, setupEffect } from '@xstate/effect'
-import { TeamData } from '@nhl-reddit-stats/season'
+import { TeamDataWithInsights } from '@nhl-reddit-stats/season/rpc'
 import { SeasonSource } from './season-source.ts'
 
 const loadSeason = createEffectLogic({ effect: () => Effect.gen(function* () {
@@ -10,7 +10,7 @@ const loadSeason = createEffectLogic({ effect: () => Effect.gen(function* () {
 
 export const teamMachine = setupEffect({
   schemas: {
-    context: Schema.Struct({ team: Schema.String, snapshot: Schema.NullOr(TeamData) }),
+    context: Schema.Struct({ team: Schema.String, snapshot: Schema.NullOr(TeamDataWithInsights) }),
     events: {
       SELECT_TEAM: Schema.Struct({ team: Schema.String }),
       SHOW_POSTER: Schema.Struct({}),
