@@ -10,15 +10,29 @@ Check the declaration before replacing a call. Several Effect versions differ fr
 | --- | --- | --- |
 | `xs.sort((a, b) => a - b)`, `xs.toSorted(...)` | `Array.sort(xs, Order.Number)`; by a key, `Array.sortWith(xs, (x) => x.id, Order.Number)`; several keys, `Array.sortBy(...orders)`; descending, `Order.flip` | `core/no-native-sort` |
 | An `Order` comparing fields | `Order.mapInput(Order.Number, (x) => x.games)`, `Order.combine`, `Order.Struct` | |
-| `[...new Set(xs)]`, `Array.from(new Set(xs))` | `Array.dedupe(xs)`; by a key, `Array.dedupeWith` | `core/no-set-dedupe` |
+| `[...new Set(xs)]`, `Array.from(new Set(xs))`, `for (const x of new Set(xs))`, `new Set([...a, ...b])` | `Array.dedupe(xs)`; by a key, `Array.dedupeWith`; two collections, `Array.dedupe(Array.appendAll(a, b))` or `Array.union` (inputs already deduplicated); membership only, `HashSet.fromIterable(xs)` | `core/no-set-dedupe` |
 | `for` loop that pushes into an array | `Array.map`, `Array.flatMap`, `Array.filterMap`, `Array.partition` | |
 | `xs.reduce((s, x) => s + x, 0)` | `Number.sumAll(xs)` | |
-| Largest or smallest element | `Array.max(xs, Order.Number)`, `Array.min` | |
+| `xs.flatMap((x) => (x.id === null ? [] : [x.id]))`, `.map(f).filter((v) => v != null)` | `Array.flatMapNullishOr(xs, (x) => x.id)`; a lazy iterable, `Iterable.flatMapNullishOr`; a function returning `Option`, `Array.getSomes(Array.map(xs, f))`; a `Result`, `Array.filterMap(xs, f)` (failures are dropped) | |
+| `xs.map(f).flat()`, `xs.flat()` | `Array.flatMap(xs, f)`, `Array.flatten(xss)` | |
+| Largest or smallest element: `Math.max(...xs)`, `xs.reduce((m, x) => Math.max(m, x), 0)`, a `let max` updated in a `for` loop | `Array.max(xs, Order.Number)`, `Array.min` (non-empty only: guard with `Array.isReadonlyArrayNonEmpty`, or fold with a floor: `Array.reduce(xs, 1, (max, x) => Number.max(max, x))`); by a key, `Array.max(Array.map(xs, key), Order.Number)` or `Array.sortWith`. The fold has no argument limit; `Math.max(...xs)` throws a `RangeError` on arrays of roughly 100,000 elements or more, so use the fold for typed arrays and large data | |
 | Group into an object | `Array.groupBy(xs, (x) => x.key)` | |
 | `xs.find(...)`, `xs.findIndex(...)` | `Array.findFirst`, `Array.findFirstIndex` (return `Option`) | `effecttsgo/prefer-effect-array` (advisory) |
 | `Array.from({ length: n }, f)` | `Array.makeBy(n, f)`, `Array.range(start, end)` | |
 | `Object.keys`, `Object.entries`, `Object.fromEntries` | `Record.keys`, `Record.toEntries`, `Record.fromEntries`, `Record.map` | `effecttsgo/prefer-effect-record` (advisory) |
 | `x ?? fallback` for a value that may be missing | `Option.fromNullishOr(x)`, then `Option.getOrElse` | |
+
+## Numbers and strings
+
+Read each export through [core-index.md](core-index.md): `rg -n '^\| (Number|Order|String) \| (clamp|max|min|kebabCase|camelCase|snakeCase|pascalCase|constantCase|capitalize|uncapitalize) \|' .agent-sources/effect/core-index.md`, then `sed -n '<Start>,<End>p' node_modules/effect/dist/<Module>.d.ts`.
+
+| Native | Effect | Rule |
+| --- | --- | --- |
+| `Math.min(high, Math.max(low, value))`, a hand-written `clamp` | `Number.clamp(value, { minimum: low, maximum: high })`; a non-number type, `Order.clamp(order)(value, { minimum, maximum })` (`Order`, `DateTime`, `Duration`, `BigInt`, and `BigDecimal` also export `clamp`) | |
+| `Math.max(a, b)`, `Math.min(a, b)` on two numbers | `Number.max(a, b)`, `Number.min(a, b)`; other types, `Order.max(order)(a, b)`, `Order.min(order)(a, b)` | |
+| `str.replace(/[A-Z]/g, ...).toLowerCase()` to build kebab-case, snake_case, camelCase, PascalCase, or CONSTANT_CASE | `String.kebabCase(s)`, `String.snakeCase`, `String.camelCase`, `String.pascalCase`, `String.constantCase`; check the declaration for how each splits words before replacing a regex | |
+| `s[0].toUpperCase() + s.slice(1)` | `String.capitalize(s)`, `String.uncapitalize(s)` | |
+| `s.toLowerCase()`, `s.toUpperCase()` | `String.toLowerCase(s)`, `String.toUpperCase(s)` | |
 
 ## Effects over many values
 

@@ -6,7 +6,22 @@ const LOOP = /\/\/\s*loop:\s*\S/
 const LOOPS = new Set(['ForStatement', 'ForOfStatement', 'ForInStatement', 'WhileStatement', 'DoWhileStatement'])
 const FUNCTIONS = new Set(['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'])
 
-const isNewSet = (node) => node?.type === 'NewExpression' && node.callee.type === 'Identifier' && node.callee.name === 'Set'
+// Type-only and grouping wrappers do not change what is spread: `new Set(x) as Set<number>`, `(new Set(x))`.
+const TRANSPARENT = new Set(['TSAsExpression', 'TSSatisfiesExpression', 'TSNonNullExpression', 'TSTypeAssertion', 'ParenthesizedExpression', 'ChainExpression'])
+const unwrap = (node) => (node && TRANSPARENT.has(node.type) ? unwrap(node.expression) : node)
+
+const isNewSet = (node) => {
+  const set = unwrap(node)
+  return set?.type === 'NewExpression' && set.callee.type === 'Identifier' && set.callee.name === 'Set'
+}
+
+// `new Set([...a, ...b])`: two or more spreads and nothing else, the concatenate-and-dedupe idiom.
+const isConcatenation = (node) => {
+  const set = unwrap(node)
+  if (!isNewSet(set)) return false
+  const list = unwrap(set.arguments[0])
+  return list?.type === 'ArrayExpression' && list.elements.length >= 2 && list.elements.every((e) => e?.type === 'SpreadElement')
+}
 
 // A capitalized receiver is a module namespace (Array.sort, Chunk.sort), not an array value.
 const isModule = (node) => node.type === 'Identifier' && /^[A-Z]/.test(node.name)
@@ -39,17 +54,22 @@ export default {
       meta: { type: 'suggestion', schema: [] },
       create(context) {
         if (!importsEffect(context)) return {}
-        const report = (node) =>
-          context.report({ node, message: 'Spreading a Set to remove duplicates. Fix: Array.dedupe(xs), or Array.dedupeWith for a custom equivalence, from \'effect\'.' })
+        const report = (node, what = 'Spreading a Set to remove duplicates') =>
+          context.report({ node, message: `${what}. Fix: Array.dedupe(xs), or Array.dedupeWith for a custom equivalence, from 'effect'. To combine two collections, Array.dedupe(Array.appendAll(a, b)) or Array.union; to test membership, HashSet.fromIterable.` })
         return {
           ArrayExpression(node) {
-            const [only] = node.elements
-            if (node.elements.length === 1 && only?.type === 'SpreadElement' && isNewSet(only.argument)) report(node)
+            if (node.elements.some((e) => e?.type === 'SpreadElement' && isNewSet(e.argument))) report(node)
           },
           CallExpression(node) {
             const callee = node.callee
             if (callee.type !== 'MemberExpression' || callee.computed) return
-            if (callee.object.type === 'Identifier' && callee.object.name === 'Array' && callee.property.name === 'from' && isNewSet(node.arguments[0])) report(node)
+            if (callee.object.type === 'Identifier' && callee.object.name === 'Array' && callee.property.name === 'from' && isNewSet(node.arguments[0])) report(node, 'Array.from over a Set to remove duplicates')
+          },
+          ForOfStatement(node) {
+            if (isNewSet(node.right)) report(node.right, 'Iterating a new Set to remove duplicates')
+          },
+          NewExpression(node) {
+            if (isConcatenation(node)) report(node, 'Concatenating arrays into a Set to remove duplicates')
           },
         }
       },
