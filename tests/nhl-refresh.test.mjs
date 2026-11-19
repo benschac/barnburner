@@ -141,10 +141,10 @@ for (const scenario of [
     const data = fixture(scenario)
     const directory = await savedDirectory(data)
     const requests = []
-    t.mock.method(console, 'log', () => {})
-    t.mock.method(console, 'warn', () => {})
+    const diagnostics = t.mock.method(console, 'error', () => {})
     try {
       await refreshData(directory, { fetcher: provider(data, scenario.mode, requests) })
+      assert.ok(diagnostics.mock.calls.some(({ arguments: [line] }) => /level=WARN .*Keeping supplemental stats/.test(line)))
       const season = await readJson(join(directory, 'nhl-20262027.json'))
       const poster = await readJson(join(directory, 'nhl-poster-20262027.json'))
       assert.equal(season.games.length, 1344)
@@ -167,8 +167,7 @@ for (const scenario of [
 test('a later synchronized refresh replaces retained stats with current coverage', async (t) => {
   const data = fixture()
   const directory = await savedDirectory(data)
-  t.mock.method(console, 'log', () => {})
-  t.mock.method(console, 'warn', () => {})
+  t.mock.method(console, 'error', () => {})
   try {
     await refreshData(directory, { fetcher: provider(data, 'summary', []) })
     const retained = await readJson(join(directory, 'nhl-poster-20262027.json'))
@@ -186,8 +185,7 @@ test('a later synchronized refresh replaces retained stats with current coverage
 })
 
 test('--backfill-limit controls how many older box scores are requested', async (t) => {
-  t.mock.method(console, 'log', () => {})
-  t.mock.method(console, 'warn', () => {})
+  t.mock.method(console, 'error', () => {})
   const counts = {}
   for (const [name, options] of [['default', {}], ['small', { backfillLimit: 3 }], ['large', { backfillLimit: 40 }]]) {
     const data = fixture()
@@ -209,8 +207,7 @@ for (const mode of ['malformed', 'unknown']) {
     const data = fixture()
     const directory = await savedDirectory(data)
     const requests = []
-    t.mock.method(console, 'log', () => {})
-    t.mock.method(console, 'warn', () => {})
+    t.mock.method(console, 'error', () => {})
     const paths = ['nhl-20262027.json', 'nhl-poster-20262027.json']
     const before = await Promise.all(paths.map((path) => readFile(join(directory, path), 'utf8')))
     try {

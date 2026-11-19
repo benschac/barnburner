@@ -1,4 +1,4 @@
-import { Context, Effect, FileSystem, Layer, Result, Schema } from 'effect'
+import { Array, Context, Effect, FileSystem, Layer, Result, Schema } from 'effect'
 import { PublishedInsight } from '@nhl-reddit-stats/season/rpc'
 import { SnapshotLoadError } from '@nhl-reddit-stats/season/rpc'
 import { InsightCard } from '@nhl-reddit-stats/analyst/card'
@@ -14,7 +14,8 @@ export class Insights extends Context.Service<Insights, {
   static none = Layer.succeed(Insights, Insights.of({ load: () => Effect.succeed(null) }))
 
   static layerFiles = (directory: string) => Layer.effect(Insights, Effect.gen(function* () {
-    return filesInsights(yield* FileSystem.FileSystem, directory)
+    const fs = yield* FileSystem.FileSystem
+    return filesInsights(fs, directory)
   }))
 
   /** One lazy loader per team file, bundled by scripts/build.mjs. */
@@ -57,12 +58,11 @@ export const publishCards = (cards: ReadonlyArray<typeof InsightCard.Type>): Rea
 /** The approved, rendered cards of every team, in team order. */
 export const loadPublishedInsights = (teams: ReadonlyArray<string>) => Effect.gen(function* () {
   const insights = yield* Insights
-  const published: PublishedInsight[] = []
-  for (const team of teams) {
+  const published = yield* Effect.forEach(teams, (team) => Effect.gen(function* () {
     const raw = yield* insights.load(team)
-    if (raw === null) continue
+    if (raw === null) return []
     const cards = yield* Schema.decodeUnknownEffect(CardList)(raw).pipe(Effect.mapError(loadError))
-    published.push(...publishCards(cards.filter((card) => card.team === team)))
-  }
-  return published
+    return publishCards(cards.filter((card) => card.team === team))
+  }))
+  return Array.flatten(published)
 })

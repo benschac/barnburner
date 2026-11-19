@@ -1,6 +1,6 @@
 // Pure teammate graph (C-graph, C-search): compact adjacency over the packed arrays and the D7 filter.
 // No I/O. Player IDs cross the `link` boundary; everything else here works in indexes.
-import { Result } from 'effect'
+import { Array, Order, Result } from 'effect'
 import { HistoryUnavailable, UnknownPlayer } from './contracts.ts'
 import type { Filter, Graph, GraphArrays, LinkKind, LinkResult, LinkSpan, Opponent } from './shapes.ts'
 
@@ -50,7 +50,7 @@ const buildAdjacency = (arrays: GraphArrays): Adjacency => {
 
 export const makeGraph = (arrays: GraphArrays): TeammateGraph => ({
   arrays,
-  indexOf: new Map(Array.from(arrays.playerIds, (playerId, index) => [playerId, index] as const)),
+  indexOf: new Map(Array.fromIterable(arrays.playerIds).map((playerId, index) => [playerId, index] as const)),
   adjacency: buildAdjacency(arrays),
 })
 
@@ -243,9 +243,14 @@ export const opponents = (
   for (let at = offsets[index]; at < offsets[index + 1]; at += 1) {
     rows.push({ playerId: graph.arrays.playerIds[neighbours[at]], games: games[at] })
   }
-  rows.sort((x, y) => y.games - x.games || x.playerId - y.playerId)
-  return Result.succeed(rows)
+  return Result.succeed(Array.sortBy(opponentOrder)(rows))
 }
+
+// Most shared games first; the tie-break is the lowest player ID.
+const opponentOrder: Order.Order<Opponent> = Order.combine(
+  Order.mapInput(Order.flip(Order.Number), (row: Opponent) => row.games),
+  Order.mapInput(Order.Number, (row: Opponent) => row.playerId),
+)
 
 // A fresh object per call: `LinkResult` is not deeply readonly at runtime, so a shared one could be corrupted by a caller.
 const noTeammateLink = (opposedGames: number): LinkResult => ({ spans: [], totalGames: 0, evidenceGameId: null, opposedGames })

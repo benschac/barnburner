@@ -1,5 +1,5 @@
 // Stanley Cup Finals coverage (C-search): in which Finals did a teammate of a player play?
-import { Effect } from 'effect'
+import { Array, Effect, Order } from 'effect'
 import { HistoryUnavailable, UnknownPlayer } from './contracts.ts'
 import type { TeammateGraph } from './graph.ts'
 import type { FinalRow, FinalsYear } from './shapes.ts'
@@ -66,8 +66,9 @@ export const finalsCoverage = (
   if (index === undefined) return Effect.fail(new UnknownPlayer({ playerId }))
   const teammates = sharedGameTeammates(graph, index)
   return Effect.map(store.finals(fromYear, toYear), (finals) =>
-    finals
-      .filter((final) => final.year >= fromYear && final.year <= toYear)
-      .toSorted((a, b) => a.year - b.year)
-      .map((final) => coverFinal(teammates, playerId, final)))
+    Array.sortWith(
+      finals.filter((final) => final.year >= fromYear && final.year <= toYear),
+      (final) => final.year,
+      Order.Number,
+    ).map((final) => coverFinal(teammates, playerId, final)))
 }

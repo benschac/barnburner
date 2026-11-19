@@ -4,6 +4,7 @@ import season from '../../../data/nhl-20262027.json' with { type: 'json' }
 import poster from '../../../data/nhl-poster-20262027.json' with { type: 'json' }
 import { boxscoreArchive } from 'virtual:boxscore-archive'
 import { insightsArchive } from 'virtual:insights-archive'
+import { loggerLayer } from '../../../lib/logger.mjs'
 import { BoxScores } from './boxscores.ts'
 import { Insights, loadPublishedInsights } from './insights.ts'
 import { ApiRoutes } from './routes.ts'
@@ -17,6 +18,7 @@ export const webApi = HttpRouter.toWebHandler(ApiRoutes.pipe(
     })).pipe(Layer.provide(Insights.layerArchive(insightsArchive))),
     BoxScores.layerArchive(boxscoreArchive),
   ]),
+  Layer.provideMerge(loggerLayer),
 ))
 
 export default { fetch: webApi.handler }

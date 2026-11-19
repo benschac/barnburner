@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Effect, Layer, Result } from 'effect'
+import { Effect, Layer, Result, Schema } from 'effect'
 import { FetchHttpClient, HttpRouter } from 'effect/http'
 import { RpcClient, RpcClientError, RpcSerialization } from 'effect/rpc'
 import { DEFAULT_FILTER, UnknownPlayer, findPaths, makeGraph } from '@nhl-reddit-stats/history'
@@ -39,7 +39,7 @@ test('GetOpponents pages and rejects an unknown player', () => withFake(async (c
   const page = await Effect.runPromise(client.GetOpponents({ playerId: 16, limit: 2, offset: 2 }))
   assert.equal(page.total, 5)
   assert.deepEqual(page.opponents.map((o) => o.playerId), [11, 15])
-  assert.ok((await flip(client.GetOpponents({ playerId: 999, limit: 5, offset: 0 }))) instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(await flip(client.GetOpponents({ playerId: 999, limit: 5, offset: 0 }))))
 }))
 
 test('GetOpposedGames returns the opposed games for 15-16 and rejects an unknown player', () => withFake(async (client) => {
@@ -47,7 +47,7 @@ test('GetOpposedGames returns the opposed games for 15-16 and rejects an unknown
   assert.equal(expected.length, 2)
   const result = await Effect.runPromise(client.GetOpposedGames({ a: 15, b: 16 }))
   assert.deepEqual(result.games, expected)
-  assert.ok((await flip(client.GetOpposedGames({ a: 15, b: 999 }))) instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(await flip(client.GetOpposedGames({ a: 15, b: 999 }))))
 }))
 
 test('GetLink for 15-16 is both teammates and opponents', () => withFake(async (client) => {

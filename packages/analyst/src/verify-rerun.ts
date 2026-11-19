@@ -68,11 +68,13 @@ export const verifyRerun = (
     () => check7(db, card, ctx.touchesBoxscores),
     () => check8(db, card),
   ]
-  return Effect.gen(function* () {
-    for (const step of steps) {
-      const result = yield* Effect.match(step(), { onFailure: (f) => f, onSuccess: (s) => s })
-      if (!result.ok) return result
-    }
-    return pass
-  })
+  // The first failing check stops the run; its result is the answer.
+  return Effect.forEach(steps, (step) =>
+    Effect.flatMap(
+      Effect.match(step(), { onFailure: (f) => f, onSuccess: (s) => s }),
+      (result) => (result.ok ? Effect.void : Effect.fail(result)),
+    ),
+  { discard: true }).pipe(
+    Effect.match({ onFailure: (failed): VerifyResult => failed, onSuccess: (): VerifyResult => pass }),
+  )
 }

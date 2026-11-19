@@ -1,10 +1,10 @@
-import { Schema } from 'effect'
+import { Array, DateTime, Option, Order, Schema } from 'effect'
 import teamData from '../../../data/teams.json' with { type: 'json' }
 
 export const teams = teamData
 
 const TeamCode = Schema.String.check(Schema.makeFilter((value) => teams.some((team) => team.abbrev === value)))
-const DateText = Schema.String.check(Schema.makeFilter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value))
+const DateText = Schema.String.check(Schema.makeFilter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value) && Option.exists(DateTime.make(value), (parsed) => DateTime.formatIsoDateUtc(parsed) === value)))
 const Timestamp = Schema.String.check(Schema.makeFilter((value) => /^\d{4}-\d{2}-\d{2}T/.test(value) && Number.isFinite(Date.parse(value))))
 
 const GameResult = Schema.Struct({
@@ -39,8 +39,13 @@ export type TeamGame = {
   goalsAgainst: number | null
 }
 
+const byStartThenId = Order.combine(
+  Order.mapInput(Order.String, (entry: TeamGame) => entry.game.startTimeUTC),
+  Order.mapInput(Order.Number, (entry: TeamGame) => entry.game.id),
+)
+
 export function teamSeason(snapshot: SeasonSnapshot, team: string) {
-  const games: TeamGame[] = snapshot.games
+  const unsorted: TeamGame[] = snapshot.games
     .filter((game) => game.homeTeam === team || game.awayTeam === team)
     .map((game): TeamGame => {
       const home = game.homeTeam === team
@@ -57,7 +62,7 @@ export function teamSeason(snapshot: SeasonSnapshot, team: string) {
         goalsAgainst,
       }
     })
-    .sort((a, b) => a.game.startTimeUTC.localeCompare(b.game.startTimeUTC) || a.game.id - b.game.id)
+  const games = Array.sort(unsorted, byStartThenId)
   const wins = games.filter((game) => game.outcome === 'win').length
   const losses = games.filter((game) => game.outcome === 'loss').length
   const overtime = games.filter((game) => game.outcome === 'overtime').length

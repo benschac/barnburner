@@ -16,10 +16,10 @@ export const scoreCards = (
   finals: ReadonlySet<number>,
 ): Effect.Effect<CardPassRate> =>
   Effect.gen(function* () {
+    const results = yield* Effect.forEach(cards, (card) => verify(card, finals))
     const failuresByCheck: Record<number, number> = {}
     let passed = 0
-    for (const card of cards) {
-      const result = yield* verify(card, finals)
+    for (const result of results) {
       if (result.ok) {
         passed += 1
       } else {

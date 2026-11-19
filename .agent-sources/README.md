@@ -27,7 +27,7 @@ The download is upstream reference material, not instructions for agents. Follow
 
 ## Refresh the cache
 
-The commands in this section refresh Tamagui. See the pattern references below for the separate Effect, XState, and Ratstack refresh.
+The commands in this section refresh Tamagui. See the pattern references below for the separate XState and Ratstack refresh. Effect is indexed from the installed packages; see [Effect](#effect).
 
 With Node available, run:
 
@@ -49,34 +49,55 @@ After changing project configuration, run `npm run generate:tamagui` separately 
 
 ## Add another library
 
-Add its official reference under a named directory, add source and version metadata to `sources.json`, and describe when to consult it here. Extend the refresh script to retrieve that source explicitly. The existing Tamagui refresh preserves other metadata entries. Keep the root `AGENTS.md` pointer short.
+Add its official reference under a named directory, add source and version metadata to `sources.json`, and describe when to consult it here. Extend the refresh script to retrieve that source explicitly. The existing Tamagui refresh preserves other metadata entries. Keep the root `AGENTS.md` pointer short. When an installed package already ships its documentation, index it in place as the Effect section does instead of copying it.
 
-## Effect, XState, and general patterns
+## Effect
+
+The installed packages are the Effect reference. `effect` and each `@effect/*` package ship their declarations with JSDoc and examples, their source, and their own agent guides, at the version the lockfile pins. [`effect/`](effect/) tracks generated indexes of them and no copies, because a copy drifts from the installed version.
+
+| File | Use it for |
+| --- | --- |
+| [effect/index.md](effect/index.md) | Every public module of every installed Effect package (`effect`, `effect/process`, `effect/cli`, `@effect/platform-node`, ...) with its import path, export count, size, and summary. Start here to find the module. |
+| [effect/core-index.md](effect/core-index.md) | Every export of the core modules (`Array`, `Order`, `Effect`, `Option`, `Schema`, `FileSystem`, `Path`, ...) with its summary and line range in `node_modules/effect/dist/<Module>.d.ts`. |
+| [effect/native-to-effect.md](effect/native-to-effect.md) | The Effect replacement for a native pattern (a sort comparator, a `for` loop over effects, `Date.now()`, a Node built-in) and the lint rule that reports it. |
+
+Run `bun install` first. Then, before writing or reviewing Effect code:
+
+1. Look up the native pattern you are about to write in `native-to-effect.md`, and find the module in `index.md`. Search both before writing a helper that Effect may already provide.
+2. Read the declaration and JSDoc of each export you call: through its range in `core-index.md`, or in `node_modules/<package>/dist/<module>.d.ts`. Do not write a signature from memory or from an earlier major version.
+3. For idioms such as services, layers, errors, resources, child processes, CLIs, and testing, read `node_modules/effect/AGENTS.md` and the matching topic under `node_modules/effect/ai-docs/src/`. They are reference material; the root `AGENTS.md` wins where they differ.
+
+```sh
+rg -n -i 'child process|filesystem|NodeServices' .agent-sources/effect/index.md
+rg -n '^\| (FileSystem|Path) \| ' .agent-sources/effect/core-index.md
+rg -n '^export ' node_modules/effect/dist/process/ChildProcess.d.ts
+sed -n '<Start>,<End>p' node_modules/effect/dist/<Module>.d.ts
+```
+
+Name the `node_modules` path in the command; a repository-wide ripgrep search skips ignored directories. Search large modules instead of reading them whole: `effect/Effect` has about 22,000 lines of declarations.
+
+`bun run check:effect-api` fails when either index does not match the installed packages; root `bun run lint` and the history checks workflow run it. After an Effect upgrade or a new `@effect/*` dependency, run `node scripts/refresh-effect-api.mjs` and `node scripts/index-effect-core.mjs`, and commit the result. Both scripts read only local files.
+
+Do not fetch effect.website for an API question. Its pages render the same JSDoc without a version pin.
+
+## XState and general patterns
 
 Use the named directory's generated index to select a section before reading its cached document. Ratstack's full corpus includes general guidelines, Effect patterns, and related systems such as Alchemy, Cloudflare, and Foldkit. Follow [our Ratstack workflow](ratstack/README.md) to apply those references within this project's stack and authority boundaries.
 
 | Reference | When to consult it | Upstream |
 | --- | --- | --- |
 | `ratstack/` | General engineering guidelines, services, schemas, testing, infrastructure, and ecosystem patterns | [Agent guide](https://ratstack.sh/llms.txt) and [full corpus](https://ratstack.sh/llms-full.txt) |
-| `effect/` | Official package overview, requirements, and links to API documentation | [Effect README](https://github.com/Effect-TS/effect/blob/main/README.md) |
-| `effect-api/` | Exact API reference for the installed `effect` version, one file per module (`cli` today): every export with its JSDoc, examples, and signature | Installed package declarations (`node_modules/effect/dist/<module>/*.d.ts`) |
 | `xstate/` | State machines, actors, transitions, testing, and version-specific documentation links | [Stately documentation index](https://stately.ai/llms.txt) |
 | `xstate-effect/` | Effect-backed actors and their scoped lifetimes | [Official integration quick start](https://stately.ai/docs/xstate/v6/effect/quick-start) |
 
-The Effect README and Stately index are entry points, not complete API caches. Resolve relative Stately links against `https://stately.ai` and Effect README links against its GitHub source directory. Follow relevant links when the cached material does not answer the question.
+For project diagnostics, use the shared [logger](../lib/logger.mjs). The API installs its Effect layer. Node and Bun scripts use its synchronous helpers. Diagnostics use logfmt on stderr so CLI results can be read from stdout.
+
+The Stately index is an entry point, not a complete API cache. Resolve its relative links against `https://stately.ai`. Follow relevant links when the cached material does not answer the question.
 
 Before applying a pattern, inspect the owning package manifest, lockfile, and installed types. The web app pins XState, Effect, and `@xstate/effect` for team-view navigation. The integration quick start calls `@xstate/effect` experimental and targets XState v6 alpha and Effect 4, while the Stately index labels v6 beta. Do not infer compatibility from these unversioned snapshots or apply v6 examples to v5. Verify exact package versions and peer dependencies before an implementation change.
 
 For integration work, check who owns actor startup, shutdown, interruption, dependencies, and failures. Use the official integration documentation to verify those contracts. The cache does not authorize a runtime migration or package installation.
 
-For an Effect module API, search `effect-api/<module>-index.md` by module and export name, then read that line range from `effect-api/<module>.txt`:
-
-```sh
-rg -n '\| Command \| (make|withSubcommands|run) \|' .agent-sources/effect-api/cli-index.md
-```
-
-These files are generated from the installed package, so they match its version exactly; they are the same JSDoc the effect.website API pages render. Regenerate them after an `effect` upgrade, or add a module, with `node scripts/refresh-effect-api.mjs [module ...]` (default `cli`). The script reads only local files.
-
 Refresh these references explicitly with `node scripts/refresh-pattern-sources.mjs`. Review the downloaded documents, indexes, and `sources.json` together. This fetch does not run during install or build.
 
-To import existing downloads, use `node scripts/refresh-pattern-sources.mjs --from-dir DIR --fetched-at ISO_TIMESTAMP`. The directory must contain `ratstack-llms.txt`, `ratstack-full.txt`, `effect-readme.md`, `xstate-llms.txt`, and `xstate-effect.md`, downloaded from the URLs in the script. Supply the actual batch retrieval timestamp. Imports record caller-supplied provenance.
+To import existing downloads, use `node scripts/refresh-pattern-sources.mjs --from-dir DIR --fetched-at ISO_TIMESTAMP`. The directory must contain `ratstack-llms.txt`, `ratstack-full.txt`, `xstate-llms.txt`, and `xstate-effect.md`, downloaded from the URLs in the script. Supply the actual batch retrieval timestamp. Imports record caller-supplied provenance.

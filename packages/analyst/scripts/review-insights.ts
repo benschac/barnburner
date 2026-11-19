@@ -2,7 +2,8 @@ import { readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { createInterface } from 'node:readline'
 import { fileURLToPath } from 'node:url'
-import { Result } from 'effect'
+import { Array, DateTime, Effect, Order, Result } from 'effect'
+import { logError } from '../../../lib/logger.mjs'
 import { type InsightCard, RejectReason } from '../src/card.ts'
 import type { RenderError } from '../src/render.ts'
 import { applyDecision, formatForReview } from '../src/review.ts'
@@ -31,10 +32,12 @@ const REASONS: readonly string[] = RejectReason.literals
 const isReason = (text: string): text is RejectReason => REASONS.includes(text)
 
 const allTeams = (dir: string): string[] =>
-  readdirSync(dir)
-    .filter((name) => /^[A-Z]{3}\.json$/.test(name))
-    .map((name) => name.slice(0, 3))
-    .sort()
+  Array.sort(
+    readdirSync(dir)
+      .filter((name) => /^[A-Z]{3}\.json$/.test(name))
+      .map((name) => name.slice(0, 3)),
+    Order.String,
+  )
 
 // Answers: a = approve, r = reject (next line is the reason), e or empty = skip.
 // When the answers run out, the remaining cards are left pending.
@@ -123,11 +126,11 @@ const main = async (): Promise<void> => {
         const next = await iterator.next()
         return next.done === true ? undefined : next.value
       },
-      out: (text) => console.log(text),
-      now: new Date().toISOString(),
+      out: (text) => process.stdout.write(`${text}\n`),
+      now: DateTime.formatIso(await Effect.runPromise(DateTime.now)),
     })
     if (Result.isFailure(result)) {
-      console.error(result.failure.message)
+      logError(result.failure.message)
       process.exitCode = 1
     }
   } finally {

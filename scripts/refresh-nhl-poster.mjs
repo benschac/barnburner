@@ -1,3 +1,5 @@
+/* oxlint-disable no-restricted-imports, no-restricted-properties -- legacy: port to the Effect platform services, see "Node scripts" in AGENTS.md */
+import { logError, logInfo } from '../lib/logger.mjs'
 import { readFile, writeFile, rename, unlink, mkdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -54,9 +56,9 @@ async function main() {
   const games = validateSnapshot(JSON.parse(await readFile(values.games, 'utf8')))
   if (games.teams.length !== 32) throw new Error('Expected all 32 NHL teams')
   const snapshot = await refreshPosterSnapshot({ games, output: resolve(values.output), fromDir: values['from-dir'], fetchedAt: values['fetched-at'] })
-  console.log(`Saved poster data for ${snapshot.clubs.length} teams through ${snapshot.standings[0].date}`)
+  logInfo(`Saved poster data for ${snapshot.clubs.length} teams through ${snapshot.standings[0].date}`)
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  main().catch((error) => { console.error(error.message); process.exitCode = 1 })
+  main().catch((error) => { logError(error.message); process.exitCode = 1 })
 }

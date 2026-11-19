@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { Effect } from 'effect'
+import { Effect, Schema } from 'effect'
 import { MockLanguageModelV4 } from 'ai/test'
 import { Llm } from '../src/llm.ts'
 import { RankError, dedupeCards, normalizeHeadline, rank } from '../src/rank.ts'
@@ -47,7 +47,7 @@ test('rank: keeps top 3 by total, ties broken by id', async () => {
 test('rank: unparseable, out-of-range and incomplete replies are RankError', async () => {
   for (const text of ['nope', JSON.stringify({ scores: [score('a', 6, 1, 1)] }), JSON.stringify({ scores: [] }), JSON.stringify({ scores: [score('a', 1, 1, 1), score('a', 2, 2, 2)] }), JSON.stringify({ scores: [score('zzz', 1, 1, 1)] })]) {
     const error = await run(rank({ cards: [card('a', 'h')], posterFacts: [], model: mock(text) }).pipe(Effect.flip))
-    assert.ok(error instanceof RankError, text)
+    assert.ok(Schema.is(RankError)(error), text)
   }
 })
 

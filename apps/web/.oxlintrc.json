@@ -1,5 +1,6 @@
 {
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../lint/effect-core.oxlintrc.json"],
   "options": {
     "typeAware": true
   },
@@ -27,6 +28,14 @@
     "@xstate/effect/oxlint"
   ],
   "overrides": [
+    {
+      "files": [
+        "src/viz/**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"
+      ],
+      "rules": {
+        "design/viz-theme-colors": "error"
+      }
+    },
     {
       "files": [
         "src/**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"
@@ -60,6 +69,25 @@
         "design/token-values": "error",
         "design/no-style-escape": "error",
         "design/no-css-imports": "error"
+      }
+    },
+    {
+      "files": [
+        "src/viz/frame/frame.ts"
+      ],
+      "rules": {
+        "design/no-css-imports": "off",
+        "design/no-style-escape": "off"
+      }
+    },
+    {
+      "files": [
+        "tamagui.build.ts",
+        "next.config.js",
+        "scripts/check-vercel-output.mjs"
+      ],
+      "rules": {
+        "effecttsgo/process-env": "off"
       }
     },
     {

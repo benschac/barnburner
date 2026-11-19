@@ -1,3 +1,5 @@
+/* oxlint-disable no-restricted-imports, no-restricted-properties -- legacy: port to the Effect platform services, see "Node scripts" in AGENTS.md */
+import { logError, logInfo } from '../lib/logger.mjs'
 import { readFile, writeFile, rename, unlink, mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -95,7 +97,7 @@ async function main() {
     fromDir: values["from-dir"],
     fetchedAt: values["fetched-at"],
   });
-  console.log(
+  logInfo(
     `Saved ${snapshot.games.length} games for ${snapshot.teams.length} teams to ${output}`,
   );
 }
@@ -105,7 +107,7 @@ if (
   import.meta.url === pathToFileURL(resolve(process.argv[1])).href
 ) {
   main().catch((error) => {
-    console.error(error.message);
+    logError(error.message);
     process.exitCode = 1;
   });
 }

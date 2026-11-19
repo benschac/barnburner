@@ -1,4 +1,4 @@
-import { Effect } from 'effect'
+import { Array, Effect, Order } from 'effect'
 import { UnknownPlayer, UnknownRoster } from '../src/contracts.ts'
 import { makeGraph } from '../src/graph.ts'
 import type { TeammateGraph } from '../src/graph.ts'
@@ -123,6 +123,12 @@ const playerRows: ReadonlyMap<number, PlayerRow> = (() => {
   return rows
 })()
 
+/** Most games first; the tie-break is the lowest player ID. */
+const byGamesThenPlayer: Order.Order<{ readonly games: number; readonly playerId: number }> = Order.combine(
+  Order.mapInput(Order.flip(Order.Number), (row: { readonly games: number; readonly playerId: number }) => row.games),
+  Order.mapInput(Order.Number, (row: { readonly games: number; readonly playerId: number }) => row.playerId),
+)
+
 const stintsOf = (playerId: number): ReadonlyArray<StintRow> => {
   const stints = new Map<string, StintRow>()
   for (const game of MINI_GAMES) {
@@ -143,9 +149,11 @@ const stintsOf = (playerId: number): ReadonlyArray<StintRow> => {
       })
     }
   }
-  return [...stints.values()].sort(
-    (x, y) => x.seasonId - y.seasonId || x.gameType - y.gameType || x.teamId - y.teamId,
-  )
+  return Array.sortBy(
+    Order.mapInput(Order.Number, (stint: StintRow) => stint.seasonId),
+    Order.mapInput(Order.Number, (stint: StintRow) => stint.gameType),
+    Order.mapInput(Order.Number, (stint: StintRow) => stint.teamId),
+  )([...stints.values()])
 }
 
 const finalRows: ReadonlyArray<FinalRow> = (() => {
@@ -155,7 +163,7 @@ const finalRows: ReadonlyArray<FinalRow> = (() => {
   for (const game of MINI_GAMES.filter((g) => g.gameType === 3)) {
     bySeason.set(game.seasonId, [...(bySeason.get(game.seasonId) ?? []), game])
   }
-  return [...bySeason.entries()].map(([seasonId, games]) => {
+  const finals = [...bySeason.entries()].map(([seasonId, games]) => {
     const participants = new Map<number, FinalParticipant>()
     for (const game of games) {
       for (const s of game.sides) {
@@ -168,9 +176,10 @@ const finalRows: ReadonlyArray<FinalRow> = (() => {
       year: seasonId % 10000,
       seasonId,
       gameIds: games.map((g) => g.gameId),
-      participants: [...participants.values()].sort((x, y) => x.playerId - y.playerId),
+      participants: Array.sortWith([...participants.values()], (participant) => participant.playerId, Order.Number),
     }
-  }).sort((x, y) => x.year - y.year)
+  })
+  return Array.sortWith(finals, (final) => final.year, Order.Number)
 })()
 
 export const makeMiniStore = (): HistoryStore => {
@@ -180,9 +189,10 @@ export const makeMiniStore = (): HistoryStore => {
     graph: MINI_GRAPH,
     searchPlayers: (query, limit) => {
       const needle = foldName(query.trim())
-      const matches = [...playerRows.values()]
-        .filter((row) => needle.length > 0 && row.searchName.includes(needle))
-        .sort((x, y) => y.games - x.games || x.playerId - y.playerId)
+      const matches = Array.sort(
+        [...playerRows.values()].filter((row) => needle.length > 0 && row.searchName.includes(needle)),
+        byGamesThenPlayer,
+      )
       return Effect.succeed(matches.slice(0, limit))
     },
     player: (playerId) => {
@@ -201,8 +211,9 @@ export const makeMiniStore = (): HistoryStore => {
           rows.push({ playerId: row.playerId, name: row.name, position: row.position, games: stint.games })
         }
       }
-      rows.sort((x, y) => y.games - x.games || x.playerId - y.playerId)
-      return rows.length === 0 ? Effect.fail(new UnknownRoster({ teamId, seasonId, gameType })) : Effect.succeed(rows)
+      return rows.length === 0
+        ? Effect.fail(new UnknownRoster({ teamId, seasonId, gameType }))
+        : Effect.succeed(Array.sort(rows, byGamesThenPlayer))
     },
     sharedGames: (a, b, seasonId, gameType, teamId, requested) => {
       const missing = [a, b].find((id) => !known(id))

@@ -1,3 +1,4 @@
+import { logInfo } from '../../../lib/logger.mjs'
 import assert from 'node:assert/strict'
 import { cp, mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { createRequire } from 'node:module'
@@ -56,7 +57,7 @@ try {
       await bundled.webApi.dispose()
     }
   }
-  console.log('Isolated Vercel RPC and all three GET functions passed')
+  logInfo('Isolated Vercel RPC and all three GET functions passed')
 
   // The history function must carry its serving file and run on a Node that has node:sqlite.
   const historyFunction = join(output, 'functions/api/history.func')
@@ -86,12 +87,12 @@ try {
     if (size === null) {
       const failure = await Effect.runPromise(Effect.flip(search))
       assert.equal(failure._tag, 'HistoryUnavailable', 'without a bundled snapshot /api/history must answer HistoryUnavailable')
-      console.log(`Packaged history function (${config.runtime}) has no snapshot and answered HistoryUnavailable`)
+      logInfo(`Packaged history function (${config.runtime}) has no snapshot and answered HistoryUnavailable`)
     } else {
       const found = await Effect.runPromise(search)
       assert.ok(found.snapshotId.length > 0)
       assert.ok(found.players.length > 0, 'SearchPlayers returned no rows from the packaged file')
-      console.log(`Packaged history function (${config.runtime}) served SearchPlayers from ${HISTORY_FILE} (${size} bytes)`)
+      logInfo(`Packaged history function (${config.runtime}) served SearchPlayers from ${HISTORY_FILE} (${size} bytes)`)
     }
   } finally {
     process.chdir(previous)

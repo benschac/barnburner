@@ -76,10 +76,94 @@ function valid(value, category, prop) {
   })
 }
 
+const namedColors = new Set('aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen'.split(' '))
+// name(, at least one non-space argument character, balanced parentheses, closing ) ending the whole value.
+function isColorFunction(s) {
+  const open = /^(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(/i.exec(s)
+  if (!open || !s.endsWith(')')) return false
+  let depth = 0
+  for (let i = open[0].length - 1; i < s.length; i++) {
+    if (s[i] === '(') depth++
+    else if (s[i] === ')' && --depth === 0 && i < s.length - 1) return false
+  }
+  return depth === 0 && s.slice(open[0].length, -1).trim().length > 0
+}
+const isColorLiteral = (text) => {
+  const s = text.trim()
+  return /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(s) || isColorFunction(s) || namedColors.has(s.toLowerCase())
+}
+
+const themeKeys = new Set(Object.keys(contract.themes.dark))
+const wrappers = ['ConditionalExpression', 'LogicalExpression', 'TSAsExpression', 'TSSatisfiesExpression', 'TSNonNullExpression', 'ParenthesizedExpression']
+
+// True when the call's callee resolves to an import of tamagui's `styled`, under any local name.
+function isStyledCall(context, call) {
+  if (call?.type !== 'CallExpression' || call.callee.type !== 'Identifier') return false
+  for (let scope = context.sourceCode.getScope(call); scope; scope = scope.upper) {
+    const binding = scope.set.get(call.callee.name)
+    if (binding) return binding.defs.some((def) => def.node.type === 'ImportSpecifier' && def.node.imported.name === 'styled')
+  }
+  return false
+}
+const isComponent = (opening) => opening?.name?.type === 'JSXMemberExpression' || /^[A-Z]/.test(opening?.name?.name ?? '')
+const knownProp = (attr) => nameOf(attr.name) === 'style' || categories.has(nameOf(attr.name))
+
+// Climb from a value or object member to the place that hands it to Tamagui: a JSX attribute, a JSX spread, or styled() options.
+function locate(context, node) {
+  let up = node, direct = true
+  for (;;) {
+    const parent = up.parent
+    if (!parent) return null
+    if (parent.type === 'ConditionalExpression' && parent.test === up) return null
+    if (wrappers.includes(parent.type) || parent.type === 'ObjectExpression' || parent.type === 'SpreadElement' || (parent.type === 'Property' && parent.value === up)) {
+      if (parent.type === 'ObjectExpression' || parent.type === 'SpreadElement' || parent.type === 'Property') direct = false
+      up = parent
+      continue
+    }
+    if (parent.type === 'JSXAttribute') return { kind: 'attr', attr: parent, opening: parent.parent, direct }
+    if (parent.type === 'JSXExpressionContainer' && parent.parent?.type === 'JSXAttribute') return { kind: 'attr', attr: parent.parent, opening: parent.parent.parent, direct }
+    if (parent.type === 'JSXSpreadAttribute') return { kind: 'spread', opening: parent.parent, direct }
+    if (parent.type === 'CallExpression' && parent.arguments[1] === up && isStyledCall(context, parent)) return { kind: 'styled', direct }
+    return null
+  }
+}
+// Objects Tamagui reads: styled() options, JSX spreads, and objects given to a prop the plugin knows. Other attributes (spec, data, options) hold chart data.
+function tamaguiReadsObject(context, node) {
+  const place = locate(context, node)
+  return place?.kind === 'styled' || place?.kind === 'spread' || (place?.kind === 'attr' && knownProp(place.attr))
+}
+const skipsChartSpec = (context, node) => /(?:^|\/)src\/(?:viz|explorer)\//.test((context.filename ?? '').replaceAll('\\', '/')) && !tamaguiReadsObject(context, node)
+// A theme token name is not a CSS colour where Tamagui resolves it: on components, never on intrinsic elements such as <path>.
+function readByTamagui(context, node) {
+  const place = locate(context, node)
+  if (!place) return false
+  if (place.kind === 'styled') return true
+  if (!isComponent(place.opening)) return false
+  return place.kind === 'spread' || place.direct || knownProp(place.attr)
+}
+
+function vizThemeColors(context) {
+  const report = (node) => context.report({ node, message: 'Colours in src/viz come from VizTheme; do not write hex, rgb(), hsl(), or named CSS colour literals.' })
+  return {
+    Literal(node) {
+      const parent = node.parent
+      if (typeof node.value !== 'string' || /^(?:ImportDeclaration|ExportAllDeclaration|ExportNamedDeclaration|ImportExpression|TSLiteralType)$/.test(parent?.type)) return
+      // A property key names a field (theme["gold"], { gold: 1 }); it is not a colour value.
+      if ((parent?.type === 'MemberExpression' && parent.computed && parent.property === node) || (/^(?:Property|PropertyDefinition|TSPropertySignature)$/.test(parent?.type) && parent.key === node)) return
+      if (themeKeys.has(node.value) && readByTamagui(context, node)) return
+      if (isColorLiteral(node.value)) report(node)
+    },
+    TemplateLiteral(node) {
+      if (!node.expressions.length && isColorLiteral(node.quasis[0].value.cooked ?? '')) report(node)
+    },
+  }
+}
+
 function rule(kind) {
   return {
     meta: { type: 'problem', schema: [] },
     create(context) {
+      if (kind === 'viz-theme-colors') return vizThemeColors(context)
       function check(prop, value, node) {
         if (!['semantic-colors', 'token-values'].includes(kind)) return
         const category = categories.get(prop)
@@ -105,13 +189,13 @@ function rule(kind) {
           const value = node.value?.type === 'JSXExpressionContainer' ? node.value.expression : node.value
           check(prop, value, node); escape(prop, value, node)
         },
-        Property(node) { if (node.parent.type === 'ObjectPattern') return; if (node.computed && kind === 'no-style-escape') context.report({ node, message: 'Use explicit property names in UI objects so design values can be checked.' }); check(nameOf(node.key), node.value, node); escape(nameOf(node.key), node.value, node) },
+        Property(node) { if (node.parent.type === 'ObjectPattern' || skipsChartSpec(context, node)) return; if (node.computed && kind === 'no-style-escape') context.report({ node, message: 'Use explicit property names in UI objects so design values can be checked.' }); check(nameOf(node.key), node.value, node); escape(nameOf(node.key), node.value, node) },
         JSXSpreadAttribute(node) {
           if (kind !== 'no-style-escape') return
           if (unwrap(node.argument)?.type !== 'ObjectExpression') context.report({ node, message: 'Expand JSX spreads into explicit props so design values can be checked.' })
         },
         SpreadElement(node) {
-          if (kind === 'no-style-escape' && node.parent.type === 'ObjectExpression') context.report({ node, message: 'Expand object spreads in UI source so design values can be checked.' })
+          if (kind === 'no-style-escape' && !skipsChartSpec(context, node) && node.parent.type === 'ObjectExpression') context.report({ node, message: 'Expand object spreads in UI source so design values can be checked.' })
         },
         ImportDeclaration(node) {
           if (kind === 'no-css-imports' && /\.(css|scss|sass|less)(?:[?#]|$)/.test(node.source.value) && !['@tamagui/core/reset.css', './tamagui.generated.css'].includes(node.source.value)) context.report({ node, message: 'Only the Tamagui reset and generated CSS may be imported.' })
@@ -138,4 +222,4 @@ function rule(kind) {
     },
   }
 }
-export default { meta: { name: 'design' }, rules: Object.fromEntries(['semantic-colors', 'token-values', 'no-style-escape', 'no-css-imports'].map((name) => [name, rule(name)])) }
+export default { meta: { name: 'design' }, rules: Object.fromEntries(['semantic-colors', 'token-values', 'no-style-escape', 'no-css-imports', 'viz-theme-colors'].map((name) => [name, rule(name)])) }
