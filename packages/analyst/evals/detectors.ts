@@ -2,10 +2,11 @@ import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import { Effect, Match, Schema } from 'effect'
+import { NodeRuntime } from '@effect/platform-node'
+import { Array, Cause, Console, DateTime, Effect, Schema } from 'effect'
 import { openDb } from '../src/db.ts'
 import { guardQuery } from '../src/guard.ts'
-import type { CardDraft, InsightCard } from '../src/card.ts'
+import type { CardDraft } from '../src/card.ts'
 import { extraTime } from '../src/detectors/extra-time.ts'
 import { goalieStarts } from '../src/detectors/goalie-starts.ts'
 import { homeAway } from '../src/detectors/home-away.ts'
@@ -15,7 +16,7 @@ import { pointsLeader } from '../src/detectors/points-leader.ts'
 import { streak } from '../src/detectors/streak.ts'
 import { fillCard } from '../src/tools/submit-card.ts'
 import type { CardMeta } from '../src/tools/submit-card.ts'
-import type { Verify, VerifyResult } from '../src/shapes.ts'
+import type { Db, Guard, Verify } from '../src/shapes.ts'
 import { verifyCard } from '../src/verify.ts'
 import { scoreCards } from './card-pass-rate.ts'
 
@@ -73,21 +74,60 @@ interface Tally {
   failuresByCheck: Record<number, number>
 }
 
-type FillOutcome =
-  | { readonly _tag: 'Filled'; readonly card: InsightCard }
-  | { readonly _tag: 'Unfilled'; readonly message: string }
-
 const readTeams = (dataDir: string) =>
   Effect.gen(function* () {
     const text = yield* Effect.tryPromise({
       try: () => readFile(join(dataDir, 'teams.json'), 'utf8'),
       catch: (cause) => new EvalDetectorsError({ message: `cannot read teams.json: ${String(cause)}` }),
     })
+
     const teams = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(TeamsFile))(text).pipe(
       Effect.mapError((error) => new EvalDetectorsError({ message: `teams.json: ${error.message}` })),
     )
+
     return teams.map((team) => team.abbrev)
   })
+
+const addCounts = (target: Record<number, number>, counts: Readonly<Record<number, number>>) => {
+  for (const [check, count] of Object.entries(counts)) {
+    const key = Number(check)
+    target[key] = (target[key] ?? 0) + count
+  }
+}
+
+const rate = (passed: number, total: number) => (total === 0 ? 0 : passed / total)
+
+const evaluateTeam = (
+  deps: { db: Db; guard: Guard },
+  detector: DetectorDef,
+  team: string,
+  meta: CardMeta,
+  finals: ReadonlySet<number>,
+) => Effect.gen(function* () {
+  const drafts = detector.run(team)
+  const outcomes = yield* Effect.forEach(drafts, (draft) => Effect.result(fillCard(deps, draft, meta)))
+  const [cards, errors] = Array.separate(outcomes)
+
+  const failures: DetectorFailure[] = errors.map((error) => ({
+    team, detector: detector.name, check: FILL_CHECK, detail: error.message,
+  }))
+
+  const verify: Verify = (card, finalIds) =>
+    verifyCard(deps, card, finalIds).pipe(
+      Effect.map((result) => {
+        if (!result.ok) failures.push({ team, detector: detector.name, check: result.check, detail: result.detail })
+
+        return result
+      }),
+    )
+
+  const score = yield* scoreCards(cards, verify, finals)
+  const failuresByCheck = { ...score.failuresByCheck }
+
+  if (errors.length > 0) failuresByCheck[FILL_CHECK] = errors.length
+
+  return { total: drafts.length, passed: score.passed, failuresByCheck, failures }
+})
 
 // Runs every detector for every team in data/teams.json through fillCard and verifyCard, then scores the cards.
 export const runDetectorEval = (input: { readonly dataDir: string }) =>
@@ -96,80 +136,40 @@ export const runDetectorEval = (input: { readonly dataDir: string }) =>
       const dataDir = resolve(input.dataDir)
       const teams = yield* readTeams(dataDir)
       const db = yield* openDb({ dataDir })
-      const guard = guardQuery
-      const deps = { db, guard }
-
+      const deps = { db, guard: guardQuery }
       const finalRows = (yield* db.query('SELECT DISTINCT game_id FROM team_games WHERE is_final')).rows
-      const finals = new Set(finalRows.map((row) => row['game_id']).filter((id): id is number => typeof id === 'number'))
+      const ids = finalRows.map((row) => row['game_id']).filter(Schema.is(Schema.Number))
+      const finals = new Set(ids)
+      const fetchedAt = yield* Effect.map(DateTime.now, DateTime.formatIso)
+
       const meta: CardMeta = {
         model: 'detectors',
         runId: 'detectors',
-        asOf: { fetchedAt: new Date().toISOString(), completedGameIds: finals.size },
+        asOf: { fetchedAt, completedGameIds: finals.size },
       }
 
-      const tallies = new Map<string, Tally>()
-      const failures: DetectorFailure[] = []
-      for (const detector of DETECTORS) {
-        const tally: Tally = { total: 0, passed: 0, failuresByCheck: {} }
-        tallies.set(detector.name, tally)
-        for (const team of teams) {
-          const filled: InsightCard[] = []
-          let fillFailures = 0
-          for (const draft of detector.run(team)) {
-            const outcome: FillOutcome = yield* Effect.match(fillCard(deps, draft, meta), {
-              onFailure: (error): FillOutcome => ({ _tag: 'Unfilled', message: error.message }),
-              onSuccess: (card): FillOutcome => ({ _tag: 'Filled', card }),
-            })
-            Match.value(outcome).pipe(
-              Match.tagsExhaustive({
-                Filled: ({ card }) => {
-                  filled.push(card)
-                },
-                Unfilled: ({ message }) => {
-                  fillFailures += 1
-                  failures.push({ team, detector: detector.name, check: FILL_CHECK, detail: message })
-                },
-              }),
-            )
-          }
-
-          const details: DetectorFailure[] = []
-          const verify: Verify = (card, finalIds) =>
-            verifyCard(deps, card, finalIds).pipe(
-              Effect.tap((result: VerifyResult) =>
-                Effect.sync(() => {
-                  if (!result.ok) details.push({ team, detector: detector.name, check: result.check, detail: result.detail })
-                }),
-              ),
-            )
-          const score = yield* scoreCards(filled, verify, finals)
-          failures.push(...details)
-
-          tally.total += filled.length + fillFailures
-          tally.passed += score.passed
-          for (const [check, count] of Object.entries(score.failuresByCheck)) {
-            const key = Number(check)
-            tally.failuresByCheck[key] = (tally.failuresByCheck[key] ?? 0) + count
-          }
-          if (fillFailures > 0) tally.failuresByCheck[FILL_CHECK] = (tally.failuresByCheck[FILL_CHECK] ?? 0) + fillFailures
-        }
-      }
-
-      const rate = (passed: number, total: number) => (total === 0 ? 0 : passed / total)
       const byDetector: Record<string, DetectorScore> = {}
-      const failuresByCheck: Record<number, number> = {}
-      let total = 0
-      let passed = 0
-      for (const [name, tally] of tallies) {
-        byDetector[name] = { total: tally.total, passed: tally.passed, passRate: rate(tally.passed, tally.total) }
-        total += tally.total
-        passed += tally.passed
-        for (const [check, count] of Object.entries(tally.failuresByCheck)) {
-          const key = Number(check)
-          failuresByCheck[key] = (failuresByCheck[key] ?? 0) + count
+      const overall: Tally = { total: 0, passed: 0, failuresByCheck: {} }
+      const failures: DetectorFailure[] = []
+
+      yield* Effect.forEach(DETECTORS, (detector) => Effect.gen(function* () {
+        const scores = yield* Effect.forEach(teams, (team) => evaluateTeam(deps, detector, team, meta, finals))
+        let total = 0
+        let passed = 0
+
+        for (const score of scores) {
+          total += score.total
+          passed += score.passed
+          addCounts(overall.failuresByCheck, score.failuresByCheck)
+          failures.push(...score.failures)
         }
-      }
-      return { teams: teams.length, total, passed, passRate: rate(passed, total), byDetector, failuresByCheck, failures } satisfies DetectorReport
+
+        byDetector[detector.name] = { total, passed, passRate: rate(passed, total) }
+        overall.total += total
+        overall.passed += passed
+      }), { discard: true })
+
+      return { teams: teams.length, ...overall, passRate: rate(overall.passed, overall.total), byDetector, failures } satisfies DetectorReport
     }),
   )
 
@@ -177,6 +177,13 @@ const checkLabel = (check: number): string => (check === FILL_CHECK ? 'fill (dra
 
 export const formatReport = (report: DetectorReport): string => {
   const pct = (rate: number) => `${(rate * 100).toFixed(1)}%`
+  const checks = Object.entries(report.failuresByCheck).map(([check, count]) => `  ${checkLabel(Number(check))}: ${count}`)
+  const cards = report.failures.map((f) => `  ${f.team} ${f.detector} ${checkLabel(f.check)}: ${f.detail}`)
+
+  if (checks.length === 0) checks.push('  none')
+
+  if (cards.length === 0) cards.push('  none')
+
   const lines = [
     `Pass rate: ${report.passed}/${report.total} = ${pct(report.passRate)} across ${report.teams} teams`,
     '',
@@ -184,15 +191,12 @@ export const formatReport = (report: DetectorReport): string => {
     ...Object.entries(report.byDetector).map(([name, s]) => `  ${name}: ${s.passed}/${s.total} = ${pct(s.passRate)}`),
     '',
     'Failures by check:',
-    ...(Object.keys(report.failuresByCheck).length === 0
-      ? ['  none']
-      : Object.entries(report.failuresByCheck).map(([check, count]) => `  ${checkLabel(Number(check))}: ${count}`)),
+    ...checks,
     '',
     'Failing cards:',
-    ...(report.failures.length === 0
-      ? ['  none']
-      : report.failures.map((f) => `  ${f.team} ${f.detector} ${checkLabel(f.check)}: ${f.detail}`)),
+    ...cards,
   ]
+
   return lines.join('\n')
 }
 
@@ -202,20 +206,16 @@ export const runCli = (args: readonly string[], out: (text: string) => void = co
       try: () => parseArgs({ args: [...args], options: { 'data-dir': { type: 'string' } }, strict: true }),
       catch: (cause) => new EvalDetectorsError({ message: String(cause) }),
     })
+
     const dataDir = parsed.values['data-dir'] ?? resolve(import.meta.dirname, '../../../data')
     const report = yield* runDetectorEval({ dataDir })
     out(formatReport(report))
   })
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await Effect.runPromise(
-    runCli(process.argv.slice(2)).pipe(
-      Effect.catch((error) =>
-        Effect.sync(() => {
-          console.error(String(error))
-          process.exitCode = 1
-        }),
-      ),
-    ),
+  const program = runCli(process.argv.slice(2)).pipe(
+    Effect.tapCause((cause) => Console.error(String(Cause.squash(cause)))),
   )
+
+  NodeRuntime.runMain(program, { disableErrorReporting: true })
 }

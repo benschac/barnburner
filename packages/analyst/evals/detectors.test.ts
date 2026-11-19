@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { Effect } from 'effect'
+import { Array, Effect, Order } from 'effect'
 import { DETECTORS, formatReport, runDetectorEval } from './detectors.ts'
 
 const fixtureDataDir = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'tests', 'fixtures', 'data')
@@ -14,7 +14,7 @@ test('every detector passes on the fixture data for both fixture teams', async (
   assert.equal(report.passed, report.total)
   assert.equal(report.passRate, 1)
   assert.deepEqual(report.failures, [])
-  assert.deepEqual(Object.keys(report.byDetector).sort(), DETECTORS.map((d) => d.name).sort())
+  assert.deepEqual(Array.sort(Object.keys(report.byDetector), Order.String), Array.sort(DETECTORS.map((d) => d.name), Order.String))
 })
 
 test('formatReport names the overall rate, each detector, and the failures', async () => {
