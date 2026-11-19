@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { Effect } from 'effect'
+import { Effect, Schema } from 'effect'
 import { MockLanguageModelV4 } from 'ai/test'
 import { Llm } from '../src/llm.ts'
 import type { Tables } from '@nhl-reddit-stats/viz'
@@ -80,7 +80,7 @@ test('generateChecked: one repaired answer', async () => {
 test('generateChecked: three bad answers fail after two repairs', async () => {
   const model = stub([reply(bad)])
   const error = await run(generateChecked({ ...base, model }).pipe(Effect.flip))
-  assert.ok(error instanceof ViewCodeError)
+  assert.ok(Schema.is(ViewCodeError)(error))
   assert.equal(error.attempts, 3)
   assert.equal(error.inputTokens, 30)
   assert.equal(error.outputTokens, 15)
