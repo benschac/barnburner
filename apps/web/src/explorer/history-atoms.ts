@@ -63,53 +63,48 @@ const translate = <A, E>(result: AsyncResult.AsyncResult<A, E>): Result<A, E> =>
   }),
 })
 
-type Tag = Parameters<typeof HistoryClient.query>[0]
-
-/**
- * Wraps a raw query atom. The raw atom is what the registry dehydrates, under `history:<call>:<key>`; it keeps a
- * hydrated value as it is (`skipInitialRun`) until a refresh or its time to live. The atom handed out has the
- * translated error type in every variant, so `RpcClientError` never reaches the explorer.
- */
-const unavailable = <A, E>(tag: Tag, key: string, raw: Atom.Atom<AsyncResult.AsyncResult<A, E>>): Atom.Atom<Result<A, E>> => {
-  const rpc = HistoryRpcs.requests.get(tag)
-  // defect: every Tag names a member of HistoryRpcs
-  if (rpc === undefined) throw new Error(`No RPC named ${tag}`)
-  const schema = AsyncResult.Schema({
-    success: rpc.successSchema,
-    error: Schema.Union([rpc.errorSchema, RpcClientError.RpcClientError]),
-  }) as unknown as Schema.Codec<AsyncResult.AsyncResult<A, E>, unknown>
-  const hydrating = Atom.serializable(raw, { key: `history:${tag}:${key}`, schema, skipInitialRun: true })
+/** AtomRpc owns the codec. Preserve a hydrated snapshot until an explicit refresh. */
+const fromQuery = <A, E>(query: Atom.Atom<AsyncResult.AsyncResult<A, E>>) => {
+  // defect: every history query supplies a serialization key and returns a unary RPC result
+  if (!Atom.isSerializable(query)) throw new Error('History query is missing AtomRpc serialization')
+  const serialization = query[Atom.SerializableTypeId]
+  const hydrating = Object.assign(Atom.setIdleTTL(query, timeToLive), {
+    [Atom.SerializableTypeId]: {
+      ...serialization,
+      // Keep server-rendered history snapshots readable across the switch to AtomRpc's codec.
+      key: serialization.key.replace(/^AtomRpc:/, 'history:'),
+      skipInitialRun: true,
+    },
+  })
   return Atom.map(hydrating, translate)
 }
 
-const options = { timeToLive }
-
 export const searchPlayers = queryFamily((p: Payload<typeof SearchPlayersInput>) =>
-  unavailable('SearchPlayers', `${p.query.length}:${p.query}:${p.limit}`, HistoryClient.query('SearchPlayers', p, options)))
+  fromQuery(HistoryClient.query('SearchPlayers', p, { serializationKey: `${p.query.length}:${p.query}:${p.limit}` })))
 
 export const player = queryFamily((p: Payload<typeof GetPlayerInput>) =>
-  unavailable('GetPlayer', String(p.playerId), HistoryClient.query('GetPlayer', p, options)))
+  fromQuery(HistoryClient.query('GetPlayer', p, { serializationKey: String(p.playerId) })))
 
 export const roster = queryFamily((p: Payload<typeof GetRosterInput>) =>
-  unavailable('GetRoster', `${p.teamId}:${p.seasonId}:${p.gameType}:${p.focusPlayerId ?? ''}`, HistoryClient.query('GetRoster', p, options)))
+  fromQuery(HistoryClient.query('GetRoster', p, { serializationKey: `${p.teamId}:${p.seasonId}:${p.gameType}:${p.focusPlayerId ?? ''}` })))
 
 export const link = queryFamily((p: Payload<typeof GetLinkInput>) =>
-  unavailable('GetLink', `${p.a}:${p.b}:${filterKey(p.filter)}`, HistoryClient.query('GetLink', p, options)))
+  fromQuery(HistoryClient.query('GetLink', p, { serializationKey: `${p.a}:${p.b}:${filterKey(p.filter)}` })))
 
 export const sharedGames = queryFamily((p: Payload<typeof GetSharedGamesInput>) =>
-  unavailable('GetSharedGames', `${p.a}:${p.b}:${p.seasonId}:${p.gameType}:${p.teamId}:${p.link}`, HistoryClient.query('GetSharedGames', p, options)))
+  fromQuery(HistoryClient.query('GetSharedGames', p, { serializationKey: `${p.a}:${p.b}:${p.seasonId}:${p.gameType}:${p.teamId}:${p.link}` })))
 
 export const opponents = queryFamily((p: Payload<typeof GetOpponentsInput>) =>
-  unavailable('GetOpponents', `${p.playerId}:${p.limit}:${p.offset}`, HistoryClient.query('GetOpponents', p, options)))
+  fromQuery(HistoryClient.query('GetOpponents', p, { serializationKey: `${p.playerId}:${p.limit}:${p.offset}` })))
 
 export const opposedGames = queryFamily((p: Payload<typeof GetOpposedGamesInput>) =>
-  unavailable('GetOpposedGames', `${p.a}:${p.b}`, HistoryClient.query('GetOpposedGames', p, options)))
+  fromQuery(HistoryClient.query('GetOpposedGames', p, { serializationKey: `${p.a}:${p.b}` })))
 
 export const findPath = queryFamily((p: Payload<typeof FindPathInput>) =>
-  unavailable('FindPath', `${p.from}:${p.to}:${p.relation}:${p.limit}:${filterKey(p.filter)}`, HistoryClient.query('FindPath', p, options)))
+  fromQuery(HistoryClient.query('FindPath', p, { serializationKey: `${p.from}:${p.to}:${p.relation}:${p.limit}:${filterKey(p.filter)}` })))
 
 export const farthest = queryFamily((p: Payload<typeof GetFarthestInput>) =>
-  unavailable('GetFarthest', `${p.playerId}:${filterKey(p.filter)}`, HistoryClient.query('GetFarthest', p, options)))
+  fromQuery(HistoryClient.query('GetFarthest', p, { serializationKey: `${p.playerId}:${filterKey(p.filter)}` })))
 
 export const finalsCoverage = queryFamily((p: Payload<typeof GetFinalsCoverageInput>) =>
-  unavailable('GetFinalsCoverage', `${p.playerId}:${p.fromYear}:${p.toYear}`, HistoryClient.query('GetFinalsCoverage', p, options)))
+  fromQuery(HistoryClient.query('GetFinalsCoverage', p, { serializationKey: `${p.playerId}:${p.fromYear}:${p.toYear}` })))

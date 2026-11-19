@@ -114,7 +114,7 @@ test('a hydrated result is used as it is, without a second request', async () =>
   const state = Hydration.dehydrate(server)
   unmount()
   server.dispose()
-  assert.equal(state.length, 1)
+  assert.deepEqual(Hydration.toValues(state).map((entry) => entry.key), ['history:GetPlayer:11'])
 
   let requests = 0
   const failing = protocolOver(() => { requests++; return Promise.reject(new TypeError('network down')) })
