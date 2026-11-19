@@ -1,5 +1,5 @@
 // Stanley Cup Finals coverage for one player (FT6): one row per Final year, plus the teammates who matched.
-import { Effect, Match } from 'effect'
+import { Effect, Iterable, Match } from 'effect'
 import { finalsCoverage } from '@nhl-reddit-stats/history'
 import type { HistoryStore, HistoryUnavailable, TeammateGraph, UnknownPlayer } from '@nhl-reddit-stats/history'
 import type { FinalsRow, FinalsTables, PlayerRow } from '../contracts.ts'
@@ -35,7 +35,7 @@ export const finals = (
         sharedGameId: null,
       }),
     }))
-    const matched = [...new Set(rows.flatMap((row) => (row.playerId === null ? [] : [row.playerId])))]
+    const matched = [...new Set(Iterable.flatMapNullishOr(rows, (row) => row.playerId))]
     const players: PlayerRow[] = yield* Effect.forEach(matched, (teammateId) =>
       Effect.map(store.player(teammateId), ({ player }) => ({
         playerId: player.playerId,
