@@ -18,9 +18,11 @@ function Body({ gameId }: { gameId: number }) {
 
 export function GameBoxscoreDialog({ gameId, opponent, score }: { gameId: number; opponent?: string; score?: string }) {
   const [open, setOpen] = useState(false)
+
   const label = opponent === undefined
     ? `Box score, game ${gameId}${score === undefined ? '' : `, ${score}`}`
     : `Box score, game against ${opponent}${score === undefined ? '' : `, ${score}`}`
+
   const context = opponent === undefined ? (score === undefined ? '' : `${score} · `) : `vs ${opponent}${score === undefined ? '' : `, ${score}`} · `
   return <Dialog open={open} onOpenChange={setOpen}>
     <Dialog.Trigger minH="8" px="1" items="center" justify="center" bg="transparent hover:surface" rounded="sm" borderWidth={1} cursor="pointer"
