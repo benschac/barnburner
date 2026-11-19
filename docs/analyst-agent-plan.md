@@ -231,7 +231,7 @@ Everything else hangs off **A1** or **K1** and can land at any time. Once **A1**
 - **P0:** the code is complete, but the exit is still open. No live model run has happened (no gateway key), so there is no eval score and no D8 baseline, and the gateway model IDs are unconfirmed.
 - **P1:** the verifier, guard, detectors, ranker, store, review CLI, report, and recheck are merged. Generation is missing: G5b → G5c → G8 → CI1.
 - **P2:** only N1a and S1 are merged. The API still returns `[]`, and the poster has no Notes section.
-- **Ready now (no key needed):** G5b, X4, N1b, N2, then N3 stacked on N2.
+- **In review (Nov 17):** the stack is #67 plan → #68 N1b → #69 G5b → #70 N2 → #71 X4 → #74 N3. Nothing else can start without P-key.
 - **Blocked on you:** P-key (G4b live, E6b score, G5c, G8, E7), P-pr (CI1), P-rights (approving cards).
 - **Data:** box-score coverage is 178 of 332 finals (54%). D1 wants it close to complete, so rerun the DATA1 backfill.
 
@@ -649,7 +649,7 @@ Everything else hangs off **A1** or **K1** and can land at any time. Once **A1**
 
 ## Ledger
 
-Last synced with GitHub on Nov 17 2026. PRs #1–#57 are all merged; nothing in the analyst stack is open.
+Last synced with GitHub on Nov 17 2026. PRs #1–#57 are merged; #67–#71 and #74 are open as one stack.
 
 | ID | Builder | Needs | Branch | PR | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -687,7 +687,7 @@ Last synced with GitHub on Nov 17 2026. PRs #1–#57 are all merged; nothing in 
 | X1 | Sonnet | B1, B2, V1 | analyst/x1-results | #37 | merged | |
 | X2 | Sonnet | B1, B2, V1 | analyst/x2-form | #38 | merged | |
 | X3 | Sonnet | B1, B2, V2a, V2b, V4 | analyst/x3-players | #39 | merged | |
-| X4 | Haiku | X1, X2, X3, C4, G2b, E8 | analyst/x4-detector-score | | **ready** | |
+| X4 | Haiku | X1, X2, X3, C4, G2b, E8 | analyst/x4-detector-score | #71 | in review | on N2. 224/224 cards pass on real data after fixing `streak.ts`, which claimed a tie it couldn't check (now `trend`, no assert) |
 | T1 | Haiku | A1 | analyst/t1-trace | #11 | merged | |
 | G1 | Sonnet | DEP2 | analyst/g1-llm | #17 | merged | Model IDs still need a live check |
 | G2a | Sonnet | K1, DEP2 | analyst/g2a-sql-tool | #23 | merged | Kept in Effect in #57 |
@@ -698,7 +698,7 @@ Last synced with GitHub on Nov 17 2026. PRs #1–#57 are all merged; nothing in 
 | G4b | Sonnet | G4a, V2a, V2b, V3, P-key | analyst/ai2-ask-toolset | #54 | code merged | live; `scripts/ask.ts` landed in AI2. The live question and the D8 baseline wait on P-key |
 | E6b | Sonnet | E6a, G4a, E2, E3, E4, E5, P-key | analyst/ai3-eval-receipts | #55 | code merged | live; landed as AI3, with run receipts. No score yet, so the **P0 exit is still open** |
 | G5a | Opus | K1 | analyst/g5a-prompt | #16 | merged | Untested live until G5c |
-| G5b | Sonnet | G5a, G3, G1, T1 | analyst/g5b-generate | | **ready** | |
+| G5b | Sonnet | G5a, G3, G1, T1 | analyst/g5b-generate | #69 | in review | on N1b. Builds its own tool set beside `makeToolset`; `posterFacts` is a caller input that G8 must supply |
 | G5c | Opus | G5b, V2a, V2b, V3, P-key | analyst/g5c-tune | | todo | live |
 | G6 | Sonnet | B1, G1 | analyst/g6-rank | #26 | merged | Structured output in #56; no live run yet |
 | G7 | Haiku | B1 | analyst/g7-store | #15 | merged | Id-keyed merge in #49 |
@@ -709,9 +709,9 @@ Last synced with GitHub on Nov 17 2026. PRs #1–#57 are all merged; nothing in 
 | S1 | Sonnet | K1, G7, B2, G2b | analyst/s1-staleness | #34 | merged | |
 | CI1 | Sonnet | G8, S1, P-key, P-pr | analyst/ci1-workflow | | todo | P1 exit |
 | N1a | Sonnet | P-plan | analyst/n1a-contract | #4 | merged | API returns `[]` |
-| N1b | Sonnet | N1a, B1, B2, G7 | analyst/n1b-api | | **ready** | |
-| N2 | Sonnet | N1a | analyst/n2-notes | | **ready** | |
-| N3 | Sonnet | N1a | analyst/n3-source | | **ready** | on N2; P2 exit |
+| N1b | Sonnet | N1a, B1, B2, G7 | analyst/n1b-api | #68 | in review | on #67. `apps/api` doesn't declare `@nhl-reddit-stats/analyst` (resolves via the hoisted link); needs Ben's call |
+| N2 | Sonnet | N1a | analyst/n2-notes | #70 | in review | on G5b. Write list widened to carry `insights` through `season-source.ts`, `team-machine.ts`, `stats.ts`. Not full width at poster size (no contract value) |
+| N3 | Sonnet | N1a | analyst/n3-source | #74 | in review | on X4; P2 exit. Box-score drawer copy reads "vs game <id>" until `GameBoxscoreDialog` props are optional |
 
 ### Work outside the task cards
 
