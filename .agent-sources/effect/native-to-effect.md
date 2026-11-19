@@ -48,15 +48,15 @@ Check the declaration before replacing a call. Several Effect versions differ fr
 
 ## Node scripts
 
-A script under `scripts/` or `lib/` is an Effect program. `NodeServices.layer` from `@effect/platform-node` provides `FileSystem`, `Path`, `ChildProcessSpawner`, `Stdio`, and `Terminal`. `scripts/check-node-scripts.mjs` reports the native APIs in the first five rows; its `LEGACY` list names the scripts written before the rule. Worked examples: `node_modules/effect/ai-docs/src/60_child-process/`, `70_cli/`, and `01_effect/06_running/`.
+A script under `scripts/` or `lib/` is an Effect program. `NodeServices.layer` from `@effect/platform-node` provides `FileSystem`, `Path`, `ChildProcessSpawner`, `Stdio`, and `Terminal`. `lint/node-scripts.oxlintrc.json` reports the native APIs in the first five rows through `bun run check:node-scripts`, part of root `bun run lint`. Scripts written before the rule open with an `oxlint-disable` comment marked `legacy`. Worked examples: `node_modules/effect/ai-docs/src/60_child-process/`, `70_cli/`, and `01_effect/06_running/`.
 
 | Native | Effect | Rule |
 | --- | --- | --- |
-| Top-level `await`, `process.exit`, `process.exitCode` | `NodeRuntime.runMain(program.pipe(Effect.provide(NodeServices.layer)))`; fail with a tagged error for a non-zero exit | `check-node-scripts` |
-| `node:fs`, `node:fs/promises` | `FileSystem.FileSystem`: `readFileString`, `writeFileString`, `readDirectory`, `makeDirectory`, `exists`, `remove` | `check-node-scripts` |
-| `node:path`, `fileURLToPath` from `node:url` | `Path.Path`: `join`, `resolve`, `dirname`, `relative`, `fromFileUrl(new URL('../', import.meta.url))` | `check-node-scripts` |
-| `execFile`, `spawn`, `spawnSync` from `node:child_process` | `ChildProcess.make(command, args, { cwd })` from `effect/process`, run through `ChildProcessSpawner`: `string`, `lines`, `exitCode`, or `spawn` for a streaming handle; `ChildProcess.pipeTo` for a pipeline | `check-node-scripts` |
-| Reading `process.argv` | `Command.make` with `Flag.String`, `Flag.Boolean`, and `Argument.String` from `effect/cli`, then `Command.run` | `check-node-scripts` |
+| Top-level `await`, `process.exit`, `process.exitCode` | `NodeRuntime.runMain(program.pipe(Effect.provide(NodeServices.layer)))`; fail with a tagged error for a non-zero exit | `no-restricted-properties` |
+| `node:fs`, `node:fs/promises` | `FileSystem.FileSystem`: `readFileString`, `writeFileString`, `readDirectory`, `makeDirectory`, `exists`, `remove` | `no-restricted-imports` |
+| `node:path`, `fileURLToPath` from `node:url` | `Path.Path`: `join`, `resolve`, `dirname`, `relative`, `fromFileUrl(new URL('../', import.meta.url))` | `no-restricted-imports` |
+| `execFile`, `spawn`, `spawnSync` from `node:child_process` | `ChildProcess.make(command, args, { cwd })` from `effect/process`, run through `ChildProcessSpawner`: `string`, `lines`, `exitCode`, or `spawn` for a streaming handle; `ChildProcess.pipeTo` for a pipeline | `no-restricted-imports` |
+| Reading `process.argv` | `Command.make` with `Flag.String`, `Flag.Boolean`, and `Argument.String` from `effect/cli`, then `Command.run` | `no-restricted-properties` |
 | `JSON.parse` of a command's output | `Schema.decodeUnknownEffect(Schema.fromJsonString(schema))` | |
 | `console.log` of a result, `process.stdout.write` | `Console.log`; diagnostics go through `loggerLayer` from `lib/logger.mjs` (logfmt on stderr) | `effecttsgo/global-console` |
 | `setTimeout` to poll | `Effect.sleep`, `Effect.repeat` with a `Schedule` | `effecttsgo/global-timers` |

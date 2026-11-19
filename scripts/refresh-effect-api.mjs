@@ -1,3 +1,4 @@
+/* oxlint-disable no-restricted-imports, no-restricted-properties -- legacy: port to the Effect platform services, see "Node scripts" in AGENTS.md */
 // Index the public API of the installed Effect packages.
 // Each package already ships its declarations with JSDoc, its source, and its
 // agent guides at the pinned version, so this writes one module index and

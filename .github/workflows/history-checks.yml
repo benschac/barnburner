@@ -13,6 +13,7 @@ on:
       - 'scripts/index-effect-core.mjs'
       - 'scripts/*.mjs'
       - 'lib/**'
+      - 'lint/node-scripts.oxlintrc.json'
       - '.agent-sources/effect/**'
       - 'tests/**'
       - 'packages/history/**'

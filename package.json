@@ -25,7 +25,7 @@
     "check:tamagui": "turbo run check:tamagui",
     "generate:tamagui": "turbo run generate:tamagui",
     "check:effect-api": "node scripts/refresh-effect-api.mjs --check && node scripts/index-effect-core.mjs --check",
-    "check:node-scripts": "node scripts/check-node-scripts.mjs",
+    "check:node-scripts": "oxlint -c lint/node-scripts.oxlintrc.json --report-unused-disable-directives-severity=error scripts lib",
     "lint": "bun run check:effect-api && bun run check:node-scripts && turbo run lint",
     "preview": "turbo run preview",
     "ask": "bun run --cwd packages/analyst ask",
@@ -42,6 +42,7 @@
   },
   "devDependencies": {
     "@effect/platform-node": "4.1.2",
+    "oxlint": "1.91.0",
     "turbo": "2.11.10",
     "@effect/tsgo": "0.67.1"
   }

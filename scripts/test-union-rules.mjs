@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* oxlint-disable no-restricted-imports, no-restricted-properties -- legacy: port to the Effect platform services, see "Node scripts" in AGENTS.md */
 // Proves the union-model lint rules fire on bad shapes and stay quiet on good ones.
 // Usage: node scripts/test-union-rules.mjs <package dir with .oxlintrc.json>
 import { logInfo } from '../lib/logger.mjs'
