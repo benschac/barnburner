@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Proves the Effect core module lint rules fire on native patterns and stay quiet on the Effect ones.
-// Usage: node scripts/test-effect-core-rules.mjs <package dir whose .oxlintrc.json enables lint/effect-core-plugin.mjs>
+// Usage: node scripts/test-effect-core-rules.mjs <package dir whose .oxlintrc.json extends lint/effect-core.oxlintrc.json>
 import { logInfo } from '../lib/logger.mjs'
 import assert from 'node:assert/strict'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -27,6 +27,8 @@ const cases = [
   ['bare loop marker', `${effect}export const f = (xs: number[]) => Effect.gen(function* () {\n  // loop:\n  for (const x of xs) yield* Effect.succeed(x)\n})`, 'core(no-yield-in-loop)'],
   ['yield* of the iterable', `${effect}export const f = Effect.gen(function* () { let n = 0; for (const x of yield* Effect.succeed([1, 2])) n += x; return n })`, null],
   ['Effect.forEach', `${effect}export const f = (xs: number[]) => Effect.forEach(xs, (x) => Effect.succeed(x))`, null],
+  // The shared config also turns on @effect/tsgo rules; this proves they reach the package.
+  ['upstream rule through the shared config', `${effect}export const f = Effect.sync(() => Date.now())`, 'effecttsgo(global-date-in-effect)'],
   ['generator nested in a loop', `${effect}export const f = (xs: number[]) => { const out = []; for (const x of xs) out.push(Effect.gen(function* () { return yield* Effect.succeed(x) })); return out }`, null],
 ]
 
@@ -38,7 +40,7 @@ try {
     assert.equal(result.error, undefined, name)
     const { diagnostics } = JSON.parse(result.stdout)
     assert.ok(!diagnostics.some((d) => d.message.includes('Error running JS plugin')), `${name}: plugin crashed`)
-    const core = diagnostics.filter((d) => d.severity === 'error' && d.code.startsWith('core('))
+    const core = diagnostics.filter((d) => d.severity === 'error' && /^(core|effecttsgo)\(/.test(d.code))
     if (expected) assert.ok(core.some((d) => d.code === expected), `${name}: ${result.stdout}`)
     else assert.equal(core.length, 0, `${name}: ${result.stdout}`)
   }
