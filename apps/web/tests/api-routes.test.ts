@@ -12,14 +12,14 @@ import { FetchHttpClient, HttpClient, HttpClientRequest } from 'effect/http'
 import { BoxscoreSource, rpcBoxscoreSourceLayer } from '../src/season-source.ts'
 
 // This test exercises the production build Next emits, not the route TypeScript. Build first:
-//   bun run --cwd ../api build && bun run next:build
+//   bun run build
 const web = fileURLToPath(new URL('..', import.meta.url))
 const apiDist = fileURLToPath(new URL('../../api/dist/', import.meta.url))
 const archive = fileURLToPath(new URL('../../../data/boxscores/20262027/', import.meta.url))
 const next = join(web, '.next')
 const missingBuild = [
   [join(apiDist, 'web-handler.js'), 'the built API (run `bun run --cwd ../api build`)'],
-  [join(next, 'BUILD_ID'), 'the Next production build (run `bun run next:build`)'],
+  [join(next, 'BUILD_ID'), 'the Next production build (run `bun run build`)'],
 ].flatMap(([path, what]) => existsSync(path) ? [] : [what])
 assert.deepEqual(missingBuild, [], `api-routes.test.ts needs a prior build; missing: ${missingBuild.join(', ')}`)
 

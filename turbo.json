@@ -26,6 +26,7 @@
         ".next/**",
         "!.next/cache/**",
         "dist/**",
+        "public/viz-frame/**",
         "src/tamagui.generated.css"
       ]
     },

@@ -21,6 +21,7 @@ on:
       - 'packages/season/**'
       - 'apps/api/**'
       - 'apps/web/src/season-source.ts'
+      - 'apps/web/app/api/**'
       - 'apps/web/vercel.json'
       - 'apps/web/scripts/check-vercel-output.mjs'
       - 'package.json'

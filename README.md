@@ -22,7 +22,7 @@ bun install --frozen-lockfile
 bun run data:serve
 
 # Terminal 2: serve the web app
-bun run dev -- --host 127.0.0.1 --port 4173
+bun run --cwd apps/web dev --hostname 127.0.0.1 --port 4173
 ```
 
 Open http://127.0.0.1:4173. Select a team to load its poster in place. Shareable links such as `/team/BOS` open a team directly; legacy links such as `#team/BOS` still work. The default route and `#poster` open New Jersey. The layout rearranges sections on small screens, and charts scroll horizontally when needed. Browser zoom remains enabled.

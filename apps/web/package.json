@@ -6,7 +6,7 @@
   "scripts": {
     "docs:plan": "bun scripts/build-analyst-plan.ts",
     "typecheck:plan": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.plan.json",
-    "dev": "bun run --cwd ../api build && next dev --webpack",
+    "dev": "HISTORY_KEEP_LOCAL=1 bun run --cwd ../api build && next dev --webpack",
     "viz:frame": "bun scripts/build-viz-frame.mjs",
     "predev": "bun run viz:frame",
     "prebuild": "bun run viz:frame",
