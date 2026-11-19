@@ -14,6 +14,7 @@ const program = Effect.gen(function* () {
   const { values } = yield* Effect.try(() => parseArgs({ options: {
     snapshot: { type: 'string', default: fileURLToPath(new URL('../../../data/nhl-20262027.json', import.meta.url)) },
     'poster-snapshot': { type: 'string', default: fileURLToPath(new URL('../../../data/nhl-poster-20262027.json', import.meta.url)) },
+    insights: { type: 'string', default: fileURLToPath(new URL('../../../data/insights/20262027', import.meta.url)) },
     boxscores: { type: 'string', default: fileURLToPath(new URL('../../../data/boxscores/20262027', import.meta.url)) },
     history: { type: 'string' },
     host: { type: 'string', default: '127.0.0.1' },
@@ -25,7 +26,7 @@ const program = Effect.gen(function* () {
   }
   return yield* HttpRouter.serve(values.history === undefined ? ApiRoutes : Layer.mergeAll(ApiRoutes, HistoryRoutes)).pipe(
     Layer.provide([
-      Snapshots.layer({ snapshot: values.snapshot, posterSnapshot: values['poster-snapshot'] }),
+      Snapshots.layer({ snapshot: values.snapshot, posterSnapshot: values['poster-snapshot'], insights: values.insights }),
       BoxScores.layerFiles(values.boxscores),
       History.layer(values.history),
     ]),
