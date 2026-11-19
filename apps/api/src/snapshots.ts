@@ -1,6 +1,8 @@
 import { Context, Effect, FileSystem, Layer, Schema } from 'effect'
 import { PosterSnapshot, SeasonGame, SeasonSnapshot, TeamData } from '@nhl-reddit-stats/season'
 import { SnapshotLoadError } from '@nhl-reddit-stats/season/rpc'
+import type { PublishedInsight } from '@nhl-reddit-stats/season/rpc'
+import { filesInsights, loadPublishedInsights } from './insights.ts'
 import { GAMES_PER_TEAM, validateSnapshot } from '../../../lib/nhl-games.mjs'
 import { validatePosterAgainstGames } from '../../../lib/nhl-poster.mjs'
 
@@ -17,7 +19,7 @@ export class SnapshotDataError extends Schema.TaggedError<SnapshotDataError>()('
   message: Schema.String,
 }) {}
 
-export const makeSnapshots = (input: { season: unknown, poster: unknown | null, expectedGamesPerTeam?: number }) => Effect.gen(function* () {
+export const makeSnapshots = (input: { season: unknown, poster: unknown, expectedGamesPerTeam?: number, insights?: Effect.Effect<ReadonlyArray<PublishedInsight>, SnapshotLoadError> }) => Effect.gen(function* () {
   const season = yield* Schema.decodeUnknownEffect(SavedSeason)(input.season)
   const poster = input.poster === null ? null : yield* Schema.decodeUnknownEffect(PosterSnapshot)(input.poster)
   yield* Effect.try({
@@ -34,23 +36,33 @@ export const makeSnapshots = (input: { season: unknown, poster: unknown | null, 
     poster,
     load: poster === null
       ? Effect.fail(new SnapshotLoadError({ message: 'Poster data is unavailable. Refresh the poster data and restart the server.' }))
-      : Schema.decodeUnknownEffect(TeamData)({ season, poster }).pipe(
-        Effect.map((data) => ({ ...data, insights: [] })),
-        Effect.mapError(() => new SnapshotLoadError({ message: 'The team data is incomplete or invalid. Refresh the data and try again.' })),
-      ),
+      : Effect.gen(function* () {
+        const data = yield* Schema.decodeUnknownEffect(TeamData)({ season, poster }).pipe(
+          Effect.tapError(Effect.logError),
+          Effect.mapError(() => new SnapshotLoadError({ message: 'The team data is incomplete or invalid. Refresh the data and try again.' })),
+        )
+
+        return { ...data, insights: yield* (input.insights ?? Effect.succeed([])) }
+      }),
   }
 }).pipe(Effect.mapError((error) => new SnapshotDataError({ message: String(error) })))
 
 export class Snapshots extends Context.Service<Snapshots, Effect.Success<ReturnType<typeof makeSnapshots>>>()('glanceboard/Snapshots') {
-  static layer = (paths: { snapshot: string, posterSnapshot: string }) => Layer.effect(Snapshots, Effect.gen(function* () {
+  static layerData = (input: Parameters<typeof makeSnapshots>[0]) => Layer.effect(this, makeSnapshots(input))
+
+  static layer = (paths: { snapshot: string, posterSnapshot: string, insights?: string }) => Layer.effect(Snapshots, Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const seasonText = yield* fs.readFileString(paths.snapshot)
     const season = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(SavedSeason))(seasonText)
+
     if (season.teams.length !== 32) return yield* Effect.fail(new SnapshotDataError({ message: 'Expected all 32 NHL teams' }))
+
     const posterText = yield* fs.readFileString(paths.posterSnapshot).pipe(
-      Effect.catchIf((error) => error.reason._tag === 'NotFound', () => Effect.succeed(null)),
+      Effect.catchReason('PlatformError', 'NotFound', () => Effect.succeed(null)),
     )
     const poster = posterText === null ? null : yield* Schema.decodeUnknownEffect(Schema.fromJsonString(PosterSnapshot))(posterText)
-    return yield* makeSnapshots({ season, poster })
+    const insights = paths.insights === undefined ? Effect.succeed([]) : loadPublishedInsights(filesInsights(fs, paths.insights), season.teams.map((team) => team.abbrev))
+
+    return yield* makeSnapshots({ season, poster, insights })
   }))
 }
