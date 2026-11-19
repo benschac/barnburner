@@ -62,3 +62,12 @@ export const chainBreak = async (stack, trunkOid, isAncestor) => {
   }
   return undefined
 }
+
+// Why a pull request whose own commits include merge commits may not land, or undefined when they are a straight line.
+// Landing fast-forwards main, so every merge would show on main as "Merge commit ... into HEAD" in place of the
+// commits themselves. `merges` lists the merge commits between the pull request below and this head, as "<sha> <subject>".
+export const mergeBlocker = (merges) => {
+  if (!merges.length) return undefined
+  const count = merges.length === 1 ? '1 merge commit' : `${merges.length} merge commits`
+  return `has ${count} (${merges[0]}${merges.length > 1 ? ', ...' : ''}); rebase it onto the pull request below instead of merging`
+}
