@@ -1,5 +1,6 @@
 {
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../lint/effect-core.oxlintrc.json"],
   "options": {
     "typeAware": true
   },
@@ -77,6 +78,16 @@
       "rules": {
         "design/no-css-imports": "off",
         "design/no-style-escape": "off"
+      }
+    },
+    {
+      "files": [
+        "tamagui.build.ts",
+        "next.config.js",
+        "scripts/check-vercel-output.mjs"
+      ],
+      "rules": {
+        "effecttsgo/process-env": "off"
       }
     },
     {

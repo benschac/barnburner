@@ -11,7 +11,7 @@
     "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.app.json && effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.node.json",
     "check:tamagui": "tamagui check --strict",
     "generate:tamagui": "tamagui generate-prompt",
-    "lint": "effect-tsgo --tsrs-lint oxlint && node scripts/check-design-files.mjs && node scripts/test-design-rules.mjs && node scripts/test-pattern-rules.mjs && node ../../scripts/check-error-model.mjs plan-viewer/plan.ts",
+    "lint": "effect-tsgo --tsrs-lint oxlint && node scripts/check-design-files.mjs && node scripts/test-design-rules.mjs && node scripts/test-pattern-rules.mjs && node ../../scripts/check-error-model.mjs plan-viewer/plan.ts && node ../../scripts/test-effect-core-rules.mjs . && node ../../scripts/index-effect-core.mjs --check",
     "preview": "vite preview",
     "next:dev": "next dev --webpack",
     "next:build": "next build --webpack",
