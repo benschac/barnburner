@@ -1,20 +1,23 @@
 import { samples } from '@nhl-reddit-stats/viz/samples'
-import type { LabEntry } from '@nhl-reddit-stats/viz'
+import type { EgoTables, LabEntry } from '@nhl-reddit-stats/viz'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Text, View } from 'tamagui'
 import { G6Graph, type G6NodeProps } from '../../G6Graph'
 
-const { players, links } = samples.ego.tables
-
-const data = {
-  nodes: players.map((player) => ({ id: String(player.playerId), data: { name: player.name } })),
-  edges: links.map((link) => ({
-    id: `${link.a}-${link.b}`,
-    source: String(link.a),
-    target: String(link.b),
-    style: { labelText: `${link.games}` },
-  })),
+/** The ego tables as G6 data: a node per player, an edge per link labelled with its games. Pure. */
+export function egoGraph({ players, links }: EgoTables) {
+  return {
+    nodes: players.map((player) => ({ id: String(player.playerId), data: { name: player.name } })),
+    edges: links.map((link) => ({
+      id: `${link.a}-${link.b}`,
+      source: String(link.a),
+      target: String(link.b),
+      style: { labelText: `${link.games}` },
+    })),
+  }
 }
+
+const data = egoGraph(samples.ego.tables)
 
 /** A small node component, drawn by React inside the graph. */
 function TinyNode({ data: nodeData }: G6NodeProps) {
