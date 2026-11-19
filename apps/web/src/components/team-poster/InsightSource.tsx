@@ -72,7 +72,7 @@ export function InsightSource({ insight }: { insight: PublishedInsight }) {
                 {insight.gameIds.map((gameId) => (
                   <Row render="li" key={gameId} gap="2" borderTopWidth={1} borderTopColor="rule">
                     <Copy flex={1}>Game {gameId}</Copy>
-                    <GameBoxscoreDialog gameId={gameId} opponent={`game ${gameId}`} score="final" />
+                    <GameBoxscoreDialog gameId={gameId} />
                   </Row>
                 ))}
               </List>

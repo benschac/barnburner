@@ -16,11 +16,17 @@ function Body({ gameId }: { gameId: number }) {
   return <BoxscoreSheet boxscore={boxscore} />
 }
 
-export function GameBoxscoreDialog({ gameId, opponent, score }: { gameId: number; opponent: string; score: string }) {
+export function GameBoxscoreDialog({ gameId, opponent, score }: { gameId: number; opponent?: string; score?: string }) {
   const [open, setOpen] = useState(false)
+
+  const label = opponent === undefined
+    ? `Box score, game ${gameId}${score === undefined ? '' : `, ${score}`}`
+    : `Box score, game against ${opponent}${score === undefined ? '' : `, ${score}`}`
+
+  const context = opponent === undefined ? (score === undefined ? '' : `${score} · `) : `vs ${opponent}${score === undefined ? '' : `, ${score}`} · `
   return <Dialog open={open} onOpenChange={setOpen}>
     <Dialog.Trigger minH="8" px="1" items="center" justify="center" bg="transparent hover:surface" rounded="sm" borderWidth={1} cursor="pointer"
-      borderColor="transparent focus-visible:gold" aria-label={`Box score, game against ${opponent}, ${score}`}>
+      borderColor="transparent focus-visible:gold" aria-label={label}>
       <Label render="span">BOX SCORE</Label>
     </Dialog.Trigger>
     <Dialog.Portal>
@@ -31,7 +37,7 @@ export function GameBoxscoreDialog({ gameId, opponent, score }: { gameId: number
           <Dialog.Close render="button" minH="10" px="3" py="2" items="center" justify="center" bg="transparent hover:surface" rounded="sm" borderWidth={1} cursor="pointer"
             borderColor="rule focus-visible:gold" aria-label="Close box score"><Copy>Close ×</Copy></Dialog.Close>
         </Row>
-        <Dialog.Description render={<Copy color="muted" fontSize="caption" />}>vs {opponent}, {score} · The final, every point scorer, and both creases.</Dialog.Description>
+        <Dialog.Description render={<Copy color="muted" fontSize="caption" />}>{context}The final, every point scorer, and both creases.</Dialog.Description>
         {open && <Body key={gameId} gameId={gameId} />}
       </Dialog.Content>
     </Dialog.Portal>
