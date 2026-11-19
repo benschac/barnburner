@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 import { Rpc, RpcGroup } from 'effect/rpc'
-import { TeamData } from './team-season.ts'
+import { TeamData, teamDataCheck } from './team-season.ts'
 
 export class SnapshotLoadError extends Schema.TaggedError<SnapshotLoadError>()('SnapshotLoadError', {
   message: Schema.String,
@@ -66,7 +66,7 @@ export type PublishedInsight = typeof PublishedInsight.Type
 export const TeamDataWithInsights = Schema.Struct({
   ...TeamData.fields,
   insights: Schema.Array(PublishedInsight),
-}).check(...TeamData.ast.checks!)
+}).check(teamDataCheck)
 export type TeamDataWithInsights = typeof TeamDataWithInsights.Type
 
 export const TeamRpcs = RpcGroup.make(

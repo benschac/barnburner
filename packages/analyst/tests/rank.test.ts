@@ -39,9 +39,9 @@ test('rank: keeps top 3 by total, ties broken by id', async () => {
   const model = mock(JSON.stringify({ scores: [score('a', 5, 5, 5), score('b', 3, 3, 3), score('c', 3, 3, 3), score('d', 3, 3, 3), score('e', 1, 1, 1)] }))
   const { ranked: out } = await run(rank({ cards, posterFacts: ['x'], model }))
   assert.deepEqual(out.map((r) => r.card.id), ['a', 'b', 'c'])
-  assert.equal(out[0]!.total, 15)
+  assert.equal(out[0].total, 15)
   assert.equal(model.doGenerateCalls.length, 1)
-  assert.equal(model.doGenerateCalls[0]!.responseFormat?.type, 'json')
+  assert.equal(model.doGenerateCalls[0].responseFormat?.type, 'json')
 })
 
 test('rank: unparseable, out-of-range and incomplete replies are RankError', async () => {
@@ -69,8 +69,8 @@ test('rank: judge prompt contains rendered values, so different stats differ', a
   const b = mock(JSON.stringify({ scores: [score('x', 3, 3, 3)] }))
   await run(rank({ cards: [bound('x', 10)], posterFacts: [], model: a }))
   await run(rank({ cards: [bound('x', 5)], posterFacts: [], model: b }))
-  const pa = JSON.stringify(a.doGenerateCalls[0]!.prompt)
-  const pb = JSON.stringify(b.doGenerateCalls[0]!.prompt)
+  const pa = JSON.stringify(a.doGenerateCalls[0].prompt)
+  const pb = JSON.stringify(b.doGenerateCalls[0].prompt)
   assert.match(pa, /10-0 in one-goal games/)
   assert.match(pb, /5-0 in one-goal games/)
   assert.notEqual(pa, pb)
@@ -82,9 +82,9 @@ test('rank: cards that fail to render are dropped before the model call and repo
   const out = await run(rank({ cards: [broken, bound('x', 2)], posterFacts: [], model }))
   assert.deepEqual(out.ranked.map((r) => r.card.id), ['x'])
   assert.equal(out.dropped.length, 1)
-  assert.equal(out.dropped[0]!.id, 'bad')
-  assert.match(out.dropped[0]!.reason, /no binding/)
-  assert.doesNotMatch(JSON.stringify(model.doGenerateCalls[0]!.prompt), /"bad"/)
+  assert.equal(out.dropped[0].id, 'bad')
+  assert.match(out.dropped[0].reason, /no binding/)
+  assert.doesNotMatch(JSON.stringify(model.doGenerateCalls[0].prompt), /"bad"/)
 })
 
 test('rank: headline dedupe still compares templates, not rendered text', async () => {

@@ -263,8 +263,10 @@ test('the fake store agrees with the C-mini arrays', () => {
   }
   // Every opponent pair matches the opposed games, and no other pair of players has any.
   const pairs = new Map<string, number>()
-  for (let i = 0; i < (g.oppA?.length ?? 0); i += 1) {
-    pairs.set(`${g.playerIds[g.oppA![i]]}-${g.playerIds[g.oppB![i]]}`, g.oppGames![i])
+  const { oppA, oppB, oppGames } = g
+  assert.ok(oppA && oppB && oppGames)
+  for (let i = 0; i < oppA.length; i += 1) {
+    pairs.set(`${g.playerIds[oppA[i]]}-${g.playerIds[oppB[i]]}`, oppGames[i])
   }
   for (const a of g.playerIds) {
     for (const b of g.playerIds) {

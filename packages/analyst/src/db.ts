@@ -56,7 +56,10 @@ const readJsonRows = (reader: DuckDBResultReader, limit: number): Record<string,
   for (let r = 0; r < limit; r++) {
     const raw: Record<string, unknown> = {}
     names.forEach((name, c) => {
-      raw[name] = JsonDuckDBValueConverter(reader.value(c, r), types[c]!, JsonDuckDBValueConverter)
+      const type = types[c]
+      // defect: columnTypes has one entry per column name
+      if (type === undefined) throw new Error(`No column type for ${name}`)
+      raw[name] = JsonDuckDBValueConverter(reader.value(c, r), type, JsonDuckDBValueConverter)
     })
     out.push(raw)
   }

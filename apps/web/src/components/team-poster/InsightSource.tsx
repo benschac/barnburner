@@ -4,7 +4,7 @@ import { Copy, Label, List, Row } from './primitives'
 import { GameBoxscoreDialog } from './GameBoxscore'
 
 function columnsOf(result: PublishedInsight['result']): readonly string[] {
-  return result.length === 0 ? [] : Object.keys(result[0]!)
+  return Object.keys(result[0] ?? {})
 }
 
 function ResultTable({ result }: { result: PublishedInsight['result'] }) {

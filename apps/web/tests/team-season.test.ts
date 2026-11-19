@@ -85,8 +85,12 @@ test('all 32 posters project backend scores without importing Devils fixture sta
     assert.equal(data.latestPlayoffCushion, undefined)
     for (const game of data.seasonGames) {
       assert.notEqual(game.team, team.abbrev)
-      const raw = snapshot.games.find((row) => row.id === game.id)!
-      if (game.result) assert.equal(game.result.goalsFor, raw.homeTeam === team.abbrev ? raw.result!.homeScore : raw.result!.awayScore)
+      const raw = snapshot.games.find((row) => row.id === game.id)
+      assert.ok(raw)
+      if (game.result) {
+        assert.ok(raw.result)
+        assert.equal(game.result.goalsFor, raw.homeTeam === team.abbrev ? raw.result.homeScore : raw.result.awayScore)
+      }
     }
   }
 })
@@ -100,9 +104,13 @@ test('playoff cushion uses official spots and the selected conference', () => {
   ]
   assert.equal(playoffComparison(standings, 'NJD')?.team, 'BUF')
   assert.equal(playoffComparison(standings, 'BUF')?.team, 'FLA')
-  assert.equal(describePlayoffComparison(playoffComparison(standings, 'BUF')!).equation, 'BUF 19 pts − FLA 20 pts (last wild card) = -1')
+  const bufComparison = playoffComparison(standings, 'BUF')
+  assert.ok(bufComparison)
+  assert.equal(describePlayoffComparison(bufComparison).equation, 'BUF 19 pts − FLA 20 pts (last wild card) = -1')
+  const njdGame = snapshot.games.find((game) => game.homeTeam === 'NJD' || game.awayTeam === 'NJD')
+  assert.ok(njdGame)
   const data = teamPoster({ season: snapshot, poster: { ...posterFixture, standings,
-    history: [{ date: snapshot.games.find((game) => game.homeTeam === 'NJD' || game.awayTeam === 'NJD')!.date,
+    history: [{ date: njdGame.date,
       standings: standings.map((row) => ({ ...row, points: row.team === 'NJD' ? 2 : 1 })) }],
   } }, 'NJD')
   assert.equal(data.latestPlayoffCushion?.signedGap, '+7')
@@ -112,7 +120,9 @@ test('playoff cushion uses official spots and the selected conference', () => {
 test('selected team remains visible below the first five wildcard rows', () => {
   const easternWildcards = teams.filter((team) => team.conference === 'Eastern')
   const standings = easternWildcards.map((team, index) => ({ team: team.abbrev, divisionSequence: 4, wildcardSequence: index + 1, points: 1, played: 1, date: '2026-11-08' }))
-  const selected = easternWildcards.at(-1)!.abbrev
+  const lastWildcard = easternWildcards.at(-1)
+  assert.ok(lastWildcard)
+  const selected = lastWildcard.abbrev
   const data = teamPoster({ season: snapshot, poster: { ...posterFixture, standings } }, selected)
   assert.ok(data.standings.some((row) => row.team === selected))
 })

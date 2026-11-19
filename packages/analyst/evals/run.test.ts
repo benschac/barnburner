@@ -21,8 +21,8 @@ test('eval CLI counts crashes as failures, not successful declines, and retains 
     answer: () => Effect.succeed<AskResult>({ ...metadata, outcome: { _tag: 'Crashed', reason: 'provider failed' } }),
   }))
   assert.equal(report.passed, 0)
-  assert.match(report.results[0]!.reason!, /provider failed/)
-  assert.equal(report.runs[0]!.run.inputTokens, 10)
+  assert.match(report.results[0].reason ?? '', /provider failed/)
+  assert.equal(report.runs[0].run.inputTokens, 10)
 })
 
 test('eval CLI identifies invalid fixtures without calling the model', async () => {
@@ -42,7 +42,7 @@ test('eval cases are schema validated and content hashed', async () => {
     await writeFile(join(dir, 'one.json'), JSON.stringify([{ id: 'x', team: 'NJD', question: 'q', truthSql: null, expect: 'decline' }]))
     const loaded = await Effect.runPromise(loadCases(dir))
     assert.equal(loaded.cases.length, 1)
-    assert.match(loaded.files[0]!.sha256, /^[a-f0-9]{64}$/)
+    assert.match(loaded.files[0].sha256, /^[a-f0-9]{64}$/)
     await writeFile(join(dir, 'one.json'), '{}')
     const error = await Effect.runPromise(loadCases(dir).pipe(Effect.flip))
     assert.match(error.message, /one.json/)
@@ -52,7 +52,7 @@ test('eval cases are schema validated and content hashed', async () => {
 test('eval CLI help does not open a database or call a provider', async () => {
   const lines: string[] = []
   await Effect.runPromise(runCli(['--help'], (text) => lines.push(text)))
-  assert.match(lines[0]!, /--data-dir/)
+  assert.match(lines[0], /--data-dir/)
   const error = await Effect.runPromise(runCli([]).pipe(Effect.flip))
   assert.match(error.message, /--data-dir is required/)
 })
@@ -67,7 +67,8 @@ test('eval CLI persists an explicitly offline receipt with data and prompt hashe
       mode: 'offline',
       answer: () => Effect.succeed({ ...metadata, outcome: { _tag: 'Declined', reason: 'out of scope' } }),
     }))
-    const name = (await readdir(dir)).find((name) => name.endsWith('-agent.json'))!
+    const name = (await readdir(dir)).find((name) => name.endsWith('-agent.json'))
+    assert.ok(name)
     const receipt = JSON.parse(await readFile(join(dir, name), 'utf8'))
     assert.equal(receipt.runtime.version, process.version)
     assert.ok(receipt.implementation.some((file: { file: string }) => file.file === 'bun.lock'))

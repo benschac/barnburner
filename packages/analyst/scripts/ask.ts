@@ -22,14 +22,14 @@ for (let index = 1; index < args.length; index += 2) {
 }
 if (args.length === 1 && question === '--help') {
   process.stdout.write(`${usage}\n`)
-} else if (!valid || !team || !/^[A-Z]{3}$/.test(team)) {
+} else if (!valid || question === undefined || !team || !/^[A-Z]{3}$/.test(team)) {
   logError(usage)
   process.exitCode = 1
 } else {
   await Effect.runPromise(
     Effect.scoped(Effect.gen(function* () {
       const db = yield* openDb({ dataDir })
-      return yield* ask({ question: question!, team, db })
+      return yield* ask({ question, team, db })
     })).pipe(Effect.provide(Llm.layer())),
   ).then((result) => {
     process.stdout.write(`${toPrettyJson(result)}\n`)

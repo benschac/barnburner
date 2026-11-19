@@ -41,13 +41,15 @@ test('the browser SeasonSource decodes a real HTTP RPC response using the shared
 test('the browser receives new final scores alongside validated older team stats', async () => {
   const pending = season.games.find((game) => game.result === null)
   assert.ok(pending)
+  const latestDate = poster.history.at(-1)?.date
+  assert.ok(latestDate)
   const savedPoster = Schema.decodeUnknownSync(PosterSnapshot)(poster)
   const retained = {
     ...savedPoster,
     completedGameIds: savedPoster.completedGameIds ?? season.games.filter((game) => game.result !== null).map((game) => game.id),
   }
   // Additional finals can arrive on the same date as the retained standings.
-  for (const date of [pending.date, poster.history.at(-1)!.date]) {
+  for (const date of [pending.date, latestDate]) {
     const updated: typeof season = {
       ...season,
       games: season.games.map((game) => game.id === pending.id ? {

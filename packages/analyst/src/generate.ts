@@ -10,6 +10,7 @@ import { buildPrompt } from './prompt.ts'
 import type { Coverage, Db, Outcome } from './shapes.ts'
 import { VIEWS } from './shapes.ts'
 import { declineTool } from './tools/decline.ts'
+import { executeOf } from './tools/execute-of.ts'
 import { sqlTool } from './tools/sql.ts'
 import { submitCardTool } from './tools/submit-card.ts'
 import { openTrace } from './trace.ts'
@@ -163,9 +164,9 @@ export const generate = (input: GenerateInput): Effect.Effect<GenerateResult, Ge
   const decline = declineTool({ onDecline: (reason) => { if (Option.isNone(declined)) declined = Option.some(reason) } })
 
   const tools = {
-    sql: { ...sql, execute: traced('sql', sql.execute!) },
-    submit_card: { ...submit, execute: traced('submit_card', submit.execute!) },
-    decline: { ...decline, execute: traced('decline', decline.execute!) },
+    sql: { ...sql, execute: traced('sql', executeOf(sql.execute)) },
+    submit_card: { ...submit, execute: traced('submit_card', executeOf(submit.execute)) },
+    decline: { ...decline, execute: traced('decline', executeOf(decline.execute)) },
   }
 
   let failureStop = false
