@@ -1,5 +1,5 @@
 // Shortest teammate paths in D6 order (C-search). Pure, no I/O. The hot loop works on typed arrays only.
-import { Result } from 'effect'
+import { Array, Order, Result } from 'effect'
 import type { HistoryUnavailable, UnsupportedFilter } from './contracts.ts'
 import { NoPath, UnknownPlayer } from './contracts.ts'
 import { evidenceSpan, hopKind, linkPassingGames, linkPasses } from './graph.ts'
@@ -179,13 +179,13 @@ export const enumerateBy = <Step, H>(
   hop: (step: Step, from: number, to: number) => H,
 ): ReadonlyArray<ReadonlyArray<H>> => {
   const total = distanceToTarget[from]
-  const chains: Array<ReadonlyArray<H>> = []
+  const chains: ReadonlyArray<H>[] = []
   if (limit < 1) return chains
   if (total === 0) return [[]]
   const nodes = new Int32Array(total + 1)
   const cursor = new Int32Array(total + 1)
   const chosen: Step[] = []
-  const frames: Array<ReadonlyArray<Step>> = [candidates(from)]
+  const frames: ReadonlyArray<Step>[] = [candidates(from)]
   nodes[0] = from
   let depth = 0
   while (depth >= 0 && chains.length < limit) {
@@ -222,15 +222,18 @@ export const enumerateChains = (
   const candidates = (node: number): ReadonlyArray<number> => {
     const want = distanceToTarget[node] - 1
     const end = offsets[node + 1]
-    const found: Array<{ readonly at: number; readonly games: number }> = []
+    type Found = { readonly at: number; readonly games: number }
+    const found: Found[] = []
     for (let at = offsets[node]; at < end; at += 1) {
       if (distanceToTarget[neighbours[at]] !== want) continue
       const games = linkPassingGames(graph, linkIds[at], filter)
       if (games > 0) found.push({ at, games })
     }
     // Neighbour indexes ascend with player ID, so the tie-break on index is the lowest ID.
-    found.sort((a, b) => b.games - a.games || neighbours[a.at] - neighbours[b.at])
-    return found.map((entry) => entry.at)
+    return Array.sortBy(
+      Order.mapInput(Order.flip(Order.Number), (entry: Found) => entry.games),
+      Order.mapInput(Order.Number, (entry: Found) => neighbours[entry.at]),
+    )(found).map((entry) => entry.at)
   }
   return enumerateBy(
     distanceToTarget, from, limit, candidates, (at) => neighbours[at],

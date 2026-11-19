@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Result } from 'effect'
+import { Result, Schema } from 'effect'
 import { UnknownPlayer } from '../src/contracts.ts'
 import { farthest } from '../src/farthest.ts'
 import { DEFAULT_FILTER } from '../src/shapes.ts'
@@ -67,6 +67,6 @@ test('a player who reaches nobody has distance 0 and an empty example', () => {
 test('an unknown player fails with UnknownPlayer', () => {
   const result = farthest(MINI_GRAPH, 99, DEFAULT_FILTER)
   assert.ok(Result.isFailure(result))
-  assert.ok(result.failure instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(result.failure))
   assert.equal(result.failure.playerId, 99)
 })

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Result } from 'effect'
+import { Array, Order, Result, Schema } from 'effect'
 import { NoPath, UnknownPlayer } from '../src/contracts.ts'
 import { makeGraph } from '../src/graph.ts'
 import { UNREACHED, bfsDistances, countChainsBy, countShortestChains, findPaths } from '../src/paths.ts'
@@ -70,23 +70,23 @@ test('11 to 18: distance 6 through the goalie-partner hop 16-17 with game E', ()
 
 test('11 to 18 with goalie partners off has no path', () => {
   const failure = expectFailure(11, 18, filterWith({ goaliePartners: false }))
-  assert.ok(failure instanceof NoPath)
+  assert.ok(Schema.is(NoPath)(failure))
   assert.equal(failure.from, 11)
   assert.equal(failure.to, 18)
 })
 
 test('11 to 19 has no path; an unknown player is a different failure', () => {
-  assert.ok(expectFailure(11, 19) instanceof NoPath)
+  assert.ok(Schema.is(NoPath)(expectFailure(11, 19)))
   const unknownFrom = expectFailure(99, 11)
-  assert.ok(unknownFrom instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(unknownFrom))
   assert.equal(unknownFrom.playerId, 99)
   const unknownTo = expectFailure(11, 98)
-  assert.ok(unknownTo instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(unknownTo))
   assert.equal(unknownTo.playerId, 98)
 })
 
 test('11 to 15 in the regular season only has no path', () => {
-  assert.ok(expectFailure(11, 15, filterWith({ competition: 'regular' })) instanceof NoPath)
+  assert.ok(Schema.is(NoPath)(expectFailure(11, 15, filterWith({ competition: 'regular' }))))
 })
 
 test('12 to 13 in 1951-52 only: distance 2 through 14; 11 to 14 has no path', () => {
@@ -95,7 +95,7 @@ test('12 to 13 in 1951-52 only: distance 2 through 14; 11 to 14 has no path', ()
   assert.equal(result.distance, 2)
   assert.deepEqual(ids(result), [12, 14, 13])
   assert.ok(result.paths[0].every((hop) => hop._tag !== 'PlayedAgainst' && hop.seasonId === S2))
-  assert.ok(expectFailure(11, 14, filter) instanceof NoPath)
+  assert.ok(Schema.is(NoPath)(expectFailure(11, 14, filter)))
 })
 
 test('the same player is distance 0 with one empty path', () => {
@@ -242,7 +242,7 @@ const withOffPath = () => {
 test('counting visits only players on a shortest chain from the start, not closer off-path players', () => {
   const graph = withOffPath()
   const distance = bfsDistances(graph, 7, DEFAULT_FILTER, 0)
-  assert.deepEqual(Array.from(distance), [3, 2, 1, 1, 1, 1, 2, 0])
+  assert.deepEqual(Array.fromIterable(distance), [3, 2, 1, 1, 1, 1, 2, 0])
   const { offsets, neighbours } = graph.adjacency
   const expanded: number[] = []
   const counted = countChainsBy(distance, 0, PATH_COUNT_CAP, (node, visit) => {
@@ -252,7 +252,7 @@ test('counting visits only players on a shortest chain from the start, not close
     }
   })
   assert.deepEqual(counted, { count: 2, capped: false })
-  assert.deepEqual([...expanded].sort((x, y) => x - y), [0, 1, 2, 3])
+  assert.deepEqual(Array.sort([...expanded], Order.Number), [0, 1, 2, 3])
   assert.deepEqual(countShortestChains(graph, distance, 0, DEFAULT_FILTER, PATH_COUNT_CAP), { count: 2, capped: false })
 })
 

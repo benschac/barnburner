@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Effect } from 'effect'
+import { Effect, Schema } from 'effect'
 import { UnknownPlayer } from '../src/contracts.ts'
 import { finalsCoverage } from '../src/finals.ts'
 import { makeGraph } from '../src/graph.ts'
@@ -26,7 +26,7 @@ test('a goalie-partner link does not count, and neither does a teammate who miss
 
 test('an unknown player fails with UnknownPlayer', async () => {
   const error = await Effect.runPromise(Effect.flip(finalsCoverage(MINI_GRAPH, makeMiniStore(), 999, 1952, 1952)))
-  assert.ok(error instanceof UnknownPlayer)
+  assert.ok(Schema.is(UnknownPlayer)(error))
 })
 
 test('the year range is inclusive and excludes other years', async () => {
