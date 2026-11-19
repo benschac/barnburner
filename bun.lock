@@ -47,7 +47,7 @@
         "@tamagui/config": "3.3.1",
         "@tamagui/next-plugin": "3.3.1",
         "@vercel/analytics": "^2.0.1",
-        "@xstate/effect": "1.0.0-alpha.12",
+        "@xstate/effect": "1.0.0-beta.2",
         "d3": "7.9.2",
         "effect": "4.1.2",
         "next": "16.4.6",
@@ -55,7 +55,7 @@
         "react-dom": "^19.3.1",
         "tamagui": "3.3.1",
         "three": "0.187.0",
-        "xstate": "6.0.0-alpha.73",
+        "xstate": "6.0.0-beta.3",
       },
       "devDependencies": {
         "@content-collections/core": "0.15.3",
@@ -1170,7 +1170,7 @@
 
     "@workflow/serde": ["@workflow/serde@4.1.0", "", {}, "sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ=="],
 
-    "@xstate/effect": ["@xstate/effect@1.0.0-alpha.12", "", { "peerDependencies": { "@oxlint/plugins": "^1.76.0", "effect": "^4.0.0", "xstate": "^6.0.0-alpha.73" }, "optionalPeers": ["@oxlint/plugins"] }, "sha512-D72whH2VWGnvMefc3CrylVwgqu2Ph2jfA861RG3gbLOk0mkXH8ZUn9h+IZO//xRKaCPFfKMXkXnqy4aIED1THg=="],
+    "@xstate/effect": ["@xstate/effect@1.0.0-beta.2", "", { "peerDependencies": { "@oxlint/plugins": "^1.76.0", "effect": "^4.0.0", "xstate": "^6.0.0-beta.3" }, "optionalPeers": ["@oxlint/plugins"] }, "sha512-BGyeP2E2vRxRtMiUKrG797qGMQfE8WqZNYiC5VLFrwIEj73C25LnyQpk5VwhYL2vUntIH629klM/sDWZ1ZjPyQ=="],
 
     "@xtuc/ieee754": ["@xtuc/ieee754@1.2.0", "", {}, "sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA=="],
 
@@ -2466,7 +2466,7 @@
 
     "ws": ["ws@8.22.2", "", { "peerDependencies": { "bufferutil": "^4.0.1", "utf-8-validate": ">=5.0.2" }, "optionalPeers": ["bufferutil", "utf-8-validate"] }, "sha512-/rEZ2ejown2N5gxVTHUu9bVVC7ttu0/Tgzf5hbTOixR3Fs7mbbXgn2DbdbcKgJOmpQMtrIUWivtYuVMnp/W/yA=="],
 
-    "xstate": ["xstate@6.0.0-alpha.73", "", { "bin": "bin/xstate.js" }, "sha512-Ru3g082hzyn2h1TspciGFgHplK35jZl6Sl808cspInc0xx/RsALM8sc3AoQpg2KusApD2HPlX7liaVnSxlMyHw=="],
+    "xstate": ["xstate@6.0.0-beta.3", "", { "bin": { "xstate": "./bin/xstate.js" } }, "sha512-b6C6SQ9cern6sD531uHcwOH94lBL+701Jd/VRSkzT8oAV1AKTT9oXFZtvC5DajUU4+8gmTLBTMHjZjd0VrsmAg=="],
 
     "y18n": ["y18n@5.0.8", "", {}, "sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA=="],
 
