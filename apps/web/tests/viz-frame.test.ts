@@ -378,3 +378,12 @@ test('themeVariables names every colour, series entry, and font', () => {
   assert.equal(entries['color-scheme'], 'light')
   assert.equal(Object.keys(entries).length, 1 + 17 + 7 + 2)
 })
+
+test('themeVariables kebab-cases every colour field the way the design contract names it', () => {
+  const names = themeVariables(theme).map(([name]) => name).filter((name) => !name.startsWith('--viz-series-') && !name.startsWith('--viz-font-') && name !== 'color-scheme')
+  assert.deepEqual(names, [
+    '--viz-background', '--viz-color', '--viz-muted', '--viz-gold', '--viz-win', '--viz-loss', '--viz-pending', '--viz-rule',
+    '--viz-surface', '--viz-highlight', '--viz-brand', '--viz-bright', '--viz-chart-win', '--viz-chart-loss',
+    '--viz-chart-positive', '--viz-chart-negative', '--viz-chart-line',
+  ])
+})

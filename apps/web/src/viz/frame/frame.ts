@@ -1,4 +1,4 @@
-import { Effect, Match, Option, Schema } from 'effect'
+import { Effect, Match, Option, Schema, String as Str } from 'effect'
 import { HostMessage } from '@nhl-reddit-stats/viz'
 import type { Dispose, FrameReport, Render, ViewContext, ViewModule, VizTheme } from '@nhl-reddit-stats/viz'
 import manifest from '../../../package.json' with { type: 'json' }
@@ -56,8 +56,6 @@ export type FrameDeps = {
   readonly now: () => number
 }
 
-const kebab = (name: string): string => name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
-
 /**
  * The CSS variables a theme sets: `--viz-<kebab-name>` for each colour, `--viz-series-<n>`, `--viz-font-body`,
  * `--viz-font-score`, and the `color-scheme` property.
@@ -66,7 +64,7 @@ export const themeVariables = (theme: VizTheme): ReadonlyArray<readonly [name: s
   ['color-scheme', theme.mode],
   ...Object.entries(theme)
     .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[0] !== 'mode')
-    .map(([name, value]) => [`--viz-${kebab(name)}`, value] as const),
+    .map(([name, value]) => [`--viz-${Str.kebabCase(name)}`, value] as const),
   ...theme.series.map((colour, index) => [`--viz-series-${index}`, colour] as const),
   ['--viz-font-body', theme.fonts.body],
   ['--viz-font-score', theme.fonts.score],
