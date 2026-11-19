@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DuckDBInstance, DuckDBTypeId, JsonDuckDBValueConverter, StatementType } from '@duckdb/node-api'
 import type { DuckDBResultReader } from '@duckdb/node-api'
-import { Effect, Result, type Scope } from 'effect'
+import { Array, Clock, Effect, Order, Result, Semaphore, type Scope } from 'effect'
 import { type Db, DbError, type QueryOpts, type QueryResult, type Row, SqlError } from './shapes.ts'
 import { toJson } from './json.ts'
 
@@ -86,16 +86,15 @@ export const openDb = (opts: OpenDbOpts): Effect.Effect<Db, DbError, Scope.Scope
 
     const viewsDir = opts.viewsDir ?? defaultViewsDir
     const files = yield* Effect.try({
-      try: () => readdirSync(viewsDir).filter((name) => name.endsWith('.sql')).sort(),
+      try: () => Array.sort(readdirSync(viewsDir).filter((name) => name.endsWith('.sql')), Order.String),
       catch: (error) => new DbError({ message: `cannot read ${viewsDir}: ${String(error)}` }),
     })
-    for (const name of files) {
-      const text = yield* Effect.try({
+    yield* Effect.forEach(files, (name) =>
+      Effect.try({
         try: () => readFileSync(join(viewsDir, name), 'utf8'),
         catch: (error) => new DbError({ message: `cannot read ${name}: ${String(error)}` }),
-      })
-      yield* run(text.replaceAll('${DATA_DIR}', sqlLiteral(opts.dataDir)), name)
-    }
+      }).pipe(Effect.flatMap((text) => run(text.replaceAll('${DATA_DIR}', sqlLiteral(opts.dataDir)), name))),
+    { discard: true })
     yield* run('SET enable_external_access=false', 'lock')
     yield* run('SET lock_configuration=true', 'lock')
 
@@ -109,60 +108,70 @@ export const openDb = (opts: OpenDbOpts): Effect.Effect<Db, DbError, Scope.Scope
     }
 
     // One query at a time per connection, so an interrupt can only ever hit its own statement.
-    let tail: Promise<unknown> = Promise.resolve()
-    yield* Effect.addFinalizer(() => Effect.promise(() => tail).pipe(Effect.asVoid))
-    const serialised = <A>(work: () => Promise<A>): Promise<A> => {
-      const result = tail.then(work, work)
-      tail = result.catch(() => undefined)
-      return result
-    }
+    const gate = yield* Semaphore.make(1)
+    yield* Effect.addFinalizer(() => gate.withPermit(Effect.void))
 
-    const query = (sql: string, queryOpts?: QueryOpts): Effect.Effect<QueryResult, SqlError> =>
-      Effect.callback<QueryResult, SqlError>((resume, signal) => {
-        let active = false
+    // Runs one statement on the driver. Interrupting the fiber interrupts the statement and waits for it to settle.
+    const runNative = (
+      sql: string,
+      rowCap: number | undefined,
+      timeout: { readonly message: string; timedOut: boolean },
+    ) =>
+      Effect.callback<Result.Result<QueryResult, SqlError>>((resume, signal) => {
+        let active = true
         const cancel = () => { if (active) connection.interrupt() }
         signal.addEventListener('abort', cancel, { once: true })
-        const pending = serialised(async (): Promise<Result.Result<QueryResult, SqlError>> => {
-            if (signal.aborted) return Result.fail(new SqlError({ message: 'query cancelled', sql }))
-            active = true
-            const { timeoutMs, rowCap } = queryOpts ?? {}
-            const started = Date.now()
-            let timedOut = false
-            const timer =
-              timeoutMs === undefined
-                ? undefined
-                : setTimeout(() => {
-                    timedOut = true
-                    connection.interrupt()
-                  }, timeoutMs)
-            const fail = (message: string) => Result.fail(new SqlError({ message, sql }))
-            const timeout = `query timed out after ${timeoutMs}ms`
-            try {
-              const refusal = await singleSelectRefusal(sql)
-              if (refusal !== undefined) return fail(timedOut ? timeout : refusal)
-              if (signal.aborted) return fail('query cancelled')
-              const reader = await connection.runAndReadAll(sql)
-              const total = reader.currentRowCount
-              const keep = rowCap === undefined ? total : Math.min(total, Math.max(0, rowCap))
-              const rows = convertRows(reader, readJsonRows(reader, keep))
-              if (timeoutMs !== undefined && (timedOut || Date.now() - started > timeoutMs)) return fail(timeout)
-              return Result.succeed({ rows, rowCount: total })
-            } catch (error) {
-              // A driver exception is translated here; nothing else can reject this promise.
-              return fail(timedOut ? timeout : error instanceof Error ? error.message : String(error))
-            } finally {
-              active = false
-              signal.removeEventListener('abort', cancel)
-              if (timer !== undefined) clearTimeout(timer)
-            }
-          })
-        void pending.then((result) => resume(Effect.fromResult(result)))
+        const fail = (message: string) => Result.fail(new SqlError({ message, sql }))
+        const pending = (async (): Promise<Result.Result<QueryResult, SqlError>> => {
+          if (signal.aborted) return fail('query cancelled')
+          try {
+            const refusal = await singleSelectRefusal(sql)
+            if (refusal !== undefined) return fail(timeout.timedOut ? timeout.message : refusal)
+            if (signal.aborted) return fail('query cancelled')
+            const reader = await connection.runAndReadAll(sql)
+            const total = reader.currentRowCount
+            const keep = rowCap === undefined ? total : Math.min(total, Math.max(0, rowCap))
+            const rows = convertRows(reader, readJsonRows(reader, keep))
+            return Result.succeed({ rows, rowCount: total })
+          } catch (error) {
+            // A driver exception is translated here; nothing else can reject this promise.
+            return fail(timeout.timedOut ? timeout.message : error instanceof Error ? error.message : String(error))
+          } finally {
+            active = false
+            signal.removeEventListener('abort', cancel)
+          }
+        })()
+        void pending.then((result) => resume(Effect.succeed(result)))
         return Effect.promise(async () => {
           cancel()
           await pending
           signal.removeEventListener('abort', cancel)
         })
       })
+
+    // Interrupts the running statement once the deadline passes; never completes on its own.
+    const expire = (timeoutMs: number, timeout: { timedOut: boolean }) =>
+      Effect.sleep(timeoutMs).pipe(
+        Effect.andThen(Effect.sync(() => {
+          timeout.timedOut = true
+          connection.interrupt()
+        })),
+        Effect.andThen(Effect.never),
+      )
+
+    const query = (sql: string, queryOpts?: QueryOpts): Effect.Effect<QueryResult, SqlError> =>
+      gate.withPermit(Effect.gen(function* () {
+        const { timeoutMs, rowCap } = queryOpts ?? {}
+        const started = yield* Clock.currentTimeMillis
+        const timeout = { message: `query timed out after ${timeoutMs}ms`, timedOut: false }
+        const native = runNative(sql, rowCap, timeout)
+        const result = yield* timeoutMs === undefined ? native : Effect.raceFirst(native, expire(timeoutMs, timeout))
+        const finished = yield* Clock.currentTimeMillis
+        if (Result.isSuccess(result) && timeoutMs !== undefined && (timeout.timedOut || finished - started > timeoutMs)) {
+          return yield* new SqlError({ message: timeout.message, sql })
+        }
+        return yield* Effect.fromResult(result)
+      }))
 
     const queryCanonical = (sql: string, queryOpts?: QueryOpts): Effect.Effect<QueryResult, SqlError> =>
       query(`SELECT * FROM (\n${sql.trim().replace(/;(\s|--[^\n]*)*$/, '')}\n) ORDER BY ALL`, queryOpts)
