@@ -92,7 +92,9 @@ export const parseAnalystPlan = (source: string) => Result.gen(function* () {
     }
     return task
   })
-  const tasks = yield* Result.all(tableRows(yield* section('Ledger')).slice(1)
+  // Only the first table is the task ledger. Later subsections have their own tables.
+  const ledger = (yield* section('Ledger')).split('\n### ')[0]
+  const tasks = yield* Result.all(tableRows(ledger).slice(1)
     .flatMap((row) => expandIds(row[0]).map((id) => buildTask(row, id))))
   const taskIds = tasks.map((task) => task.id)
   const duplicate = taskIds.find((id, index) => taskIds.indexOf(id) !== index)
