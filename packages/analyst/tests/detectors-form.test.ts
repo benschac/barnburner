@@ -54,16 +54,15 @@ test('last-ten works with fewer finals than the window', async () => {
   })
 })
 
-test('streak is comparative with an assert that holds', async () => {
+test('streak is a trend that states the current and longest runs without a tie claim', async () => {
   await withDb(async (db) => {
     const draft = streak('NJD')[0] as CardDraft
-    assert.equal(draft.kind, 'comparative')
+    assert.equal(draft.kind, 'trend')
+    assert.equal(draft.assert, undefined)
     const out = await check(db, draft)
     assert.equal(out.headline, 'NJD are on a 2-game winning streak')
-    assert.match(out.body, /longest winning streak of their season, which is 2 games/)
+    assert.equal(out.body, 'Their longest winning streak this season is 2 games.')
     assert.deepEqual(out.games.map((r) => r.game_id), [2026020303, 2026020318])
-    const { rows } = await Effect.runPromise(db.query(draft.assert as string))
-    assert.deepEqual(rows, [{ holds: true }])
   })
 })
 
