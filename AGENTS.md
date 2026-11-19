@@ -86,7 +86,7 @@ For web UI changes, follow [the enforced design contract](apps/web/design/README
 - `typescript/no-non-null-assertion` and `complexity` are built-in rules that cannot take a mode; they run at `warn` until the existing findings are fixed.
 - `bun run test:anti-slop` runs the vendored rule tests.
 - `bun run lint:jev` runs the paid Jev rules in `lint/anti-slop-jev.oxlintrc.json` on changed lines. It needs `TYPESAFE_API_KEY` or `AI_GATEWAY_API_KEY`; without one it warns and skips, and under `CI` it fails. It is not part of `bun run lint`. Keep the key out of the editor's environment, or the Oxlint extension asks Jev on every edit.
-- The `anti-slop-xstate` rules target XState 5 and are not registered.
+- XState 6 transition and action purity is enforced by `xstate6/pure-transitions` (`apps/web/lint/xstate-plugin.mjs`, proven by `apps/web/scripts/test-xstate-rules.mjs`), not by the XState 5 rules anti-slop shipped; those were removed. Queue effects with `enq` or invoke actor logic.
 
 # Secrets
 

@@ -8,7 +8,6 @@ import antiSlopEffect from "../effect/index.ts";
 import antiSlopMartinFowler from "../martinfowler/index.ts";
 import enfect from "../plugins/enfect.ts";
 import landmines from "../plugins/landmines.ts";
-import antiSlopXState from "../xstate/index.ts";
 import { schemaWithMode, splitOptions } from "./wrap.ts";
 
 const tests: Array<[string, () => void]> = [];
@@ -20,7 +19,7 @@ const modeOf = (schema: RuleOptionsSchema | undefined): unknown =>
 	Array.isArray(schema) ? schema[0]?.properties?.mode : undefined;
 
 test("every anti-slop rule and every rule of the wrapped plugins accepts mode in its schema", () => {
-	const plugins: Record<string, Plugin> = { antiSlop, antiSlopEffect, antiSlopMartinFowler, antiSlopXState, enfect, landmines };
+	const plugins: Record<string, Plugin> = { antiSlop, antiSlopEffect, antiSlopMartinFowler, enfect, landmines };
 	for (const [name, plugin] of Object.entries(plugins)) {
 		const rules = Object.entries(plugin.rules);
 		assert.ok(rules.length > 0, `${name} has rules`);
