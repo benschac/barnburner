@@ -29,8 +29,8 @@ export const config = createTamagui({
     ...defaultConfig.media,
     poster: { minWidth: 1206 },
     reducedMotion: { prefersReducedMotion: "reduce" },
-    // SAFETY: mediaObjectToString returns a string query unchanged; only the config type omits it.
-    print: "print" as never,
+    // SAFETY: Tamagui passes a string media query through unchanged; only the config type omits it.
+    print: "print" as unknown as Record<string, string>,
   },
   fonts: {
     ...defaultConfig.fonts,

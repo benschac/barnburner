@@ -77,6 +77,9 @@ export default defineConfig({
       files: ["tamagui.config.ts"],
       rules: {
         "typescript/consistent-type-definitions": "off",
+        // The raw `"print"` media query has no type in Tamagui's config, so it is cast in two steps.
+        "anti-slop/no-chained-type-assertions": "off",
+        "anti-slop/no-known-value-widening": "off",
         "typescript/no-empty-interface": "off",
         "typescript/no-empty-object-type": "off",
       },
