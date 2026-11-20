@@ -101,6 +101,14 @@ export default defineConfig({
       },
     },
     {
+      // Next bundles these with webpack, which leaves `import.meta.dirname` and
+      // `import.meta.filename` undefined; `import.meta.url` works.
+      files: ["app/**", "src/**"],
+      rules: {
+        "unicorn/prefer-import-meta-properties": "off",
+      },
+    },
+    {
       files: [
         "tamagui.build.ts",
         "next.config.js",
