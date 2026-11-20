@@ -1,4 +1,4 @@
-import { Effect, Result, Schema } from 'effect'
+import { Result, Schema } from 'effect'
 import { useRef, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
 import { PairTables } from '@nhl-reddit-stats/viz'
@@ -21,11 +21,11 @@ const ExportFile = Schema.Struct({ tables: PairTables, notes: Schema.String })
 const decodeJson = Schema.decodeUnknownResult(Schema.fromJsonString(Schema.Unknown))
 const decodeExport = Schema.decodeUnknownResult(ExportFile)
 
-const readText = (file: File) =>
-  Effect.tryPromise({
-    try: () => file.text(),
-    catch: (cause) => new PairFileError({ file: file.name, message: `could not read the file: ${String(cause)}` }),
-  })
+const readText = (file: File): Promise<Result.Result<string, PairFileError>> =>
+  file.text().then(
+    (text) => Result.succeed(text),
+    (cause) => Result.fail(new PairFileError({ file: file.name, message: `could not read the file: ${String(cause)}` })),
+  )
 
 function readExport(name: string, text: string): Result.Result<PairTables, PairFileError> {
   const parsed = decodeJson(text)
@@ -60,7 +60,7 @@ function GamesBySeasonPage() {
     if (!file) return
     selection.current += 1
     const token = selection.current
-    const text = await Effect.runPromise(Effect.result(readText(file)))
+    const text = await readText(file)
     if (Result.isFailure(text)) {
       if (token === selection.current) setNote(text.failure.message)
       return

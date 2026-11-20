@@ -1,4 +1,4 @@
-import { Effect, Result, Schema } from 'effect'
+import { Result, Schema } from 'effect'
 import { useRef, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
 import { FinalsTables } from '@nhl-reddit-stats/viz'
@@ -21,11 +21,11 @@ const ExportFile = Schema.Struct({ tables: FinalsTables, notes: Schema.String })
 const decodeJson = Schema.decodeUnknownResult(Schema.fromJsonString(Schema.Unknown))
 const decodeExport = Schema.decodeUnknownResult(ExportFile)
 
-const readText = (file: File) =>
-  Effect.tryPromise({
-    try: () => file.text(),
-    catch: (cause) => new FinalsFileError({ file: file.name, message: `could not read the file: ${String(cause)}` }),
-  })
+const readText = (file: File): Promise<Result.Result<string, FinalsFileError>> =>
+  file.text().then(
+    (text) => Result.succeed(text),
+    (cause) => Result.fail(new FinalsFileError({ file: file.name, message: `could not read the file: ${String(cause)}` })),
+  )
 
 function readExport(name: string, text: string): Result.Result<FinalsTables, FinalsFileError> {
   const parsed = decodeJson(text)
@@ -53,7 +53,7 @@ function FinalsGridPage() {
     if (!file) return
     selection.current += 1
     const token = selection.current
-    const text = await Effect.runPromise(Effect.result(readText(file)))
+    const text = await readText(file)
     if (Result.isFailure(text)) {
       if (token === selection.current) setNote(text.failure.message)
       return
