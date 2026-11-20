@@ -1,9 +1,9 @@
 import type {
-  Graph,
-  HistoryStore,
   HistoryUnavailable,
   UnknownPlayer,
-} from "@nhl-reddit-stats/history";
+} from "@nhl-reddit-stats/history/contracts";
+import type { Graph } from "@nhl-reddit-stats/history/shapes";
+import type { HistoryStore } from "@nhl-reddit-stats/history/store";
 import { Array, Effect, Order } from "effect";
 
 import type { LeagueTables } from "../contracts.ts";

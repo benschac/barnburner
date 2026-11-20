@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import type { HistoryStore } from "@nhl-reddit-stats/history";
+import type { HistoryStore } from "@nhl-reddit-stats/history/store";
 import { Array, Effect, Order } from "effect";
 
 import { MINI_GRAPH, makeMiniStore } from "../../history/tests/fakes.ts";

@@ -9,12 +9,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { NodeServices } from "@effect/platform-node";
-import { makeGraph } from "@nhl-reddit-stats/history";
-import type {
-  HistoryStore,
-  PlayerRow,
-  HistoryUnavailable,
-} from "@nhl-reddit-stats/history";
+import type { HistoryUnavailable } from "@nhl-reddit-stats/history/contracts";
+import { makeGraph } from "@nhl-reddit-stats/history/graph";
+import type { PlayerRow } from "@nhl-reddit-stats/history/shapes";
+import type { HistoryStore } from "@nhl-reddit-stats/history/store";
 import { ViewData } from "@nhl-reddit-stats/viz";
 import { chain } from "@nhl-reddit-stats/viz/tables/chain";
 import { ego } from "@nhl-reddit-stats/viz/tables/ego";
