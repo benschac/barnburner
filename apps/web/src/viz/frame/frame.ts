@@ -1,6 +1,6 @@
-import { Effect, Match, Option, Schema } from 'effect'
-import { HostMessage } from '@nhl-reddit-stats/viz'
-import type { Dispose, FrameReport, Render, ViewContext, ViewModule, VizTheme } from '@nhl-reddit-stats/viz'
+import { Effect, Match, Option, Predicate, Schema } from 'effect'
+import { Failed, FrameRate, HostMessage, Ready, Rendered } from '@nhl-reddit-stats/viz'
+import type { Dispose, FrameReport, Render, RenderView, ViewContext, VizTheme } from '@nhl-reddit-stats/viz'
 import manifest from '../../../package.json' with { type: 'json' }
 import { cssVariables } from '../theme-css.ts'
 
@@ -21,6 +21,12 @@ export class ViewFailed extends Schema.TaggedError<ViewFailed, { readonly brand:
   message: Schema.String,
 }) {}
 
+/** The frame could not start: its libraries did not load, or the page has no root element. */
+export class FrameBootFailed extends Schema.TaggedError<FrameBootFailed, { readonly brand: unique symbol }>()('FrameBootFailed', {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Defect()),
+}) {}
+
 /** The part of a `MessageEvent` the frame reads. */
 export type FrameMessageEvent = { readonly source: unknown; readonly data: unknown }
 /** The part of an `ErrorEvent` the frame reads. `error` is null when the browser hides the cause. */
@@ -28,7 +34,7 @@ export type FrameErrorEvent = { readonly message?: unknown; readonly error?: unk
 /** The part of a `PromiseRejectionEvent` the frame reads. */
 export type FrameRejectionEvent = { readonly reason?: unknown }
 
-type FrameEvents = {
+export type FrameEvents = {
   message: FrameMessageEvent
   error: FrameErrorEvent
   unhandledrejection: FrameRejectionEvent
@@ -36,12 +42,15 @@ type FrameEvents = {
 
 /** The part of `window` the frame uses, so a test can supply a fake. */
 export type FrameWindow = {
-  readonly parent: { postMessage(message: unknown, targetOrigin: string): void }
+  readonly parent: { postMessage(message: FrameReport, targetOrigin: string): void }
   addEventListener<K extends keyof FrameEvents>(type: K, listener: (event: FrameEvents[K]) => void): void
   removeEventListener<K extends keyof FrameEvents>(type: K, listener: (event: FrameEvents[K]) => void): void
   requestAnimationFrame(callback: (time: number) => void): number
   cancelAnimationFrame(handle: number): void
 }
+
+/** What a dynamic `import()` yields. The code is the model's, so `default` is checked before the frame calls it. */
+export type ModuleNamespace = { readonly default?: unknown }
 
 export type FrameDeps = {
   readonly win: FrameWindow
@@ -52,7 +61,9 @@ export type FrameDeps = {
   readonly libs: ViewContext['libs']
   readonly versions: Readonly<Record<string, string>>
   /** Turns the posted code into its module namespace. */
-  readonly load: (code: string) => Promise<unknown>
+  readonly load: (code: string) => Promise<ModuleNamespace>
+  /** Runs an effect the frame starts from a window event. The page supplies it, so the frame never owns the runtime. */
+  readonly run: (effect: Effect.Effect<void>) => void
   /** A millisecond clock on the same timeline as the `requestAnimationFrame` timestamps. */
   readonly now: () => number
 }
@@ -76,18 +87,21 @@ const viewFailed = (prefix: string) => (cause: unknown) => new ViewFailed({ mess
  * `eval` and `new Function` are blocked and this is the one route that works under it. A blob module has
  * no base URL, so the module imports nothing, as the view contract says.
  */
-export const loadModule = (code: string): Promise<unknown> => {
+export const loadModule = (code: string): Promise<ModuleNamespace> => {
   const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }))
   return import(/* @vite-ignore */ url).finally(() => URL.revokeObjectURL(url))
 }
 
-type LoadedModule = { readonly code: string; readonly namespace: unknown }
+type LoadedModule = { readonly code: string; readonly namespace: ModuleNamespace }
 
 type ActiveView = {
   readonly id: string
   cleanup: (() => void) | null
   frame: number | null
 }
+
+// A view's default export is a function by contract; the module is the model's, so the frame checks it.
+const isRenderView = (value: unknown): value is RenderView => Predicate.isFunction(value)
 
 const roundTenth = (value: number): number => Math.round(value * 10) / 10
 
@@ -108,7 +122,7 @@ export const createFrame = (deps: FrameDeps) => {
     win.parent.postMessage(message, '*')
   }
 
-  const fail = (id: string, error: ViewFailed): void => post({ _tag: 'Failed', id, message: error.message })
+  const fail = (id: string, error: ViewFailed): void => post(Failed.make({ id, message: error.message }))
 
   /** Ends `view`: stops its frame loop, calls its cleanup, and clears the root. A cleanup that throws is reported. */
   const retire = (view: ActiveView): Effect.Effect<void> => {
@@ -143,10 +157,10 @@ export const createFrame = (deps: FrameDeps) => {
         rendered = true
         windowStart = time
         frames = 0
-        post({ _tag: 'Rendered', id: view.id, ms: Math.max(0, deps.now() - startedAt) })
+        post(Rendered.make({ id: view.id, ms: Math.max(0, deps.now() - startedAt) }))
       }
       if (rendered && frames > 0 && time - windowStart >= 1000) {
-        post({ _tag: 'FrameRate', id: view.id, fps: roundTenth((frames * 1000) / (time - windowStart)) })
+        post(FrameRate.make({ id: view.id, fps: roundTenth((frames * 1000) / (time - windowStart)) }))
         windowStart = time
         frames = 0
       }
@@ -169,8 +183,8 @@ export const createFrame = (deps: FrameDeps) => {
       // A `Dispose` or a newer `Render` arrived while the module loaded.
       if (active !== view) return
       // The module is the model's, so its shape is checked here, not trusted from `ViewModule`.
-      const entry: unknown = (namespace as Partial<ViewModule>).default
-      if (typeof entry !== 'function') return yield* new ViewFailed({ message: 'The module has no default export function.' })
+      const entry = namespace.default
+      if (!isRenderView(entry)) return yield* new ViewFailed({ message: 'The module has no default export function.' })
       const cleanup = yield* Effect.try({
         try: () => entry({
           root,
@@ -181,7 +195,7 @@ export const createFrame = (deps: FrameDeps) => {
         }),
         catch: viewFailed('The view threw. '),
       })
-      if (typeof cleanup !== 'function') return yield* new ViewFailed({ message: 'The view did not return a cleanup function.' })
+      if (!Predicate.isFunction(cleanup)) return yield* new ViewFailed({ message: 'The view did not return a cleanup function.' })
       const end = (): void => { cleanup() }
       // A callback inside `entry` can raise a window error, which retires the view before its cleanup exists.
       // Then the cleanup runs at once, the root is cleared of whatever `entry` drew, and nothing is watched.
@@ -211,10 +225,10 @@ export const createFrame = (deps: FrameDeps) => {
     if (active === null) return
     const view = active
     fail(view.id, new ViewFailed({ message: text }))
-    Effect.runFork(retire(view))
+    deps.run(retire(view))
   }
   const onError = (event: FrameErrorEvent): void => {
-    failActive(event.error !== undefined && event.error !== null ? `The view failed. ${describe(event.error)}` : `The view failed. ${typeof event.message === 'string' ? event.message : 'Unknown error'}`)
+    failActive(event.error !== undefined && event.error !== null ? `The view failed. ${describe(event.error)}` : `The view failed. ${Predicate.isString(event.message) ? event.message : 'Unknown error'}`)
   }
   const onRejection = (event: FrameRejectionEvent): void => {
     failActive(`The view failed. ${describe(event.reason)}`)
@@ -228,7 +242,7 @@ export const createFrame = (deps: FrameDeps) => {
     Option.match(Schema.decodeUnknownOption(HostMessage)(event.data), {
       onNone: () => undefined,
       onSome: (message) => {
-        Effect.runFork(Match.valueTags(message, { Render: render, Dispose: dispose }))
+        deps.run(Match.valueTags(message, { Render: render, Dispose: dispose }))
       },
     })
   }
@@ -238,12 +252,12 @@ export const createFrame = (deps: FrameDeps) => {
       win.addEventListener('message', onMessage)
       win.addEventListener('error', onError)
       win.addEventListener('unhandledrejection', onRejection)
-      post({ _tag: 'Ready', versions: deps.versions })
+      post(Ready.make({ versions: deps.versions }))
       return () => {
         win.removeEventListener('message', onMessage)
         win.removeEventListener('error', onError)
         win.removeEventListener('unhandledrejection', onRejection)
-        if (active !== null) Effect.runFork(retire(active))
+        if (active !== null) deps.run(retire(active))
       }
     },
   }
@@ -252,14 +266,19 @@ export const createFrame = (deps: FrameDeps) => {
 // -- Boot ----------------------------------------------------------------------------------------
 
 /** The libraries a view receives, as pinned in `apps/web/package.json`. */
-const pinned = (name: string): string => manifest.dependencies[name as keyof typeof manifest.dependencies]
+const dependencies: Readonly<Record<string, string>> = manifest.dependencies
+const pinned = (name: string): string => Option.getOrElse(Option.fromNullishOr(dependencies[name]), () => 'unknown')
 
 const boot = Effect.gen(function* () {
   // The libraries load on demand, so a test that imports this file for `createFrame` never touches them.
-  const [G2, G6, d3, THREE] = yield* Effect.promise(() => Promise.all([import('@antv/g2'), import('@antv/g6'), import('d3'), import('three')]))
+  const [G2, G6, d3, THREE] = yield* Effect.tryPromise({
+    try: () => Promise.all([import('@antv/g2'), import('@antv/g6'), import('d3'), import('three')]),
+    catch: (cause) => new FrameBootFailed({ message: 'The libraries could not be loaded.', cause }),
+  })
+  const services = yield* Effect.context<never>()
+  const runFork = Effect.runForkWith(services)
   const root = document.getElementById('root')
-  // defect: viz-frame.html always has a #root element, so a missing one is a bug in the page.
-  if (root === null) throw new Error('viz-frame.html has no #root element.')
+  if (root === null) return yield* new FrameBootFailed({ message: 'viz-frame.html has no #root element.' })
   createFrame({
     win: window,
     root,
@@ -268,8 +287,9 @@ const boot = Effect.gen(function* () {
     versions: { g2: pinned('@antv/g2'), g6: pinned('@antv/g6'), d3: pinned('d3'), three: pinned('three') },
     load: loadModule,
     now: () => performance.now(),
+    run: (effect) => { runFork(effect) },
   }).listen()
 })
 
-// A frame that cannot load its libraries never posts `Ready`, so the host's timeout replaces it; the log says why.
-if (typeof document !== 'undefined') Effect.runFork(boot.pipe(Effect.catchCause((cause) => Effect.logError(cause))))
+// A frame that cannot boot never posts `Ready`, so the host's timeout replaces it; the log says why.
+if (typeof document !== 'undefined') Effect.runCallback(boot.pipe(Effect.catchCause((cause) => Effect.logError(cause))))

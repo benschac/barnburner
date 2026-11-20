@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { setImmediate as nextTurn } from 'node:timers/promises'
+import { Effect } from 'effect'
 import { createFrame, themeVariables } from '../src/viz/frame/frame.ts'
-import type { FrameDeps, FrameErrorEvent, FrameMessageEvent, FrameRejectionEvent, FrameWindow } from '../src/viz/frame/frame.ts'
+import type { FrameDeps, FrameErrorEvent, FrameEvents, FrameWindow, ModuleNamespace } from '../src/viz/frame/frame.ts'
 import type { FrameReport, VizTheme } from '@nhl-reddit-stats/viz'
 
 // A light theme, values from the light block of apps/web/design/contract.json.
@@ -31,71 +33,71 @@ const tables = { players: [{ playerId: 11, name: 'Player Eleven' }] }
 const libs = { G2: 'g2', G6: 'g6', d3: 'd3', THREE: 'three' }
 const render = (id: string, code = 'view') => ({ _tag: 'Render', id, code, tables, theme })
 
+/** One set of listeners per event type, each taking that type's event. */
+type ListenerSets = { [K in keyof FrameEvents]: Set<(event: FrameEvents[K]) => void> }
 type Harness = ReturnType<typeof harness>
-type Modules = Record<string, unknown>
+type Modules = Record<string, ModuleNamespace>
 
 /** A fake window and root. `modules` maps posted code to the namespace `load` resolves to; other code rejects. */
 const harness = (modules: Modules = {}) => {
-  const parent = { posted: [] as Array<{ message: FrameReport; targetOrigin: string }>, postMessage(message: unknown, targetOrigin: string) { this.posted.push({ message: message as FrameReport, targetOrigin }) } }
-  const listeners = new Set<(event: FrameMessageEvent) => void>()
-  const errorListeners = new Set<(event: FrameErrorEvent) => void>()
-  const rejectionListeners = new Set<(event: FrameRejectionEvent) => void>()
+  const posted: Array<{ message: FrameReport; targetOrigin: string }> = []
+  const parent = { posted, postMessage(message: FrameReport, targetOrigin: string) { posted.push({ message, targetOrigin }) } }
+  const listeners: ListenerSets = {
+    message: new Set(),
+    error: new Set(),
+    unhandledrejection: new Set(),
+  }
   const frames = new Map<number, (time: number) => void>()
   let nextFrame = 1
   const win: FrameWindow = {
     parent,
-    addEventListener: (type, listener) => {
-      if (type === 'message') listeners.add(listener as (event: FrameMessageEvent) => void)
-      else if (type === 'error') errorListeners.add(listener as (event: FrameErrorEvent) => void)
-      else rejectionListeners.add(listener as (event: FrameRejectionEvent) => void)
-    },
-    removeEventListener: (type, listener) => {
-      if (type === 'message') listeners.delete(listener as (event: FrameMessageEvent) => void)
-      else if (type === 'error') errorListeners.delete(listener as (event: FrameErrorEvent) => void)
-      else rejectionListeners.delete(listener as (event: FrameRejectionEvent) => void)
-    },
+    addEventListener: (type, listener) => { listeners[type].add(listener) },
+    removeEventListener: (type, listener) => { listeners[type].delete(listener) },
     requestAnimationFrame: (callback) => { frames.set(nextFrame, callback); return nextFrame++ },
     cancelAnimationFrame: (handle) => { frames.delete(handle) },
   }
   const variables = new Map<string, string>()
   // `nodes` is what a view has drawn into the root; `replaceChildren` empties it.
+  const dom = { cleared: 0, nodes: 0 }
   const root = {
-    clientWidth: 640, clientHeight: 480, cleared: 0, nodes: 0,
-    get childNodes() { return { length: this.nodes } },
-    replaceChildren() { this.cleared += 1; this.nodes = 0 },
+    clientWidth: 640, clientHeight: 480,
+    get childNodes() { return { length: dom.nodes } },
+    replaceChildren() { dom.cleared += 1; dom.nodes = 0 },
   }
   const loaded: string[] = []
   let clock = 0
   const deps: FrameDeps = {
     win,
-    root: root as unknown as HTMLElement,
+    // SAFETY: the frame reads only clientWidth, clientHeight, childNodes.length and replaceChildren from the root, and the fake has all four.
+    root: root as HTMLElement,
     variables: { setProperty: (name, value) => { variables.set(name, value) } },
     libs,
     versions: { g2: '5.4.8' },
     load: (code) => {
       loaded.push(code)
-      if (!Object.hasOwn(modules, code)) return Promise.reject(new SyntaxError('Unexpected token'))
-      const namespace = modules[code] as { default?: unknown }
+      const namespace = Object.hasOwn(modules, code) ? modules[code] : undefined
+      if (namespace === undefined) return Promise.reject(new SyntaxError('Unexpected token'))
+      const entry = namespace.default
       // A view draws a node into the root, except the one posted as 'blank', which draws nothing.
-      if (code === 'blank' || typeof namespace.default !== 'function') return Promise.resolve(namespace)
-      const entry = namespace.default as (ctx: unknown) => unknown
-      return Promise.resolve({ default: (ctx: unknown) => { root.nodes += 1; return entry(ctx) } })
+      if (code === 'blank' || typeof entry !== 'function') return Promise.resolve(namespace)
+      return Promise.resolve({ default: (ctx: unknown) => { dom.nodes += 1; return entry(ctx) } })
     },
     now: () => clock,
+    run: (effect) => { Effect.runFork(effect) },
   }
   const stop = createFrame(deps).listen()
   return {
-    parent, root, variables, loaded, listeners, errorListeners, rejectionListeners, stop,
+    parent, root, dom, variables, loaded, listeners: listeners.message, errorListeners: listeners.error, rejectionListeners: listeners.unhandledrejection, stop,
     reports: () => parent.posted.map((entry) => entry.message),
-    send: (data: unknown, source: unknown = parent) => { for (const listener of [...listeners]) listener({ source, data }) },
+    send: (data: unknown, source: unknown = parent) => { for (const listener of [...listeners.message]) listener({ source, data }) },
     /** Runs the next animation frame callbacks at `time`; the clock moves with it. */
     frame: (time: number) => { clock = time; const due = [...frames.entries()]; frames.clear(); due.forEach(([, callback]) => callback(time)) },
     pendingFrames: () => frames.size,
-    error: (event: FrameErrorEvent) => { for (const listener of [...errorListeners]) listener(event) },
-    reject: (reason: unknown) => { for (const listener of [...rejectionListeners]) listener({ reason }) },
+    error: (event: FrameErrorEvent) => { for (const listener of [...listeners.error]) listener(event) },
+    reject: (reason: unknown) => { for (const listener of [...listeners.unhandledrejection]) listener({ reason }) },
   }
 }
-const settle = () => new Promise<void>((resolve) => setImmediate(resolve))
+const settle = () => nextTurn()
 const tags = (h: Harness) => h.reports().map((report) => report._tag)
 
 test('listen posts Ready with the versions to its parent and listens for messages', () => {
@@ -187,7 +189,7 @@ test('a module that cannot load, has no default, throws, or returns no cleanup r
     { _tag: 'Failed', id: 'noCleanup', message: 'The view did not return a cleanup function.' },
   ])
   assert.equal(h.pendingFrames(), 0)
-  assert.equal(h.root.cleared >= 1, true)
+  assert.equal(h.dom.cleared >= 1, true)
 })
 
 test('Dispose calls the cleanup, clears the root, and stops reporting', async () => {
@@ -202,7 +204,7 @@ test('Dispose calls the cleanup, clears the root, and stops reporting', async ()
   h.send({ _tag: 'Dispose', id: 'a' })
   await settle()
   assert.equal(cleaned, 1)
-  assert.equal(h.root.cleared, 1)
+  assert.equal(h.dom.cleared, 1)
   assert.equal(h.pendingFrames(), 0)
   h.frame(16)
   h.frame(32)
@@ -216,7 +218,7 @@ test('a cleanup that throws is reported and the root is still cleared', async ()
   h.send({ _tag: 'Dispose', id: 'a' })
   await settle()
   assert.deepEqual(h.reports().slice(1), [{ _tag: 'Failed', id: 'a', message: 'The cleanup threw. RangeError: stuck' }])
-  assert.equal(h.root.cleared, 1)
+  assert.equal(h.dom.cleared, 1)
 })
 
 test('a new Render ends the view before it', async () => {
@@ -267,7 +269,7 @@ test('a rejection before the first paint reports Failed, ends the view, and post
   assert.deepEqual(h.reports().slice(1), [{ _tag: 'Failed', id: 'a', message: 'The view failed. TypeError: chart.render rejected' }])
   await settle()
   assert.equal(cleaned, 1)
-  assert.equal(h.root.cleared, 1)
+  assert.equal(h.dom.cleared, 1)
   assert.equal(h.pendingFrames(), 0)
   h.frame(16)
   h.frame(32)
@@ -284,7 +286,7 @@ test('an error after the first paint reports Failed and stops FrameRate', async 
   h.error({ message: 'Uncaught RangeError: late', error: new RangeError('late') })
   await settle()
   assert.deepEqual(h.reports().slice(2), [{ _tag: 'Failed', id: 'a', message: 'The view failed. RangeError: late' }])
-  assert.equal(h.root.cleared, 1)
+  assert.equal(h.dom.cleared, 1)
   for (let time = 32; time <= 3000; time += 20) h.frame(time)
   assert.deepEqual(tags(h), ['Ready', 'Rendered', 'Failed'])
 })
@@ -337,7 +339,7 @@ test('a cleanup that arrives after the view was retired while mounting runs at o
   h.send(render('a', 'view'))
   await settle()
   assert.equal(cleaned, 1)
-  assert.equal(h.root.nodes, 0)
+  assert.equal(h.dom.nodes, 0)
   assert.equal(h.pendingFrames(), 0)
   assert.deepEqual(h.reports().slice(1), [{ _tag: 'Failed', id: 'a', message: 'The view failed. Error: during mount' }])
 })
@@ -349,7 +351,7 @@ test('Rendered waits for the root to hold a node, and the frame rate waits for R
   for (let time = 0; time <= 2000; time += 20) h.frame(time)
   assert.deepEqual(tags(h), ['Ready'])
   assert.equal(h.pendingFrames(), 1)
-  h.root.nodes = 1
+  h.dom.nodes = 1
   h.frame(2020)
   assert.deepEqual(h.reports().slice(1), [{ _tag: 'Rendered', id: 'a', ms: 2020 }])
   for (let time = 2040; time <= 3040; time += 20) h.frame(time)
