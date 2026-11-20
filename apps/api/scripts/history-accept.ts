@@ -14,7 +14,7 @@ import type {
   HistoryStore,
   TeammateGraph,
 } from "@nhl-reddit-stats/history";
-import { Array, Effect, Order, Result, Schema } from "effect";
+import { Array, Effect, Order, Predicate, Result, Schema } from "effect";
 
 import { openHistoryStore } from "../src/history-store.ts";
 
@@ -329,13 +329,38 @@ const spanKey = (
   first: number
 ) => `${season}/${type}/${team}/${games}/${first}`;
 
-const evaluate = (
-  store: HistoryStore,
-  graph: TeammateGraph,
-  truth: Truth,
-  baseline: boolean,
-  skipDiameter: boolean
-) =>
+// The acceptance run's inputs and the recorders every case writes its line with.
+type Report = {
+  readonly store: HistoryStore;
+  readonly graph: TeammateGraph;
+  readonly truth: Truth;
+  readonly baseline: boolean;
+  readonly push: (status: Line["status"], name: string, detail: string) => void;
+  readonly verdict: (name: string, ok: boolean, detail: string) => void;
+  readonly missing: (name: string, why: string) => void;
+  readonly idOf: (name: string) => number | null;
+  readonly count: (
+    name: string,
+    actual: number,
+    expected: number,
+    pinned: number
+  ) => void;
+  readonly exact: (name: string, actual: number, expected: number) => void;
+};
+
+const evaluate = ({
+  store,
+  graph,
+  truth,
+  baseline,
+  skipDiameter,
+}: {
+  readonly store: HistoryStore;
+  readonly graph: TeammateGraph;
+  readonly truth: Truth;
+  readonly baseline: boolean;
+  readonly skipDiameter: boolean;
+}) =>
   Effect.gen(function* () {
     const lines: Line[] = [];
     const push = (status: Line["status"], name: string, detail: string) => {
@@ -379,98 +404,143 @@ const evaluate = (
       verdict(name, actual === expected, `actual ${actual}, truth ${expected}`);
     };
 
-    const links = countLinks(graph);
-    count(
-      "players",
-      graph.arrays.playerIds.length,
-      truth.player_count,
-      BASELINE.players
-    );
-    count(
-      "shared-game pairs",
-      links.sharedPairs,
-      truth.shared_game_pairs,
-      BASELINE.sharedPairs
-    );
-    count(
-      "shared-game spans",
-      links.sharedSpans,
-      truth.shared_game_spans,
-      BASELINE.sharedSpans
-    );
-    count(
-      "opponent pairs",
-      graph.arrays.oppA?.length ?? 0,
-      truth.opponent_pairs,
-      BASELINE.opponentPairs
-    );
-    exact(
-      "goalie-partner spans (truth only)",
-      links.partnerSpans,
-      truth.partner_spans
-    );
-    exact(
-      "pairs added by goalie partners (truth only)",
-      links.addedPairs,
-      truth.partner_added_pairs
-    );
+    const report: Report = {
+      store,
+      graph,
+      truth,
+      baseline,
+      push,
+      verdict,
+      missing,
+      idOf,
+      count,
+      exact,
+    };
+    checkLinkCounts(report);
+    yield* checkComponents(report, skipDiameter);
+    checkMcdavidTeammates(report);
+    yield* checkMcdavidLindsay(report);
+    yield* checkMcdavidDraisaitl(report);
+    yield* checkJohansenJones(report);
+    yield* checkCleghorn(report);
+    yield* checkHillSamsonov(report);
+    yield* checkRanfordJoseph(report);
+    checkJagrTeammates(report);
+    yield* checkJagrFinals(report);
+    yield* checkCupFinals(report);
+    yield* checkTruthParity(report);
+    return lines;
+  });
 
-    exact(
-      "components with partners on",
-      componentCount(graph, true),
-      truth.components_partners_on
+// Player, pair, span and opponent counts, and the goalie-partner links the truth file counts.
+const checkLinkCounts = (report: Report): void => {
+  const { graph, truth, count, exact } = report;
+  const links = countLinks(graph);
+  count(
+    "players",
+    graph.arrays.playerIds.length,
+    truth.player_count,
+    BASELINE.players
+  );
+  count(
+    "shared-game pairs",
+    links.sharedPairs,
+    truth.shared_game_pairs,
+    BASELINE.sharedPairs
+  );
+  count(
+    "shared-game spans",
+    links.sharedSpans,
+    truth.shared_game_spans,
+    BASELINE.sharedSpans
+  );
+  count(
+    "opponent pairs",
+    graph.arrays.oppA?.length ?? 0,
+    truth.opponent_pairs,
+    BASELINE.opponentPairs
+  );
+  exact(
+    "goalie-partner spans (truth only)",
+    links.partnerSpans,
+    truth.partner_spans
+  );
+  exact(
+    "pairs added by goalie partners (truth only)",
+    links.addedPairs,
+    truth.partner_added_pairs
+  );
+};
+
+// Components with partners on and off and, unless skipped, the diameter from a farthest sweep.
+const checkComponents = Effect.fn("historyAccept.checkComponents")(function* (
+  report: Report,
+  skipDiameter: boolean
+) {
+  const { graph, truth, baseline, push, verdict, missing, exact } = report;
+  exact(
+    "components with partners on",
+    componentCount(graph, true),
+    truth.components_partners_on
+  );
+  const componentsOff = componentCount(graph, false);
+  const componentNote = baseline ? `, baseline ${BASELINE.components}` : "";
+  if (skipDiameter) {
+    push("SKIP", "diameter with partners off", "skipped: --skip-diameter");
+    verdict(
+      "components with partners off",
+      componentsOff === truth.components &&
+        (!baseline || componentsOff === BASELINE.components),
+      `actual ${componentsOff}, truth ${truth.components}${componentNote}`
     );
-    const componentsOff = componentCount(graph, false);
-    const componentNote = baseline ? `, baseline ${BASELINE.components}` : "";
-    if (skipDiameter) {
-      push("SKIP", "diameter with partners off", "skipped: --skip-diameter");
+  } else {
+    const sweep = yield* sweepFarthest(graph);
+    verdict(
+      "components with partners off (farthest from every player)",
+      sweep.components === truth.components &&
+        sweep.components === componentsOff &&
+        (!baseline || sweep.components === BASELINE.components),
+      `actual ${sweep.components}, union-find ${componentsOff}, truth ${truth.components}${componentNote}`
+    );
+    const expectedDiameter = truth.diameter_partners_off ?? null;
+    if (expectedDiameter === null)
+      missing("diameter with partners off", "no diameter in the truth file");
+    else {
       verdict(
-        "components with partners off",
-        componentsOff === truth.components &&
-          (!baseline || componentsOff === BASELINE.components),
-        `actual ${componentsOff}, truth ${truth.components}${componentNote}`
+        "diameter with partners off",
+        sweep.diameter === expectedDiameter &&
+          (!baseline || sweep.diameter === BASELINE.diameter),
+        `actual ${sweep.diameter}, truth ${expectedDiameter}${baseline ? `, baseline ${BASELINE.diameter}` : ""}`
       );
-    } else {
-      const sweep = yield* sweepFarthest(graph);
-      verdict(
-        "components with partners off (farthest from every player)",
-        sweep.components === truth.components &&
-          sweep.components === componentsOff &&
-          (!baseline || sweep.components === BASELINE.components),
-        `actual ${sweep.components}, union-find ${componentsOff}, truth ${truth.components}${componentNote}`
-      );
-      const expectedDiameter = truth.diameter_partners_off ?? null;
-      if (expectedDiameter === null)
-        missing("diameter with partners off", "no diameter in the truth file");
-      else {
-        verdict(
-          "diameter with partners off",
-          sweep.diameter === expectedDiameter &&
-            (!baseline || sweep.diameter === BASELINE.diameter),
-          `actual ${sweep.diameter}, truth ${expectedDiameter}${baseline ? `, baseline ${BASELINE.diameter}` : ""}`
-        );
-      }
     }
+  }
+});
 
+const checkMcdavidTeammates = (report: Report): void => {
+  const { graph, truth, missing, idOf, count } = report;
+  const mcdavid = idOf("Connor McDavid");
+  const mcdavidIndex =
+    mcdavid === null ? undefined : graph.indexOf.get(mcdavid);
+  const truthMcdavid = truth.mcdavid_teammates ?? null;
+  if (mcdavidIndex === undefined || truthMcdavid === null)
+    missing(
+      "McDavid shared-game teammates",
+      "McDavid is not in the truth file"
+    );
+  else
+    count(
+      "McDavid shared-game teammates",
+      sharedTeammates(graph, mcdavidIndex),
+      truthMcdavid,
+      BASELINE.mcdavidTeammates
+    );
+};
+
+const checkMcdavidLindsay = Effect.fn("historyAccept.checkMcdavidLindsay")(
+  function* (report: Report) {
+    const { graph, truth, baseline, verdict, missing, idOf } = report;
     const mcdavid = idOf("Connor McDavid");
     const lindsay = idOf("Ted Lindsay");
-    const draisaitl = idOf("Leon Draisaitl");
-    const mcdavidIndex =
-      mcdavid === null ? undefined : graph.indexOf.get(mcdavid);
-    const truthMcdavid = truth.mcdavid_teammates ?? null;
-    if (mcdavidIndex === undefined || truthMcdavid === null)
-      missing(
-        "McDavid shared-game teammates",
-        "McDavid is not in the truth file"
-      );
-    else
-      count(
-        "McDavid shared-game teammates",
-        sharedTeammates(graph, mcdavidIndex),
-        truthMcdavid,
-        BASELINE.mcdavidTeammates
-      );
-
     const truthLindsay = truth.mcdavid_lindsay_distance ?? null;
     if (mcdavid === null || lindsay === null || truthLindsay === null)
       missing(
@@ -489,7 +559,14 @@ const evaluate = (
         `actual ${actual ?? "no path"}, truth ${truthLindsay}${baseline ? `, baseline ${BASELINE.mcdavidLindsay}` : " (must not grow)"}`
       );
     }
+  }
+);
 
+const checkMcdavidDraisaitl = Effect.fn("historyAccept.checkMcdavidDraisaitl")(
+  function* (report: Report) {
+    const { graph, truth, missing, idOf, count } = report;
+    const mcdavid = idOf("Connor McDavid");
+    const draisaitl = idOf("Leon Draisaitl");
     const truthDraisaitl = truth.mcdavid_draisaitl_games ?? null;
     if (mcdavid === null || draisaitl === null || truthDraisaitl === null)
       missing(
@@ -506,7 +583,12 @@ const evaluate = (
         BASELINE.mcdavidDraisaitl
       );
     }
+  }
+);
 
+const checkJohansenJones = Effect.fn("historyAccept.checkJohansenJones")(
+  function* (report: Report) {
+    const { graph, truth, baseline, verdict, missing, idOf } = report;
     const johansen = idOf("Ryan Johansen");
     const jones = idOf("Seth Jones");
     const truthJohansen = truth.johansen_jones_2015_16_shared_games ?? null;
@@ -531,39 +613,45 @@ const evaluate = (
         `actual ${actual}, truth ${truthJohansen}${baseline ? `, baseline ${BASELINE.johansenJones}` : ""}`
       );
     }
+  }
+);
 
-    const cleghorn = idOf("Sprague Cleghorn");
-    const truthCleghorn = truth.cleghorn_1918020026 ?? null;
-    if (cleghorn === null || truthCleghorn === null)
-      missing(
-        "Cleghorn in game 1918020026",
-        "Cleghorn is not in the truth file"
-      );
-    else {
-      const exact = yield* Effect.forEach(truthCleghorn, (entry) =>
-        Effect.map(
-          store.sharedGames(
-            cleghorn,
-            entry.teammate_id,
-            CLEGHORN_SEASON,
-            2,
-            entry.team_id,
-            "PlayedWith"
-          ),
-          (shared) =>
-            shared.filter((g) => g.gameId === CLEGHORN_GAME).length ===
-            entry.shared_games
-        )
-      );
-      const found = exact.filter((isExact) => isExact).length;
-      verdict(
-        "Cleghorn in game 1918020026",
-        found === truthCleghorn.length &&
-          (!baseline || truthCleghorn.length > 0),
-        `${found} of ${truthCleghorn.length} teammates in the game have exactly one shared game`
-      );
-    }
+const checkCleghorn = Effect.fn("historyAccept.checkCleghorn")(function* (
+  report: Report
+) {
+  const { store, truth, baseline, verdict, missing, idOf } = report;
+  const cleghorn = idOf("Sprague Cleghorn");
+  const truthCleghorn = truth.cleghorn_1918020026 ?? null;
+  if (cleghorn === null || truthCleghorn === null)
+    missing("Cleghorn in game 1918020026", "Cleghorn is not in the truth file");
+  else {
+    const exact = yield* Effect.forEach(truthCleghorn, (entry) =>
+      Effect.map(
+        store.sharedGames(
+          cleghorn,
+          entry.teammate_id,
+          CLEGHORN_SEASON,
+          2,
+          entry.team_id,
+          "PlayedWith"
+        ),
+        (shared) =>
+          shared.filter((g) => g.gameId === CLEGHORN_GAME).length ===
+          entry.shared_games
+      )
+    );
+    const found = exact.filter((isExact) => isExact).length;
+    verdict(
+      "Cleghorn in game 1918020026",
+      found === truthCleghorn.length && (!baseline || truthCleghorn.length > 0),
+      `${found} of ${truthCleghorn.length} teammates in the game have exactly one shared game`
+    );
+  }
+});
 
+const checkHillSamsonov = Effect.fn("historyAccept.checkHillSamsonov")(
+  function* (report: Report) {
+    const { store, graph, truth, push, verdict, missing, idOf } = report;
     const hill = idOf("Adin Hill");
     const samsonov = idOf("Ilya Samsonov");
     const truthHill = truth.hill_samsonov ?? null;
@@ -612,7 +700,12 @@ const evaluate = (
         `${partner.length} partner span(s), Vegas 2024-25 ${atVegas ? "present" : "missing"}, evidence game ${evidence ?? "none"}, truth ${truthKeys.length} span(s)`
       );
     }
+  }
+);
 
+const checkRanfordJoseph = Effect.fn("historyAccept.checkRanfordJoseph")(
+  function* (report: Report) {
+    const { graph, truth, push, idOf } = report;
     const ranford = idOf("Bill Ranford");
     const joseph = idOf("Curtis Joseph");
     if (ranford === null || joseph === null)
@@ -635,112 +728,133 @@ const evaluate = (
         `${together.success.spans.length} span(s), ${together.success.totalGames} games together, ${together.success.opposedGames} against; ${note}`
       );
     }
+  }
+);
 
-    const jagr = idOf("Jaromír Jágr");
-    const jagrIndex = jagr === null ? undefined : graph.indexOf.get(jagr);
-    const truthJagr = truth.jagr_teammates ?? null;
-    if (jagrIndex === undefined || truthJagr === null)
-      missing("Jágr shared-game teammates", "Jágr is not in the truth file");
-    else
-      count(
-        "Jágr shared-game teammates",
-        sharedTeammates(graph, jagrIndex),
-        truthJagr,
-        BASELINE.jagrTeammates
-      );
+const checkJagrTeammates = (report: Report): void => {
+  const { graph, truth, missing, idOf, count } = report;
+  const jagr = idOf("Jaromír Jágr");
+  const jagrIndex = jagr === null ? undefined : graph.indexOf.get(jagr);
+  const truthJagr = truth.jagr_teammates ?? null;
+  if (jagrIndex === undefined || truthJagr === null)
+    missing("Jágr shared-game teammates", "Jágr is not in the truth file");
+  else
+    count(
+      "Jágr shared-game teammates",
+      sharedTeammates(graph, jagrIndex),
+      truthJagr,
+      BASELINE.jagrTeammates
+    );
+};
 
-    const truthFinals = truth.jagr_finals_1980_2026 ?? null;
-    if (jagr === null || truthFinals === null)
-      missing("Jágr Finals 1980-2026", "Jágr is not in the truth file");
-    else {
-      const years = yield* finalsCoverage(
-        graph,
-        store,
-        jagr,
-        FINAL_FROM,
-        FINAL_TO
-      );
-      const covered = years.filter((y) => y._tag === "Hit").map((y) => y.year);
-      const missed = years.filter((y) => y._tag === "Miss").map((y) => y.year);
-      const sameTruth =
-        covered.join(",") === truthFinals.covered_years.join(",") &&
-        missed.join(",") === truthFinals.missing_years.join(",");
-      const sameBaseline =
-        covered.length === BASELINE.finalsCovered &&
-        missed.join(",") === BASELINE.finalsMissing.join(",");
-      verdict(
-        "Jágr Finals 1980-2026",
-        sameTruth && (!baseline || sameBaseline),
-        `${covered.length} of ${years.length} covered, missing ${missed.join(", ") || "none"}; truth missing ${truthFinals.missing_years.join(", ") || "none"}`
+const checkJagrFinals = Effect.fn("historyAccept.checkJagrFinals")(function* (
+  report: Report
+) {
+  const { store, graph, truth, baseline, verdict, missing, idOf } = report;
+  const jagr = idOf("Jaromír Jágr");
+  const truthFinals = truth.jagr_finals_1980_2026 ?? null;
+  if (jagr === null || truthFinals === null)
+    missing("Jágr Finals 1980-2026", "Jágr is not in the truth file");
+  else {
+    const years = yield* finalsCoverage(
+      graph,
+      store,
+      jagr,
+      FINAL_FROM,
+      FINAL_TO
+    );
+    const covered = years.filter(Predicate.isTagged("Hit")).map((y) => y.year);
+    const missed = years.filter(Predicate.isTagged("Miss")).map((y) => y.year);
+    const sameTruth =
+      covered.join(",") === truthFinals.covered_years.join(",") &&
+      missed.join(",") === truthFinals.missing_years.join(",");
+    const sameBaseline =
+      covered.length === BASELINE.finalsCovered &&
+      missed.join(",") === BASELINE.finalsMissing.join(",");
+    verdict(
+      "Jágr Finals 1980-2026",
+      sameTruth && (!baseline || sameBaseline),
+      `${covered.length} of ${years.length} covered, missing ${missed.join(", ") || "none"}; truth missing ${truthFinals.missing_years.join(", ") || "none"}`
+    );
+  }
+});
+
+// Every flagged Cup Final season has two teams, and they match the truth file.
+const checkCupFinals = Effect.fn("historyAccept.checkCupFinals")(function* (
+  report: Report
+) {
+  const { store, truth, baseline, verdict } = report;
+  const finals = yield* store.finals(0, 9999);
+  const teamsBySeason = new Map(
+    finals.map(
+      (f) =>
+        [
+          f.seasonId,
+          Array.sort(
+            Array.dedupe(f.participants.map((p) => p.teamId)),
+            Order.Number
+          ),
+        ] as const
+    )
+  );
+  const notTwo = [...teamsBySeason].filter(
+    ([, teams]) => teams.length !== 2
+  ).length;
+  const differing = Object.entries(
+    truth.cup_final_seasons.teams_by_season
+  ).filter(([season, teams]) => {
+    const actual = teamsBySeason.get(Number(season));
+    return (
+      actual === undefined ||
+      actual.join(",") !== Array.sort(teams, Order.Number).join(",")
+    );
+  }).length;
+  const finalsCount = teamsBySeason.size;
+  const countOk = baseline
+    ? finalsCount === BASELINE.flaggedFinals &&
+      finalsCount === truth.cup_final_seasons.count
+    : finalsCount >= truth.cup_final_seasons.count;
+  verdict(
+    "seasons with a flagged Cup Final",
+    countOk && notTwo === 0 && differing === 0,
+    `actual ${finalsCount}, truth ${truth.cup_final_seasons.count}${baseline ? `, baseline ${BASELINE.flaggedFinals}` : ""}; not two teams: ${notTwo}; differing from truth: ${differing}`
+  );
+});
+
+// Distance and chain count for every truth pair, with goalie partners on and off.
+const checkTruthParity = Effect.fn("historyAccept.checkTruthParity")(function* (
+  report: Report
+) {
+  const { graph, truth, verdict } = report;
+  const mismatches: string[] = [];
+  const badPairs = new Set<number>();
+  const answers = yield* Effect.forEach(truth.pairs, (pair) =>
+    Effect.all({
+      pair: Effect.succeed(pair),
+      on: answerOf(graph, pair.a, pair.b, DEFAULT_FILTER),
+      off: answerOf(graph, pair.a, pair.b, PARTNERS_OFF),
+    })
+  );
+  for (const [index, { pair, on, off }] of answers.entries()) {
+    if (!sameAnswer(on, pair.partners_on)) {
+      badPairs.add(index);
+      mismatches.push(
+        `${pair.a}-${pair.b} on: ${describeAnswer(on)} vs ${describeAnswer(pair.partners_on)}`
       );
     }
-
-    const finals = yield* store.finals(0, 9999);
-    const teamsBySeason = new Map(
-      finals.map(
-        (f) =>
-          [
-            f.seasonId,
-            Array.sort(
-              Array.dedupe(f.participants.map((p) => p.teamId)),
-              Order.Number
-            ),
-          ] as const
-      )
-    );
-    const notTwo = [...teamsBySeason].filter(
-      ([, teams]) => teams.length !== 2
-    ).length;
-    const differing = Object.entries(
-      truth.cup_final_seasons.teams_by_season
-    ).filter(([season, teams]) => {
-      const actual = teamsBySeason.get(Number(season));
-      return (
-        actual === undefined ||
-        actual.join(",") !== Array.sort(teams, Order.Number).join(",")
+    if (!sameAnswer(off, pair.partners_off)) {
+      badPairs.add(index);
+      mismatches.push(
+        `${pair.a}-${pair.b} off: ${describeAnswer(off)} vs ${describeAnswer(pair.partners_off)}`
       );
-    }).length;
-    const finalsCount = teamsBySeason.size;
-    const countOk = baseline
-      ? finalsCount === BASELINE.flaggedFinals &&
-        finalsCount === truth.cup_final_seasons.count
-      : finalsCount >= truth.cup_final_seasons.count;
-    verdict(
-      "seasons with a flagged Cup Final",
-      countOk && notTwo === 0 && differing === 0,
-      `actual ${finalsCount}, truth ${truth.cup_final_seasons.count}${baseline ? `, baseline ${BASELINE.flaggedFinals}` : ""}; not two teams: ${notTwo}; differing from truth: ${differing}`
-    );
-
-    const mismatches: string[] = [];
-    const badPairs = new Set<number>();
-    const answers = yield* Effect.forEach(truth.pairs, (pair) =>
-      Effect.all({
-        pair: Effect.succeed(pair),
-        on: answerOf(graph, pair.a, pair.b, DEFAULT_FILTER),
-        off: answerOf(graph, pair.a, pair.b, PARTNERS_OFF),
-      })
-    );
-    for (const [index, { pair, on, off }] of answers.entries()) {
-      if (!sameAnswer(on, pair.partners_on)) {
-        badPairs.add(index);
-        mismatches.push(
-          `${pair.a}-${pair.b} on: ${describeAnswer(on)} vs ${describeAnswer(pair.partners_on)}`
-        );
-      }
-      if (!sameAnswer(off, pair.partners_off)) {
-        badPairs.add(index);
-        mismatches.push(
-          `${pair.a}-${pair.b} off: ${describeAnswer(off)} vs ${describeAnswer(pair.partners_off)}`
-        );
-      }
     }
-    verdict(
-      "truth parity",
-      badPairs.size === 0 && truth.pairs.length > 0,
-      `${truth.pairs.length - badPairs.size} of ${truth.pairs.length} pairs match, partners on and off${mismatches.length > 0 ? `; first: ${mismatches.slice(0, 3).join("; ")}` : ""}`
-    );
-    return lines;
-  });
+  }
+  verdict(
+    "truth parity",
+    badPairs.size === 0 && truth.pairs.length > 0,
+    `${truth.pairs.length - badPairs.size} of ${truth.pairs.length} pairs match, partners on and off${mismatches.length > 0 ? `; first: ${mismatches.slice(0, 3).join("; ")}` : ""}`
+  );
+});
 
 const medianFindPaths = (graph: TeammateGraph, calls: number) => {
   const ids = graph.arrays.playerIds;
@@ -785,13 +899,13 @@ const program = (argv: readonly string[]) =>
     const graph = makeGraph(store.graph.arrays);
     const loadMs = performance.now() - loadStart;
 
-    const lines = yield* evaluate(
+    const lines = yield* evaluate({
       store,
       graph,
       truth,
       baseline,
-      parsed.values["skip-diameter"] === true
-    );
+      skipDiameter: parsed.values["skip-diameter"] === true,
+    });
     const out = lines.map((l) => `${l.status} ${l.name}: ${l.detail}`);
     const failures = lines.filter((l) => l.status === "FAIL").length;
     out.push(`cold load (open + makeGraph): ${loadMs.toFixed(0)} ms`);
