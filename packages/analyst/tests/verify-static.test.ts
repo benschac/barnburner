@@ -42,7 +42,7 @@ test("a good card passes and reports touchesBoxscores", async () => {
 
 test("check 1: undecodable card", async () => {
   const r = await run({ ...base(), kind: "nope" });
-  assert.deepEqual(r.ok === false && r.check, 1);
+  assert.deepEqual(!r.ok && r.check, 1);
 });
 
 test("check 2: guard rejects query, gamesQuery or assert", async () => {
@@ -56,37 +56,28 @@ test("check 2: guard rejects query, gamesQuery or assert", async () => {
       );
   const b = base();
   const r1 = await run(b, bad("select 1"));
-  assert.deepEqual(r1.ok === false && [r1.check, r1.detail], [
-    2,
-    "query: nope",
-  ]);
+  assert.deepEqual(!r1.ok && [r1.check, r1.detail], [2, "query: nope"]);
   const withGames = {
     ...b,
     evidence: { ...b.evidence, gamesQuery: "select game_id" },
   };
   const r2 = await run(withGames, bad("select game_id"));
-  assert.deepEqual(r2.ok === false && [r2.check, r2.detail], [
-    2,
-    "gamesQuery: nope",
-  ]);
+  assert.deepEqual(!r2.ok && [r2.check, r2.detail], [2, "gamesQuery: nope"]);
   const r3 = await run({ ...b, assert: "select true" }, bad("select true"));
-  assert.deepEqual(r3.ok === false && [r3.check, r3.detail], [
-    2,
-    "assert: nope",
-  ]);
+  assert.deepEqual(!r3.ok && [r3.check, r3.detail], [2, "assert: nope"]);
 });
 
 test("check 3: unknown placeholder or missing cell", async () => {
   const r1 = await run({ ...base(), body: "{missing} wins" });
-  assert.equal(r1.ok === false && r1.check, 3);
+  assert.equal(!r1.ok && r1.check, 3);
   const r2 = await run({
     ...base(),
     bindings: { ...base().bindings, wins: { column: "wins", row: 9 } },
   });
-  assert.equal(r2.ok === false && r2.check, 3);
+  assert.equal(!r2.ok && r2.check, 3);
 });
 
 test("check 4: literal digits", async () => {
   const r = await run({ ...base(), headline: "{team} won 5" });
-  assert.equal(r.ok === false && r.check, 4);
+  assert.equal(!r.ok && r.check, 4);
 });

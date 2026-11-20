@@ -110,8 +110,12 @@ export const Schedule = memo(function Schedule({
                 h="card"
                 textDecorationLine="none"
                 aria-label={`${game.day} ${game.date}, ${data.team.name} ${game.venue === "vs" ? "home against" : "away at"} ${game.team}, ${game.time} Eastern time`}
-                onMouseEnter={() => onPrefetchTeam(game.team)}
-                onFocus={() => onPrefetchTeam(game.team)}
+                onMouseEnter={() => {
+                  onPrefetchTeam(game.team);
+                }}
+                onFocus={() => {
+                  onPrefetchTeam(game.team);
+                }}
               >
                 <Row
                   h="card"
@@ -213,8 +217,12 @@ export const Schedule = memo(function Schedule({
                 h="12"
                 gap="3"
                 textDecorationLine="none"
-                onMouseEnter={() => onPrefetchTeam(game.team)}
-                onFocus={() => onPrefetchTeam(game.team)}
+                onMouseEnter={() => {
+                  onPrefetchTeam(game.team);
+                }}
+                onFocus={() => {
+                  onPrefetchTeam(game.team);
+                }}
               >
                 <Logo
                   src={

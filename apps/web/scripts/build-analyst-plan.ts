@@ -10,6 +10,6 @@ const errors: string[] = [];
 builder.on("_error", (event) => errors.push(event.error.message));
 await builder.build();
 if (errors.length)
-  throw new Error("Plan content failed to compile:\n" + errors.join("\n"));
+  throw new Error(`Plan content failed to compile:\n${errors.join("\n")}`);
 const { renderAnalystPlan } = await import("../plan-viewer/render-plan.ts");
 await renderAnalystPlan();

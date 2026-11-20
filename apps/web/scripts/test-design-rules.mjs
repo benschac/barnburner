@@ -11,12 +11,13 @@ import {
 import { fileURLToPath } from "node:url";
 
 import { logInfo } from "../../../lib/logger.mjs";
+
 const root = fileURLToPath(new URL("../", import.meta.url));
 const contract = JSON.parse(
-  await readFile(new URL("../design/contract.json", import.meta.url), "utf8")
+  await readFile(new URL("../design/contract.json", import.meta.url), "utf-8")
 );
 const teams = JSON.parse(
-  await readFile(new URL("../../../data/teams.json", import.meta.url), "utf8")
+  await readFile(new URL("../../../data/teams.json", import.meta.url), "utf-8")
 );
 assert.deepEqual(
   Object.keys(contract.teamPalettes).sort(),
@@ -25,7 +26,7 @@ assert.deepEqual(
 for (const { abbrev } of teams) {
   const logo = await readFile(
     new URL(`../public/assets/teams/${abbrev}.svg`, import.meta.url),
-    "utf8"
+    "utf-8"
   );
   for (const [role, color] of Object.entries(contract.teamPalettes[abbrev])) {
     assert.ok(["team-primary", "team-secondary"].includes(role));
@@ -337,7 +338,7 @@ cases.push(
 const frameDir = `${vizRoot}/frame`;
 const frameFile = `${frameDir}/frame.ts`;
 // The override applies to exactly this path, so lint the fixture there only when no real file would be overwritten.
-const frameFree = !(await readFile(frameFile, "utf8").then(
+const frameFree = !(await readFile(frameFile, "utf-8").then(
   () => true,
   () => false
 ));
@@ -395,7 +396,7 @@ try {
     const result = spawnSync(
       `${root}../../node_modules/.bin/effect-tsgo`,
       ["--tsrs-lint", "oxlint", "--format", "json", file],
-      { cwd: root, encoding: "utf8" }
+      { cwd: root, encoding: "utf-8" }
     );
     assert.equal(result.error, undefined, name);
     const diagnostics = JSON.parse(result.stdout).diagnostics;
@@ -426,7 +427,7 @@ try {
   const result = spawnSync(
     process.execPath,
     ["scripts/check-design-files.mjs"],
-    { cwd: root, encoding: "utf8" }
+    { cwd: root, encoding: "utf-8" }
   );
   assert.equal(result.status, 1, "unused CSS must fail");
   logInfo(`${cases.length} Oxlint rule cases and unused CSS check passed`);

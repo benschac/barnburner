@@ -131,9 +131,9 @@ const enumerateRelationChains = (
   distanceToTarget: Int32Array,
   from: number,
   limit: number
-): ReadonlyArray<ReadonlyArray<Hop>> => {
+): readonly (readonly Hop[])[] => {
   const team = graph.adjacency;
-  const candidates = (node: number): ReadonlyArray<Step> => {
+  const candidates = (node: number): readonly Step[] => {
     const want = distanceToTarget[node] - 1;
     const found: Step[] = [];
     if (withTeammates) {

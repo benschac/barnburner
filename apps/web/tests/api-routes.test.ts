@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { type ChildProcess, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
@@ -78,7 +79,7 @@ test("the API routes were compiled with the handler left external", () => {
   for (const route of routes) {
     const compiled = readFileSync(
       join(next, "server/app/api", route, "route.js"),
-      "utf8"
+      "utf-8"
     );
     const handler = route === "history" ? "history-handler" : "web-handler";
     assert.ok(
@@ -96,7 +97,7 @@ test("the API routes were compiled with the handler left external", () => {
 test("no webpack output holds handler code or box-score data", () => {
   assert.ok(compiledJs.length > 0);
   for (const file of compiledJs) {
-    const text = readFileSync(file, "utf8");
+    const text = readFileSync(file, "utf-8");
     for (const marker of handlerMarkers)
       assert.ok(!text.includes(marker), `${file} contains "${marker}"`);
   }
@@ -112,7 +113,7 @@ test("the API stays one chunk file per archived game, traced as files", () => {
   assert.equal(apiChunks.length, gameIds.length);
   const trace = Schema.decodeUnknownSync(
     Schema.fromJsonString(Schema.Struct({ files: Schema.Array(Schema.String) }))
-  )(readFileSync(join(next, "server/app/api/rpc/route.js.nft.json"), "utf8"));
+  )(readFileSync(join(next, "server/app/api/rpc/route.js.nft.json"), "utf-8"));
   const traced = trace.files.filter((file) =>
     /api\/dist\/(chunk-[^/]*|web-handler)\.js$/.test(file)
   );
@@ -126,16 +127,18 @@ test("the API stays one chunk file per archived game, traced as files", () => {
 // Run the built server with a loader hook that records every API chunk Node loads.
 const freePort = Effect.callback<number>((resume) => {
   const server = createServer();
-  server.once("error", (error) => resume(Effect.die(error)));
+  server.once("error", (error) => {
+    resume(Effect.die(error));
+  });
   server.listen(0, "127.0.0.1", () => {
     const address = server.address();
-    server.close(() =>
+    server.close(() => {
       resume(
         Effect.succeed(
           typeof address === "object" && address !== null ? address.port : 0
         )
-      )
-    );
+      );
+    });
   });
 });
 
@@ -177,7 +180,7 @@ registerHooks({ load(url, context, nextLoad) {
   return nextLoad(url, context)
 } })`;
 const loaded = (log: string) =>
-  (existsSync(log) ? readFileSync(log, "utf8") : "")
+  (existsSync(log) ? readFileSync(log, "utf-8") : "")
     .split("\n")
     .filter((url) => url !== "");
 
@@ -296,7 +299,7 @@ test("each box-score request through next start loads exactly one chunk file", a
     assert.equal(box.gameId, gameId);
     const chunks = loaded(log).filter((url) => /\/chunk-[^/]*\.js$/.test(url));
     assert.equal(chunks.length, index + 1);
-    const chunk = readFileSync(fileURLToPath(chunks[index]), "utf8");
+    const chunk = readFileSync(fileURLToPath(chunks[index]), "utf-8");
     assert.ok(
       chunk.includes(`/${gameId}.json`),
       "the loaded chunk must be that game"

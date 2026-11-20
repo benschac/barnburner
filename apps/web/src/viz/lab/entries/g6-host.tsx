@@ -1,9 +1,11 @@
 import type { EgoTables, LabEntry } from "@nhl-reddit-stats/viz";
 import { samples } from "@nhl-reddit-stats/viz/samples";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { Text, View } from "tamagui";
 
-import { G6Graph, type G6NodeProps } from "../../G6Graph";
+import { G6Graph } from "../../G6Graph";
+import type { G6NodeProps } from "../../G6Graph";
 
 /** The ego tables as G6 data: a node per player, an edge per link labelled with its games. Pure. */
 export function egoGraph({ players, links }: EgoTables) {
@@ -46,7 +48,7 @@ function TinyNode({ data: nodeData }: G6NodeProps) {
 
 type ChoiceProps<T extends string> = {
   readonly label: string;
-  readonly options: ReadonlyArray<T>;
+  readonly options: readonly T[];
   readonly value: T;
   readonly onChange: (value: T) => void;
 };
@@ -82,7 +84,9 @@ function Choice<T extends string>({
           bg={value === option ? "highlight" : "surface"}
           borderColor={value === option ? "gold" : "rule"}
           borderWidth={2}
-          onClick={() => onChange(option)}
+          onClick={() => {
+            onChange(option);
+          }}
         >
           <Text fontFamily="body" color="color">
             {option}

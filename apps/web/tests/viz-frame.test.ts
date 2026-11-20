@@ -64,7 +64,7 @@ type Modules = Record<string, ModuleNamespace>;
 
 /** A fake window and root. `modules` maps posted code to the namespace `load` resolves to; other code rejects. */
 const harness = (modules: Modules = {}) => {
-  const posted: Array<{ message: FrameReport; targetOrigin: string }> = [];
+  const posted: { message: FrameReport; targetOrigin: string }[] = [];
   const parent = {
     posted,
     postMessage(message: FrameReport, targetOrigin: string) {
@@ -164,7 +164,9 @@ const harness = (modules: Modules = {}) => {
       clock = time;
       const due = [...frames.entries()];
       frames.clear();
-      due.forEach(([, callback]) => callback(time));
+      due.forEach(([, callback]) => {
+        callback(time);
+      });
     },
     pendingFrames: () => frames.size,
     error: (event: FrameErrorEvent) => {

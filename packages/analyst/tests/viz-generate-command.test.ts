@@ -53,7 +53,7 @@ test("parseArgs rejects an empty or blank --prompt, --tables or --out before any
     assert.ok(Result.isFailure(parsed), flag);
     assert.match(
       parsed.failure.message,
-      new RegExp(flag + " must not be empty")
+      new RegExp(`${flag} must not be empty`)
     );
   }
 });

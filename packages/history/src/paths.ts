@@ -137,7 +137,7 @@ export const walkFirstPath = (
   distanceToTarget: Int32Array,
   from: number,
   filter: Filter
-): ReadonlyArray<TeammateHop> => {
+): readonly TeammateHop[] => {
   const { neighbours, linkIds } = graph.adjacency;
   const hops: TeammateHop[] = [];
   let node = from;
@@ -167,14 +167,20 @@ export const walkFirstPath = (
  * leads to the target. `capped` means the true count is `>= cap` (exactly `cap` counts as capped).
  * Requires `distanceToTarget[from] >= 0`.
  */
+/** The number of shortest chains, clamped to the cap; `capped` when the true count is at least the cap. */
+export interface ChainCount {
+  readonly count: number;
+  readonly capped: boolean;
+}
+
 export const countChainsBy = (
   distanceToTarget: Int32Array,
   from: number,
   cap: number,
   forEachCloser: (node: number, visit: (other: number) => void) => void
-): { readonly count: number; readonly capped: boolean } => {
+): ChainCount => {
   if (distanceToTarget[from] === 0)
-    return { count: Math.min(1, cap), capped: 1 >= cap };
+    return { count: Math.min(1, cap), capped: cap <= 1 };
   const ways = new Float64Array(distanceToTarget.length);
   const queue: number[] = [from];
   ways[from] = 1;
@@ -227,18 +233,18 @@ export const enumerateBy = <Step, H>(
   distanceToTarget: Int32Array,
   from: number,
   limit: number,
-  candidates: (node: number) => ReadonlyArray<Step>,
+  candidates: (node: number) => readonly Step[],
   target: (step: Step) => number,
   hop: (step: Step, from: number, to: number) => H
-): ReadonlyArray<ReadonlyArray<H>> => {
+): readonly (readonly H[])[] => {
   const total = distanceToTarget[from];
-  const chains: ReadonlyArray<H>[] = [];
+  const chains: (readonly H[])[] = [];
   if (limit < 1) return chains;
   if (total === 0) return [[]];
   const nodes = new Int32Array(total + 1);
   const cursor = new Int32Array(total + 1);
   const chosen: Step[] = [];
-  const frames: ReadonlyArray<Step>[] = [candidates(from)];
+  const frames: (readonly Step[])[] = [candidates(from)];
   nodes[0] = from;
   let depth = 0;
   while (depth >= 0 && chains.length < limit) {
@@ -274,10 +280,10 @@ export const enumerateChains = (
   from: number,
   filter: Filter,
   limit: number
-): ReadonlyArray<ReadonlyArray<TeammateHop>> => {
+): readonly (readonly TeammateHop[])[] => {
   const { offsets, neighbours, linkIds } = graph.adjacency;
   // Adjacency positions of the closer passing neighbours of `node`, in D6 order.
-  const candidates = (node: number): ReadonlyArray<number> => {
+  const candidates = (node: number): readonly number[] => {
     const want = distanceToTarget[node] - 1;
     const end = offsets[node + 1];
     type Found = { readonly at: number; readonly games: number };

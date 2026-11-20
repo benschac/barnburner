@@ -177,16 +177,16 @@ const withFiles = (
   }
 };
 
-const accept = (db: string, truth: string, ...flags: ReadonlyArray<string>) => {
+const accept = (db: string, truth: string, ...flags: readonly string[]) => {
   const run = spawnSync(
     process.execPath,
     [script, "--db", db, "--truth", truth, ...flags],
-    { encoding: "utf8" }
+    { encoding: "utf-8" }
   );
   return { code: run.status, out: run.stdout, err: run.stderr };
 };
 
-test("a matching truth file is accepted and the report lists every case and the timings", () =>
+test("a matching truth file is accepted and the report lists every case and the timings", () => {
   withFiles(MINI_TRUTH, (db, truth) => {
     const run = accept(db, truth);
     assert.equal(run.code, 0, run.out + run.err);
@@ -208,9 +208,10 @@ test("a matching truth file is accepted and the report lists every case and the 
     assert.match(run.out, /^cold load \(open \+ makeGraph\): \d+ ms$/m);
     assert.match(run.out, /^median of 1000 findPaths calls: [\d.]+ ms$/m);
     assert.doesNotMatch(run.out, /^FAIL/m);
-  }));
+  });
+});
 
-test("--skip-diameter skips the diameter and still checks components", () =>
+test("--skip-diameter skips the diameter and still checks components", () => {
   withFiles(MINI_TRUTH, (db, truth) => {
     const run = accept(db, truth, "--skip-diameter");
     assert.equal(run.code, 0, run.out + run.err);
@@ -219,7 +220,8 @@ test("--skip-diameter skips the diameter and still checks components", () =>
       /^SKIP diameter with partners off: skipped: --skip-diameter/m
     );
     assert.match(run.out, /^PASS components with partners off: actual 3/m);
-  }));
+  });
+});
 
 test("counts may grow without --baseline, but a smaller serving count fails", () => {
   withFiles({ ...MINI_TRUTH, player_count: 9 }, (db, truth) => {
@@ -255,20 +257,22 @@ test("a truth file that does not match exits non-zero", () => {
   );
 });
 
-test("--baseline demands the pinned numbers and fails on C-mini", () =>
+test("--baseline demands the pinned numbers and fails on C-mini", () => {
   withFiles(MINI_TRUTH, (db, truth) => {
     const run = accept(db, truth, "--baseline");
     assert.equal(run.code, 1);
     assert.match(run.out, /^FAIL players: actual 10, truth 10, baseline 8842/m);
     assert.match(run.out, /^FAIL McDavid shared-game teammates: missing/m);
-  }));
+  });
+});
 
-test("missing or malformed arguments and truth files exit non-zero", () =>
+test("missing or malformed arguments and truth files exit non-zero", () => {
   withFiles(MINI_TRUTH, (db) => {
     assert.equal(accept(db, join(tmpdir(), "no-such-truth.json")).code, 1);
     assert.equal(
-      spawnSync(process.execPath, [script, "--db", db], { encoding: "utf8" })
+      spawnSync(process.execPath, [script, "--db", db], { encoding: "utf-8" })
         .status,
       1
     );
-  }));
+  });
+});

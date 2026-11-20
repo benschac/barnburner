@@ -33,7 +33,7 @@ const archivedIds = Array.sort(
   Order.Number
 );
 const readArchived = (id: number) =>
-  JSON.parse(readFileSync(`${archiveDirectory}/${id}.json`, "utf8"));
+  JSON.parse(readFileSync(`${archiveDirectory}/${id}.json`, "utf-8"));
 const archivedId = archivedIds[0];
 
 const request = <A, E>(
@@ -194,7 +194,7 @@ test("unreadable or mismatched archive contents are a load failure, not a missin
     readArchived(other),
     {
       ...readArchived(archivedId),
-      decision: "REG" === readArchived(archivedId).decision ? "SO" : "REG",
+      decision: readArchived(archivedId).decision === "REG" ? "SO" : "REG",
     },
   ]) {
     const { layer } = counting(() => contents);

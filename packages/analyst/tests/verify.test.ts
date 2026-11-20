@@ -10,7 +10,7 @@ import { guardQuery } from "../src/guard.ts";
 import { fillCard } from "../src/tools/submit-card.ts";
 import { makeVerify } from "../src/verify.ts";
 
-const dataDir = fileURLToPath(new URL("./fixtures/data", import.meta.url));
+const dataDir = fileURLToPath(new URL("fixtures/data", import.meta.url));
 const meta = {
   model: "m",
   runId: "r",

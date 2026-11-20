@@ -1,4 +1,5 @@
-import { FilterSchema, RelationSchema } from "@nhl-reddit-stats/history/rpc";
+import type { FilterSchema } from "@nhl-reddit-stats/history/rpc";
+import { RelationSchema } from "@nhl-reddit-stats/history/rpc";
 import { Option, Schema, SchemaTransformation } from "effect";
 import { Atom } from "effect/reactivity";
 

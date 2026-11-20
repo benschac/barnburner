@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { test } from "node:test";
+
 const script = join(import.meta.dirname, "../scripts/ask.ts");
 test("ask CLI help does not open a database or call a model", () => {
   const result = spawnSync(process.execPath, [script, "--help"], {
-    encoding: "utf8",
+    encoding: "utf-8",
     cwd: "/tmp",
   });
   assert.equal(result.status, 0);
@@ -19,7 +20,7 @@ for (const args of [
 ]) {
   test(`ask CLI rejects malformed arguments ${JSON.stringify(args)}`, () => {
     const result = spawnSync(process.execPath, [script, ...args], {
-      encoding: "utf8",
+      encoding: "utf-8",
       cwd: "/tmp",
     });
     assert.equal(result.status, 1);

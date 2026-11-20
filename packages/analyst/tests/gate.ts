@@ -21,7 +21,9 @@ export const rejectOnAbort = (
       onStart?.();
       signal?.addEventListener(
         "abort",
-        () => resume(Effect.die(new Error("aborted"))),
+        () => {
+          resume(Effect.die(new Error("aborted")));
+        },
         { once: true }
       );
     })

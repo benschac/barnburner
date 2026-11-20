@@ -40,7 +40,7 @@ export type ChainGraph = {
   nodes: ChainNode[];
   edges: ChainEdge[];
   /** Each chain's edge IDs in D6 order, first chain first, for highlighting. */
-  readonly chains: ReadonlyArray<ReadonlyArray<string>>;
+  readonly chains: readonly (readonly string[])[];
 };
 
 /** 19501951 reads as "1950-51". */

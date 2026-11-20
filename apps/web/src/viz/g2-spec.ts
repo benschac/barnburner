@@ -37,7 +37,7 @@ function withTheme<T>(node: T, theme: G2Theme): T {
     return { ...themed, theme };
   });
   // SAFETY: only the children list changed, and each child is the same value with a theme added.
-  return { ...node, children: themedChildren } as T;
+  return { ...node, children: themedChildren };
 }
 
 /**

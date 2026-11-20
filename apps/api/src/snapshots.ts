@@ -43,7 +43,7 @@ export const makeSnapshots = (input: {
   season: unknown;
   poster: unknown;
   expectedGamesPerTeam?: number;
-  insights?: Effect.Effect<ReadonlyArray<PublishedInsight>, SnapshotLoadError>;
+  insights?: Effect.Effect<readonly PublishedInsight[], SnapshotLoadError>;
 }) =>
   Effect.gen(function* () {
     const season = yield* Schema.decodeUnknownEffect(SavedSeason)(input.season);

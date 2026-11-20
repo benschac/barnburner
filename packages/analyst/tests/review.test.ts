@@ -215,7 +215,9 @@ test("CLI prints the first card before stdin closes", async () => {
   child.stdin.end();
   await Effect.runPromise(
     Effect.callback<void>((resume) => {
-      child.on("close", () => resume(Effect.void));
+      child.on("close", () => {
+        resume(Effect.void);
+      });
     })
   );
   assert.match(output, /approved 1/);

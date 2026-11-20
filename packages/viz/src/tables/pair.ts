@@ -1,7 +1,6 @@
 import {
   DEFAULT_FILTER,
   HistoryUnavailable,
-  UnknownRoster,
   link,
 } from "@nhl-reddit-stats/history";
 import type {
@@ -11,6 +10,7 @@ import type {
   StintRow,
   TeammateGraph,
   UnknownPlayer,
+  UnknownRoster,
 } from "@nhl-reddit-stats/history";
 import { Array, Effect, Order, Schema } from "effect";
 
@@ -55,7 +55,7 @@ const playerRow = ({ player }: PlayerDetail): PlayerRow => ({
 });
 
 const stintFor = (
-  stints: ReadonlyArray<StintRow>,
+  stints: readonly StintRow[],
   teamId: number,
   seasonId: number,
   gameType: GameType
@@ -75,7 +75,7 @@ const teamRow = (
   teamId: number,
   seasonId: number,
   gameType: GameType,
-  stints: ReadonlyArray<StintRow>
+  stints: readonly StintRow[]
 ): Effect.Effect<TeamRow, HistoryUnavailable | UnknownPlayer> =>
   Effect.gen(function* () {
     const own = stints.find((s) => s.teamId === teamId);
@@ -133,7 +133,7 @@ export const pair = (
       const span = firstSpan.get(teamId);
       if (span === undefined) {
         // defect: firstSpan has an entry for every id in teamIds
-        throw new Error("pair: no span for team " + String(teamId));
+        throw new Error(`pair: no span for team ${String(teamId)}`);
       }
       return teamRow(store, teamId, span.seasonId, span.gameType, stints);
     });

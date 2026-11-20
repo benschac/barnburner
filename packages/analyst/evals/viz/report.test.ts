@@ -10,8 +10,8 @@ import {
   bakeoffReport,
   bakeoffReportFromFiles,
   ScreenshotReadError,
-  type BakeoffRecord,
 } from "./report.ts";
+import type { BakeoffRecord } from "./report.ts";
 
 const base = (overrides: Partial<BakeoffRecord>): BakeoffRecord => ({
   prompt: "Show how McDavid connects to Ted Lindsay.",
@@ -97,13 +97,13 @@ test("the page sets no colour literals, only system colours", () => {
 
 test("nothing outside a closed disclosure names a vocabulary", () => {
   const html = bakeoffReport(records, { images, random: () => 0.9 });
-  const outside = html.replace(/<details[\s\S]*?<\/details>/g, "");
+  const outside = html.replaceAll(/<details[\s\S]*?<\/details>/g, "");
   assert.doesNotMatch(outside, /graph|timeline/);
   // The disclosures do name them, and neither is open by default.
   assert.match(html, /<details class="results">/);
   assert.doesNotMatch(html, /<details[^>]* open/);
   assert.match(
-    html.match(/<details class="results">[\s\S]*?<\/details>/)?.[0] ?? "",
+    /<details class="results">[\s\S]*?<\/details>/.exec(html)?.[0] ?? "",
     /graph/
   );
 });
@@ -119,14 +119,14 @@ test("the A/B order follows the random source, so the same source gives the same
 test("the table has one row per vocabulary with rendered counts and medians", () => {
   const html = bakeoffReport(records, { images, random: () => 0.9 });
   const graphRow =
-    html.match(/<tr><th scope="row">graph<\/th>.*?<\/tr>/)?.[0] ?? "";
+    /<tr><th scope="row">graph<\/th>.*?<\/tr>/.exec(html)?.[0] ?? "";
   assert.match(graphRow, /<td>2 of 2<\/td>/);
   assert.match(graphRow, /<td>0\.50<\/td>/);
   assert.match(graphRow, /<td>1250<\/td>/);
   assert.match(graphRow, /<td>325<\/td>/);
   assert.match(graphRow, /<td>59\.0<\/td>/);
   const timelineRow =
-    html.match(/<tr><th scope="row">timeline<\/th>.*?<\/tr>/)?.[0] ?? "";
+    /<tr><th scope="row">timeline<\/th>.*?<\/tr>/.exec(html)?.[0] ?? "";
   assert.match(timelineRow, /<td>1 of 2<\/td>/);
 });
 
@@ -155,13 +155,13 @@ test("medians use rendered results only, and a vocabulary with none rendered sho
     { random: () => 0.9 }
   );
   const graphRow =
-    html.match(/<tr><th scope="row">graph<\/th>.*?<\/tr>/)?.[0] ?? "";
+    /<tr><th scope="row">graph<\/th>.*?<\/tr>/.exec(html)?.[0] ?? "";
   assert.match(
     graphRow,
     /<td>1 of 2<\/td>.*<td>300<\/td><td>58\.0<\/td><\/tr>/
   );
   const timelineRow =
-    html.match(/<tr><th scope="row">timeline<\/th>.*?<\/tr>/)?.[0] ?? "";
+    /<tr><th scope="row">timeline<\/th>.*?<\/tr>/.exec(html)?.[0] ?? "";
   assert.match(timelineRow, /<td>0 of 1<\/td>.*<td>—<\/td><td>—<\/td><\/tr>/);
 });
 

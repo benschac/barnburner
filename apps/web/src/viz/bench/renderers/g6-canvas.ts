@@ -4,7 +4,7 @@ import type { BenchRenderer } from "@nhl-reddit-stats/viz/contracts";
 import { Array, Effect, Order } from "effect";
 
 /** `Array.max`, not `Math.max(...rows)`: the real export has hundreds of thousands of links, past the argument limit. The prepended 1 is the floor that avoids dividing by zero on empty data. */
-const maxOf = <T>(rows: ReadonlyArray<T>, pick: (row: T) => number) =>
+const maxOf = <T>(rows: readonly T[], pick: (row: T) => number) =>
   Array.max(Array.prepend(Array.map(rows, pick), 1), Order.Number);
 
 const clampNumber = Order.clamp(Order.Number);

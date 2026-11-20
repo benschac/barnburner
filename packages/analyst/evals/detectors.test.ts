@@ -1,14 +1,13 @@
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 
 import { Array, Effect, Order } from "effect";
 
 import { DETECTORS, formatReport, runDetectorEval } from "./detectors.ts";
 
 const fixtureDataDir = join(
-  fileURLToPath(new URL(".", import.meta.url)),
+  import.meta.dirname,
   "..",
   "tests",
   "fixtures",

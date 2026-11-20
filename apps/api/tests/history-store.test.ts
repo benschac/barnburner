@@ -47,7 +47,7 @@ const DRESSED_TABLE = `
 `;
 // Goalies 16 and 17 are on team 3's box score in games E, D, and F (1951020001-3). Goalie 21 is dressed in
 // game G but has no credited game, so the serving build leaves him out.
-const DRESSED_ROWS: ReadonlyArray<readonly [number, number, number]> = [
+const DRESSED_ROWS: readonly (readonly [number, number, number])[] = [
   1951020001, 1951020002, 1951020003,
 ].flatMap((gameId) =>
   [16, 17].map((playerId) => [gameId, 3, playerId] as const)
@@ -163,7 +163,7 @@ const withMini = (
   });
 const openMini = (path: string) => run(openHistoryStore(path));
 
-const plain = (view: ArrayLike<number>) => Array.from(view);
+const plain = (view: Iterable<number>) => [...view];
 const teammateKeys = [
   "playerIds",
   "seasonIds",
@@ -177,7 +177,7 @@ const teammateKeys = [
   "spanLink",
   "spanGames",
   "spanFirstGame",
-] as const satisfies ReadonlyArray<keyof GraphArrays>;
+] as const satisfies readonly (keyof GraphArrays)[];
 
 test("loads the snapshot id and teammate arrays equal to the fixture", () =>
   withMini(async (store) => {
@@ -260,18 +260,17 @@ test("roster lists stint players, and an empty one is UnknownRoster", () =>
 
 test("sharedGames lists one span by kind, oldest first, and agrees with the fake", () =>
   withMini(async (store) => {
-    const cases: ReadonlyArray<
-      readonly [number, number, number, 2 | 3, number]
-    > = [
-      [11, 12, 19501951, 2, 1],
-      [12, 14, 19511952, 2, 2],
-      [14, 15, 19511952, 3, 2],
-      [11, 12, 19511952, 2, 1],
-      [15, 16, 19501951, 2, 3],
-      [16, 17, 19511952, 2, 3],
-      [17, 18, 19511952, 2, 3],
-      [16, 21, 19511952, 3, 3],
-    ];
+    const cases: readonly (readonly [number, number, number, 2 | 3, number])[] =
+      [
+        [11, 12, 19501951, 2, 1],
+        [12, 14, 19511952, 2, 2],
+        [14, 15, 19511952, 3, 2],
+        [11, 12, 19511952, 2, 1],
+        [15, 16, 19501951, 2, 3],
+        [16, 17, 19511952, 2, 3],
+        [17, 18, 19511952, 2, 3],
+        [16, 21, 19511952, 3, 3],
+      ];
     for (const [a, b, season, type, team] of cases) {
       for (const kind of ["PlayedWith", "GoaliePartners"] as const) {
         const actual = await run(
@@ -429,25 +428,27 @@ test("a wrong schema version, a missing table, and a missing blob are HistoryUna
         name
       );
     };
-    await mutate("version", (db) =>
-      db.exec("UPDATE meta SET value = '2' WHERE key = 'schema_version'")
-    );
-    await mutate("no-snapshot", (db) =>
-      db.exec("DELETE FROM meta WHERE key = 'snapshot_id'")
-    );
-    await mutate("no-table", (db) => db.exec("DROP TABLE stints"));
+    await mutate("version", (db) => {
+      db.exec("UPDATE meta SET value = '2' WHERE key = 'schema_version'");
+    });
+    await mutate("no-snapshot", (db) => {
+      db.exec("DELETE FROM meta WHERE key = 'snapshot_id'");
+    });
+    await mutate("no-table", (db) => {
+      db.exec("DROP TABLE stints");
+    });
     // Only the Finals query reads `cup_final`, so this fails at open only because every query is compiled there.
-    await mutate("no-column", (db) =>
-      db.exec("ALTER TABLE games RENAME COLUMN cup_final TO final_flag")
-    );
-    await mutate("no-blob", (db) =>
-      db.exec("DELETE FROM graph_arrays WHERE name = 'edge_a'")
-    );
-    await mutate("odd-blob", (db) =>
+    await mutate("no-column", (db) => {
+      db.exec("ALTER TABLE games RENAME COLUMN cup_final TO final_flag");
+    });
+    await mutate("no-blob", (db) => {
+      db.exec("DELETE FROM graph_arrays WHERE name = 'edge_a'");
+    });
+    await mutate("odd-blob", (db) => {
       db.exec(
         "UPDATE graph_arrays SET bytes = x'010203' WHERE name = 'span_games'"
-      )
-    );
+      );
+    });
   }));
 
 test("the opponent arrays refuse a file replaced by another snapshot after open", () =>

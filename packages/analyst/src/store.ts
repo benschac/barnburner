@@ -3,7 +3,8 @@ import { join } from "node:path";
 
 import { Result, Schema } from "effect";
 
-import { type InsightCard, InsightCard as InsightCardSchema } from "./card.ts";
+import { InsightCard as InsightCardSchema } from "./card.ts";
+import type { InsightCard } from "./card.ts";
 import { parseJson, toPrettyJson } from "./json.ts";
 
 const CardList = Schema.Array(InsightCardSchema);
@@ -44,7 +45,7 @@ export const readCards = (
 ): Result.Result<readonly InsightCard[], StoreError> => {
   const file = cardsPath(dir, team);
   if (!existsSync(file)) return Result.succeed([]);
-  const text = readFileSync(file, "utf8");
+  const text = readFileSync(file, "utf-8");
   const json = Result.mapError(
     parseJson(text),
     (error) => new StoreError({ file, team, reason: error.message })

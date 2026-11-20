@@ -13,7 +13,7 @@ import { guardQuery } from "../src/guard.ts";
 import { writeCards } from "../src/store.ts";
 import { fillCard } from "../src/tools/submit-card.ts";
 
-const dataDir = fileURLToPath(new URL("./fixtures/data", import.meta.url));
+const dataDir = fileURLToPath(new URL("fixtures/data", import.meta.url));
 const query =
   "SELECT count(*) AS n FROM team_games WHERE team = 'NJD' AND is_final";
 const gamesQuery =
@@ -71,7 +71,7 @@ test("recheckInsights rechecks an approved card against the real database", asyn
     refreshed: 1,
     stale: 0,
   });
-  const saved = JSON.parse(readFileSync(join(dir, "NJD.json"), "utf8"))[0];
+  const saved = JSON.parse(readFileSync(join(dir, "NJD.json"), "utf-8"))[0];
   assert.equal(saved.status, "approved");
   assert.deepEqual(saved.evidence.result, card.evidence.result);
   assert.deepEqual(saved.asOf, {

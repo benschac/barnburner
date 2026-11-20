@@ -26,10 +26,10 @@ export type FinalsCell = {
 
 /** The G2 spec, with the cell data typed so the test can read it. */
 export type FinalsGridSpec = G2Spec & {
-  readonly data: ReadonlyArray<FinalsCell>;
+  readonly data: readonly FinalsCell[];
 };
 
-const nameOf = (players: ReadonlyArray<PlayerRow>, row: FinalsRow): string => {
+const nameOf = (players: readonly PlayerRow[], row: FinalsRow): string => {
   if (row.playerId === null) return "No teammate played in this Final";
   const player = players.find(
     (candidate) => candidate.playerId === row.playerId

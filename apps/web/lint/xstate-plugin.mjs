@@ -112,7 +112,7 @@ const IMPURE_FIX =
 const ASYNC_FIX =
   "Fix: invoke actor logic (createEffectLogic) for async work and handle its result in onDone or onError, and queue other side effects with enq(() => ...).";
 
-const tick = (text) => "@@" + text + "@@";
+const tick = (text) => `@@${text}@@`;
 
 const unwrap = (node) =>
   TRANSPARENT.has(node?.type) ? unwrap(node.expression) : node;
@@ -137,25 +137,33 @@ const childrenOf = (node) =>
 // Visit node and its descendants; visit returns false to skip a subtree.
 const walk = (node, visit, parent) => {
   if (visit(node, parent) === false) return;
-  childrenOf(node).forEach((child) => walk(child, visit, node));
+  childrenOf(node).forEach((child) => {
+    walk(child, visit, node);
+  });
 };
 
 const patternNames = (pattern) => {
   switch (pattern?.type) {
-    case "Identifier":
+    case "Identifier": {
       return [pattern.name];
-    case "ObjectPattern":
+    }
+    case "ObjectPattern": {
       return pattern.properties.flatMap((prop) =>
         patternNames(prop.type === "Property" ? prop.value : prop.argument)
       );
-    case "ArrayPattern":
+    }
+    case "ArrayPattern": {
       return pattern.elements.flatMap(patternNames);
-    case "RestElement":
+    }
+    case "RestElement": {
       return patternNames(pattern.argument);
-    case "AssignmentPattern":
+    }
+    case "AssignmentPattern": {
       return patternNames(pattern.left);
-    default:
+    }
+    default: {
       return [];
+    }
   }
 };
 
@@ -198,7 +206,10 @@ const functionsOf = (config) => {
     else if (isFunction(inner)) found.push(inner);
   };
 
-  const addEach = (node) => propsOf(node).forEach((prop) => add(prop.value));
+  const addEach = (node) =>
+    propsOf(node).forEach((prop) => {
+      add(prop.value);
+    });
 
   const visitInvoke = (node) => {
     const inner = unwrap(node);
@@ -207,7 +218,9 @@ const functionsOf = (config) => {
     invokes.forEach((invoke) =>
       propsOf(invoke)
         .filter((prop) => INVOKE_KEYS.has(keyName(prop)))
-        .forEach((prop) => add(prop.value))
+        .forEach((prop) => {
+          add(prop.value);
+        })
     );
   };
 
@@ -355,9 +368,11 @@ export default {
               if (!declared.has(inner.name))
                 report(
                   target,
-                  tick(inner.name) +
-                    " is assigned, but it was not created inside this transition or action function. " +
+                  `${tick(
+                    inner.name
+                  )} is assigned, but it was not created inside this transition or action function. ${
                     MUTATION_FIX
+                  }`
                 );
             } else if (inner?.type === "MemberExpression") {
               const root = rootName(inner);
@@ -365,18 +380,18 @@ export default {
               if (root !== undefined && !isOwned(root))
                 report(
                   target,
-                  tick(text(inner)) +
-                    " is mutated, but " +
-                    tick(root) +
-                    " was not created inside this transition or action function. " +
+                  `${tick(text(inner))} is mutated, but ${tick(
+                    root
+                  )} was not created inside this transition or action function. ${
                     MUTATION_FIX
+                  }`
                 );
             } else if (inner?.type === "ObjectPattern")
-              inner.properties.forEach((prop) =>
+              inner.properties.forEach((prop) => {
                 checkTarget(
                   prop.type === "Property" ? prop.value : prop.argument
-                )
-              );
+                );
+              });
             else if (inner?.type === "ArrayPattern")
               inner.elements.filter(Boolean).forEach(checkTarget);
             else if (inner?.type === "AssignmentPattern")
@@ -387,9 +402,11 @@ export default {
           const impure = (node) =>
             report(
               node,
-              tick(text(node)) +
-                " reads or writes the outside world (I/O, time, or randomness) while the next snapshot is computed. " +
+              `${tick(
+                text(node)
+              )} reads or writes the outside world (I/O, time, or randomness) while the next snapshot is computed. ${
                 IMPURE_FIX
+              }`
             );
 
           const checkCall = (node) => {
@@ -423,11 +440,11 @@ export default {
             ) {
               report(
                 node,
-                tick(text(callee) + "(...)") +
-                  " mutates " +
-                  tick(root) +
-                  ", which was not created inside this transition or action function. " +
+                `${tick(`${text(callee)}(...)`)} mutates ${tick(
+                  root
+                )}, which was not created inside this transition or action function. ${
                   MUTATION_FIX
+                }`
               );
             }
           };
@@ -469,23 +486,28 @@ export default {
             if (isFunction(node) && node.async)
               report(
                 node,
-                "This function is async, but transition and action functions run synchronously while the next snapshot is computed. " +
+                `This function is async, but transition and action functions run synchronously while the next snapshot is computed. ${
                   ASYNC_FIX
+                }`
               );
 
             switch (node.type) {
-              case "AssignmentExpression":
+              case "AssignmentExpression": {
                 checkTarget(node.left);
                 break;
-              case "UpdateExpression":
+              }
+              case "UpdateExpression": {
                 checkTarget(node.argument);
                 break;
-              case "UnaryExpression":
+              }
+              case "UnaryExpression": {
                 if (node.operator === "delete") checkTarget(node.argument);
                 break;
-              case "MemberExpression":
+              }
+              case "MemberExpression": {
                 checkMember(node, parent);
                 break;
+              }
               case "NewExpression": {
                 const path = globalPath(node.callee);
 
@@ -499,7 +521,7 @@ export default {
                 break;
               }
 
-              case "CallExpression":
+              case "CallExpression": {
                 if (isEnqCall(node)) {
                   // Callbacks run after the snapshot is resolved, so only the other arguments are checked.
                   const callee = unwrap(node.callee);
@@ -510,15 +532,19 @@ export default {
                   if (!spawns)
                     node.arguments
                       .filter((arg) => !isFunction(unwrap(arg)))
-                      .forEach((arg) => walk(arg, visit, node));
+                      .forEach((arg) => {
+                        walk(arg, visit, node);
+                      });
 
                   return false;
                 }
 
                 checkCall(node);
                 break;
-              default:
+              }
+              default: {
                 break;
+              }
             }
 
             return undefined;

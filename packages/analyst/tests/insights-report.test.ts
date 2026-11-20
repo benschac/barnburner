@@ -13,11 +13,11 @@ import {
 import { parseTraceLine } from "../src/trace.ts";
 
 const fixturePath = fileURLToPath(
-  new URL("./fixtures/trace.jsonl", import.meta.url)
+  new URL("fixtures/trace.jsonl", import.meta.url)
 );
 
 function fixtureEvents() {
-  return Result.getOrThrow(parseTrace(readFileSync(fixturePath, "utf8")));
+  return Result.getOrThrow(parseTrace(readFileSync(fixturePath, "utf-8")));
 }
 
 const event = (value: unknown) =>

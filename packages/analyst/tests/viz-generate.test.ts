@@ -25,7 +25,7 @@ const usage = {
   outputTokens: { total: 5, text: 5, reasoning: undefined },
 };
 const reply = (code: string) => JSON.stringify({ title: "T", code });
-const stub = (texts: ReadonlyArray<string>) => {
+const stub = (texts: readonly string[]) => {
   let n = 0;
   return new MockLanguageModelV4({
     doGenerate: async () => ({

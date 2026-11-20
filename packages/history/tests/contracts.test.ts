@@ -121,7 +121,7 @@ const farthest: FarthestResult = {
   unreachable: 2,
   example: [goaliePartners],
 };
-const finalsYears: ReadonlyArray<FinalsYear> = [
+const finalsYears: readonly FinalsYear[] = [
   {
     _tag: "Hit",
     year: 1952,
@@ -385,7 +385,7 @@ test("HistoryRpcs declares the ten calls", () => {
 });
 
 /** Returns every C-graph sort and length rule the arrays break. */
-const graphViolations = (g: GraphArrays): ReadonlyArray<string> => {
+const graphViolations = (g: GraphArrays): readonly string[] => {
   const problems: string[] = [];
   const ascending = (name: string, values: ArrayLike<number>) => {
     for (let i = 1; i < values.length; i += 1)

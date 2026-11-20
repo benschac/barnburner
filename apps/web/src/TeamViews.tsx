@@ -58,7 +58,9 @@ export function TeamSelector({
       <Row
         items="flex-start"
         flexWrap="wrap"
-        onMouseLeave={() => onPreviewTeam(null)}
+        onMouseLeave={() => {
+          onPreviewTeam(null);
+        }}
       >
         {divisions.map((division) => (
           <View
@@ -93,8 +95,12 @@ export function TeamSelector({
                     onPrefetchTeam(team.abbrev);
                     onPreviewTeam(team.abbrev);
                   }}
-                  onClick={() => onPreviewTeam(null)}
-                  onFocus={() => onPrefetchTeam(team.abbrev)}
+                  onClick={() => {
+                    onPreviewTeam(null);
+                  }}
+                  onFocus={() => {
+                    onPrefetchTeam(team.abbrev);
+                  }}
                   aria-current={selected === team.abbrev ? "page" : undefined}
                   bg={
                     selected === team.abbrev

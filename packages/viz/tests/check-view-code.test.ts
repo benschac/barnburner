@@ -9,12 +9,12 @@ const BT = String.fromCharCode(96); // a backtick, so template text can be writt
 const module = (body: string): string =>
   [
     "export default function render(ctx) {",
-    "  " + body,
+    `  ${body}`,
     "  return () => ctx.root.replaceChildren()",
     "}",
   ].join("\n");
 
-const tags = (problems: ReadonlyArray<ViewCodeProblem>): string[] =>
+const tags = (problems: readonly ViewCodeProblem[]): string[] =>
   problems.map((problem) => problem._tag);
 
 test("a module with one default export and no forbidden names passes", () => {
@@ -27,25 +27,16 @@ test("comments, strings and template text do not count as code", () => {
     "// fetch and import are only words here",
     "/* localStorage and require( in a block comment */",
     "const label = 'location and eval'",
-    "const text = " +
-      BT +
-      "sendBeacon and " +
-      "${" +
-      "'window.open'" +
-      "}" +
-      BT,
+    `const text = ${BT}sendBeacon and \${'window.open'}${BT}`,
     "export default function render() { return label + text }",
   ].join("\n");
   assert.deepEqual(checkViewCode(code), []);
 });
 
 test("a template expression is still code and is scanned", () => {
-  const code =
-    "export default function render() { return " +
-    BT +
-    '${fetch("/api")}' +
-    BT +
-    " }";
+  const code = `export default function render() { return ${
+    BT
+  }\${fetch("/api")}${BT} }`;
   assert.deepEqual(tags(checkViewCode(code)), ["ForbiddenGlobal"]);
 });
 
@@ -102,7 +93,7 @@ const forbidden: [string, string][] = [
 ];
 
 for (const [name, snippet] of forbidden) {
-  test("a module that uses " + name + " fails", () => {
+  test(`a module that uses ${name} fails`, () => {
     const problems = checkViewCode(module(snippet));
     assert.deepEqual(problems, [{ _tag: "ForbiddenGlobal", name, line: 2 }]);
   });
@@ -140,7 +131,7 @@ const optionalChain: [string, string][] = [
 ];
 
 for (const [name, snippet] of optionalChain) {
-  test("an optional chain on " + name + " fails", () => {
+  test(`an optional chain on ${name} fails`, () => {
     assert.deepEqual(checkViewCode(module(snippet)), [
       { _tag: "ForbiddenGlobal", name, line: 2 },
     ]);
@@ -185,12 +176,9 @@ const owned: [string, string][] = [
 ];
 
 for (const [name, snippet] of owned) {
-  test(
-    "a property of " + name.split(".")[0] + " is reported as " + name,
-    () => {
-      assert.deepEqual(checkViewCode(module(snippet)), [
-        { _tag: "ForbiddenGlobal", name, line: 2 },
-      ]);
-    }
-  );
+  test(`a property of ${name.split(".")[0]} is reported as ${name}`, () => {
+    assert.deepEqual(checkViewCode(module(snippet)), [
+      { _tag: "ForbiddenGlobal", name, line: 2 },
+    ]);
+  });
 }

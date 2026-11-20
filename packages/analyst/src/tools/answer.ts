@@ -77,7 +77,7 @@ export const runAnswer = (
         `row ${input.row} is out of range (result has ${rows.length} rows)`
       );
     }
-    const row = rows[input.row] as Row;
+    const row = rows[input.row];
     if (!Object.hasOwn(row, input.column)) {
       return fail(
         `column ${input.column} is not in the result (columns: ${Object.keys(row).join(", ") || "none"})`

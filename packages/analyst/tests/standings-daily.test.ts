@@ -1,14 +1,13 @@
 import assert from "node:assert/strict";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 
 import { Effect } from "effect";
 
 import { openDb } from "../src/db.ts";
 import { VIEWS } from "../src/shapes.ts";
 
-const here = dirname(fileURLToPath(import.meta.url));
+const here = import.meta.dirname;
 const dataDir = join(here, "fixtures", "data");
 const viewsDir = join(here, "..", "src", "views");
 

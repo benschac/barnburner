@@ -57,7 +57,8 @@ const BASELINE = {
   johansenJones: 0,
   jagrTeammates: 518,
   finalsCovered: 45,
-  finalsMissing: [2022] as ReadonlyArray<number>,
+  // SAFETY: widens the one-element tuple so the check compares it with any list of seasons.
+  finalsMissing: [2022] as readonly number[],
   flaggedFinals: 99,
 } as const;
 
@@ -148,7 +149,7 @@ const CLEGHORN_SEASON = 19181919;
 const readTruth = (path: string) =>
   Effect.gen(function* () {
     const text = yield* Effect.try({
-      try: () => readFileSync(path, "utf8"),
+      try: () => readFileSync(path, "utf-8"),
       // foreign: node:fs throws its own errors
       catch: () =>
         new TruthUnreadable({
@@ -315,7 +316,7 @@ const mulberry32 = (seed: number) => {
   };
 };
 
-const median = (values: ReadonlyArray<number>) => {
+const median = (values: readonly number[]) => {
   const sorted = Array.sort(values, Order.Number);
   return sorted.length === 0 ? 0 : sorted[Math.floor(sorted.length / 2)];
 };
@@ -340,15 +341,17 @@ const evaluate = (
     const push = (status: Line["status"], name: string, detail: string) => {
       lines.push({ status, name, detail });
     };
-    const verdict = (name: string, ok: boolean, detail: string) =>
+    const verdict = (name: string, ok: boolean, detail: string) => {
       push(ok ? "PASS" : "FAIL", name, detail);
+    };
     // A case that needs data the truth file lacks: a failure on the baseline, a skip elsewhere.
-    const missing = (name: string, why: string) =>
+    const missing = (name: string, why: string) => {
       push(
         baseline ? "FAIL" : "SKIP",
         name,
         baseline ? `missing: ${why}` : `skipped: ${why}`
       );
+    };
     const idOf = (name: string): number | null => truth.players[name] ?? null;
 
     // A count: the baseline demands the pinned value (and the truth); otherwise it may only grow.
@@ -372,8 +375,9 @@ const evaluate = (
         );
       }
     };
-    const exact = (name: string, actual: number, expected: number) =>
+    const exact = (name: string, actual: number, expected: number) => {
       verdict(name, actual === expected, `actual ${actual}, truth ${expected}`);
+    };
 
     const links = countLinks(graph);
     count(
@@ -754,7 +758,7 @@ const medianFindPaths = (graph: TeammateGraph, calls: number) => {
   return median(times);
 };
 
-const program = (argv: ReadonlyArray<string>) =>
+const program = (argv: readonly string[]) =>
   Effect.gen(function* () {
     const parsed = yield* Effect.try({
       try: () =>
@@ -806,7 +810,7 @@ const fail = (message: string) =>
     process.exitCode = 1;
   });
 
-const run = (argv: ReadonlyArray<string>) =>
+const run = (argv: readonly string[]) =>
   program(argv).pipe(
     Effect.flatMap(({ out, failures }) =>
       Effect.sync(() => {

@@ -1,6 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import {
   DuckDBInstance,
@@ -9,25 +8,12 @@ import {
   StatementType,
 } from "@duckdb/node-api";
 import type { DuckDBResultReader } from "@duckdb/node-api";
-import {
-  Array,
-  Clock,
-  Effect,
-  Order,
-  Result,
-  Semaphore,
-  type Scope,
-} from "effect";
+import { Array, Clock, Effect, Order, Result, Semaphore } from "effect";
+import type { Scope } from "effect";
 
 import { toJson } from "./json.ts";
-import {
-  type Db,
-  DbError,
-  type QueryOpts,
-  type QueryResult,
-  type Row,
-  SqlError,
-} from "./shapes.ts";
+import { DbError, SqlError } from "./shapes.ts";
+import type { Db, QueryOpts, QueryResult, Row } from "./shapes.ts";
 
 export interface OpenDbOpts {
   readonly dataDir: string;
@@ -35,7 +21,7 @@ export interface OpenDbOpts {
   readonly viewsDir?: string;
 }
 
-const defaultViewsDir = join(dirname(fileURLToPath(import.meta.url)), "views");
+const defaultViewsDir = join(import.meta.dirname, "views");
 
 const NUMERIC = new Set<number>([
   DuckDBTypeId.BIGINT,
@@ -114,13 +100,21 @@ export const openDb = (
       catch: (error) =>
         new DbError({ message: `cannot create database: ${String(error)}` }),
     });
-    yield* Effect.addFinalizer(() => Effect.sync(() => instance.closeSync()));
+    yield* Effect.addFinalizer(() =>
+      Effect.sync(() => {
+        instance.closeSync();
+      })
+    );
     const connection = yield* Effect.tryPromise({
       try: () => instance.connect(),
       catch: (error) =>
         new DbError({ message: `cannot connect: ${String(error)}` }),
     });
-    yield* Effect.addFinalizer(() => Effect.sync(() => connection.closeSync()));
+    yield* Effect.addFinalizer(() =>
+      Effect.sync(() => {
+        connection.closeSync();
+      })
+    );
 
     const run = (sql: string, label: string) =>
       Effect.tryPromise({
@@ -145,7 +139,7 @@ export const openDb = (
       files,
       (name) =>
         Effect.try({
-          try: () => readFileSync(join(viewsDir, name), "utf8"),
+          try: () => readFileSync(join(viewsDir, name), "utf-8"),
           catch: (error) =>
             new DbError({ message: `cannot read ${name}: ${String(error)}` }),
         }).pipe(
@@ -221,7 +215,9 @@ export const openDb = (
               signal.removeEventListener("abort", cancel);
             }
           })();
-          void pending.then((result) => resume(Effect.succeed(result)));
+          void pending.then((result) => {
+            resume(Effect.succeed(result));
+          });
           return Effect.promise(async () => {
             cancel();
             await pending;

@@ -7,13 +7,11 @@ import { Text, View } from "tamagui";
 
 import { useChainFile } from "../../../use-chain-file";
 import { describeFailure } from "../../chain-file";
-import { G6Graph, type G6NodeProps } from "../../G6Graph";
+import { G6Graph } from "../../G6Graph";
+import type { G6NodeProps } from "../../G6Graph";
 import { PlayerCard } from "../../PlayerCard";
-import {
-  chainGraph,
-  type ChainGraph,
-  type ChainNodeData,
-} from "../../specs/chain";
+import { chainGraph } from "../../specs/chain";
+import type { ChainGraph, ChainNodeData } from "../../specs/chain";
 
 function ChainPlayer({ data }: G6NodeProps) {
   // SAFETY: G6 hands node data back untyped; chainGraph wrote exactly these fields.
@@ -31,7 +29,7 @@ function ChainPlayer({ data }: G6NodeProps) {
 }
 
 /** The players' names along one chain, from its first edge's source through each edge's target, in chain order. */
-function chainNames(graph: ChainGraph, chain: ReadonlyArray<string>): string {
+function chainNames(graph: ChainGraph, chain: readonly string[]): string {
   const names = new Map(graph.nodes.map((node) => [node.id, node.data.name]));
   const ordered = chain.flatMap((id) =>
     graph.edges.filter((edge) => edge.id === id)

@@ -1,10 +1,9 @@
 import { jsonSchema, tool } from "ai";
-import type { JSONSchema7 } from "ai";
 import { Effect, Schema } from "effect";
 
-import { cardId, CardDraft, InsightCard } from "../card.ts";
-import type { Db, Guard, Verify } from "../shapes.ts";
-import { SqlError } from "../shapes.ts";
+import type { InsightCard } from "../card.ts";
+import { cardId, CardDraft } from "../card.ts";
+import type { Db, Guard, Verify, SqlError } from "../shapes.ts";
 
 export class FillError extends Schema.TaggedError<
   FillError,
@@ -128,7 +127,7 @@ export const submitCardText = (
 
 const jsonDoc = Schema.toJsonSchemaDocument(CardDraft);
 const draftInputSchema = jsonSchema<CardDraft>(
-  { ...jsonDoc.schema, definitions: jsonDoc.definitions } as JSONSchema7,
+  { ...jsonDoc.schema, definitions: jsonDoc.definitions },
   {
     validate: (value) => {
       const decoded = Schema.decodeUnknownExit(Schema.toCodecJson(CardDraft))(

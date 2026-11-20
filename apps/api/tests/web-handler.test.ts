@@ -64,7 +64,7 @@ test("the Vercel entrypoint reads each box score from its own lazy chunk", async
   const ids = readdirSync(archive).map((file) =>
     Number(file.replace(".json", ""))
   );
-  const entry = readFileSync(`${dist}/web-handler.js`, "utf8");
+  const entry = readFileSync(`${dist}/web-handler.js`, "utf-8");
   // One chunk per archived game, none inlined into the entry module that every request loads.
   assert.equal(
     readdirSync(dist).filter((file) => file.startsWith("chunk-")).length,

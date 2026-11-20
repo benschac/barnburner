@@ -115,7 +115,7 @@ export type PathResult = {
   readonly distance: number;
   readonly pathCount: number;
   readonly pathCountCapped: boolean;
-  readonly paths: ReadonlyArray<ReadonlyArray<Hop>>;
+  readonly paths: readonly (readonly Hop[])[];
 };
 
 /**
@@ -127,7 +127,7 @@ export type FarthestResult = {
   readonly atDistance: number;
   readonly reachable: number;
   readonly unreachable: number;
-  readonly example: ReadonlyArray<TeammateHop>;
+  readonly example: readonly TeammateHop[];
 };
 
 /** One passing span of a link. */
@@ -145,7 +145,7 @@ export type LinkSpan = {
  * game is `spans[0].firstGameId`. With no passing span: no spans, 0 games, null evidence.
  */
 export type LinkResult = {
-  readonly spans: ReadonlyArray<LinkSpan>;
+  readonly spans: readonly LinkSpan[];
   readonly totalGames: number;
   readonly evidenceGameId: number | null;
   readonly opposedGames: number;
@@ -204,7 +204,7 @@ export type StintRow = {
 
 export type PlayerDetail = {
   readonly player: PlayerRow;
-  readonly stints: ReadonlyArray<StintRow>;
+  readonly stints: readonly StintRow[];
 };
 
 export type RosterRow = {
@@ -238,6 +238,6 @@ export type FinalParticipant = {
 export type FinalRow = {
   readonly year: number;
   readonly seasonId: number;
-  readonly gameIds: ReadonlyArray<number>;
-  readonly participants: ReadonlyArray<FinalParticipant>;
+  readonly gameIds: readonly number[];
+  readonly participants: readonly FinalParticipant[];
 };

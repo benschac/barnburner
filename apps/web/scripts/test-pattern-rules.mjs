@@ -64,7 +64,7 @@ try {
     const result = spawnSync(
       `${root}../../node_modules/.bin/effect-tsgo`,
       ["--tsrs-lint", "oxlint", "--format", "json", file],
-      { cwd: root, encoding: "utf8" }
+      { cwd: root, encoding: "utf-8" }
     );
     assert.equal(result.error, undefined, name);
     const { diagnostics } = JSON.parse(result.stdout);

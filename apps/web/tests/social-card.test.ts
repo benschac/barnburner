@@ -16,7 +16,7 @@ import type { TeamPosterData } from "../src/stats.ts";
 const source = Schema.decodeUnknownSync(TeamData)({ season, poster });
 const logo = readFileSync(
   new URL("../public/assets/teams/EDM.svg", import.meta.url),
-  "utf8"
+  "utf-8"
 );
 
 test("social cards render the selected team and real supplemental data into a 1200 by 630 PNG", () => {

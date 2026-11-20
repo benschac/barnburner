@@ -1,7 +1,8 @@
 import { Effect, Result } from "effect";
 
 import { parseJson } from "./json.ts";
-import { type Db, type Guard, type GuardResult, VIEWS } from "./shapes.ts";
+import { VIEWS } from "./shapes.ts";
+import type { Db, Guard, GuardResult } from "./shapes.ts";
 
 type Json = unknown;
 type Obj = Record<string, Json>;
@@ -34,8 +35,12 @@ interface Scan {
 // and to the rest of the query node that owns it, never to sibling or enclosing queries.
 const scan = (node: Json, scope: ReadonlySet<string>, state: Scan): void => {
   if (state.reason !== null) return;
-  if (Array.isArray(node))
-    return node.forEach((child) => scan(child, scope, state));
+  if (Array.isArray(node)) {
+    node.forEach((child) => {
+      scan(child, scope, state);
+    });
+    return;
+  }
   if (!isObj(node)) return;
 
   let visible = scope;
