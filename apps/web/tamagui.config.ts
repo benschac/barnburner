@@ -29,7 +29,8 @@ export const config = createTamagui({
     ...defaultConfig.media,
     poster: { minWidth: 1206 },
     reducedMotion: { prefersReducedMotion: "reduce" },
-    print: "print" as unknown as Record<string, string>,
+    // SAFETY: mediaObjectToString returns a string query unchanged; only the config type omits it.
+    print: "print" as never,
   },
   fonts: {
     ...defaultConfig.fonts,
