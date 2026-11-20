@@ -4,7 +4,7 @@
 
 import { readFile } from 'node:fs/promises'
 import { extname } from 'node:path'
-import { Effect, Schema } from 'effect'
+import { Array as Arr, Effect, Order, Predicate, Schema } from 'effect'
 
 export type BakeoffOutcome = 'Rendered' | 'Failed'
 
@@ -51,7 +51,7 @@ const escapeHtml = (text: string): string =>
     .replaceAll("'", '&#39;')
 
 const median = (values: ReadonlyArray<number>): number => {
-  const sorted = [...values].sort((a, b) => a - b)
+  const sorted = Arr.sort(values, Order.Number)
   const middle = Math.floor(sorted.length / 2)
   return sorted.length % 2 === 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
 }
@@ -194,7 +194,7 @@ const mimeFor = (path: string): string => {
 const readImage = (path: string): Effect.Effect<readonly [string, string], ScreenshotReadError> =>
   Effect.tryPromise({
     try: () => readFile(path),
-    catch: (cause) => new ScreenshotReadError({ path, reason: cause instanceof Error ? cause.message : String(cause) }),
+    catch: (cause) => new ScreenshotReadError({ path, reason: Predicate.isError(cause) ? cause.message : String(cause) }),
   }).pipe(
     Effect.map((bytes) => [path, 'data:' + mimeFor(path) + ';base64,' + bytes.toString('base64')] as const),
   )
@@ -204,7 +204,7 @@ export const bakeoffReportFromFiles = (
   records: ReadonlyArray<BakeoffRecord>,
   options: Omit<BakeoffReportOptions, 'images'> = {},
 ): Effect.Effect<string, ScreenshotReadError> => {
-  const paths = [...new Set(records.map((record) => record.screenshotPath))]
+  const paths = Arr.dedupe(records.map((record) => record.screenshotPath))
   return Effect.forEach(paths, readImage).pipe(
     Effect.map((entries) => bakeoffReport(records, { ...options, images: new Map(entries) })),
   )

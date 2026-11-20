@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Effect } from 'effect'
+import { Effect, Schema } from 'effect'
 import { bakeoffReport, bakeoffReportFromFiles, ScreenshotReadError, type BakeoffRecord } from './report.ts'
 
 const base = (overrides: Partial<BakeoffRecord>): BakeoffRecord => ({
@@ -130,7 +130,7 @@ test('bakeoffReportFromFiles fails with a tagged error naming a screenshot it ca
   try {
     const missingPath = join(dir, 'absent.png')
     const error = await Effect.runPromise(Effect.flip(bakeoffReportFromFiles([base({ screenshotPath: missingPath })])))
-    assert.ok(error instanceof ScreenshotReadError)
+    assert.ok(Schema.is(ScreenshotReadError)(error))
     assert.equal(error._tag, 'ScreenshotReadError')
     assert.equal(error.path, missingPath)
   } finally {
