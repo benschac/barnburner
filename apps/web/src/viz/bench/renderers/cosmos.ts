@@ -1,4 +1,5 @@
 import { Graph } from '@cosmos.gl/graph'
+import { callbackPromise } from '../../../use-callback-promise.ts'
 import type { BenchData, BenchHandle, BenchRenderer, VizTheme } from '@nhl-reddit-stats/viz'
 
 const MIN_SIZE = 3
@@ -46,7 +47,7 @@ const buildLinks = (data: BenchData, index: ReadonlyMap<number, number>, rgb: Rg
   return { pairs: pairs.subarray(0, n * 2), colors: colors.subarray(0, n * 4) }
 }
 
-const nextFrame = (): Promise<void> => new Promise((resolve) => requestAnimationFrame(() => resolve()))
+const nextFrame = (): Promise<void> => callbackPromise((resolve) => { requestAnimationFrame(() => { resolve() }) })
 
 const mount: BenchRenderer['mount'] = async (root: HTMLElement, data: BenchData, theme: VizTheme): Promise<BenchHandle> => {
   const div = document.createElement('div')
@@ -78,7 +79,7 @@ const mount: BenchRenderer['mount'] = async (root: HTMLElement, data: BenchData,
 
     // Resolved by cosmos.gl's `onSimulationEnd` callback (see config.d.ts).
     let ended: () => void = () => {}
-    const simulationEnded = new Promise<void>((resolve) => {
+    const simulationEnded = callbackPromise((resolve) => {
       ended = resolve
     })
     const g = new Graph(div, {
