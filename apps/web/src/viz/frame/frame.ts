@@ -1,11 +1,10 @@
 import { Effect, Match, Option, Predicate, Schema } from 'effect'
 import { Failed, FrameRate, HostMessage, Ready, Rendered } from '@nhl-reddit-stats/viz'
 import type { Dispose, FrameReport, Render, RenderView, ViewContext, VizTheme } from '@nhl-reddit-stats/viz'
-import manifest from '../../../package.json' with { type: 'json' }
 import { cssVariables } from '../theme-css.ts'
 
-// The runtime of the sandboxed visualization frame (plan section C-viz, decision D17). It is the page
-// script of `viz-frame.html`. The host posts `Render` and `Dispose`; the frame posts `Ready`, `Rendered`,
+// The runtime of the sandboxed visualization frame (plan section C-viz, decision D17). This file is the library:
+// `main.ts` is the page script of `viz-frame.html`, and it boots this runtime. The host posts `Render` and `Dispose`; the frame posts `Ready`, `Rendered`,
 // `Failed`, and `FrameRate`. Nothing here is a security boundary: the frame is an iframe with an opaque
 // origin and a CSP (FS3), and model-written code can post any message to the host. The host treats every
 // frame message as untrusted and validates it.
@@ -21,7 +20,7 @@ export class ViewFailed extends Schema.TaggedError<ViewFailed, { readonly brand:
   message: Schema.String,
 }) {}
 
-/** The frame could not start: its libraries did not load, or the page has no root element. */
+/** The frame could not start: the page has no root element. */
 export class FrameBootFailed extends Schema.TaggedError<FrameBootFailed, { readonly brand: unique symbol }>()('FrameBootFailed', {
   message: Schema.String,
   cause: Schema.optional(Schema.Defect()),
@@ -62,7 +61,7 @@ export type FrameDeps = {
   readonly versions: Readonly<Record<string, string>>
   /** Turns the posted code into its module namespace. */
   readonly load: (code: string) => Promise<ModuleNamespace>
-  /** Runs an effect the frame starts from a window event. The page supplies it, so the frame never owns the runtime. */
+  /** Runs an effect the frame starts from a window event. The entry file (`main.ts`) supplies it, so the frame never owns the runtime. */
   readonly run: (effect: Effect.Effect<void>) => void
   /** A millisecond clock on the same timeline as the `requestAnimationFrame` timestamps. */
   readonly now: () => number
@@ -262,34 +261,3 @@ export const createFrame = (deps: FrameDeps) => {
     },
   }
 }
-
-// -- Boot ----------------------------------------------------------------------------------------
-
-/** The libraries a view receives, as pinned in `apps/web/package.json`. */
-const dependencies: Readonly<Record<string, string>> = manifest.dependencies
-const pinned = (name: string): string => Option.getOrElse(Option.fromNullishOr(dependencies[name]), () => 'unknown')
-
-const boot = Effect.gen(function* () {
-  // The libraries load on demand, so a test that imports this file for `createFrame` never touches them.
-  const [G2, G6, d3, THREE] = yield* Effect.tryPromise({
-    try: () => Promise.all([import('@antv/g2'), import('@antv/g6'), import('d3'), import('three')]),
-    catch: (cause) => new FrameBootFailed({ message: 'The libraries could not be loaded.', cause }),
-  })
-  const services = yield* Effect.context<never>()
-  const runFork = Effect.runForkWith(services)
-  const root = document.getElementById('root')
-  if (root === null) return yield* new FrameBootFailed({ message: 'viz-frame.html has no #root element.' })
-  createFrame({
-    win: window,
-    root,
-    variables: document.documentElement.style,
-    libs: { G2, G6, d3, THREE },
-    versions: { g2: pinned('@antv/g2'), g6: pinned('@antv/g6'), d3: pinned('d3'), three: pinned('three') },
-    load: loadModule,
-    now: () => performance.now(),
-    run: (effect) => { runFork(effect) },
-  }).listen()
-})
-
-// A frame that cannot boot never posts `Ready`, so the host's timeout replaces it; the log says why.
-if (typeof document !== 'undefined') Effect.runCallback(boot.pipe(Effect.catchCause((cause) => Effect.logError(cause))))
