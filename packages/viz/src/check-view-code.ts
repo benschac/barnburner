@@ -75,6 +75,28 @@ function ownedForbidden(owner: string, name: string): boolean {
   );
 }
 
+// The index just past a comment or quoted string that starts at i, or undefined when none starts there.
+function literalEnd(source: string, i: number): number | undefined {
+  const ch = source[i];
+  const next = source[i + 1];
+  if (ch === "/" && next === "/") {
+    const end = source.indexOf("\n", i);
+    return end === -1 ? source.length : end;
+  }
+  if (ch === "/" && next === "*") {
+    const end = source.indexOf("*/", i + 2);
+    return end === -1 ? source.length : end + 2;
+  }
+  if (ch === "'" || ch === '"') {
+    let j = i + 1;
+    while (j < source.length && source[j] !== ch && source[j] !== "\n") {
+      j += source[j] === "\\" ? 2 : 1;
+    }
+    return Math.min(j + 1, source.length);
+  }
+  return undefined;
+}
+
 // Blanks comments, string literals and template text, so only code is scanned.
 // Template `${...}` expressions are kept, because they run as code. Line breaks survive, so line numbers stay right.
 function maskCode(source: string): string {
@@ -107,23 +129,8 @@ function maskCode(source: string): string {
       }
       continue;
     }
-    const next = source[i + 1];
-    if (ch === "/" && next === "/") {
-      const end = source.indexOf("\n", i);
-      const stop = end === -1 ? source.length : end;
-      out += blank(source.slice(i, stop));
-      i = stop;
-    } else if (ch === "/" && next === "*") {
-      const end = source.indexOf("*/", i + 2);
-      const stop = end === -1 ? source.length : end + 2;
-      out += blank(source.slice(i, stop));
-      i = stop;
-    } else if (ch === "'" || ch === '"') {
-      let j = i + 1;
-      while (j < source.length && source[j] !== ch && source[j] !== "\n") {
-        j += source[j] === "\\" ? 2 : 1;
-      }
-      const stop = Math.min(j + 1, source.length);
+    const stop = literalEnd(source, i);
+    if (stop !== undefined) {
       out += blank(source.slice(i, stop));
       i = stop;
     } else if (ch === "`") {
