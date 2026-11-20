@@ -5,7 +5,8 @@
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { Effect, Schema } from 'effect'
+import { NodeRuntime } from '@effect/platform-node'
+import { Array as Arr, Effect, Order, Record, Schema } from 'effect'
 import { checkViewCode } from '@nhl-reddit-stats/viz/check-view-code'
 import { ViewData } from '@nhl-reddit-stats/viz'
 import type { Tables } from '@nhl-reddit-stats/viz'
@@ -106,14 +107,15 @@ export const loadSystems = Effect.gen(function* () {
 export const resolveDatasetPaths = (directory: string, ids: ReadonlyArray<string>) =>
   Effect.gen(function* () {
     const names = yield* io(() => readdir(directory))
-    const paths: Record<string, string> = {}
-    for (const id of ids) {
-      const exact = names.filter((name) => name === `${id}.json`)
-      const matches = exact.length === 1 ? exact : names.filter((name) => name.startsWith(`${id}-`) && name.endsWith('.json')).sort()
-      if (matches.length !== 1) return yield* new DatasetFileError({ directory, dataset: id, matches })
-      paths[id] = join(directory, matches[0])
-    }
-    return paths
+    const entries = yield* Effect.forEach(ids, (id) =>
+      Effect.gen(function* () {
+        const exact = names.filter((name) => name === `${id}.json`)
+        const matches = exact.length === 1 ? exact : Arr.sort(names.filter((name) => name.startsWith(`${id}-`) && name.endsWith('.json')), Order.String)
+        if (matches.length !== 1) return yield* new DatasetFileError({ directory, dataset: id, matches })
+        return [id, join(directory, matches[0])] as const
+      }),
+    )
+    return Record.fromEntries(entries)
   })
 
 export const llmModel = (model?: Parameters<typeof generateView>[0]['model']): BakeoffModel => {
@@ -141,40 +143,37 @@ export const runBakeoff = (input: BakeoffInput): Effect.Effect<ReadonlyArray<Bak
       calls += 1
     })
     yield* io(() => mkdir(input.outDir, { recursive: true }))
-    const records: BakeoffOutputRecord[] = []
-    for (const item of input.prompts) {
-      const path = input.datasetPaths[item.id]
-      if (path === undefined) return yield* new BakeoffError({ message: `no dataset path for prompt ${item.id}` })
-      const data = yield* decodeViewData(yield* io(() => readFile(path, 'utf8'))).pipe(
-        Effect.mapError((error) => new BakeoffError({ message: `${path}: ${error.message}` })),
-      )
-      for (const vocabulary of VOCABULARIES) {
+    const attempt = (
+      pair: { readonly system: string; readonly data: ViewData; readonly screenshotPath: string },
+      progress: { readonly current: Generated; readonly tokens: number; readonly repairs: number },
+    ): Effect.Effect<{ readonly current: Generated; readonly tokens: number; readonly repairs: number; readonly result: RenderViewResult }, BakeoffError | BakeoffBudgetError | RenderHarnessError | ModelError> =>
+      Effect.gen(function* () {
+        const { system, data, screenshotPath } = pair
+        const { current, tokens, repairs } = progress
+        const problems = checkViewCode(current.code)
+        let failure: ViewFailure | undefined
+        let result: RenderViewResult
+        if (problems.length > 0) {
+          failure = problems
+          // The candidate never reaches the renderer: its record gets a placeholder image the report can read.
+          yield* io(() => writeFile(screenshotPath, PLACEHOLDER_PNG))
+          result = { outcome: 'Failed', firstPaintMs: 0, medianFps: 0, screenshotPath, failureMessage: describeFailure(problems) }
+        } else {
+          result = yield* input.render({ code: current.code, tables: data.tables, notes: data.notes, screenshotPath })
+          if (result.outcome === 'Failed') failure = result.failureMessage ?? 'The frame reported Failed while rendering the module.'
+        }
+        if (failure === undefined || repairs >= MAX_REPAIRS) return { current, tokens, repairs, result }
+        yield* spend
+        const next = yield* input.model.repair({ code: current.code, failure: describeFailure(failure), system })
+        return yield* attempt(pair, { current: next, tokens: tokens + next.tokens, repairs: repairs + 1 })
+      })
+    const runPair = (item: BakeoffPrompt, data: ViewData, vocabulary: Vocabulary) =>
+      Effect.gen(function* () {
         const system = input.systems[vocabulary]
         const screenshotPath = join(input.outDir, `${item.id}-${vocabulary}.png`)
         yield* spend
-        let current = yield* input.model.generate({ prompt: item.prompt, tables: data.tables, notes: data.notes, system })
-        let tokens = current.tokens
-        let repairs = 0
-        let result: RenderViewResult = { outcome: 'Failed', firstPaintMs: 0, medianFps: 0, screenshotPath: '', failureMessage: null }
-        while (true) {
-          const problems = checkViewCode(current.code)
-          let failure: ViewFailure | undefined
-          if (problems.length > 0) {
-            failure = problems
-            // The candidate never reaches the renderer: its record gets a placeholder image the report can read.
-            yield* io(() => writeFile(screenshotPath, PLACEHOLDER_PNG))
-            result = { outcome: 'Failed', firstPaintMs: 0, medianFps: 0, screenshotPath, failureMessage: describeFailure(problems) }
-          } else {
-            result = yield* input.render({ code: current.code, tables: data.tables, notes: data.notes, screenshotPath })
-            if (result.outcome === 'Failed') failure = typeof result.failureMessage === 'string' ? result.failureMessage : 'The frame reported Failed while rendering the module.'
-          }
-          if (failure === undefined || repairs >= MAX_REPAIRS) break
-          yield* spend
-          const next = yield* input.model.repair({ code: current.code, failure: describeFailure(failure), system })
-          current = next
-          tokens += next.tokens
-          repairs += 1
-        }
+        const first = yield* input.model.generate({ prompt: item.prompt, tables: data.tables, notes: data.notes, system })
+        const { current, tokens, repairs, result } = yield* attempt({ system, data, screenshotPath }, { current: first, tokens: first.tokens, repairs: 0 })
         const record: BakeoffOutputRecord = {
           prompt: item.prompt,
           dataset: item.id,
@@ -190,16 +189,23 @@ export const runBakeoff = (input: BakeoffInput): Effect.Effect<ReadonlyArray<Bak
           failureMessage: result.failureMessage,
         }
         yield* io(() => writeFile(join(input.outDir, `${item.id}-${vocabulary}.json`), toPrettyJson(record) + '\n'))
-        records.push(record)
-      }
-    }
-    return records
+        return record
+      })
+    const runPrompt = (item: BakeoffPrompt) =>
+      Effect.gen(function* () {
+        const path = input.datasetPaths[item.id]
+        if (path === undefined) return yield* new BakeoffError({ message: `no dataset path for prompt ${item.id}` })
+        const text = yield* io(() => readFile(path, 'utf8'))
+        const data = yield* decodeViewData(text).pipe(Effect.mapError((error) => new BakeoffError({ message: `${path}: ${error.message}` })))
+        return yield* Effect.forEach(VOCABULARIES, (vocabulary) => runPair(item, data, vocabulary))
+      })
+    const perPrompt = yield* Effect.forEach(input.prompts, runPrompt)
+    return Arr.flatten(perPrompt)
   })
 
 // One command for the gate: prints the budget and the pair count, and runs only with --yes.
-const main = async () => {
-  const { parseArgs } = await import('node:util')
-  const program = Effect.gen(function* () {
+const program = Effect.gen(function* () {
+    const { parseArgs } = yield* io(() => import('node:util'))
     const { values } = yield* Effect.try({
       try: () =>
         parseArgs({
@@ -216,7 +222,7 @@ const main = async () => {
     const budget = values.budget === undefined ? DEFAULT_CALL_BUDGET : Number(values.budget)
     const prompts = yield* loadPrompts()
     const pairs = prompts.length * VOCABULARIES.length
-    console.log(`call budget: ${budget}; prompt and vocabulary pairs: ${pairs}`)
+    yield* Effect.log(`call budget: ${budget}; prompt and vocabulary pairs: ${pairs}`)
     if (values.yes !== true) return
     if (values['base-url'] === undefined || values.datasets === undefined || !Number.isInteger(budget)) {
       return yield* new BakeoffError({ message: '--base-url, --datasets and an integer --budget are required with --yes' })
@@ -234,9 +240,7 @@ const main = async () => {
       outDir: values.out ?? defaultOutDir,
       callBudget: budget,
     })
-    console.log(`wrote ${records.length} records`)
-  })
-  await Effect.runPromise(program)
-}
+    yield* Effect.log(`wrote ${records.length} records`)
+})
 
-if (import.meta.main) await main()
+if (import.meta.main) NodeRuntime.runMain(program)

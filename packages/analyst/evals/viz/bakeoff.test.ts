@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Effect, Result } from 'effect'
+import { Array as Arr, Effect, Order, Result } from 'effect'
 import { runBakeoff, loadPrompts, resolveDatasetPaths } from './bakeoff.ts'
 import { LlmOutputError } from '../../src/llm.ts'
 import type { BakeoffModel, BakeoffRenderer } from './bakeoff.ts'
@@ -58,7 +58,7 @@ test('writes one record per prompt and vocabulary, summing tokens across repairs
   assert.equal(records[0].outcome, 'Rendered')
   assert.equal(records[1].repairs, 0)
   assert.equal(counter.n, 4)
-  assert.deepEqual((await readdir(join(dir, 'out'))).sort(), ['chain-antv.json', 'chain-antv.png', 'chain-d3.json'])
+  assert.deepEqual(Arr.sort(await readdir(join(dir, 'out')), Order.String), ['chain-antv.json', 'chain-antv.png', 'chain-d3.json'])
 })
 
 test('stops repairing after two and records Failed', async () => {
@@ -172,6 +172,7 @@ test('resolveDatasetPaths: exact, single qualified, and ambiguous or missing', a
   const many = await Effect.runPromise(Effect.result(resolveDatasetPaths(dir, ['league'])))
   assert.ok(Result.isFailure(many))
   assert.equal(many.failure._tag, 'DatasetFileError')
+  // SAFETY: the _tag assertion on the previous line proves failure is a DatasetFileError, which carries matches.
   assert.deepEqual((many.failure as { matches: ReadonlyArray<string> }).matches, ['league-a.json', 'league-b.json'])
   const none = await Effect.runPromise(Effect.result(resolveDatasetPaths(dir, ['finals'])))
   assert.ok(Result.isFailure(none))
