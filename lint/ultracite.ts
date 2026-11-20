@@ -153,8 +153,5 @@ export const webOff: OxlintConfig = {
     "jsx-a11y/prefer-tag-over-role": "off",
     "jsx-a11y/label-has-associated-control": "off",
     "jsx-a11y/control-has-associated-label": "off",
-    // pending, 3 findings: effects that re-run on a value they do not read (Charts.tsx,
-    // VizFrameIsland.tsx, use-boxscore.ts).
-    "react/exhaustive-effect-dependencies": "off",
   },
 };
