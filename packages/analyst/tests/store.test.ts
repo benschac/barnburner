@@ -101,10 +101,7 @@ test("writeCards rejects an invalid card and keeps the existing file", () => {
   const existing = [makeCard("existing")];
   writeCards(dir, "NJD", existing);
   const before = readFileSync(join(dir, "NJD.json"), "utf-8");
-  const invalid = {
-    ...makeCard("bad"),
-    status: "bogus",
-  } as unknown as InsightCard;
+  const invalid = Object.assign(makeCard("bad"), { status: "bogus" });
   const error = failure(writeCards(dir, "NJD", [makeCard("good"), invalid]));
   assert.equal(error._tag, "StoreError");
   assert.match(error.reason, /^invalid cards: /);

@@ -15,7 +15,7 @@ const card = (
   over: Partial<InsightCard["evidence"]> & { assert?: string } = {}
 ): InsightCard => {
   const { assert: a, ...ev } = over;
-  return {
+  const base = {
     id: "x",
     status: "pending",
     team: "NJD",
@@ -23,12 +23,12 @@ const card = (
     headline: "{wins}",
     body: "{wins}",
     bindings: { wins: { column: "wins", row: 0 } },
-    ...(a === undefined ? {} : { assert: a }),
     evidence: { query: Q, result: [{ wins: 1 }], gameIds: [], ...ev },
     asOf: { fetchedAt: "t", completedGameIds: 1 },
     model: "m",
     runId: "r",
-  };
+  } satisfies InsightCard;
+  return a === undefined ? base : { ...base, assert: a };
 };
 const ctx = (touchesBoxscores = false, finals: number[] = [1, 2]) => ({
   touchesBoxscores,
