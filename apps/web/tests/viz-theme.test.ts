@@ -62,11 +62,7 @@ for (const mode of ["light", "dark"] as const) {
     assert.equal(theme.mode, mode);
     for (const field of Record.keys(fieldKeys)) {
       const key = fieldKeys[field];
-      assert.equal(
-        theme[field],
-        contract.themes[mode][key as keyof typeof contract.themes.light],
-        field
-      );
+      assert.equal(theme[field], contract.themes[mode][key], field);
     }
     assert.deepEqual(theme.fonts, {
       body: "Body Family",
@@ -91,7 +87,7 @@ test("series is the fixed order of section C-viz", () => {
 });
 
 test("a missing contract value is a defect, not a silent blank", () => {
-  const { gold: _gold, ...rest } = valuesFor("light") as Record<string, string>;
+  const { gold: _gold, ...rest } = valuesFor("light");
   assert.throws(() => vizTheme(rest, "light"), /defect: .*gold/);
 });
 
@@ -183,9 +179,11 @@ for (const mode of ["light", "dark"] as const) {
     const g6 = g6Theme(theme);
     const muted = [
       ...g2TextFills
+        .values()
         .filter(([path]) => at(g2, path) === theme.muted)
         .map(([path]) => path.join(".")),
       ...g6TextFills
+        .values()
         .filter(([path]) => at(g6, path) === theme.muted)
         .map(([path]) => path.join(".")),
     ];

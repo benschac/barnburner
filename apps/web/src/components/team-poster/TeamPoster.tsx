@@ -25,6 +25,13 @@ import {
 } from "./primitives";
 import { Schedule } from "./Schedule";
 
+const legendInk = {
+  win: "win",
+  loss: "loss",
+  gold: "gold",
+  pending: "pending",
+} as const;
+
 export const TeamPoster = memo(function TeamPoster({
   data,
   onPrefetchTeam,
@@ -292,15 +299,7 @@ export const TeamPoster = memo(function TeamPoster({
                   h="3"
                   rounded="sm"
                   opacity={0.75}
-                  bg={
-                    color === "win"
-                      ? "win"
-                      : color === "loss"
-                        ? "loss"
-                        : color === "gold"
-                          ? "gold"
-                          : "pending"
-                  }
+                  bg={legendInk[color]}
                 />
                 <Copy color="muted" whiteSpace="nowrap">
                   {label}

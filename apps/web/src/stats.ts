@@ -65,9 +65,28 @@ const retrievedDate = new Intl.DateTimeFormat("en-US", {
 export const formatDate = (formatter: Intl.DateTimeFormat, input: string) =>
   DateTime.formatIntl(DateTime.makeUnsafe(input), formatter);
 
-export function ordinal(value: number) {
+function ordinalSuffix(value: number) {
   const lastTwo = value % 100;
-  return `${value}${lastTwo >= 11 && lastTwo <= 13 ? "th" : value % 10 === 1 ? "st" : value % 10 === 2 ? "nd" : value % 10 === 3 ? "rd" : "th"}`;
+  if (lastTwo >= 11 && lastTwo <= 13) {
+    return "th";
+  }
+  switch (value % 10) {
+    case 1: {
+      return "st";
+    }
+    case 2: {
+      return "nd";
+    }
+    case 3: {
+      return "rd";
+    }
+    default: {
+      return "th";
+    }
+  }
+}
+export function ordinal(value: number) {
+  return `${value}${ordinalSuffix(value)}`;
 }
 export function gameDateTime(game: SeasonGame) {
   return `${formatDate(shortDate, game.date)}, ${formatDate(easternTime, game.startTime)} ET`;
