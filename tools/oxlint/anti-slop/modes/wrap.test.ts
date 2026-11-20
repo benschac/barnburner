@@ -7,6 +7,7 @@ import type { Plugin, RuleOptionsSchema } from "@oxlint/plugins";
 import antiSlopEffect from "../effect/index.ts";
 import antiSlop from "../index.ts";
 import antiSlopMartinFowler from "../martinfowler/index.ts";
+import effect from "../plugins/effect.ts";
 import enfect from "../plugins/enfect.ts";
 import landmines from "../plugins/landmines.ts";
 import { schemaWithMode, splitOptions } from "./wrap.ts";
@@ -24,6 +25,7 @@ test("every anti-slop rule and every rule of the wrapped plugins accepts mode in
     antiSlop,
     antiSlopEffect,
     antiSlopMartinFowler,
+    effect,
     enfect,
     landmines,
   };
