@@ -17,7 +17,7 @@ import type {
   SharedGameRow,
   StintRow,
 } from "@nhl-reddit-stats/history";
-import { Array, Effect, Order, Schema, Scope } from "effect";
+import { Array, Effect, Option, Order, Schema, Scope } from "effect";
 import { Reactivity } from "effect/reactivity";
 import { SqlSchema } from "effect/sql";
 import type { SqlClient, SqlError } from "effect/sql";
@@ -167,7 +167,7 @@ const buildHistoryStore = (
   Effect.gen(function* () {
     const meta = (key: string) =>
       metaOf(sql)(key).pipe(
-        Effect.map((row) => (row._tag === "Some" ? row.value.value : null)),
+        Effect.map((row) => Option.getOrNull(Option.map(row, (r) => r.value))),
         served("The history serving file is missing a table.")
       );
     if ((yield* meta("schema_version")) !== SCHEMA_VERSION)
@@ -251,6 +251,7 @@ const buildHistoryStore = (
 
     // Compiling each query once proves its tables and columns exist; SQLite runs none of them.
     const span = { a: 0, b: 0, teamId: 0, seasonId: 0, gameType: 2 } as const;
+    const partnerProbes = hasDressed ? [partnersSql(span)] : [];
     const probes = [
       searchSql({ needle: "", limit: 0 }),
       playerSql({ playerId: 0 }),
@@ -258,7 +259,7 @@ const buildHistoryStore = (
       rosterSql({ teamId: 0, seasonId: 0, gameType: 2 }),
       knownSql({ playerId: 0 }),
       playedWithSql(span),
-      ...(hasDressed ? [partnersSql(span)] : []),
+      ...partnerProbes,
       opposedSql({ a: 0, b: 0 }),
       finalsSql({ fromYear: 0, toYear: 0 }),
       blobInfoSql,
@@ -334,7 +335,7 @@ const buildHistoryStore = (
         const size = sizes.get(name);
         if (size === undefined || size % width !== 0) return yield* invalid();
         const row = yield* blobOf(client)(name).pipe(queried);
-        if (row._tag === "None" || row.value.bytes.byteLength !== size)
+        if (Option.isNone(row) || row.value.bytes.byteLength !== size)
           return yield* invalid();
         return aligned(row.value.bytes);
       });
@@ -375,7 +376,7 @@ const buildHistoryStore = (
       Effect.gen(function* () {
         const own = yield* connect(path);
         const again = yield* metaOf(own)("snapshot_id").pipe(queried);
-        if (again._tag === "None" || again.value.value !== snapshotId)
+        if (Option.isNone(again) || again.value.value !== snapshotId)
           return yield* invalid();
         const u16Own = (name: string) =>
           blob(own, name, 2).pipe(
@@ -430,7 +431,7 @@ const buildHistoryStore = (
       knownQuery({ playerId }).pipe(
         queried,
         Effect.flatMap((row) =>
-          row._tag === "None"
+          Option.isNone(row)
             ? Effect.fail(new UnknownPlayer({ playerId }))
             : Effect.void
         )
@@ -448,8 +449,7 @@ const buildHistoryStore = (
     const player: HistoryStore["player"] = (playerId) =>
       Effect.gen(function* () {
         const found = yield* playerQuery({ playerId }).pipe(queried);
-        if (found._tag === "None")
-          return yield* new UnknownPlayer({ playerId });
+        if (Option.isNone(found)) return yield* new UnknownPlayer({ playerId });
         const stints: readonly StintRow[] = yield* stintsQuery({
           playerId,
         }).pipe(queried);

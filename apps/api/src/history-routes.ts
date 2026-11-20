@@ -17,7 +17,13 @@ import type {
   TeammateGraph,
   UnknownPlayer,
 } from "@nhl-reddit-stats/history";
-import { HistoryRpcs, WirePlayedAgainst } from "@nhl-reddit-stats/history/rpc";
+import {
+  GoaliePartnersLink,
+  HistoryRpcs,
+  NoLink,
+  PlayedWithLink,
+  WirePlayedAgainst,
+} from "@nhl-reddit-stats/history/rpc";
 import type { PathResultSchema, WireHop } from "@nhl-reddit-stats/history/rpc";
 import {
   Array,
@@ -58,24 +64,26 @@ const fromStoreEffect = (
 export class History extends Context.Service<History, HistoryValue>()(
   "glanceboard/History"
 ) {
+  static readonly make = fromStoreEffect;
+
   /** Opens the serving file on first use and reuses the result, success or failure, for the process lifetime. */
-  static layer = (path: string | undefined) =>
+  static readonly layer = (path: string | undefined) =>
     Layer.effect(
-      History,
-      path === undefined || path === ""
-        ? fromStoreEffect(
-            Effect.fail(
+      this,
+      this.make(
+        path === undefined || path === ""
+          ? Effect.fail(
               new HistoryUnavailable({
                 message: "No history serving file is configured.",
               })
             )
-          )
-        : fromStoreEffect(openScopedHistoryStore(path))
+          : openScopedHistoryStore(path)
+      )
     );
 
   /** Serves an already-open store (tests use the in-memory fake). */
-  static fromStore = (store: HistoryStore) =>
-    Layer.effect(History, fromStoreEffect(Effect.succeed(store)));
+  static readonly fromStore = (store: HistoryStore) =>
+    Layer.effect(this, this.make(Effect.succeed(store)));
 }
 
 const summary = ({
@@ -191,15 +199,18 @@ const handlers = HistoryRpcs.toLayer(
               Result.isFailure(found) ||
               found.success.evidenceGameId === null
             ) {
-              return { ...row, link: { _tag: "NoLink" as const } };
+              return { ...row, link: NoLink.make({}) };
             }
+            const evidence = {
+              games: found.success.totalGames,
+              evidenceGameId: found.success.evidenceGameId,
+            };
             return {
               ...row,
-              link: {
-                _tag: kind,
-                games: found.success.totalGames,
-                evidenceGameId: found.success.evidenceGameId,
-              },
+              link:
+                kind === "PlayedWith"
+                  ? PlayedWithLink.make(evidence)
+                  : GoaliePartnersLink.make(evidence),
             };
           });
           return {

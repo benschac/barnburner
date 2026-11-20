@@ -229,6 +229,8 @@ test(
           yield* Deferred.await(started);
           yield* Fiber.interrupt(request);
           yield* Deferred.await(interrupted);
+          const done = yield* Deferred.isDone(interrupted);
+          assert.equal(done, true);
         }).pipe(Effect.provide(apiLayer({ ...snapshots, load })));
       }).pipe(Effect.scoped, Effect.timeout("5 seconds"))
     );

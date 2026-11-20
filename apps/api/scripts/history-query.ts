@@ -20,7 +20,16 @@ import type {
   HistoryUnavailable,
 } from "@nhl-reddit-stats/history";
 import type { WireHop } from "@nhl-reddit-stats/history/rpc";
-import { Config, Console, Effect, Option, Result, Schema } from "effect";
+import {
+  Config,
+  Console,
+  Effect,
+  Match,
+  Option,
+  Predicate,
+  Result,
+  Schema,
+} from "effect";
 import { Argument, CliError, Command, Flag } from "effect/cli";
 
 import { fillOpponentHops } from "../src/history-routes.ts";
@@ -124,6 +133,11 @@ type Detail = {
   readonly stints: readonly StintRow[];
 };
 
+type SharedHop = Extract<
+  WireHop,
+  { readonly _tag: "PlayedWith" | "GoaliePartners" }
+>;
+
 type Names = {
   readonly name: (id: number) => Effect.Effect<string, HistoryUnavailable>;
   readonly team: (
@@ -167,20 +181,24 @@ const makeNames = (store: HistoryStore): Names => {
           readonly gameDate: string;
         }[]
       ) => rows.find((g) => g.gameId === hop.gameId)?.gameDate ?? "?";
-      const found =
-        hop._tag === "PlayedAgainst"
-          ? Effect.map(store.opposedGames(hop.from, hop.to), pick)
-          : Effect.map(
-              store.sharedGames(
-                hop.from,
-                hop.to,
-                hop.seasonId,
-                hop.gameType,
-                hop.teamId,
-                hop._tag
-              ),
-              pick
-            );
+      const shared = (h: SharedHop) =>
+        Effect.map(
+          store.sharedGames(
+            h.from,
+            h.to,
+            h.seasonId,
+            h.gameType,
+            h.teamId,
+            h._tag
+          ),
+          pick
+        );
+      const found = Match.valueTags(hop, {
+        PlayedAgainst: (h) =>
+          Effect.map(store.opposedGames(h.from, h.to), pick),
+        PlayedWith: shared,
+        GoaliePartners: shared,
+      });
       return found.pipe(
         Effect.catchTag("UnknownPlayer", () => Effect.succeed("?"))
       );
@@ -194,19 +212,33 @@ const hopLine = (names: Names, hop: WireHop) =>
     const to = yield* names.name(hop.to);
     const date = yield* names.date(hop);
     const plural = hop.games === 1 ? "game" : "games";
-    if (hop._tag === "PlayedAgainst") {
-      return `${from} → ${to}: ${hop.games} ${plural} against, first game ${hop.gameId} (${date})`;
-    }
-    const team = yield* names.team(hop.from, hop.teamId);
-    const kind = hop._tag === "GoaliePartners" ? ", goalie partners" : "";
-    return `${from} → ${to}: ${hop.games} ${plural}, ${team} ${seasonLabel(hop.seasonId)} ${competitionLabel(hop.gameType)}${kind}, game ${hop.gameId} (${date})`;
+    const shared = (h: SharedHop, kind: string) =>
+      Effect.map(
+        names.team(h.from, h.teamId),
+        (team) =>
+          `${from} → ${to}: ${h.games} ${plural}, ${team} ${seasonLabel(h.seasonId)} ${competitionLabel(h.gameType)}${kind}, game ${h.gameId} (${date})`
+      );
+    return yield* Match.valueTags(hop, {
+      PlayedAgainst: (h) =>
+        Effect.succeed(
+          `${from} → ${to}: ${h.games} ${plural} against, first game ${h.gameId} (${date})`
+        ),
+      PlayedWith: (h) => shared(h, ""),
+      GoaliePartners: (h) => shared(h, ", goalie partners"),
+    });
   });
 
 const finalsLine = (names: Names, year: FinalsYear) =>
   Effect.gen(function* () {
-    if (year._tag === "Miss") return `${year.year}: no teammate in the Final`;
-    const who = yield* names.name(year.playerId);
-    return `${year.year}: ${who} (Final game ${year.finalGameId}, shared game ${year.sharedGameId})`;
+    return yield* Match.valueTags(year, {
+      Miss: (miss) => Effect.succeed(`${miss.year}: no teammate in the Final`),
+      Hit: (hit) =>
+        Effect.map(
+          names.name(hit.playerId),
+          (who) =>
+            `${hit.year}: ${who} (Final game ${hit.finalGameId}, shared game ${hit.sharedGameId})`
+        ),
+    });
   });
 
 const print = (lines: readonly string[]) => Console.log(lines.join("\n"));
@@ -329,7 +361,7 @@ const pathCommand = Command.make(
         Math.min(Math.max(config.limit, 1), 10)
       );
       if (Result.isFailure(found)) {
-        if (found.failure._tag === "NoPath")
+        if (Predicate.isTagged(found.failure, "NoPath"))
           return yield* new NoChain({ from: a.name, to: b.name });
         return yield* found.failure;
       }
