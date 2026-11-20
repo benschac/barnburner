@@ -1,11 +1,14 @@
-import { Effect, Result } from "effect";
+import { Effect, Predicate, Result, Schema } from "effect";
 
-import { parseJson } from "./json.ts";
 import { VIEWS } from "./shapes.ts";
 import type { Db, Guard, GuardResult } from "./shapes.ts";
 
-type Json = unknown;
-type Obj = Record<string, Json>;
+type Json = Schema.Json;
+type Obj = Schema.JsonObject;
+
+const decodeTree = Schema.decodeUnknownResult(
+  Schema.fromJsonString(Schema.Json)
+);
 
 const BOXSCORE_TABLES = new Set(["skater_games", "goalie_games"]);
 const ALLOWED_TABLES = new Set<string>(Object.keys(VIEWS));
@@ -19,8 +22,9 @@ const SAFE_REF_TYPES = new Set([
   "EXPRESSION_LIST",
 ]);
 
-const isObj = (value: Json): value is Obj =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
+const isObj = (value: Json): value is Obj => Predicate.isObject(value);
+const isArr = (value: Json | undefined): value is Schema.JsonArray =>
+  Array.isArray(value);
 
 const fail = (reason: string): GuardResult => ({ ok: false, reason });
 
@@ -40,14 +44,14 @@ function scopeOf(
   state: Scan
 ): ReadonlySet<string> {
   let visible = scope;
-  if (node.type === "RECURSIVE_CTE_NODE" && typeof node.cte_name === "string") {
+  if (node.type === "RECURSIVE_CTE_NODE" && Predicate.isString(node.cte_name)) {
     visible = new Set([...visible, node.cte_name.toLowerCase()]);
   }
   const map = isObj(node.cte_map) ? node.cte_map.map : undefined;
-  if (Array.isArray(map) && map.length > 0) {
+  if (isArr(map) && map.length > 0) {
     const inner = new Set(visible);
     for (const entry of map) {
-      if (!isObj(entry) || typeof entry.key !== "string") continue;
+      if (!isObj(entry) || !Predicate.isString(entry.key)) continue;
       scan(entry.value, inner, state);
       inner.add(entry.key.toLowerCase());
     }
@@ -58,7 +62,7 @@ function scopeOf(
 
 function scan(node: Json, scope: ReadonlySet<string>, state: Scan): void {
   if (state.reason !== null) return;
-  if (Array.isArray(node)) {
+  if (isArr(node)) {
     node.forEach((child) => {
       scan(child, scope, state);
     });
@@ -70,16 +74,15 @@ function scan(node: Json, scope: ReadonlySet<string>, state: Scan): void {
 
   // A table reference carries both `alias` and `sample`; every one must be a known-safe kind.
   // foreign: node is DuckDB's serialized SQL tree, which has no tag for table references
-  if ("sample" in node && "alias" in node && typeof node.type === "string") {
+  if ("sample" in node && "alias" in node && Predicate.isString(node.type)) {
     if (!SAFE_REF_TYPES.has(node.type)) {
       state.reason = `source not allowed: ${node.type}`;
       return;
     }
     if (node.type === "BASE_TABLE") {
-      const name =
-        typeof node.table_name === "string"
-          ? node.table_name.toLowerCase()
-          : "";
+      const name = Predicate.isString(node.table_name)
+        ? node.table_name.toLowerCase()
+        : "";
       if (node.schema_name || node.catalog_name || node.at_clause) {
         state.reason = `qualified table not allowed: ${name}`;
         return;
@@ -101,20 +104,20 @@ export const guardQuery: Guard = (db: Db, sql: string) =>
   db.query(`SELECT json_serialize_sql('${sqlLiteral(sql)}') AS tree`).pipe(
     Effect.map((result): GuardResult => {
       const raw = result.rows[0]?.tree;
-      if (typeof raw !== "string") return fail("parser returned no result");
-      const parsed = parseJson(raw);
+      if (!Predicate.isString(raw)) return fail("parser returned no result");
+      const parsed = decodeTree(raw);
       if (Result.isFailure(parsed)) return fail("parser returned invalid JSON");
       const tree: Json = parsed.success;
       if (!isObj(tree)) return fail("parser returned an unexpected shape");
       if (tree.error === true) {
         return fail(
-          typeof tree.error_message === "string"
+          Predicate.isString(tree.error_message)
             ? tree.error_message
             : "not a single SELECT statement"
         );
       }
       const statements = tree.statements;
-      if (!Array.isArray(statements) || statements.length !== 1)
+      if (!isArr(statements) || statements.length !== 1)
         return fail("exactly one SELECT statement is required");
       const state: Scan = { reason: null, touchesBoxscores: false };
       scan(statements[0], new Set<string>(), state);

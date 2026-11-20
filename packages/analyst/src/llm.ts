@@ -6,7 +6,7 @@ import type {
   StopCondition,
   ToolSet,
 } from "ai";
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, Effect, Layer, Match, Predicate, Schema } from "effect";
 
 export class LlmError extends Schema.TaggedError<
   LlmError,
@@ -84,8 +84,11 @@ export type LlmService = {
   readonly run: (input: LlmRunInput) => Effect.Effect<LlmRunResult, LlmError>;
 };
 
-const modelLabel = (model: LanguageModel) =>
-  typeof model === "string" ? model : `${model.provider}/${model.modelId}`;
+export const modelLabel = (model: LanguageModel): string =>
+  Match.value(model).pipe(
+    Match.when(Match.string, (id) => id),
+    Match.orElse((resolved) => `${resolved.provider}/${resolved.modelId}`)
+  );
 
 export const makeLlm = (
   config: LlmConfig = llmConfigFromEnv()
@@ -113,13 +116,18 @@ export const makeLlm = (
       },
       catch: (cause) =>
         NoObjectGeneratedError.isInstance(cause)
-          ? new LlmOutputError({
-              message: cause.message,
-              model: modelLabel(model),
-              ...(cause.text === undefined ? {} : { raw: cause.text }),
-            })
+          ? cause.text === undefined
+            ? new LlmOutputError({
+                message: cause.message,
+                model: modelLabel(model),
+              })
+            : new LlmOutputError({
+                message: cause.message,
+                model: modelLabel(model),
+                raw: cause.text,
+              })
           : new LlmError({
-              message: cause instanceof Error ? cause.message : String(cause),
+              message: Predicate.isError(cause) ? cause.message : String(cause),
               model: modelLabel(model),
             }),
     });
@@ -145,7 +153,7 @@ export const makeLlm = (
       },
       catch: (cause) =>
         new LlmError({
-          message: cause instanceof Error ? cause.message : String(cause),
+          message: Predicate.isError(cause) ? cause.message : String(cause),
           model: modelLabel(model),
         }),
     });
@@ -153,7 +161,9 @@ export const makeLlm = (
 });
 
 export class Llm extends Context.Service<Llm, LlmService>()("analyst/Llm") {
-  static layer = (config?: LlmConfig) =>
-    Layer.succeed(Llm, Llm.of(makeLlm(config)));
+  static readonly make = (config?: LlmConfig) =>
+    Effect.sync(() => Llm.of(makeLlm(config)));
+  static readonly layer = (config?: LlmConfig) =>
+    Layer.effect(Llm, Llm.make(config));
   static run = (input: LlmRunInput) => Llm.use((llm) => llm.run(input));
 }

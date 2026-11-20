@@ -22,7 +22,7 @@ export const verifyStatic = (
   Effect.gen(function* () {
     // 1. Decodes as an InsightCard.
     const decoded = Schema.decodeUnknownResult(InsightCard)(input);
-    if (decoded._tag === "Failure") return fail(1, String(decoded.failure));
+    if (Result.isFailure(decoded)) return fail(1, String(decoded.failure));
     const card = decoded.success;
 
     // 2. Guard passes for query, gamesQuery and assert.

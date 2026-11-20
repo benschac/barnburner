@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { Result } from "effect";
+import { Predicate, Result } from "effect";
 
 import { logError } from "../../../lib/logger.mjs";
 import { defaultTraceDir, parseTraceLine } from "../src/trace.ts";
@@ -146,7 +146,7 @@ export function formatSummary(runId: string, summary: RunSummary): string {
   return lines.join("\n");
 }
 
-function parseArgs(argv: readonly string[]): { runId: string; dir: string } {
+function parseArgs(argv: readonly string[]) {
   let runId: string | undefined;
   let dir = defaultTraceDir();
   for (let i = 0; i < argv.length; i++) {
@@ -200,7 +200,7 @@ if (
   try {
     main(process.argv.slice(2));
   } catch (error) {
-    logError(error instanceof Error ? error.message : String(error));
+    logError(Predicate.isError(error) ? error.message : String(error));
     process.exitCode = 1;
   }
 }
