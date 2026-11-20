@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Order, Schema } from 'effect'
+import { Effect, Order, Schema } from 'effect'
 import {
-  ChainTables, EgoLinkRow, EgoTables, FinalsTables, FinalsRow, FrameMessage, FrameReport, HostMessage, LeagueLinkRow, LeagueTables, OpponentsTables, PairSummaryRow, PairTables, Row, Tables,
+  benchMountError, ChainTables, EgoLinkRow, EgoTables, FinalsTables, FinalsRow, FrameMessage, FrameReport, HostMessage, LeagueLinkRow, LeagueTables, OpponentsTables, PairSummaryRow, PairTables, Row, Tables,
   ViewData, VizTheme,
 } from '../src/contracts.ts'
 import type { BenchRenderer, LabEntry, Tables as TablesType, ViewModule } from '../src/contracts.ts'
@@ -75,7 +75,7 @@ test('the view, lab, and bench types accept the shapes the plan gives them', () 
   const entry: LabEntry<string> = { title: 'hello', render: () => 'hello' }
   const renderer: BenchRenderer = {
     name: 'none',
-    mount: () => Promise.resolve({ pan: () => {}, zoom: () => {}, destroy: () => {} }),
+    mount: () => Effect.succeed({ pan: () => {}, zoom: () => {}, destroy: () => {} }),
   }
   assert.equal(typeof view.default, 'function')
   assert.equal(entry.render(), 'hello')
@@ -86,6 +86,15 @@ test('the view, lab, and bench types accept the shapes the plan gives them', () 
   // The league and ego samples feed a bench renderer directly.
   const data = { nodes: leagueSample.tables.players, links: leagueSample.tables.links }
   assert.equal(data.nodes.length, 10)
+})
+
+test('a failure from a renderer library becomes a BenchMountError that keeps it as the cause', () => {
+  const boom = new Error('boom')
+  const wrapped = benchMountError(boom)
+  assert.equal(wrapped._tag, 'BenchMountError')
+  assert.equal(wrapped.message, 'boom')
+  assert.equal(wrapped.cause, boom)
+  assert.equal(benchMountError('plain').message, 'plain')
 })
 
 test('each sample decodes, and its notes name every table', () => {

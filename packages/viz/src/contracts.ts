@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Effect, Predicate, Schema } from 'effect'
 
 // The shapes every frontend lane works from (plan section C-viz). No DOM code: the DOM-facing types
 // below only name `HTMLElement`, which TypeScript supplies. Player IDs, never indexes, appear in rows.
@@ -323,8 +323,21 @@ export type BenchHandle = {
   destroy(): void
 }
 
-/** The default export of a file in `apps/web/src/viz/bench/renderers`. */
+/** A renderer could not mount. `message` is shown on the bench page; `cause` is the foreign failure, when there is one. */
+export class BenchMountError extends Schema.TaggedError<BenchMountError, { readonly brand: unique symbol }>()('BenchMountError', {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Defect()),
+}) {}
+
+/** Turns a failure thrown or rejected by a renderer's library into a `BenchMountError` that keeps it as the cause. */
+export const benchMountError = (cause: unknown): BenchMountError =>
+  new BenchMountError({ message: Predicate.isError(cause) ? cause.message : String(cause), cause })
+
+/**
+ * The default export of a file in `apps/web/src/viz/bench/renderers`. `mount` succeeds only once the
+ * renderer's layout has settled, so the time it takes is the settle time.
+ */
 export type BenchRenderer = {
   readonly name: string
-  mount(root: HTMLElement, data: BenchData, theme: VizTheme): Promise<BenchHandle>
+  mount(root: HTMLElement, data: BenchData, theme: VizTheme): Effect.Effect<BenchHandle, BenchMountError>
 }
