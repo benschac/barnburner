@@ -55,7 +55,7 @@ const withDb = <A>(
   );
 const open = () => Effect.runPromise(Effect.scoped(openDb({ dataDir })));
 
-const mutate = (card: InsightCard, over: Record<string, unknown>): unknown => ({
+const mutate = <Over extends object>(card: InsightCard, over: Over) => ({
   ...card,
   ...over,
 });

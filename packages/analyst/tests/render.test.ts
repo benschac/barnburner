@@ -16,12 +16,12 @@ const rows: Row[] = [
   { team: "Toronto", goals: 2, win: false, note: "pp2" },
 ];
 
-const bindings: Record<string, Binding> = {
+const bindings = {
   team: { column: "team", row: 0 },
   goals: { column: "goals", row: 0 },
   opp: { column: "team", row: 1 },
   p2: { column: "goals", row: 1 },
-};
+} satisfies Record<string, Binding>;
 
 function failure<A, E>(result: Result.Result<A, E>): E {
   assert.ok(Result.isFailure(result));

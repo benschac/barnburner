@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { DuckDBInstance } from "@duckdb/node-api";
+import { Predicate } from "effect";
 
 import { logInfo } from "../../../lib/logger.mjs";
 
@@ -12,7 +13,7 @@ const errorOf = async (run: () => Promise<unknown>): Promise<string> => {
   try {
     await run();
   } catch (error) {
-    return error instanceof Error ? error.message : String(error);
+    return Predicate.isError(error) ? error.message : String(error);
   }
   throw new Error("expected the statement to fail");
 };
