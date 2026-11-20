@@ -33,14 +33,14 @@ export const buildPrompt = ({
   coverage,
   posterFacts,
 }: PromptInput): string => {
-  const values: Record<string, string> = {
-    team,
-    schemas: renderSchemas(views),
-    coverage: renderCoverage(team, coverage),
-    poster_facts: renderFacts(posterFacts),
-  };
+  const values = new Map([
+    ["team", team],
+    ["schemas", renderSchemas(views)],
+    ["coverage", renderCoverage(team, coverage)],
+    ["poster_facts", renderFacts(posterFacts)],
+  ]);
   return template.replaceAll(/\{\{(\w+)\}\}/g, (token, key: string) => {
-    const value = values[key];
+    const value = values.get(key);
     if (value === undefined) {
       // defect: generate.md ships with this package; an unknown token is a programming error
       throw new Error(`generate.md has an unknown token ${token}`);

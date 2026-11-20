@@ -8,8 +8,16 @@ import {
   StatementType,
 } from "@duckdb/node-api";
 import type { DuckDBResultReader } from "@duckdb/node-api";
-import { Array, Clock, Effect, Order, Result, Semaphore } from "effect";
-import type { Scope } from "effect";
+import {
+  Array,
+  Clock,
+  Effect,
+  Order,
+  Predicate,
+  Result,
+  Semaphore,
+} from "effect";
+import type { Schema, Scope } from "effect";
 
 import { toJson } from "./json.ts";
 import { DbError, SqlError } from "./shapes.ts";
@@ -34,16 +42,19 @@ const NUMERIC = new Set<number>([
 ]);
 
 // Converts one JSON value by column type. Numbers that cannot survive JSON (NaN, Infinity) become null.
-export const convertValue = (typeId: number, value: unknown): Row[string] => {
+export const convertValue = (
+  typeId: number,
+  value: Schema.Json | undefined
+): Row[string] => {
   if (value === null || value === undefined) return null;
   if (NUMERIC.has(typeId)) {
-    const n = typeof value === "number" ? value : Number(value);
+    const n = Predicate.isNumber(value) ? value : Number(value);
     return Number.isFinite(n) ? n : null;
   }
   if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
+    Predicate.isString(value) ||
+    Predicate.isNumber(value) ||
+    Predicate.isBoolean(value)
   )
     return value;
   return toJson(value);
@@ -51,10 +62,10 @@ export const convertValue = (typeId: number, value: unknown): Row[string] => {
 
 export const convertRows = (
   reader: DuckDBResultReader,
-  json: Record<string, unknown>[]
+  json: Record<string, Schema.Json>[]
 ): Row[] => {
   const names = reader.deduplicatedColumnNames();
-  const ids = reader.columnTypes().map((type) => type.typeId as number);
+  const ids = reader.columnTypes().map((type) => type.typeId);
   return json.map((raw) => {
     const row: Row = {};
     names.forEach((name, index) => {
@@ -68,12 +79,12 @@ export const convertRows = (
 const readJsonRows = (
   reader: DuckDBResultReader,
   limit: number
-): Record<string, unknown>[] => {
+): Record<string, Schema.Json>[] => {
   const names = reader.deduplicatedColumnNames();
   const types = reader.columnTypes();
-  const out: Record<string, unknown>[] = [];
+  const out: Record<string, Schema.Json>[] = [];
   for (let r = 0; r < limit; r++) {
-    const raw: Record<string, unknown> = {};
+    const raw: Record<string, Schema.Json> = {};
     names.forEach((name, c) => {
       const type = types[c];
       // defect: columnTypes has one entry per column name
@@ -121,7 +132,7 @@ export const openDb = (
         try: () => connection.run(sql),
         catch: (error) =>
           new DbError({
-            message: `${label}: ${error instanceof Error ? error.message : String(error)}`,
+            message: `${label}: ${Predicate.isError(error) ? error.message : String(error)}`,
           }),
       });
 
@@ -206,7 +217,7 @@ export const openDb = (
               return fail(
                 timeout.timedOut
                   ? timeout.message
-                  : error instanceof Error
+                  : Predicate.isError(error)
                     ? error.message
                     : String(error)
               );
@@ -216,11 +227,14 @@ export const openDb = (
             }
           })();
           void pending.then((result) => Effect.succeed(result)).then(resume);
-          return Effect.promise(async () => {
-            cancel();
-            await pending;
-            signal.removeEventListener("abort", cancel);
-          });
+          return Effect.tryPromise({
+            try: async () => {
+              cancel();
+              await pending;
+              signal.removeEventListener("abort", cancel);
+            },
+            catch: (cause) => new DbError({ message: String(cause) }),
+          }).pipe(Effect.ignore);
         }
       );
 

@@ -5,7 +5,7 @@ import type { LanguageModel, LanguageModelUsage } from "ai";
 import { Array, Effect, Match, Schema } from "effect";
 
 import { toJson } from "../json.ts";
-import { Llm } from "../llm.ts";
+import { Llm, modelLabel } from "../llm.ts";
 import type { LlmError, LlmOutputError } from "../llm.ts";
 
 export class ViewCodeError extends Schema.TaggedError<
@@ -85,19 +85,16 @@ const describeProblem = (problem: ViewCodeProblem): string =>
   });
 
 export const describeFailure = (failure: ViewFailure): string =>
-  typeof failure === "string"
-    ? failure
-    : failure.map(describeProblem).join("\n");
+  Match.value(failure).pipe(
+    Match.when(Match.string, (message) => message),
+    Match.orElse((problems) => problems.map(describeProblem).join("\n"))
+  );
 
 const modelName = (
   llm: { readonly config: { readonly generateModel: string } },
   model: LanguageModel | undefined
 ): string =>
-  model === undefined
-    ? llm.config.generateModel
-    : typeof model === "string"
-      ? model
-      : `${model.provider}/${model.modelId}`;
+  model === undefined ? llm.config.generateModel : modelLabel(model);
 
 type GenerateErrors = LlmError | LlmOutputError;
 
@@ -114,7 +111,7 @@ export const generateView = (
         tables: describeTables(input.tables),
         notes: input.notes,
       }),
-      ...(input.model === undefined ? {} : { model: input.model }),
+      model: input.model,
     });
     return {
       title: result.object.title,
@@ -137,7 +134,7 @@ export const repairView = (
         failure: describeFailure(input.failure),
         code: input.code,
       }),
-      ...(input.model === undefined ? {} : { model: input.model }),
+      model: input.model,
     });
     return {
       title: result.object.title,
@@ -175,7 +172,7 @@ export const generateChecked = (
         code: current.code,
         failure: problems,
         system: input.system,
-        ...(input.model === undefined ? {} : { model: input.model }),
+        model: input.model,
       });
       current = { ...next, usage: addUsage(current.usage, next.usage) };
       problems = checkViewCode(current.code);

@@ -27,16 +27,10 @@ export class StoreError extends Schema.TaggedError<
   }
 }
 
-const decodeCards = (
-  file: string,
-  team: string,
-  input: unknown
-): Result.Result<readonly InsightCard[], StoreError> =>
-  Result.mapError(
-    Schema.decodeUnknownResult(CardList)(input),
-    (error) =>
-      new StoreError({ file, team, reason: `invalid cards: ${String(error)}` })
-  );
+const invalidCards =
+  (file: string, team: string) =>
+  (error: Schema.SchemaError): StoreError =>
+    new StoreError({ file, team, reason: `invalid cards: ${String(error)}` });
 
 // A missing file reads as []. An invalid file, or a card filed under another team, fails with StoreError.
 export const readCards = (
@@ -51,7 +45,10 @@ export const readCards = (
     (error) => new StoreError({ file, team, reason: error.message })
   );
   if (Result.isFailure(json)) return Result.fail(json.failure);
-  const cards = decodeCards(file, team, json.success);
+  const cards = Result.mapError(
+    Schema.decodeUnknownResult(CardList)(json.success),
+    invalidCards(file, team)
+  );
   if (Result.isFailure(cards)) return cards;
   const stray = cards.success.find((card) => card.team !== team);
   if (stray !== undefined)
@@ -72,7 +69,10 @@ export const writeCards = (
 ): Result.Result<void, StoreError> => {
   const file = cardsPath(dir, team);
   // Validate everything before touching the file, so a bad write leaves existing contents unchanged.
-  const valid = decodeCards(file, team, cards);
+  const valid = Result.mapError(
+    Schema.decodeResult(CardList)(cards),
+    invalidCards(file, team)
+  );
   if (Result.isFailure(valid)) return Result.fail(valid.failure);
   const stray = valid.success.find((card) => card.team !== team);
   if (stray !== undefined)
