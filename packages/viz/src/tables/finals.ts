@@ -1,12 +1,12 @@
 // Stanley Cup Finals coverage for one player (FT6): one row per Final year, plus the teammates who matched.
 
-import { finalsCoverage } from "@nhl-reddit-stats/history";
 import type {
-  HistoryStore,
   HistoryUnavailable,
-  TeammateGraph,
   UnknownPlayer,
-} from "@nhl-reddit-stats/history";
+} from "@nhl-reddit-stats/history/contracts";
+import { finalsCoverage } from "@nhl-reddit-stats/history/finals";
+import type { TeammateGraph } from "@nhl-reddit-stats/history/graph";
+import type { HistoryStore } from "@nhl-reddit-stats/history/store";
 import { Array, Effect, Match } from "effect";
 
 import type { FinalsRow, FinalsTables, PlayerRow } from "../contracts.ts";

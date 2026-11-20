@@ -9,8 +9,8 @@ import {
   HistoryUnavailable,
   UnknownPlayer,
   UnknownRoster,
-} from "@nhl-reddit-stats/history";
-import type { GraphArrays } from "@nhl-reddit-stats/history";
+} from "@nhl-reddit-stats/history/contracts";
+import type { GraphArrays } from "@nhl-reddit-stats/history/shapes";
 import { Effect, Exit, Schema, Scope } from "effect";
 
 import {

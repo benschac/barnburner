@@ -1,19 +1,14 @@
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
-import {
-  DEFAULT_FILTER,
-  farthest,
-  finalsCoverage,
-  findPaths,
-  link,
-  makeGraph,
-} from "@nhl-reddit-stats/history";
-import type {
-  Filter,
-  HistoryStore,
-  TeammateGraph,
-} from "@nhl-reddit-stats/history";
+import { farthest } from "@nhl-reddit-stats/history/farthest";
+import { finalsCoverage } from "@nhl-reddit-stats/history/finals";
+import type { TeammateGraph } from "@nhl-reddit-stats/history/graph";
+import { link, makeGraph } from "@nhl-reddit-stats/history/graph";
+import { findPaths } from "@nhl-reddit-stats/history/paths";
+import type { Filter } from "@nhl-reddit-stats/history/shapes";
+import { DEFAULT_FILTER } from "@nhl-reddit-stats/history/shapes";
+import type { HistoryStore } from "@nhl-reddit-stats/history/store";
 import { Array, Effect, Order, Predicate, Result, Schema } from "effect";
 
 import { openHistoryStore } from "../src/history-store.ts";

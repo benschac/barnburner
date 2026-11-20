@@ -9,7 +9,7 @@ import {
   HistoryUnavailable,
   UnknownPlayer,
   UnknownRoster,
-} from "@nhl-reddit-stats/history";
+} from "@nhl-reddit-stats/history/contracts";
 import { HistoryRpcs } from "@nhl-reddit-stats/history/rpc";
 import {
   Array,
