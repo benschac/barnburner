@@ -1,25 +1,28 @@
 import { tool, jsonSchema } from "ai";
-import { Effect, Predicate } from "effect";
+import { Effect, Schema } from "effect";
+
+import { checkWith } from "../json.ts";
 
 export type DeclineDeps = {
   readonly onDecline: (reason: string) => void;
 };
+
+const DeclineInputSchema = Schema.Struct({
+  reason: Schema.String.annotate({
+    message: "reason must be a non-empty string",
+  }).check(
+    Schema.makeFilter(
+      (reason) => reason.trim() !== "" || "reason must be a non-empty string"
+    )
+  ),
+}).annotate({ message: "input must be an object" });
 
 export type DeclineInput = {
   readonly reason: string;
 };
 
 // Runtime check of model-supplied arguments. Wrong types are reported, never coerced.
-export const checkDeclineInput = (
-  raw: unknown
-): { ok: true; input: DeclineInput } | { ok: false; reason: string } => {
-  if (!Predicate.isObject(raw))
-    return { ok: false, reason: "input must be an object" };
-  const { reason } = raw;
-  if (typeof reason !== "string" || reason.trim() === "")
-    return { ok: false, reason: "reason must be a non-empty string" };
-  return { ok: true, input: { reason: reason.trim() } };
-};
+export const checkDeclineInput = checkWith(DeclineInputSchema);
 
 // Returns "ok", or "ERROR: <reason>" when the arguments are invalid.
 export const runDecline = (
@@ -29,10 +32,9 @@ export const runDecline = (
   Effect.sync(() => {
     const checked = checkDeclineInput(raw);
     if (!checked.ok) return `ERROR: ${checked.reason}`;
-    deps.onDecline(checked.input.reason);
+    deps.onDecline(checked.input.reason.trim());
     return "ok";
   });
-
 export const declineTool = (deps: DeclineDeps) =>
   tool({
     description:
@@ -53,7 +55,7 @@ export const declineTool = (deps: DeclineDeps) =>
         validate: (value) => {
           const checked = checkDeclineInput(value);
           return checked.ok
-            ? { success: true, value: checked.input }
+            ? { success: true, value: { reason: checked.input.reason.trim() } }
             : { success: false, error: new Error(checked.reason) };
         },
       }
