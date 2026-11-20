@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:f
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { NodeServices } from '@effect/platform-node'
-import { Console, Effect, Option, Schema } from 'effect'
+import { Config, Console, Effect, Option, Predicate, Schema } from 'effect'
 import { Argument, CliError, Command, Flag } from 'effect/cli'
 import { HistoryUnavailable, makeGraph } from '@nhl-reddit-stats/history'
 import type { HistoryStore, PlayerRow } from '@nhl-reddit-stats/history'
@@ -36,12 +36,13 @@ class WriteFailed extends Schema.TaggedError<WriteFailed, { readonly brand: uniq
 
 const rootFile = (relative: string) => fileURLToPath(new URL(`../../../${relative}`, import.meta.url))
 
-const defaultDb = (): string => {
-  const fromEnv = process.env.HISTORY_DB
-  if (fromEnv !== undefined && fromEnv !== '') return fromEnv
+const defaultDb = Effect.gen(function* () {
+  const fromEnv = yield* Config.String('HISTORY_DB').pipe(Config.option)
+  const configured = Option.filter(fromEnv, (value) => value !== '')
+  if (Option.isSome(configured)) return configured.value
   const candidates = [rootFile('apps/web/history-data/nhl-serve.sqlite'), rootFile('data/history/nhl-serve.sqlite')]
   return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0]
-}
+})
 
 // Ambiguity is judged on every match, so the list names every player the user might mean.
 const ALL_MATCHES = 1_000_000
@@ -92,11 +93,12 @@ const root = Command.make('history-viz-tables').pipe(
 
 const session = Effect.gen(function* () {
   const { db, out } = yield* root
-  const store = yield* openHistoryStore(Option.getOrElse(db, defaultDb))
+  const dbPath = Option.isSome(db) ? db.value : yield* defaultDb
+  const store = yield* openHistoryStore(dbPath)
   return { store, graph: makeGraph(store.graph.arrays), out: Option.getOrElse(out, () => rootFile('data/history/viz')) }
 })
 
-const message = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause))
+const message = (cause: unknown): string => (Predicate.isError(cause) ? cause.message : String(cause))
 
 // Writes to a temporary sibling and renames it into place, so a failed write leaves no partial export.
 const emit = (dir: string, name: string, value: ViewData) => {
@@ -122,32 +124,37 @@ const chainCommand = Command.make('chain', { a: player('a'), b: player('b') }, (
   const { store, graph, out } = yield* session
   const a = yield* resolve(store, config.a)
   const b = yield* resolve(store, config.b)
-  yield* emit(out, `chain-${a.playerId}-${b.playerId}`, yield* chain(graph, store, a.playerId, b.playerId))
+  const view = yield* chain(graph, store, a.playerId, b.playerId)
+  yield* emit(out, `chain-${a.playerId}-${b.playerId}`, view)
 })).pipe(Command.withDescription('Shortest teammate chains from a to b.'))
 
 const pairCommand = Command.make('pair', { a: player('a'), b: player('b') }, (config) => Effect.gen(function* () {
   const { store, graph, out } = yield* session
   const a = yield* resolve(store, config.a)
   const b = yield* resolve(store, config.b)
-  yield* emit(out, `pair-${a.playerId}-${b.playerId}`, yield* pair(graph, store, a.playerId, b.playerId))
+  const view = yield* pair(graph, store, a.playerId, b.playerId)
+  yield* emit(out, `pair-${a.playerId}-${b.playerId}`, view)
 })).pipe(Command.withDescription('How two players are linked.'))
 
 const egoCommand = Command.make('ego', { name: player('name') }, (config) => Effect.gen(function* () {
   const { store, graph, out } = yield* session
   const a = yield* resolve(store, config.name)
-  yield* emit(out, `ego-${a.playerId}`, yield* ego(graph, store, a.playerId))
+  const view = yield* ego(graph, store, a.playerId)
+  yield* emit(out, `ego-${a.playerId}`, view)
 })).pipe(Command.withDescription("A player's teammate neighbourhood."))
 
 const leagueCommand = Command.make('league', {}, () => Effect.gen(function* () {
   const { store, graph, out } = yield* session
-  yield* emit(out, 'league', yield* league(graph, store))
+  const view = yield* league(graph, store)
+  yield* emit(out, 'league', view)
 })).pipe(Command.withDescription('The whole league.'))
 
 const opponentsCommand = Command.make('opponents', { a: player('a'), b: player('b') }, (config) => Effect.gen(function* () {
   const { store, graph, out } = yield* session
   const a = yield* resolve(store, config.a)
   const b = yield* resolve(store, config.b)
-  yield* emit(out, `opponents-${a.playerId}-${b.playerId}`, yield* opponents(graph, store, a.playerId, b.playerId))
+  const view = yield* opponents(graph, store, a.playerId, b.playerId)
+  yield* emit(out, `opponents-${a.playerId}-${b.playerId}`, view)
 })).pipe(Command.withDescription('Most-faced opponents of two players.'))
 
 const finalsCommand = Command.make('finals', {
@@ -157,7 +164,8 @@ const finalsCommand = Command.make('finals', {
 }, (config) => Effect.gen(function* () {
   const { store, graph, out } = yield* session
   const a = yield* resolve(store, config.name)
-  yield* emit(out, `finals-${a.playerId}-${config.from}-${config.to}`, yield* finals(graph, store, a.playerId, config.from, config.to))
+  const view = yield* finals(graph, store, a.playerId, config.from, config.to)
+  yield* emit(out, `finals-${a.playerId}-${config.from}-${config.to}`, view)
 })).pipe(Command.withDescription('Stanley Cup Finals coverage through teammates.'))
 
 const app = root.pipe(
@@ -173,6 +181,7 @@ const run = Command.run(app, { version: '0.0.0' }).pipe(
   Effect.catchTags({
     NoMatch: (e) => fail(`No player matches "${e.query}".`),
     AmbiguousName: (e) => fail(`"${e.query}" matches several players; use an ID:\n${e.candidates.map((c) => `  ${c}`).join('\n')}`),
+    ConfigError: (e) => fail(`Invalid configuration: ${e.message}`),
     HistoryUnavailable: (e) => fail(`History unavailable: ${e.message}`),
     WriteFailed: (e) => fail(`Could not write ${e.path}: ${e.reason}`),
     UnknownPlayer: (e) => fail(`Unknown player ${e.playerId}.`),
