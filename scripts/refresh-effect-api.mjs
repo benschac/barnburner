@@ -6,6 +6,7 @@
 //
 //   node scripts/refresh-effect-api.mjs           write .agent-sources/effect/index.md
 //   node scripts/refresh-effect-api.mjs --check   fail when that file does not match the installed packages
+
 import { existsSync } from 'node:fs'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, relative } from 'node:path'

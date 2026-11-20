@@ -15,8 +15,10 @@ const kebab = (field: string) => field.replace(/[A-Z]/g, (letter) => `-${letter.
 export const fontKeys = { body: 'font-body', score: 'font-score' } as const
 
 function read(values: ThemeValues, key: string): string {
-  // defect: a caller left out a contract key
-  if (!Object.hasOwn(values, key)) throw new Error(`defect: theme value ${key} is missing`)
+  if (!Object.hasOwn(values, key)) {
+    // defect: a caller left out a contract key
+    throw new Error(`defect: theme value ${key} is missing`)
+  }
   return values[key]
 }
 
@@ -160,8 +162,10 @@ export function useVizTheme(): VizTheme {
   const values: Record<string, string> = {}
   for (const field of colourFields) {
     const token = theme[kebab(field)]
-    // defect: contract.json and the Tamagui theme disagree
-    if (!token) throw new Error(`defect: Tamagui theme has no token ${kebab(field)}`)
+    if (!token) {
+      // defect: contract.json and the Tamagui theme disagree
+      throw new Error(`defect: Tamagui theme has no token ${kebab(field)}`)
+    }
     values[kebab(field)] = String(token.val)
   }
   values[fontKeys.body] = String(getVariableValue(getConfig().fonts.body.family))

@@ -1,6 +1,7 @@
 // Ported from cevr/effect-oxlint's `no-unbounded-retry` (https://github.com/cevr/effect-oxlint, MIT,
 // oxlint-plugin-effect 0.32.4). This version also accepts the bounds Effect 4.1 offers: `Schedule.upTo`,
 // `Schedule.max` with a bounded schedule, bounded schedule constructors, and a later `Effect.timeout`.
+
 import { defineRule } from "@oxlint/plugins";
 
 import type { ESTree, SourceCode } from "@oxlint/plugins";

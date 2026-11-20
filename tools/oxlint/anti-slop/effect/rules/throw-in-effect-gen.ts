@@ -3,6 +3,7 @@
 // unless it sits in an exactly shaped `Effect.try` callback, so it also reports throws in plain helpers, promise
 // callbacks and object methods that only happen to be declared inside the generator. This version reports a throw
 // only when the nearest enclosing function is the generator itself.
+
 import { defineRule } from "@oxlint/plugins";
 
 import type { ESTree } from "@oxlint/plugins";

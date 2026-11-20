@@ -1,5 +1,6 @@
 // Pure teammate graph (C-graph, C-search): compact adjacency over the packed arrays and the D7 filter.
 // No I/O. Player IDs cross the `link` boundary; everything else here works in indexes.
+
 import { Array, Order, Result } from 'effect'
 import { HistoryUnavailable, UnknownPlayer } from './contracts.ts'
 import type { Filter, Graph, GraphArrays, LinkKind, LinkResult, LinkSpan, Opponent } from './shapes.ts'

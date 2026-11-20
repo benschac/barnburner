@@ -6,6 +6,7 @@
 //
 //   node scripts/index-effect-core.mjs          write .agent-sources/effect/core-index.md
 //   node scripts/index-effect-core.mjs --check  fail when the index does not match the installed effect
+
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { logError, logInfo } from '../lib/logger.mjs'
 

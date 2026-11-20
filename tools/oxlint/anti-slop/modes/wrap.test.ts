@@ -1,4 +1,5 @@
 // oxlint-disable effecttsgo/global-console -- a test runner outside any Effect runtime
+
 import assert from "node:assert/strict";
 
 import type { Plugin, RuleOptionsSchema } from "@oxlint/plugins";

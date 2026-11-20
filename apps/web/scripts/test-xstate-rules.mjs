@@ -1,6 +1,7 @@
 // Proves xstate6/pure-transitions fires on impure transition and action functions and stays quiet on the pure ones.
 // Each case is a fixture file under src/ (where the rule is enabled); one lint run reports all of them.
 // Usage: node scripts/test-xstate-rules.mjs
+
 import { NodeRuntime, NodeServices } from '@effect/platform-node'
 import { Array, Effect, FileSystem, Option, Path, Schema, Stream } from 'effect'
 import { ChildProcess, ChildProcessSpawner } from 'effect/process'

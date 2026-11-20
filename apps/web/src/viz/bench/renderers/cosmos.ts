@@ -13,8 +13,10 @@ type Rgb = readonly [number, number, number]
 /** Resolve any CSS colour string to 0..1 RGB through a canvas, so the theme may use any format. */
 const toRgb = (css: string): Rgb => {
   const ctx = document.createElement('canvas').getContext('2d')
-  // defect: no 2D context means the theme colours cannot be resolved, and no colour of ours may stand in
-  if (ctx === null) throw new Error('cosmos renderer: a 2D canvas context is required to resolve theme colours')
+  if (ctx === null) {
+    // defect: no 2D context means the theme colours cannot be resolved, and no colour of ours may stand in
+    throw new Error('cosmos renderer: a 2D canvas context is required to resolve theme colours')
+  }
   ctx.fillStyle = css
   ctx.fillRect(0, 0, 1, 1)
   const [r = 0, g = 0, b = 0] = ctx.getImageData(0, 0, 1, 1).data
