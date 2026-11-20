@@ -15,7 +15,7 @@
     "check:tamagui": "tamagui check --strict",
     "generate:tamagui": "tamagui generate-prompt",
     "lint": "bun run --parallel --no-exit-on-error lint:oxlint lint:design-files lint:errors lint:index && bun run --parallel --no-exit-on-error lint:design lint:patterns lint:xstate lint:core",
-    "lint:oxlint": "node ../../tools/oxlint/anti-slop/modes/with-changes.ts effect-tsgo --tsrs-lint oxlint",
+    "lint:oxlint": "effect-tsgo --tsrs-lint oxlint",
     "lint:design-files": "node scripts/check-design-files.mjs",
     "lint:errors": "node ../../scripts/check-error-model.mjs plan-viewer/plan.ts",
     "lint:index": "node ../../scripts/index-effect-core.mjs --check",

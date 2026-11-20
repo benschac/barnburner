@@ -30,382 +30,71 @@
     "anti-slop/max-ternary-depth": [
       "error",
       {
-        "mode": "changed",
         "maxDepth": 2
       }
     ],
-    "anti-slop/no-array-filter-map": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-reduce-accumulator-copy": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-chained-type-assertions": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-conditional-spread": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-dev-env-branch": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-disabled-type-assertion-rules": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-instanceof": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-known-value-widening": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-module-mocking": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-object-parameters": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-reflect-apply": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-reflect-get": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-reprovide-ambient-service": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-runtime-typeof": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-unsafe-dictionary-type": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-shape-in-symbol-names": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-unknown-parameters": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-unknown-returns": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-unknown-type-aliases": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/no-widen-then-assert": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop/require-safety-comment-for-type-assertion": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/no-manual-effect-error-tag": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/no-manual-tag-comparison": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/no-manual-tagged-construction": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/no-manual-tagged-type": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/no-ordie-in-service-construction": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/no-service-parameters": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/no-static-effect-service-forwarders": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/no-test-code-in-src": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/no-unbounded-retry": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/prefer-tagged-error-handling": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/prefer-yield-service": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/require-cause-when-narrowing": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/require-operation-span": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/require-service-make-layer": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/stream-large-files": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-effect/throw-in-effect-gen": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-martinfowler/global-data": [
-      "warn",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-martinfowler/long-function": [
-      "warn",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-martinfowler/long-parameter-list": [
-      "warn",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-martinfowler/message-chains": [
-      "warn",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-martinfowler/mutable-data": [
-      "warn",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-martinfowler/mysterious-name": [
-      "warn",
-      {
-        "mode": "changed"
-      }
-    ],
-    "anti-slop-martinfowler/repeated-switches": [
-      "warn",
-      {
-        "mode": "changed"
-      }
-    ],
-    "landmines/strict-msw": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "landmines/no-fixed-sleep": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "landmines/no-unsignaled-poll": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "ai-guard/no-placeholder-implementation": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "ai-guard/no-test-env-branch": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "ai-guard/no-tautological-assertion": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "ai-guard/no-assertionless-test": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "ai-guard/no-undeclared-import": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "ai-guard/no-silent-fallback": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "enfect/effect-promise-vs-trypromise": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "enfect/prefer-redacted-config": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "enfect/avoid-option-getorthrow": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "enfect/effect-run-in-body": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "enfect/no-cause-in-http-response": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "enfect/no-effect-ignore-then-as": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "enfect/avoid-expect-in-if": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "enfect/prefer-duration-constructors": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ],
-    "enfect/avoid-mutable-state": [
-      "error",
-      {
-        "mode": "changed"
-      }
-    ]
+    "anti-slop/no-array-filter-map": "error",
+    "anti-slop/no-reduce-accumulator-copy": "error",
+    "anti-slop/no-chained-type-assertions": "error",
+    "anti-slop/no-conditional-spread": "error",
+    "anti-slop/no-dev-env-branch": "error",
+    "anti-slop/no-disabled-type-assertion-rules": "error",
+    "anti-slop/no-instanceof": "error",
+    "anti-slop/no-known-value-widening": "error",
+    "anti-slop/no-module-mocking": "error",
+    "anti-slop/no-object-parameters": "error",
+    "anti-slop/no-reflect-apply": "error",
+    "anti-slop/no-reflect-get": "error",
+    "anti-slop/no-reprovide-ambient-service": "error",
+    "anti-slop/no-runtime-typeof": "error",
+    "anti-slop/no-unsafe-dictionary-type": "error",
+    "anti-slop/no-shape-in-symbol-names": "error",
+    "anti-slop/no-unknown-parameters": "error",
+    "anti-slop/no-unknown-returns": "error",
+    "anti-slop/no-unknown-type-aliases": "error",
+    "anti-slop/no-widen-then-assert": "error",
+    "anti-slop/require-safety-comment-for-type-assertion": "error",
+    "anti-slop-effect/no-manual-effect-error-tag": "error",
+    "anti-slop-effect/no-manual-tag-comparison": "error",
+    "anti-slop-effect/no-manual-tagged-construction": "error",
+    "anti-slop-effect/no-manual-tagged-type": "error",
+    "anti-slop-effect/no-ordie-in-service-construction": "error",
+    "anti-slop-effect/no-service-parameters": "error",
+    "anti-slop-effect/no-static-effect-service-forwarders": "error",
+    "anti-slop-effect/no-test-code-in-src": "error",
+    "anti-slop-effect/no-unbounded-retry": "error",
+    "anti-slop-effect/prefer-tagged-error-handling": "error",
+    "anti-slop-effect/prefer-yield-service": "error",
+    "anti-slop-effect/require-cause-when-narrowing": "error",
+    "anti-slop-effect/require-operation-span": "error",
+    "anti-slop-effect/require-service-make-layer": "error",
+    "anti-slop-effect/stream-large-files": "error",
+    "anti-slop-effect/throw-in-effect-gen": "error",
+    "anti-slop-martinfowler/global-data": "warn",
+    "anti-slop-martinfowler/long-function": "warn",
+    "anti-slop-martinfowler/long-parameter-list": "warn",
+    "anti-slop-martinfowler/message-chains": "warn",
+    "anti-slop-martinfowler/mutable-data": "warn",
+    "anti-slop-martinfowler/mysterious-name": "warn",
+    "anti-slop-martinfowler/repeated-switches": "warn",
+    "landmines/strict-msw": "error",
+    "landmines/no-fixed-sleep": "error",
+    "landmines/no-unsignaled-poll": "error",
+    "ai-guard/no-placeholder-implementation": "error",
+    "ai-guard/no-test-env-branch": "error",
+    "ai-guard/no-tautological-assertion": "error",
+    "ai-guard/no-assertionless-test": "error",
+    "ai-guard/no-undeclared-import": "error",
+    "ai-guard/no-silent-fallback": "error",
+    "enfect/effect-promise-vs-trypromise": "error",
+    "enfect/prefer-redacted-config": "error",
+    "enfect/avoid-option-getorthrow": "error",
+    "enfect/effect-run-in-body": "error",
+    "enfect/no-cause-in-http-response": "error",
+    "enfect/no-effect-ignore-then-as": "error",
+    "enfect/avoid-expect-in-if": "error",
+    "enfect/prefer-duration-constructors": "error",
+    "enfect/avoid-mutable-state": "error"
   },
   "overrides": [
     {
