@@ -1,20 +1,16 @@
 import { Renderer as WebGLRenderer } from '@antv/g-webgl'
-import { EdgeEvent, type IElementEvent, ExtensionCategory, Graph, getExtension, register, type GraphData, type GraphOptions, type NodeOptions } from '@antv/g6'
+import { ExtensionCategory, Graph, getExtension, register, type GraphData, type GraphOptions, type NodeOptions } from '@antv/g6'
 import { ReactNode as G6ReactNode } from '@antv/g6-extension-react'
-import { Predicate, Schema } from 'effect'
+import { Predicate, Result } from 'effect'
 import { TamaguiProvider, View, getTokens, getVariableValue, styled } from 'tamagui'
 import { config } from '../../tamagui.config'
-import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react'
+import { useCallback, useMemo, type ComponentType } from 'react'
 import { Copy } from '../components/team-poster/primitives'
-import { logFailure } from '../use-log-failure'
-import { settleWithin } from '../use-settle'
+import { useG6Graph } from '../use-g6-graph'
+import { G6RenderError, DIMMED, HIGHLIGHTED } from './g6-host'
 import { g6Theme, useVizTheme } from './theme'
 
-/** A graph that could not be drawn: `stage` says where it failed. */
-export class G6RenderError extends Schema.TaggedError<G6RenderError, { readonly brand: unique symbol }>()('G6RenderError', {
-  stage: Schema.Literals(['webgl', 'render', 'fit']),
-  message: Schema.String,
-}) {}
+export { G6RenderError }
 
 // The G6 host (plan D6, section C-viz): mounts a graph for `{ nodes, edges }`, applies g6Theme, redraws on
 // data or theme change, resizes with its container, and destroys the graph on unmount.
@@ -58,30 +54,10 @@ export type G6GraphProps = {
   readonly highlightedEdges?: ReadonlyArray<string>
 }
 
-const HIGHLIGHTED = 'highlighted'
-const DIMMED = 'dimmed'
-
-/** Adds and removes only the two states the host owns; any other state of an edge is kept. */
-function applyHighlight(graph: Graph, edgeIds: ReadonlyArray<string>) {
-  const marked = new Set(edgeIds)
-  const states: Record<string, string[]> = {}
-  for (const edge of graph.getEdgeData()) {
-    const id = String(edge.id)
-    const current = graph.getElementState(id)
-    const own = marked.size === 0 ? [] : marked.has(id) ? [HIGHLIGHTED] : [DIMMED]
-    const next = [...current.filter((state) => state !== HIGHLIGHTED && state !== DIMMED), ...own]
-    if (next.length !== current.length || next.some((state, index) => state !== current[index])) states[id] = next
-  }
-  if (Object.keys(states).length > 0) void graph.setElementState(states, false)
-}
-
 function webglAvailable(): boolean {
   const probe = document.createElement('canvas')
   return probe.getContext('webgl2') !== null || probe.getContext('webgl') !== null
 }
-
-/** Longest wait for a render to settle before cleanup destroys the graph anyway (a WebGL renderer can stay pending). */
-const SETTLE_MS = 1000
 
 const REACT_NODE = 'react-node'
 const REACT_NODE_SIZE: [number, number] = [180, 96]
@@ -99,29 +75,10 @@ export function G6Graph({ data, layout, node: NodeView, renderer = 'canvas', hei
   const themeKey = [vizTheme.mode, vizTheme.background, vizTheme.surface, vizTheme.rule, vizTheme.color, vizTheme.muted, vizTheme.brand].join('|')
   // eslint-disable-next-line react-hooks/exhaustive-deps -- themeKey stands for vizTheme
   const theme = useMemo(() => vizTheme, [themeKey])
-  const root = useRef<HTMLElement | null>(null)
-  const [failure, setFailure] = useState<G6RenderError | null>(null)
   const heightPx = pixels(height)
-  // The latest callback and highlight list, read by the graph without rebuilding it.
-  const hoverCallback = useRef(onEdgeHover)
-  const highlighted = useRef<ReadonlyArray<string>>(highlightedEdges ?? [])
-  const live = useRef<{ graph: Graph; drawn: Promise<unknown> } | null>(null)
-  useEffect(() => {
-    hoverCallback.current = onEdgeHover
-  }, [onEdgeHover])
-  useEffect(() => {
-    highlighted.current = highlightedEdges ?? []
-    const current = live.current
-    if (current) void current.drawn.then(() => { if (live.current === current) applyHighlight(current.graph, highlighted.current) })
-  }, [highlightedEdges])
-
-  useEffect(() => {
-    const container = root.current
-    if (!container) return
-    setFailure(null)
+  const build = useCallback((container: HTMLElement): Result.Result<Graph, G6RenderError> => {
     if (renderer === 'webgl' && !webglAvailable()) {
-      setFailure(new G6RenderError({ stage: 'webgl', message: 'WebGL is not available in this browser.' }))
-      return
+      return Result.fail(new G6RenderError({ stage: 'webgl', message: 'WebGL is not available in this browser.' }))
     }
     if (NodeView) registerReactNode()
     const colours = g6Theme(theme)
@@ -182,48 +139,9 @@ export function G6Graph({ data, layout, node: NodeView, renderer = 'canvas', hei
       behaviors: ['drag-canvas', 'zoom-canvas', { type: 'hover-activate', degree: 1 }],
     }
     if (renderer === 'webgl') options.renderer = () => new WebGLRenderer()
-    const graph = new Graph(options)
-    graph.on(EdgeEvent.POINTER_ENTER, (event: IElementEvent) => hoverCallback.current?.(String(event.target.id)))
-    graph.on(EdgeEvent.POINTER_LEAVE, () => hoverCallback.current?.(null))
-    const leave = () => hoverCallback.current?.(null)
-    container.addEventListener('pointerleave', leave)
-    let alive = true
-    // A rejection from a graph that was disposed is expected; from a live graph it is a failure.
-    const fail = (stage: 'render' | 'fit') => (cause: unknown) => {
-      if (!alive) return undefined
-      const error = new G6RenderError({ stage, message: cause instanceof Error ? cause.message : String(cause) })
-      logFailure('G6 graph failed', error)
-      setFailure(error)
-      return undefined
-    }
-    const drawn = graph
-      .render()
-      .then(
-        async () => {
-          if (!alive) return
-          await graph.fitView({ when: 'always' }, false).catch(fail('fit'))
-          // A small graph is fitted to the box, not blown up past its natural size.
-          if (alive && graph.getZoom() > 1) await graph.zoomTo(1, false)
-          if (alive) applyHighlight(graph, highlighted.current)
-        },
-        fail('render'),
-      )
-    live.current = { graph, drawn }
-    const observer = new ResizeObserver(() => {
-      if (alive) graph.setSize(container.clientWidth, heightPx)
-    })
-    observer.observe(container)
-    return () => {
-      alive = false
-      live.current = null
-      observer.disconnect()
-      container.removeEventListener('pointerleave', leave)
-      // Destroying mid-render logs a G6 error, so wait for the render; but never wait on one that stays pending.
-      void settleWithin(drawn, SETTLE_MS).then(() => {
-        graph.destroy()
-      })
-    }
+    return Result.succeed(new Graph(options))
   }, [data, layout, NodeView, renderer, heightPx, theme])
+  const { root, failure } = useG6Graph(build, heightPx, onEdgeHover, highlightedEdges)
 
   // SAFETY: Tamagui types the ref for native views; on web the root is the HTMLElement the graph mounts into.
   return (
