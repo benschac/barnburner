@@ -12,6 +12,10 @@ import type { Db, DbError, Guard, SqlError } from "../src/shapes.ts";
 import { readCards, writeCards } from "../src/store.ts";
 import type { StoreError } from "../src/store.ts";
 
+const decodeGameRow = Schema.decodeUnknownResult(
+  Schema.Struct({ game_id: Schema.Finite })
+);
+
 // The poster snapshot ships with the repo; one that does not decode is a defect.
 const decodePoster = Schema.decodeUnknownSync(
   Schema.fromJsonString(
@@ -100,8 +104,8 @@ export const recheckInsights = ({
         "SELECT DISTINCT game_id FROM team_games WHERE is_final"
       );
       const finals = new Set(
-        rows.flatMap((row) =>
-          typeof row["game_id"] === "number" ? [row["game_id"]] : []
+        Array.filterMap(rows, (row) =>
+          Result.map(decodeGameRow(row), (game) => game.game_id)
         )
       );
       return yield* runRecheck({
