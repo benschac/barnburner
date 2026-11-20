@@ -441,7 +441,10 @@
       "files": [
         "**/src/main.ts",
         "**/scripts/**",
-        "**/evals/run.ts"
+        "**/evals/run.ts",
+        "**/app/**/page.tsx",
+        "**/app/**/route.ts",
+        "**/src/viz/frame/main.ts"
       ],
       "rules": {
         "enfect/effect-run-in-body": "off"
