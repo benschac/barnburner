@@ -90,60 +90,58 @@ const summarizeTeam = (
     })),
 });
 
+type BoxScoreLoad = (
+  gameId: number
+) => Effect.Effect<unknown, BoxscoreLoadError>;
+
+const unreadable = () =>
+  new BoxscoreLoadError({ message: "The box score could not be read." });
+
 /** Storage port for archived box scores. `null` means the game has no archived file. Callers pass only ids from the season snapshot. */
 export class BoxScores extends Context.Service<
   BoxScores,
-  {
-    readonly load: (
-      gameId: number
-    ) => Effect.Effect<unknown, BoxscoreLoadError>;
-  }
+  { readonly load: BoxScoreLoad }
 >()("glanceboard/BoxScores") {
-  static layerFiles = (directory: string) =>
+  static readonly make = (load: BoxScoreLoad) =>
+    Effect.succeed(BoxScores.of({ load }));
+
+  static readonly layer = (load: BoxScoreLoad) =>
+    Layer.effect(this, this.make(load));
+
+  static readonly layerFiles = (directory: string) =>
     Layer.effect(
-      BoxScores,
+      this,
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
-        return BoxScores.of({
-          load: (gameId) =>
-            fs.readFileString(`${directory}/${gameId}.json`).pipe(
-              Effect.flatMap((text) =>
-                Effect.try(() => JSON.parse(text) as unknown)
-              ),
-              Effect.catchIf(
-                (error) =>
-                  "reason" in error && error.reason._tag === "NotFound",
-                () => Effect.succeed(null)
-              ),
-              Effect.mapError(
-                () =>
-                  new BoxscoreLoadError({
-                    message: "The box score could not be read.",
-                  })
-              )
-            ),
-        });
+        return yield* BoxScores.make((gameId) =>
+          Effect.gen(function* () {
+            const text = yield* fs
+              .readFileString(`${directory}/${gameId}.json`)
+              .pipe(
+                Effect.catchReason("PlatformError", "NotFound", () =>
+                  Effect.succeed(null)
+                )
+              );
+            if (text === null) return null;
+            return yield* Schema.decodeUnknownEffect(
+              Schema.fromJsonString(Schema.Unknown)
+            )(text);
+          }).pipe(Effect.tapError(Effect.logError), Effect.mapError(unreadable))
+        );
       })
     );
 
   /** One lazy loader per archived file, so a request reads only its own game. */
-  static layerArchive = (
+  static readonly layerArchive = (
     archive: Readonly<Record<number, () => Promise<{ default: unknown }>>>
   ) =>
-    Layer.succeed(
-      BoxScores,
-      BoxScores.of({
-        load: (gameId) =>
-          Object.hasOwn(archive, gameId)
-            ? Effect.tryPromise({
-                try: async () => (await archive[gameId]()).default,
-                catch: () =>
-                  new BoxscoreLoadError({
-                    message: "The box score could not be read.",
-                  }),
-              })
-            : Effect.succeed(null),
-      })
+    this.layer((gameId) =>
+      Object.hasOwn(archive, gameId)
+        ? Effect.tryPromise({
+            try: async () => (await archive[gameId]()).default,
+            catch: unreadable,
+          })
+        : Effect.succeed(null)
     );
 }
 
@@ -158,6 +156,7 @@ export const getGameBoxscore = (season: SeasonSnapshot, gameId: number) =>
     const invalid = () =>
       new BoxscoreLoadError({ message: "The archived box score is invalid." });
     const box = yield* Schema.decodeUnknownEffect(ArchivedBoxscore)(raw).pipe(
+      Effect.tapError(Effect.logError),
       Effect.mapError(invalid)
     );
     if (!boxScoreMatchesGame(raw, game)) return yield* invalid();

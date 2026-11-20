@@ -6,7 +6,7 @@ import {
 } from "@nhl-reddit-stats/season";
 import { SnapshotLoadError } from "@nhl-reddit-stats/season/rpc";
 import type { PublishedInsight } from "@nhl-reddit-stats/season/rpc";
-import { Context, Effect, FileSystem, Layer, Schema } from "effect";
+import { Context, Effect, FileSystem, Layer, Predicate, Schema } from "effect";
 
 import { GAMES_PER_TEAM, validateSnapshot } from "../../../lib/nhl-games.mjs";
 import { validatePosterAgainstGames } from "../../../lib/nhl-poster.mjs";
@@ -60,7 +60,7 @@ export const makeSnapshots = (input: {
       },
       catch: (error) =>
         new SnapshotDataError({
-          message: error instanceof Error ? error.message : String(error),
+          message: Predicate.isError(error) ? error.message : String(error),
         }),
     });
     return {
@@ -105,16 +105,18 @@ export class Snapshots extends Context.Service<
   Snapshots,
   Effect.Success<ReturnType<typeof makeSnapshots>>
 >()("glanceboard/Snapshots") {
-  static layerData = (input: Parameters<typeof makeSnapshots>[0]) =>
-    Layer.effect(this, makeSnapshots(input));
+  static readonly make = makeSnapshots;
 
-  static layer = (paths: {
+  static readonly layerData = (input: Parameters<typeof makeSnapshots>[0]) =>
+    Layer.effect(this, this.make(input));
+
+  static readonly layerFiles = (paths: {
     snapshot: string;
     posterSnapshot: string;
     insights?: string;
   }) =>
     Layer.effect(
-      Snapshots,
+      this,
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const seasonText = yield* fs.readFileString(paths.snapshot);
@@ -148,7 +150,13 @@ export class Snapshots extends Context.Service<
                 season.teams.map((team) => team.abbrev)
               );
 
-        return yield* makeSnapshots({ season, poster, insights });
+        return yield* Snapshots.make({ season, poster, insights });
       })
     );
+
+  static readonly layer = (paths: {
+    snapshot: string;
+    posterSnapshot: string;
+    insights?: string;
+  }) => this.layerFiles(paths);
 }
