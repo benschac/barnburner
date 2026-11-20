@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { Result, Schema } from "effect";
+import { Array as Arr, Result, Schema } from "effect";
 
 const tableRows = (text: string) =>
   text
@@ -24,13 +24,13 @@ const expandIds = (id: string) => {
     : [id];
 };
 
-const prerequisiteTitles: Record<string, string> = {
-  "P-plan": "Commit the plan & initialise Graphite",
-  "P-deps": "Approve dependencies",
-  "P-key": "Provide an AI Gateway key",
-  "P-pr": "Enable CI pull requests",
-  "P-rights": "Confirm data rights",
-};
+const prerequisiteTitles = new Map([
+  ["P-plan", "Commit the plan & initialise Graphite"],
+  ["P-deps", "Approve dependencies"],
+  ["P-key", "Provide an AI Gateway key"],
+  ["P-pr", "Enable CI pull requests"],
+  ["P-rights", "Confirm data rights"],
+]);
 
 // The plan document does not have the structure the viewer needs. `subject` names the section,
 // card, or task at fault.
@@ -131,7 +131,7 @@ export const parseAnalystPlan = (source: string) =>
       evalRow: string[] | undefined
     ): Result.Result<string, PlanParseError> => {
       const baseTitle = id.startsWith("P-")
-        ? prerequisiteTitles[id]
+        ? prerequisiteTitles.get(id)
         : card.heading.split(" · ")[1]?.split(" (")[0];
       if (!baseTitle) return refuse("No task title for", id);
       return Result.succeed(
@@ -210,7 +210,7 @@ export const parseAnalystPlan = (source: string) =>
       tasks.map((task) =>
         task.status
           ? Result.all(
-              [...task.needs, ...(task.parent ? [task.parent] : [])].map(
+              [...task.needs, ...Arr.fromNullishOr(task.parent)].map(
                 (dependency) =>
                   taskIds.includes(dependency)
                     ? Result.void
@@ -236,7 +236,7 @@ export const parseAnalystPlan = (source: string) =>
         const ids = new Set([
           task.id,
           ...task.needs,
-          ...(task.parent ? [task.parent] : []),
+          ...Arr.fromNullishOr(task.parent),
           ...dependents.map((item) => item.id),
         ]);
         const lines = [

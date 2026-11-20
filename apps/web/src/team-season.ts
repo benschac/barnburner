@@ -18,5 +18,14 @@ export const teamFromLocation = ({
   hash: string;
 }) =>
   hash === "#poster" ? null : (teamFromHash(hash) ?? teamFromPath(pathname));
+const logoName = (team: string, theme: string) => {
+  if (theme === "light" && team === "TBL") {
+    return "TBL-light";
+  }
+  if (theme === "light" && team === "TOR") {
+    return "TOR-inverted";
+  }
+  return team === "WSH" ? "WSH-alt" : team;
+};
 export const teamLogo = (team: string, theme: string) =>
-  `/assets/teams/${theme === "light" && team === "TBL" ? "TBL-light" : team === "TOR" && theme === "light" ? "TOR-inverted" : team === "WSH" ? "WSH-alt" : team}.svg`;
+  `/assets/teams/${logoName(team, theme)}.svg`;

@@ -11,6 +11,7 @@ export const light = {
 type TeamCode = keyof typeof contract.teamPalettes;
 type TeamBannerTheme = (typeof contract.teamPalettes)[TeamCode];
 export type TeamBannerThemeName = `team-${TeamCode}`;
+// SAFETY: every key is built from a teamPalettes entry as `dark_team-<code>` or `light_team-<code>`.
 export const teamBannerThemes = Object.fromEntries(
   Object.entries(contract.teamPalettes).flatMap(([team, palette]) => [
     [`dark_team-${team}`, palette],

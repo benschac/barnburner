@@ -41,6 +41,7 @@
     "@nhl-reddit-stats/season": "0.0.0",
     "@nhl-reddit-stats/viz": "workspace:*",
     "@tamagui/config": "3.3.1",
+    "@tamagui/core": "3.3.1",
     "@tamagui/next-plugin": "3.3.1",
     "@vercel/analytics": "^2.0.1",
     "@xstate/effect": "1.0.0-beta.2",

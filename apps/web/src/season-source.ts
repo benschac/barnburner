@@ -18,7 +18,25 @@ export class SeasonSource extends Context.Service<
   {
     readonly load: Effect.Effect<TeamDataWithInsights, SnapshotLoadError>;
   }
->()("glanceboard/SeasonSource") {}
+>()("glanceboard/SeasonSource", {
+  make: Effect.gen(function* () {
+    const client = yield* RpcClient.make(TeamRpcs);
+    return {
+      load: client.GetTeamData({}).pipe(
+        Effect.catchTag("RpcClientError", () =>
+          Effect.fail(
+            new SnapshotLoadError({
+              message: "Team data could not be loaded. Try again.",
+            })
+          )
+        ),
+        Effect.withSpan("SeasonSource.load")
+      ),
+    };
+  }),
+}) {
+  static readonly layer = Layer.effect(this, this.make);
+}
 
 export class BoxscoreSource extends Context.Service<
   BoxscoreSource,
@@ -30,7 +48,26 @@ export class BoxscoreSource extends Context.Service<
       UnknownGame | BoxscoreNotArchived | BoxscoreLoadError
     >;
   }
->()("glanceboard/BoxscoreSource") {}
+>()("glanceboard/BoxscoreSource", {
+  make: Effect.gen(function* () {
+    const client = yield* RpcClient.make(TeamRpcs);
+    return {
+      load: (gameId: number) =>
+        client.GetGameBoxscore({ gameId }).pipe(
+          Effect.catchTag("RpcClientError", () =>
+            Effect.fail(
+              new BoxscoreLoadError({
+                message: "The box score could not be loaded. Try again.",
+              })
+            )
+          ),
+          Effect.withSpan("BoxscoreSource.load")
+        ),
+    };
+  }),
+}) {
+  static readonly layer = Layer.effect(this, this.make);
+}
 
 const rpcProtocol = (url: string) =>
   RpcClient.layerProtocolHttp({ url }).pipe(
@@ -38,40 +75,7 @@ const rpcProtocol = (url: string) =>
   );
 
 export const rpcSeasonSourceLayer = (url: string) =>
-  Layer.effect(
-    SeasonSource,
-    Effect.gen(function* () {
-      const client = yield* RpcClient.make(TeamRpcs);
-      return SeasonSource.of({
-        load: client.GetTeamData({}).pipe(
-          Effect.catchTag("RpcClientError", () =>
-            Effect.fail(
-              new SnapshotLoadError({
-                message: "Team data could not be loaded. Try again.",
-              })
-            )
-          )
-        ),
-      });
-    })
-  ).pipe(Layer.provide(rpcProtocol(url)));
+  SeasonSource.layer.pipe(Layer.provide(rpcProtocol(url)));
 
 export const rpcBoxscoreSourceLayer = (url: string) =>
-  Layer.effect(
-    BoxscoreSource,
-    Effect.gen(function* () {
-      const client = yield* RpcClient.make(TeamRpcs);
-      return BoxscoreSource.of({
-        load: (gameId) =>
-          client.GetGameBoxscore({ gameId }).pipe(
-            Effect.catchTag("RpcClientError", () =>
-              Effect.fail(
-                new BoxscoreLoadError({
-                  message: "The box score could not be loaded. Try again.",
-                })
-              )
-            )
-          ),
-      });
-    })
-  ).pipe(Layer.provide(rpcProtocol(url)));
+  BoxscoreSource.layer.pipe(Layer.provide(rpcProtocol(url)));

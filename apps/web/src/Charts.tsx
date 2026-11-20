@@ -42,6 +42,16 @@ type ChartBar = {
 };
 type ChartGeometry = { bars: ChartBar[]; line: ChartPoint[]; opacity: number };
 
+function barInk(margin: number | null, regulation: boolean): keyof ChartColors {
+  if (margin === null) {
+    return "pending";
+  }
+  if (margin > 0) {
+    return "win";
+  }
+  return regulation ? "loss" : "gold";
+}
+
 function chartGeometry(data: TeamPosterData, kind: ChartKind): ChartGeometry {
   const step = plotWidth / Math.max(1, data.seasonGames.length);
   const margins = data.seasonGames.map(({ result }) =>
@@ -67,14 +77,7 @@ function chartGeometry(data: TeamPosterData, kind: ChartKind): ChartGeometry {
               yStart: margin === null ? 102 : 105 - Math.max(0, margin) * unit,
               yEnd: margin === null ? 108 : 105 - Math.min(0, margin) * unit,
               opacity: 1,
-              ink:
-                margin === null
-                  ? "pending"
-                  : margin > 0
-                    ? "win"
-                    : result?.decision === "REG"
-                      ? "loss"
-                      : "gold",
+              ink: barInk(margin, result?.decision === "REG"),
             };
           })
         : [],
