@@ -61,6 +61,20 @@ const byStartThenId = Order.combine(
   Order.mapInput(Order.Number, (entry: TeamGame) => entry.game.id)
 );
 
+function gameOutcome(
+  decision: "REG" | "OT" | "SO" | undefined,
+  goalsFor: number | null,
+  goalsAgainst: number | null
+): "pending" | "win" | "loss" | "overtime" {
+  if (decision === undefined || goalsFor === null || goalsAgainst === null) {
+    return "pending";
+  }
+  if (goalsFor > goalsAgainst) {
+    return "win";
+  }
+  return decision === "REG" ? "loss" : "overtime";
+}
+
 export function teamSeason(snapshot: SeasonSnapshot, team: string) {
   const unsorted: TeamGame[] = snapshot.games
     .filter((game) => game.homeTeam === team || game.awayTeam === team)
@@ -82,14 +96,7 @@ export function teamSeason(snapshot: SeasonSnapshot, team: string) {
         game,
         opponent: home ? game.awayTeam : game.homeTeam,
         venue: home ? "home" : "away",
-        outcome:
-          goalsFor === null || goalsAgainst === null || !result
-            ? "pending"
-            : goalsFor > goalsAgainst
-              ? "win"
-              : result.decision === "REG"
-                ? "loss"
-                : "overtime",
+        outcome: gameOutcome(result?.decision, goalsFor, goalsAgainst),
         goalsFor,
         goalsAgainst,
       };
