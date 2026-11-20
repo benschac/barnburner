@@ -231,7 +231,7 @@ const checkLabel = (check: number): string =>
   check === FILL_CHECK ? "fill (draft could not be filled)" : `check ${check}`;
 
 export const formatReport = (report: DetectorReport): string => {
-  const pct = (rate: number) => `${(rate * 100).toFixed(1)}%`;
+  const pct = (fraction: number) => `${(fraction * 100).toFixed(1)}%`;
   const checks = Object.entries(report.failuresByCheck).map(
     ([check, count]) => `  ${checkLabel(Number(check))}: ${count}`
   );

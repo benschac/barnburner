@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { asSchema } from "ai";
 import { Effect } from "effect";
 
 import { cardId } from "../src/card.ts";
@@ -71,8 +72,14 @@ test("guard rejection stops before any db call", async () => {
   const calls: string[] = [];
   const inner = fakeDb({});
   const spy = {
-    query: (s: string) => (calls.push(s), inner.query(s)),
-    queryCanonical: (s: string) => (calls.push(s), inner.queryCanonical(s)),
+    query: (s: string) => {
+      calls.push(s);
+      return inner.query(s);
+    },
+    queryCanonical: (s: string) => {
+      calls.push(s);
+      return inner.queryCanonical(s);
+    },
   };
   const reject = fakeGuard({ ok: false, reason: "nope" });
   const err = await Effect.runPromise(
@@ -141,7 +148,9 @@ test("null optional fields are treated as absent", async () => {
         verify: fakeVerify({ ok: true }),
         finals: new Set(),
         meta,
-        onCard: (c) => cards.push(c),
+        onCard: (c) => {
+          cards.push(c);
+        },
       },
       input
     )
@@ -156,8 +165,8 @@ test("null optional fields are treated as absent", async () => {
     meta,
     onCard: () => {},
   });
-  const v = await (tool.inputSchema as any).validate(input);
-  assert.equal(v.success, true);
+  const v = await asSchema(tool.inputSchema).validate?.(input);
+  assert.equal(v?.success, true);
 });
 
 test("submit tool body returns ok, failures and errors as text", async () => {
@@ -167,7 +176,9 @@ test("submit tool body returns ok, failures and errors as text", async () => {
     guard: fakeGuard({ ok: true, touchesBoxscores: false }),
     finals: new Set([1, 2]),
     meta,
-    onCard: (c: InsightCard) => cards.push(c),
+    onCard: (c: InsightCard) => {
+      cards.push(c);
+    },
   };
   assert.equal(
     await Effect.runPromise(

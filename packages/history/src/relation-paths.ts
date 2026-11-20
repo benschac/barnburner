@@ -5,10 +5,15 @@
 
 import { Array, Order, Result } from "effect";
 
+import {
+  UNREACHED,
+  countChainsBy,
+  enumerateBy,
+  teammateHop,
+} from "./chain-search.ts";
 import { HistoryUnavailable, NoPath, UnsupportedFilter } from "./contracts.ts";
 import { linkIdBetween, linkPassingGames, opponentAdjacency } from "./graph.ts";
 import type { OpponentAdjacency, TeammateGraph } from "./graph.ts";
-import { UNREACHED, countChainsBy, enumerateBy, teammateHop } from "./paths.ts";
 import { DEFAULT_FILTER, PATH_COUNT_CAP, PlayedAgainst } from "./shapes.ts";
 import type { Filter, Hop, PathResult, Relation } from "./shapes.ts";
 

@@ -625,7 +625,7 @@ const checkCleghorn = Effect.fn("historyAccept.checkCleghorn")(function* (
   if (cleghorn === null || truthCleghorn === null)
     missing("Cleghorn in game 1918020026", "Cleghorn is not in the truth file");
   else {
-    const exact = yield* Effect.forEach(truthCleghorn, (entry) =>
+    const matches = yield* Effect.forEach(truthCleghorn, (entry) =>
       Effect.map(
         store.sharedGames(
           cleghorn,
@@ -640,7 +640,7 @@ const checkCleghorn = Effect.fn("historyAccept.checkCleghorn")(function* (
           entry.shared_games
       )
     );
-    const found = exact.filter((isExact) => isExact).length;
+    const found = matches.filter(Boolean).length;
     verdict(
       "Cleghorn in game 1918020026",
       found === truthCleghorn.length && (!baseline || truthCleghorn.length > 0),
@@ -908,11 +908,9 @@ const program = (argv: readonly string[]) =>
     });
     const out = lines.map((l) => `${l.status} ${l.name}: ${l.detail}`);
     const failures = lines.filter((l) => l.status === "FAIL").length;
-    out.push(`cold load (open + makeGraph): ${loadMs.toFixed(0)} ms`);
     out.push(
-      `median of 1000 findPaths calls: ${medianFindPaths(graph, 1000).toFixed(3)} ms`
-    );
-    out.push(
+      `cold load (open + makeGraph): ${loadMs.toFixed(0)} ms`,
+      `median of 1000 findPaths calls: ${medianFindPaths(graph, 1000).toFixed(3)} ms`,
       failures === 0 ? "ACCEPTED" : `REJECTED: ${failures} case(s) failed`
     );
     return { out, failures };

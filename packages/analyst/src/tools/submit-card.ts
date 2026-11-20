@@ -119,11 +119,7 @@ export const submitCardText = (
     if (!verdict.ok) return `FAILED check ${verdict.check}: ${verdict.detail}`;
     deps.onCard(card);
     return "ok";
-  }).pipe(
-    Effect.catch((error: { readonly message?: string }) =>
-      Effect.succeed(`ERROR: ${error.message ?? String(error)}`)
-    )
-  );
+  }).pipe(Effect.catch((error) => Effect.succeed(`ERROR: ${error.message}`)));
 
 const jsonDoc = Schema.toJsonSchemaDocument(CardDraft);
 const draftInputSchema = jsonSchema<CardDraft>(

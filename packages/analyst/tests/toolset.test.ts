@@ -32,20 +32,28 @@ test("toolset guards real SQL and caps canonical query rows", async () => {
           "NJD"
         );
         const output = yield* Effect.promise(() =>
-          toolset.tools.sql.execute({ query: "SELECT * FROM team_games" }, {
-            toolCallId: "1",
-            messages: [],
-          } as never)
+          toolset.tools.sql.execute(
+            { query: "SELECT * FROM team_games" },
+            {
+              toolCallId: "1",
+              messages: [],
+              context: {},
+            }
+          )
         );
         const parsed = JSON.parse(output);
         assert.equal(parsed.rows.length, 200);
         assert.equal(parsed.truncated, true);
         assert.deepEqual(options, { rowCap: 200, timeoutMs: 10_000 });
         const rejected = yield* Effect.promise(() =>
-          toolset.tools.sql.execute({ query: "DROP TABLE team_games" }, {
-            toolCallId: "2",
-            messages: [],
-          } as never)
+          toolset.tools.sql.execute(
+            { query: "DROP TABLE team_games" },
+            {
+              toolCallId: "2",
+              messages: [],
+              context: {},
+            }
+          )
         );
         assert.match(rejected, /^ERROR:/);
         assert.equal(executions, 1);

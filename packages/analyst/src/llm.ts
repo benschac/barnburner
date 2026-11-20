@@ -43,29 +43,34 @@ export const defaultLlmConfig: LlmConfig = {
   rankModel: "anthropic/claude-haiku-5.5",
 };
 
+// An empty variable falls back to the default, like an unset one.
+const nonEmptyOr = (value: string | undefined, fallback: string) =>
+  value === undefined || value === "" ? fallback : value;
+
 export const llmConfigFromEnv = (
   env: Readonly<Record<string, string | undefined>> = process.env
 ): LlmConfig => ({
-  generateModel: env.ANALYST_GENERATE_MODEL || defaultLlmConfig.generateModel,
-  rankModel: env.ANALYST_RANK_MODEL || defaultLlmConfig.rankModel,
+  generateModel: nonEmptyOr(
+    env.ANALYST_GENERATE_MODEL,
+    defaultLlmConfig.generateModel
+  ),
+  rankModel: nonEmptyOr(env.ANALYST_RANK_MODEL, defaultLlmConfig.rankModel),
 });
 
 export type LlmRunInput = {
   readonly system?: string;
   readonly prompt: string;
   readonly tools?: ToolSet;
-  readonly stopWhen?:
-    | StopCondition<any, any>
-    | readonly StopCondition<any, any>[];
+  readonly stopWhen?: StopCondition<ToolSet> | StopCondition<ToolSet>[];
   // A gateway "provider/model" string or a LanguageModel instance; defaults to the generate model.
   readonly model?: LanguageModel;
 };
 
 export type LlmRunResult = {
   readonly text: string;
-  readonly steps: readonly StepResult<any, any>[];
+  readonly steps: readonly StepResult<ToolSet>[];
   readonly usage: LanguageModelUsage;
-  readonly toolCalls: readonly StepResult<any, any>["toolCalls"][number][];
+  readonly toolCalls: readonly StepResult<ToolSet>["toolCalls"][number][];
 };
 
 export type LlmService = {
@@ -102,9 +107,9 @@ export const makeLlm = (
               },
             },
           }),
-          ...(input.system === undefined ? {} : { system: input.system }),
+          instructions: input.system,
         });
-        return { object: result.output, usage: result.totalUsage };
+        return { object: result.output, usage: result.usage };
       },
       catch: (cause) =>
         NoObjectGeneratedError.isInstance(cause)
@@ -127,16 +132,14 @@ export const makeLlm = (
           model,
           prompt: input.prompt,
           abortSignal: signal,
-          ...(input.system === undefined ? {} : { system: input.system }),
-          ...(input.tools === undefined ? {} : { tools: input.tools }),
-          ...(input.stopWhen === undefined
-            ? {}
-            : { stopWhen: input.stopWhen as StopCondition<any, any> }),
+          instructions: input.system,
+          tools: input.tools,
+          stopWhen: input.stopWhen,
         });
         return {
           text: result.text,
           steps: result.steps,
-          usage: result.totalUsage,
+          usage: result.usage,
           toolCalls: result.steps.flatMap((step) => step.toolCalls),
         } satisfies LlmRunResult;
       },

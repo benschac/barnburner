@@ -353,11 +353,14 @@ test("tagged errors round-trip and carry their context", () => {
     new NoPath({ from: 11, to: 19 }),
     new UnsupportedFilter({ relation: "either" }),
   ];
+  const schema = Schema.Union([
+    HistoryUnavailable,
+    UnknownPlayer,
+    UnknownRoster,
+    NoPath,
+    UnsupportedFilter,
+  ]);
   for (const error of errors) {
-    const schema = error.constructor as unknown as Schema.Codec<
-      typeof error,
-      unknown
-    >;
     const decoded = Schema.decodeUnknownSync(schema)(
       Schema.encodeSync(schema)(error)
     );
@@ -590,8 +593,8 @@ test("the fake store agrees with the C-mini arrays", () => {
 
 test("sharedGames lists one span by kind, and the same player twice is no pair", () => {
   const store = makeMiniStore();
-  const ids = (a: number, b: number, link: "PlayedWith" | "GoaliePartners") =>
-    Effect.runSync(store.sharedGames(a, b, 19511952, 2, 3, link)).map(
+  const ids = (a: number, b: number, kind: "PlayedWith" | "GoaliePartners") =>
+    Effect.runSync(store.sharedGames(a, b, 19511952, 2, 3, kind)).map(
       (r) => r.gameId
     );
   assert.deepEqual(

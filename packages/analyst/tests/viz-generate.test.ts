@@ -56,14 +56,10 @@ test("generateView returns title, code, model and usage", async () => {
 });
 
 test("generateView summarises a 1,000-row table: three rows, the count and the columns", async () => {
-  const row = (i: number): Tables[string][number] => {
-    const base: Record<string, string | number | null> = {
-      id: i,
-      team: `team-${i}`,
-    };
-    if (i === 3) base.late = 1;
-    return base;
-  };
+  const row = (i: number): Tables[string][number] =>
+    i === 3
+      ? { id: i, team: `team-${i}`, late: 1 }
+      : { id: i, team: `team-${i}` };
   const rows: Tables[string] = Array.from({ length: 1000 }, (_, i) => row(i));
   const model = stub([reply(good)]);
   await run(generateView({ ...base, tables: { games: rows }, model }));

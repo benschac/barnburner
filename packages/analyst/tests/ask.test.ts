@@ -64,7 +64,6 @@ for (const terminal of [true, false])
 
 test("ask answers a canonical cell and traces the executed tool", async () => {
   const { openDb } = await import("../src/db.ts");
-  const { readFileSync } = await import("node:fs");
   const dir = mkdtempSync(join(tmpdir(), "ask-answer-"));
   const model = new MockLanguageModelV4({
     doGenerate: async () => ({

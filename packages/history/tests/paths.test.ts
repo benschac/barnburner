@@ -3,15 +3,10 @@ import { test } from "node:test";
 
 import { Array, Order, Result, Schema } from "effect";
 
+import { UNREACHED, countChainsBy } from "../src/chain-search.ts";
 import { NoPath, UnknownPlayer } from "../src/contracts.ts";
 import { makeGraph } from "../src/graph.ts";
-import {
-  UNREACHED,
-  bfsDistances,
-  countChainsBy,
-  countShortestChains,
-  findPaths,
-} from "../src/paths.ts";
+import { bfsDistances, countShortestChains, findPaths } from "../src/paths.ts";
 import { findRelationPaths } from "../src/relation-paths.ts";
 import { DEFAULT_FILTER, PATH_COUNT_CAP } from "../src/shapes.ts";
 import type { Filter, GraphArrays, PathResult } from "../src/shapes.ts";

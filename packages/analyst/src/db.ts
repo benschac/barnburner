@@ -215,9 +215,7 @@ export const openDb = (
               signal.removeEventListener("abort", cancel);
             }
           })();
-          void pending.then((result) => {
-            resume(Effect.succeed(result));
-          });
+          void pending.then((result) => Effect.succeed(result)).then(resume);
           return Effect.promise(async () => {
             cancel();
             await pending;
