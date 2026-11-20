@@ -1,5 +1,5 @@
 import { Renderer as WebGLRenderer } from '@antv/g-webgl'
-import { Graph, GraphEvent } from '@antv/g6'
+import { Graph } from '@antv/g6'
 import { Array, Order } from 'effect'
 import type { BenchData, BenchRenderer, VizTheme } from '@nhl-reddit-stats/viz'
 
@@ -58,15 +58,10 @@ const renderer: BenchRenderer = {
       },
       layout: { type: 'd3-force', animation: false },
     })
-    // mount resolves when the layout has settled: G6's GraphEvent.AFTER_LAYOUT ('afterlayout'),
-    // emitted once the non-animated d3-force simulation has finished.
-    const settled = new Promise<void>((resolve) => {
-      graph.once(GraphEvent.AFTER_LAYOUT, () => {
-        resolve()
-      })
-    })
+    // mount resolves when the layout has settled: render() awaits the post layout, the non-animated
+    // d3-force simulation, before it resolves.
     try {
-      await Promise.all([graph.render(), settled])
+      await graph.render()
     } catch (error) {
       graph.destroy()
       throw error
