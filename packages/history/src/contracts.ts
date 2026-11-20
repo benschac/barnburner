@@ -144,16 +144,19 @@ export const StintSchema = Schema.Struct({
 });
 
 /** A roster row's tie to the focus player. Goalie partners mean that is the only tie. */
+export const PlayedWithLink = Schema.TaggedStruct("PlayedWith", {
+  games: Count,
+  evidenceGameId: Schema.Int,
+});
+export const GoaliePartnersLink = Schema.TaggedStruct("GoaliePartners", {
+  games: Count,
+  evidenceGameId: Schema.Int,
+});
+export const NoLink = Schema.TaggedStruct("NoLink", {});
 export const RosterLinkSchema = Schema.Union([
-  Schema.TaggedStruct("PlayedWith", {
-    games: Count,
-    evidenceGameId: Schema.Int,
-  }),
-  Schema.TaggedStruct("GoaliePartners", {
-    games: Count,
-    evidenceGameId: Schema.Int,
-  }),
-  Schema.TaggedStruct("NoLink", {}),
+  PlayedWithLink,
+  GoaliePartnersLink,
+  NoLink,
 ]);
 export const RosterEntrySchema = Schema.Struct({
   playerId: Schema.Int,
