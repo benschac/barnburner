@@ -1,4 +1,4 @@
-import { Result, Schema } from 'effect'
+import { Array as Arr, Order, Result, Schema } from 'effect'
 import { EgoTables, LeagueTables } from '@nhl-reddit-stats/viz/contracts'
 import type { BenchData } from '@nhl-reddit-stats/viz/contracts'
 
@@ -9,9 +9,19 @@ import type { BenchData } from '@nhl-reddit-stats/viz/contracts'
  * moves the camera by the time since the last frame: a pan by (dxPerSecond, dyPerSecond) pixels a second,
  * a zoom by `factorPerSecond` a second.
  */
-export type BenchStep =
-  | { readonly _tag: 'pan'; readonly fromMs: number; readonly toMs: number; readonly dxPerSecond: number; readonly dyPerSecond: number }
-  | { readonly _tag: 'zoom'; readonly fromMs: number; readonly toMs: number; readonly factorPerSecond: number }
+const PanStep = Schema.TaggedStruct('pan', {
+  fromMs: Schema.Finite,
+  toMs: Schema.Finite,
+  dxPerSecond: Schema.Finite,
+  dyPerSecond: Schema.Finite,
+})
+const ZoomStep = Schema.TaggedStruct('zoom', {
+  fromMs: Schema.Finite,
+  toMs: Schema.Finite,
+  factorPerSecond: Schema.Finite,
+})
+const BenchStepSchema = Schema.Union([PanStep, ZoomStep])
+export type BenchStep = typeof BenchStepSchema.Type
 
 export const scriptMs = 10_000
 const phaseMs = 1000
@@ -26,11 +36,11 @@ export function benchScript(): ReadonlyArray<BenchStep> {
     const fromMs = index * phaseMs
     const toMs = fromMs + phaseMs
     switch (index % 5) {
-      case 0: steps.push({ _tag: 'pan', fromMs, toMs, dxPerSecond: 240, dyPerSecond: 0 }); break
-      case 1: steps.push({ _tag: 'zoom', fromMs, toMs, factorPerSecond: 2 }); break
-      case 2: steps.push({ _tag: 'pan', fromMs, toMs, dxPerSecond: -160, dyPerSecond: 160 }); break
-      case 3: steps.push({ _tag: 'zoom', fromMs, toMs, factorPerSecond: 0.5 }); break
-      default: steps.push({ _tag: 'pan', fromMs, toMs, dxPerSecond: -80, dyPerSecond: -160 })
+      case 0: steps.push(PanStep.make({ fromMs, toMs, dxPerSecond: 240, dyPerSecond: 0 })); break
+      case 1: steps.push(ZoomStep.make({ fromMs, toMs, factorPerSecond: 2 })); break
+      case 2: steps.push(PanStep.make({ fromMs, toMs, dxPerSecond: -160, dyPerSecond: 160 })); break
+      case 3: steps.push(ZoomStep.make({ fromMs, toMs, factorPerSecond: 0.5 })); break
+      default: steps.push(PanStep.make({ fromMs, toMs, dxPerSecond: -80, dyPerSecond: -160 }))
     }
   }
   return steps
@@ -53,7 +63,7 @@ export function overlaps(
 /** The median of a list; 0 for an empty list. */
 export function median(values: ReadonlyArray<number>): number {
   if (values.length === 0) return 0
-  const sorted = [...values].sort((a, b) => a - b)
+  const sorted = Arr.sort(values, Order.Number)
   const mid = Math.floor(sorted.length / 2)
   return sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
 }

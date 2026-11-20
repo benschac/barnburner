@@ -2,11 +2,11 @@ import { useRef, useState } from 'react'
 import { View } from 'tamagui'
 import type { TamaguiElement } from 'tamagui'
 import type { ReactNode } from 'react'
-import { Effect, Result, Schema } from 'effect'
+import { Result, Schema } from 'effect'
 import { benchDataFromTables } from '../../bench/stats.ts'
 import { samples } from '@nhl-reddit-stats/viz/samples'
 import type { BenchData, BenchRenderer, LabEntry } from '@nhl-reddit-stats/viz'
-import { loadRenderer, readBenchFile, runBench } from '../../bench/harness.ts'
+import { useBenchRuns } from '../../../use-bench-runs.ts'
 import type { BenchResult } from '../../bench/harness.ts'
 import { useVizTheme } from '../../theme.ts'
 
@@ -24,10 +24,13 @@ const toPrettyJson = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown, { s
 const egoData: BenchData = benchDataFromTables(samples.ego.tables)
 const leagueData: BenchData = benchDataFromTables(samples.league.tables)
 
-type Source = 'ego' | 'league' | 'file'
+const Source = Schema.Literals(['ego', 'league', 'file'])
+type Source = typeof Source.Type
+const isSource = Schema.is(Source)
 
 function BenchPage() {
   const theme = useVizTheme()
+  const benchRuns = useBenchRuns()
   const root = useRef<TamaguiElement>(null)
   const latestFile = useRef(0)
   const [renderer, setRenderer] = useState(renderers[0]?.id ?? '')
@@ -49,7 +52,7 @@ function BenchPage() {
     if (!file) return
     setSource('file')
     setNote(`Reading ${file.name}`)
-    void Effect.runPromise(Effect.result(readBenchFile(file))).then((outcome) => {
+    void benchRuns.readFile(file).then((outcome) => {
       if (ticket !== latestFile.current) return
       if (Result.isSuccess(outcome)) {
         setLoaded(outcome.success)
@@ -71,9 +74,7 @@ function BenchPage() {
     setRunning(true)
     setNote(`Running ${chosen.id}`)
     try {
-      const outcome = await Effect.runPromise(Effect.result(
-        loadRenderer(chosen.id, () => context(chosen.key)).pipe(Effect.flatMap((loaded) => runBench(loaded, data, theme, element))),
-      ))
+      const outcome = await benchRuns.run(chosen.id, () => context(chosen.key), data, theme, element)
       if (Result.isSuccess(outcome)) {
         setResults((previous) => [...previous, outcome.success])
         setNote('')
@@ -97,7 +98,7 @@ function BenchPage() {
         </select>
       </label>{' '}
       <label>Dataset{' '}
-        <select value={source} onChange={(event) => setSource(event.target.value as Source)}>
+        <select value={source} onChange={(event) => { if (isSource(event.target.value)) setSource(event.target.value) }}>
           <option value="ego">ego sample</option>
           <option value="league">league sample</option>
           <option value="file" disabled={!loaded}>loaded file</option>

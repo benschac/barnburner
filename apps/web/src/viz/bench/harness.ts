@@ -29,19 +29,20 @@ type Camera = { pan(dx: number, dy: number): void; zoom(factor: number): void }
  * because the browser pauses animation callbacks and the gap would count as a frame.
  * Resolves the time (ms from the first frame) of each frame.
  */
-function drive(handle: Camera): Promise<ReadonlyArray<number>> {
+function drive(handle: Camera): Effect.Effect<ReadonlyArray<number>, string> {
   const script = benchScript()
-  return new Promise((resolve, reject) => {
+  return Effect.callback<ReadonlyArray<number>, string>((resume) => {
     const hiddenMessage = 'the tab was hidden during the run; the run is discarded'
     let done = false
     let origin: number | undefined
     let last = 0
+    let frame = 0
     const times: number[] = []
     const onVisibility = () => {
       if (document.visibilityState !== 'hidden' || done) return
       done = true
       document.removeEventListener('visibilitychange', onVisibility)
-      reject(hiddenMessage)
+      resume(Effect.fail(hiddenMessage))
     }
     const tick = (timestamp: number) => {
       if (done) return
@@ -58,17 +59,22 @@ function drive(handle: Camera): Promise<ReadonlyArray<number>> {
       if (now >= scriptMs) {
         done = true
         document.removeEventListener('visibilitychange', onVisibility)
-        resolve(times)
+        resume(Effect.succeed(times))
       } else {
-        requestAnimationFrame(tick)
+        frame = requestAnimationFrame(tick)
       }
     }
     if (document.visibilityState === 'hidden') {
-      reject(hiddenMessage)
+      resume(Effect.fail(hiddenMessage))
       return
     }
     document.addEventListener('visibilitychange', onVisibility)
-    requestAnimationFrame(tick)
+    frame = requestAnimationFrame(tick)
+    return Effect.sync(() => {
+      done = true
+      cancelAnimationFrame(frame)
+      document.removeEventListener('visibilitychange', onVisibility)
+    })
   })
 }
 
@@ -115,7 +121,7 @@ export const runBench = (
     const started = performance.now()
     const handle = yield* Effect.tryPromise({ try: () => renderer.mount(root, data, theme), catch: fail('mount') })
     const settleMs = performance.now() - started
-    const driven = yield* Effect.result(Effect.tryPromise({ try: () => drive(handle), catch: fail('drive') }))
+    const driven = yield* Effect.result(drive(handle).pipe(Effect.mapError(fail('drive'))))
     const cleaned = yield* Effect.result(Effect.try({ try: () => handle.destroy(), catch: fail('destroy') }))
     if (Result.isFailure(driven)) return yield* driven.failure
     if (Result.isFailure(cleaned)) return yield* cleaned.failure
