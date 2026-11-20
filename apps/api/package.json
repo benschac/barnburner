@@ -20,7 +20,7 @@
     "history:accept": "node scripts/history-accept.ts",
     "history:fetch": "node scripts/fetch-history.ts",
     "history:query": "node scripts/history-query.ts",
-    "typecheck": "effect-tsgo tsrs@0.21.0-ts7.1.0-beta --noEmit -p tsconfig.json",
+    "typecheck": "effect-tsgo tsrs@7.1.0-beta.tsrs3 --noEmit -p tsconfig.json",
     "lint": "bun run --parallel --no-exit-on-error lint:oxlint lint:errors lint:core lint:index",
     "lint:oxlint": "node ../../tools/oxlint/anti-slop/modes/with-changes.ts effect-tsgo --tsrs-lint oxlint src tests scripts",
     "lint:errors": "node ../../scripts/check-error-model.mjs scripts/fetch-history.ts",
