@@ -201,7 +201,7 @@ test("opponent arrays load lazily and match the fixture", () =>
     assert.deepEqual(plain(oppA), plain(MINI_OPPONENTS.oppA));
     assert.deepEqual(plain(oppB), plain(MINI_OPPONENTS.oppB));
     assert.deepEqual(plain(oppGames), plain(MINI_OPPONENTS.oppGames));
-    assert.equal(store.graph.arrays.oppA, store.graph.arrays.oppA);
+    assert.equal(store.graph.arrays.oppA, oppA);
   }));
 
 test("searchPlayers folds accents and orders by games then id", () =>

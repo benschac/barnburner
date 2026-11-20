@@ -73,7 +73,14 @@ function workDir() {
   return mkdtempSync(join(tmpdir(), "fetch-history-"));
 }
 
-function writePointer(dir: string, overrides: Record<string, unknown> = {}) {
+type PointerOverrides = {
+  readonly snapshotId?: string;
+  readonly url?: string;
+  readonly sha256?: string;
+  readonly bytes?: number;
+};
+
+function writePointer(dir: string, overrides: PointerOverrides = {}) {
   const pointerPath = join(dir, "serving.json");
   const pointer = {
     snapshotId: "abcdef012345",

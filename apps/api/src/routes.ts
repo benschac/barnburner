@@ -1,5 +1,6 @@
 import { TeamRpcs } from "@nhl-reddit-stats/season/rpc";
 import { ByteSize, Effect, Layer } from "effect";
+import type { Schema } from "effect";
 import {
   HttpIncomingMessage,
   HttpRouter,
@@ -8,19 +9,16 @@ import {
 } from "effect/http";
 import { RpcSerialization, RpcServer } from "effect/rpc";
 
-import { BoxScores, getGameBoxscore } from "./boxscores.ts";
+import { getGameBoxscore } from "./boxscores.ts";
 import { Snapshots } from "./snapshots.ts";
 
 const handlers = TeamRpcs.toLayer(
   Effect.gen(function* () {
     const snapshots = yield* Snapshots;
-    const boxScores = yield* BoxScores;
     return {
       GetTeamData: () => snapshots.load,
       GetGameBoxscore: ({ gameId }) =>
-        getGameBoxscore(snapshots.season, gameId).pipe(
-          Effect.provideService(BoxScores, boxScores)
-        ),
+        getGameBoxscore(snapshots.season, gameId),
     };
   })
 );
@@ -36,7 +34,7 @@ const rpcBodyLimit = HttpRouter.middleware((httpEffect) =>
 
 const json = (
   status: number,
-  body: unknown,
+  body: Schema.JsonObject,
   headers: Record<string, string> = {}
 ) =>
   HttpServerResponse.jsonUnsafe(body, {

@@ -106,9 +106,11 @@ test("GetGameBoxscore returns a trimmed summary of the archived file", async () 
         Order.Number
       ),
       Array.sort(
-        skaters
-          .filter((player: { points: number }) => player.points > 0)
-          .map((player: { playerId: number }) => player.playerId),
+        Array.flatMapNullishOr(
+          skaters,
+          (player: { points: number; playerId: number }) =>
+            player.points > 0 ? player.playerId : null
+        ),
         Order.Number
       )
     );

@@ -19,8 +19,7 @@ const bundledFile = [
 const historyLayer = Layer.unwrap(
   Effect.gen(function* () {
     const fromEnv = yield* Config.String("HISTORY_DB").pipe(
-      Config.withDefault(""),
-      Effect.orDie
+      Config.withDefault("")
     );
     return History.layer(fromEnv || bundledFile);
   })
