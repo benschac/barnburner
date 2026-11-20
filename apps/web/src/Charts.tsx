@@ -421,7 +421,7 @@ export function Chart({
   const height = contract.size[heightToken];
   const geometry = useMemo(() => chartGeometry(data, kind), [data, kind]);
   const displayed = useRef<ChartGeometry | null>(null);
-  const redraw = useRef<(() => void) | null>(null);
+  const redraw = useRef<((highlight: number | null) => void) | null>(null);
   const currentHighlight = useEffectEvent(() => activeGame);
   useEffect(() => {
     let cancelled = false;
@@ -430,7 +430,7 @@ export function Chart({
     let context: CanvasRenderingContext2D | null = null;
     let axis: CanvasRenderingContext2D | null = null;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const paint = () => {
+    const paint = (highlight: number | null) => {
       if (context && axis)
         drawChart(
           context,
@@ -438,7 +438,7 @@ export function Chart({
           kind,
           colors,
           font,
-          printing ? null : currentHighlight(),
+          printing ? null : highlight,
           data,
           displayed.current ?? geometry
         );
@@ -446,7 +446,7 @@ export function Chart({
     const finish = () => {
       cancelAnimationFrame(frame);
       displayed.current = geometry;
-      paint();
+      paint(currentHighlight());
     };
     const beforePrint = () => {
       printing = true;
@@ -454,7 +454,7 @@ export function Chart({
     };
     const afterPrint = () => {
       printing = false;
-      paint();
+      paint(currentHighlight());
     };
     const motionChanged = () => {
       if (reducedMotion.matches) finish();
@@ -478,7 +478,7 @@ export function Chart({
           progress === 1
             ? geometry
             : interpolateGeometry(from, geometry, chartEase(progress));
-        paint();
+        paint(currentHighlight());
         if (progress < 1) frame = requestAnimationFrame(animate);
       };
       frame = requestAnimationFrame(animate);
@@ -498,7 +498,7 @@ export function Chart({
   }, [kind, height, colors, font, data, geometry]);
 
   useEffect(() => {
-    redraw.current?.();
+    redraw.current?.(activeGame);
   }, [activeGame]);
 
   useEffect(() => {

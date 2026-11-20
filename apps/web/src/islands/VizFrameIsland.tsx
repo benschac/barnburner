@@ -1,7 +1,7 @@
 "use client";
 
-import { FrameReport, Render, VizTheme } from "@nhl-reddit-stats/viz";
-import type { Tables } from "@nhl-reddit-stats/viz";
+import { FrameReport, Render } from "@nhl-reddit-stats/viz";
+import type { Tables, VizTheme } from "@nhl-reddit-stats/viz";
 import { createEffectActor } from "@xstate/effect";
 import { Effect, Match, Option, Schema, Scope } from "effect";
 import { useEffect, useRef, useState } from "react";
@@ -18,8 +18,6 @@ import { useVizTheme } from "../viz/theme.ts";
 const FRAME_URL = "/viz-frame/viz-frame.html";
 const LIMIT_MS = 10_000;
 const MAX_TIMEOUTS = 3;
-
-const themeKey = Schema.encodeSync(Schema.fromJsonString(VizTheme));
 
 type Phase = "loading" | "rendering" | "rendered" | "failed";
 
@@ -45,8 +43,7 @@ function Frame(props: FrameProps) {
   const latest = useRef<Latest>(props);
   const [phase, setPhase] = useState<Phase>("loading");
   const [message, setMessage] = useState("");
-  const draw = useRef<() => void>(idle);
-  const key = themeKey(props.theme);
+  const draw = useRef<(tables: Tables, theme: VizTheme) => void>(idle);
 
   useScopedProgram(() => {
     let ready = false;
@@ -63,13 +60,13 @@ function Frame(props: FrameProps) {
         else if (snapshot.matches("rendered")) setPhase("rendered");
         else if (snapshot.matches("rendering")) setPhase("rendering");
       });
-      draw.current = () => {
+      draw.current = (tables, theme) => {
         const target = frame.current?.contentWindow;
         if (!ready || !target) return;
         count += 1;
         lastId = `render-${count}`;
         actor.send({ type: "Render", id: lastId });
-        const { code, tables, theme } = latest.current;
+        const { code } = latest.current;
         latest.current.onRender?.(lastId);
         target.postMessage(
           Render.make({ id: lastId, code, tables, theme }),
@@ -89,7 +86,7 @@ function Frame(props: FrameProps) {
                 if (ready) return;
                 ready = true;
                 actor.send({ type: "Ready" });
-                draw.current();
+                draw.current(latest.current.tables, latest.current.theme);
               },
               Rendered: ({ id }) => {
                 actor.send({ type: "Rendered", id });
@@ -121,8 +118,8 @@ function Frame(props: FrameProps) {
 
   // The same code with new tables or a new theme: redraw in this frame.
   useEffect(() => {
-    draw.current();
-  }, [key, props.tables]);
+    draw.current(props.tables, props.theme);
+  }, [props.tables, props.theme]);
 
   return (
     <View gap="2">
