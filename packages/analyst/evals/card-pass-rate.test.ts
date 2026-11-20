@@ -10,8 +10,11 @@ const none = new Set<number>()
 // Fails the check named on the card (card.check), passes cards without one.
 const verifyByCheck: Verify = (card) =>
   Effect.succeed(
+    typeof card === 'object' &&
+    card !== null &&
     // foreign: card is unknown here, as it is for the real verifier
-    typeof card === 'object' && card !== null && 'check' in card && typeof card.check === 'number'
+    'check' in card &&
+    typeof card.check === 'number'
       ? { ok: false as const, check: card.check, detail: 'fake' }
       : { ok: true as const },
   )

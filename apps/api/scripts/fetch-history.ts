@@ -7,6 +7,7 @@
 // also removes any stale output so an old snapshot is never served; `--keep-existing` or
 // HISTORY_KEEP_LOCAL=1 keeps a hand-staged file. The pointer is fully validated before any network I/O. If
 // the output already matches the pointer, the download is skipped.
+
 import { createHash, randomBytes } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'

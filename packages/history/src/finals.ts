@@ -1,4 +1,5 @@
 // Stanley Cup Finals coverage (C-search): in which Finals did a teammate of a player play?
+
 import { Array, Effect, Order } from 'effect'
 import { HistoryUnavailable, UnknownPlayer } from './contracts.ts'
 import type { TeammateGraph } from './graph.ts'

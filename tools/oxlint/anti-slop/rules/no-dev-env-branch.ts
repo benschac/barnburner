@@ -3,6 +3,7 @@
 // MIT, eslint-plugin-ai-guard 1.4.7), which reports the same shortcut for test runners. Development branches
 // are mostly legitimate tooling (devtools, extra logging, local URLs), so this rule reports only fake data,
 // success responses, and skipped checks, not every literal a development branch returns.
+
 import { defineRule } from "@oxlint/plugins";
 
 import type { ESTree, SourceCode } from "@oxlint/plugins";

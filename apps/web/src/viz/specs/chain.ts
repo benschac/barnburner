@@ -51,8 +51,10 @@ const seasonLabel = (seasonId: number): string => {
 
 export const chainGraph = (tables: ChainTables): ChainGraph => {
   const summary = tables.summary[0]
-  // defect: a chain answer always carries one summary row
-  if (summary === undefined) throw new Error('chain tables have no summary row')
+  if (summary === undefined) {
+    // defect: a chain answer always carries one summary row
+    throw new Error('chain tables have no summary row')
+  }
   const players = new Map(tables.players.map((player) => [player.playerId, player]))
   const abbrevs = new Map(tables.teams.map((team) => [team.teamId, team.abbrev]))
   const hops = tables.hops.toSorted((a, b) => a.chain - b.chain || a.step - b.step)
@@ -62,8 +64,10 @@ export const chainGraph = (tables: ChainTables): ChainGraph => {
     const id = String(playerId)
     if (nodes.has(id)) return
     const player = players.get(playerId)
-    // defect: a hop names a player the tables do not list
-    if (player === undefined) throw new Error(`chain tables have no players row for ${playerId}`)
+    if (player === undefined) {
+      // defect: a hop names a player the tables do not list
+      throw new Error(`chain tables have no players row for ${playerId}`)
+    }
     nodes.set(id, {
       id,
       data: {

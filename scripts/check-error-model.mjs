@@ -3,6 +3,7 @@
 // Enforces the error model in AGENTS.md: package source returns expected failures as tagged
 // errors. It rejects a class that extends Error directly and any throw that is not marked as a
 // defect by a "// defect: <reason>" comment on the line above it.
+
 import { logError } from '../lib/logger.mjs'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'

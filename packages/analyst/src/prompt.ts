@@ -30,8 +30,10 @@ export const buildPrompt = ({ team, views, coverage, posterFacts }: PromptInput)
   }
   return template.replace(/\{\{(\w+)\}\}/g, (token, key: string) => {
     const value = values[key]
-    // defect: generate.md ships with this package; an unknown token is a programming error
-    if (value === undefined) throw new Error(`generate.md has an unknown token ${token}`)
+    if (value === undefined) {
+      // defect: generate.md ships with this package; an unknown token is a programming error
+      throw new Error(`generate.md has an unknown token ${token}`)
+    }
     return value
   })
 }

@@ -1,4 +1,5 @@
 /* oxlint-disable no-restricted-imports, no-restricted-properties -- legacy: port to the Effect platform services, see "Node scripts" in AGENTS.md */
+
 import { logError, logInfo } from '../lib/logger.mjs'
 import { readFile, writeFile, rename, unlink, mkdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'

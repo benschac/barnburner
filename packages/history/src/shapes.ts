@@ -1,6 +1,7 @@
 // Data shapes shared by the search lane, the store port, and the RPC contract.
 // Player IDs, never indexes, cross every boundary except `GraphArrays` itself.
 // The tagged shapes (hops and Finals years) are schemas, defined once here; `contracts.ts` reuses them.
+
 import { Schema } from 'effect'
 
 /** The five positions in the players table (C-serve). */

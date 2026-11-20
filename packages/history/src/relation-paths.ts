@@ -2,6 +2,7 @@
 // walks teammate links (both kinds, default filter) and opponent links. Same shape as `paths.ts`: a
 // breadth-first sweep from the target, then a layer DP for the tied-chain count and a depth-first listing in D6
 // order. A pair linked both ways is ONE edge in `either`: a teammate link. Pure, typed arrays only.
+
 import { Array, Order, Result } from 'effect'
 import { HistoryUnavailable, NoPath, UnsupportedFilter } from './contracts.ts'
 import { linkIdBetween, linkPassingGames, opponentAdjacency } from './graph.ts'
