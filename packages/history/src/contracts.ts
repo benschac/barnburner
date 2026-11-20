@@ -31,7 +31,7 @@ export class UnknownPlayer extends Schema.TaggedError<
   UnknownPlayer,
   { readonly brand: unique symbol }
 >()("UnknownPlayer", {
-  // @effect-diagnostics-next-line schemaNumber:off
+  // @effect-diagnostics-next-line schemaNumber:off -- any number, see the comment above: an Int would make the constructor throw
   playerId: Schema.Number,
 }) {}
 

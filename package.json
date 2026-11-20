@@ -60,6 +60,7 @@
     "eslint-plugin-ai-guard": "1.4.7",
     "oxfmt": "0.79.0",
     "oxlint": "1.94.0",
+    "oxlint-plugin-effect": "0.32.4",
     "oxlint-plugin-jev": "file:./tools/oxlint/oxlint-plugin-jev",
     "turbo": "2.11.10",
     "ultracite": "8.3.1",
