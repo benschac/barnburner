@@ -25,21 +25,24 @@ test("runEvals grades, flags invalid cases, and survives answerer failures", asy
     "sql-fail": [{ value: 1 }],
     "sql-throw": [{ value: 1 }],
   });
-  const scripted: Record<string, () => Effect.Effect<EvalAnswer>> = {
-    ok: () => Effect.succeed({ _tag: "Answered", value: 5 }),
-    wrong: () => Effect.succeed({ _tag: "Answered", value: 6 }),
-    fail: () => Effect.die(new Error("boom")),
-    throw: () => {
-      throw new Error("sync boom");
-    },
-    dec: () => Effect.succeed({ _tag: "Declined" }),
-  };
+  const scripted = new Map<string, () => Effect.Effect<EvalAnswer>>([
+    ["ok", () => Effect.succeed({ _tag: "Answered", value: 5 })],
+    ["wrong", () => Effect.succeed({ _tag: "Answered", value: 6 })],
+    ["fail", () => Effect.die(new Error("boom"))],
+    [
+      "throw",
+      () => {
+        throw new Error("sync boom");
+      },
+    ],
+    ["dec", () => Effect.succeed({ _tag: "Declined" })],
+  ]);
   const out = await Effect.runPromise(
     runEvals({
       db,
       answerer: (e) =>
         (
-          scripted[e.id] ??
+          scripted.get(e.id) ??
           (() => Effect.succeed({ _tag: "Answered", value: 0 }))
         )(),
       cases: [

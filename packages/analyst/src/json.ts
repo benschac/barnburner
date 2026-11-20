@@ -1,4 +1,4 @@
-import { Result, Schema } from "effect";
+import { Array, Option, Result, Schema } from "effect";
 
 // The one JSON boundary for this package. Parsing returns `unknown`, so a caller has to decode
 // the value with a schema before using it.
@@ -34,4 +34,25 @@ export const toPrettyJson: (value: unknown) => string =
 
 // The value as it reads back from JSON: undefined fields dropped, dates as strings.
 export const jsonRoundTrip = (value: unknown): unknown =>
-  Result.getOrThrow(decodeCompact(toJson(value)));
+  Schema.decodeSync(Compact)(toJson(value));
+
+export type Checked<T> =
+  | { readonly ok: true; readonly input: T }
+  | { readonly ok: false; readonly reason: string };
+
+// Decodes model-supplied tool arguments. A failure reports the first line of the schema
+// message, so the schema's own `message` annotations become the text the model reads back.
+export const checkWith =
+  <S extends Schema.Decoder<unknown>>(schema: S) =>
+  (raw: unknown): Checked<S["Type"]> => {
+    const decoded = Schema.decodeUnknownResult(schema)(raw);
+    return Result.isSuccess(decoded)
+      ? { ok: true, input: decoded.success }
+      : {
+          ok: false,
+          reason: Option.getOrElse(
+            Array.head(decoded.failure.message.split("\n")),
+            () => decoded.failure.message
+          ),
+        };
+  };
