@@ -46,6 +46,66 @@ const unwrap = (node) =>
     ? unwrap(node.expression)
     : node;
 
+// True when the variable, or a member of it, is assigned or updated anywhere.
+const isReassigned = (variable) =>
+  variable.references.some((ref) => {
+    let use = ref.identifier.parent;
+    while (use?.type === "MemberExpression") use = use.parent;
+    return (
+      use?.type === "AssignmentExpression" || use?.type === "UpdateExpression"
+    );
+  });
+// True when the variable is a const declaration that nothing writes after its initializer.
+const isConstant = (variable) => {
+  const def = variable.defs[0];
+  return (
+    def?.node?.type === "VariableDeclarator" &&
+    def.parent?.kind === "const" &&
+    !variable.references.some((ref) => ref.isWrite() && !ref.init)
+  );
+};
+// True when the variable holds an object literal that is used other than as a JSX prop.
+const objectEscapes = (variable) =>
+  unwrap(variable.defs[0].node.init)?.type === "ObjectExpression" &&
+  variable.references.some((ref) => {
+    if (ref.init) return false;
+    // Object identity must never escape: calls and aliases may mutate it.
+    let use = ref.identifier;
+    while (use.parent?.type === "MemberExpression" && use.parent.object === use)
+      use = use.parent;
+    return use.parent?.type !== "JSXExpressionContainer";
+  });
+
+// The values of the const an identifier names, or null when it is not a constant the plugin can read.
+function identifierValues(node, context, seen) {
+  let scope = context.sourceCode.getScope(node);
+  while (scope) {
+    const variable = scope.set.get(node.name);
+    if (variable) {
+      if (
+        isReassigned(variable) ||
+        !isConstant(variable) ||
+        objectEscapes(variable)
+      )
+        return null;
+      return values(variable.defs[0].node.init, context, seen);
+    }
+    scope = scope.upper;
+  }
+  return null;
+}
+
+function objectValues(node, context, seen) {
+  const result = [];
+  for (const prop of node.properties) {
+    if (prop.type !== "Property" || prop.computed || prop.method) return null;
+    const val = values(prop.value, context, seen);
+    if (!val) return null;
+    result.push(...val);
+  }
+  return result;
+}
+
 function values(node, context, seen = new Set()) {
   node = unwrap(node);
   if (!node || seen.has(node)) return null;
@@ -58,59 +118,9 @@ function values(node, context, seen = new Set()) {
     const b = values(node.alternate, context, next);
     return a && b ? [...a, ...b] : null;
   }
-  if (node.type === "Identifier") {
-    let scope = context.sourceCode.getScope(node);
-    while (scope) {
-      const variable = scope.set.get(node.name);
-      if (variable) {
-        const def = variable.defs[0];
-        if (
-          variable.references.some((ref) => {
-            let use = ref.identifier.parent;
-            while (use?.type === "MemberExpression") use = use.parent;
-            return (
-              use?.type === "AssignmentExpression" ||
-              use?.type === "UpdateExpression"
-            );
-          })
-        )
-          return null;
-        if (
-          def?.node?.type !== "VariableDeclarator" ||
-          def.parent?.kind !== "const" ||
-          variable.references.some((ref) => ref.isWrite() && !ref.init)
-        )
-          return null;
-        if (
-          unwrap(def.node.init)?.type === "ObjectExpression" &&
-          variable.references.some((ref) => {
-            if (ref.init) return false;
-            // Object identity must never escape: calls and aliases may mutate it.
-            let use = ref.identifier;
-            while (
-              use.parent?.type === "MemberExpression" &&
-              use.parent.object === use
-            )
-              use = use.parent;
-            return use.parent?.type !== "JSXExpressionContainer";
-          })
-        )
-          return null;
-        return values(def.node.init, context, next);
-      }
-      scope = scope.upper;
-    }
-  }
-  if (node.type === "ObjectExpression") {
-    const result = [];
-    for (const prop of node.properties) {
-      if (prop.type !== "Property" || prop.computed || prop.method) return null;
-      const val = values(prop.value, context, next);
-      if (!val) return null;
-      result.push(...val);
-    }
-    return result;
-  }
+  if (node.type === "Identifier") return identifierValues(node, context, next);
+  if (node.type === "ObjectExpression")
+    return objectValues(node, context, next);
   if (node.type === "MemberExpression")
     return values(node.object, context, next);
   return null;
@@ -196,6 +206,13 @@ const isComponent = (opening) =>
 const knownProp = (attr) =>
   nameOf(attr.name) === "style" || categories.has(nameOf(attr.name));
 
+// Wrappers, objects, spreads and property values hand the value up to their parent.
+const passesUp = (parent, up) =>
+  wrappers.includes(parent.type) ||
+  parent.type === "ObjectExpression" ||
+  parent.type === "SpreadElement" ||
+  (parent.type === "Property" && parent.value === up);
+
 // Climb from a value or object member to the place that hands it to Tamagui: a JSX attribute, a JSX spread, or styled() options.
 function locate(context, node) {
   let up = node;
@@ -205,12 +222,7 @@ function locate(context, node) {
     if (!parent) return null;
     if (parent.type === "ConditionalExpression" && parent.test === up)
       return null;
-    if (
-      wrappers.includes(parent.type) ||
-      parent.type === "ObjectExpression" ||
-      parent.type === "SpreadElement" ||
-      (parent.type === "Property" && parent.value === up)
-    ) {
+    if (passesUp(parent, up)) {
       if (
         parent.type === "ObjectExpression" ||
         parent.type === "SpreadElement" ||
