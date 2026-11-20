@@ -33,16 +33,12 @@ type Scan = {
 
 // CTE names are resolved in lexical scope: a WITH clause is visible to later CTEs of the same clause
 // and to the rest of the query node that owns it, never to sibling or enclosing queries.
-const scan = (node: Json, scope: ReadonlySet<string>, state: Scan): void => {
-  if (state.reason !== null) return;
-  if (Array.isArray(node)) {
-    node.forEach((child) => {
-      scan(child, scope, state);
-    });
-    return;
-  }
-  if (!isObj(node)) return;
-
+// Returns the scope the rest of the node sees, after its recursive CTE and WITH clause are added.
+function scopeOf(
+  node: Obj,
+  scope: ReadonlySet<string>,
+  state: Scan
+): ReadonlySet<string> {
   let visible = scope;
   if (node.type === "RECURSIVE_CTE_NODE" && typeof node.cte_name === "string") {
     visible = new Set([...visible, node.cte_name.toLowerCase()]);
@@ -57,6 +53,20 @@ const scan = (node: Json, scope: ReadonlySet<string>, state: Scan): void => {
     }
     visible = inner;
   }
+  return visible;
+}
+
+function scan(node: Json, scope: ReadonlySet<string>, state: Scan): void {
+  if (state.reason !== null) return;
+  if (Array.isArray(node)) {
+    node.forEach((child) => {
+      scan(child, scope, state);
+    });
+    return;
+  }
+  if (!isObj(node)) return;
+
+  const visible = scopeOf(node, scope, state);
 
   // A table reference carries both `alias` and `sample`; every one must be a known-safe kind.
   // foreign: node is DuckDB's serialized SQL tree, which has no tag for table references
@@ -85,7 +95,7 @@ const scan = (node: Json, scope: ReadonlySet<string>, state: Scan): void => {
   }
   for (const [key, child] of Object.entries(node))
     if (key !== "cte_map") scan(child, visible, state);
-};
+}
 
 export const guardQuery: Guard = (db: Db, sql: string) =>
   db.query(`SELECT json_serialize_sql('${sqlLiteral(sql)}') AS tree`).pipe(
