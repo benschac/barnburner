@@ -124,18 +124,6 @@ Write new code to the three models below in every workspace. This table shows wh
 - Where absence would be a programming defect, check and `throw` with a `// defect: <reason>` comment, as in the error model.
 - `packages/viz` enforces this in `bun run lint` with `typescript/no-non-null-assertion`. Add the rule to a package's `.oxlintrc.json` when that package adopts it.
 
-# Non-null assertions
-
-- Do not write the non-null assertion `!`. Narrow with a check, restructure so the value is known to exist, or fail with a tagged error when absence is an expected outcome.
-- Where absence would be a programming defect, check and `throw` with a `// defect: <reason>` comment, as in the error model.
-- `packages/viz` enforces this in `bun run lint` with `typescript/no-non-null-assertion`. Add the rule to a package's `.oxlintrc.json` when that package adopts it.
-
-# Non-null assertions
-
-- Do not write the non-null assertion `!`. Narrow with a check, restructure so the value is known to exist, or fail with a tagged error when absence is an expected outcome.
-- Where absence would be a programming defect, check and `throw` with a `// defect: <reason>` comment, as in the error model.
-- `packages/viz` enforces this in `bun run lint` with `typescript/no-non-null-assertion`. Add the rule to a package's `.oxlintrc.json` when that package adopts it.
-
 # Design-system enforcement
 
 For web UI changes, follow [the enforced design contract](apps/web/design/README.md). Run `bun run lint` and `bun run check:tamagui`; use the shared contract rather than inventing literal style values or disabling design rules.
