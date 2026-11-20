@@ -8,6 +8,7 @@ import type { Atom } from 'effect/reactivity'
 import type { Schema } from 'effect'
 import type { ReactNode } from 'react'
 import { RelationSchema } from '@nhl-reddit-stats/history/rpc'
+import { delay } from '../../../use-delay.ts'
 import {
   Competition, Partners, WholeNumber, competitionAtom, decodeParam, encodeParam, filterAtom, fromAtom, fromSeasonAtom,
   partnersAtom, relationAtom, toAtom, toSeasonAtom, writeSearchParam,
@@ -30,16 +31,16 @@ type FieldProps<A extends string | number> = {
 function Field<A extends string | number>({ name, atom, schema }: FieldProps<A>) {
   const value = useAtomValue(atom)
   const [draft, setDraft] = useState<string | null>(null)
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const cancelWrite = useRef<(() => void) | undefined>(undefined)
   useEffect(() => {
     const onHistory = () => {
-      clearTimeout(timer.current)
+      cancelWrite.current?.()
       setDraft(null)
     }
     window.addEventListener('popstate', onHistory)
     return () => {
       window.removeEventListener('popstate', onHistory)
-      clearTimeout(timer.current)
+      cancelWrite.current?.()
     }
   }, [])
   const text = draft ?? show(value)
@@ -53,10 +54,10 @@ function Field<A extends string | number>({ name, atom, schema }: FieldProps<A>)
           onChange={(event) => {
             const next = event.target.value
             setDraft(next)
-            clearTimeout(timer.current)
-            timer.current = setTimeout(() => {
+            cancelWrite.current?.()
+            cancelWrite.current = delay(settleMs, () => {
               writeSearchParam(name, Option.getOrNull(Option.flatMap(decodeParam(schema)(next), encodeParam(schema))))
-            }, settleMs)
+            })
           }}
         />
       </label>
