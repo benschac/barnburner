@@ -119,7 +119,7 @@ if (import.meta.main) {
     // A defect only: every expected failure is handled by tag in run().
     await Effect.runPromise(run(parsed.success)).then((summary) => {
       if (summary !== undefined) process.stdout.write(`${toPrettyJson(summary)}\n`)
-    }, (defect: unknown) => {
+    }, (defect) => {
       // defect: an unexpected throw from a dependency, not a modelled failure
       logError(String(defect))
       process.exitCode = 1
