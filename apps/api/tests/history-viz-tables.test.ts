@@ -9,7 +9,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { Effect, Schema } from 'effect'
 import { ViewData } from '@nhl-reddit-stats/viz'
 import { chainSample, egoSample, leagueSample, opponentsSample, pairSample } from '@nhl-reddit-stats/viz/samples'
-import { MINI_ARRAYS, MINI_GAMES, MINI_SNAPSHOT_ID, makeMiniStore } from '../../../packages/history/tests/fakes.ts'
+import { MINI_ARRAYS, MINI_GAMES, MINI_OPPONENTS, MINI_SNAPSHOT_ID, makeMiniStore } from '../../../packages/history/tests/fakes.ts'
 
 const fake = makeMiniStore()
 const script = fileURLToPath(new URL('../scripts/history-viz-tables.ts', import.meta.url))
@@ -31,7 +31,7 @@ const blobs = {
   edge_a: MINI_ARRAYS.edgeA, edge_b: MINI_ARRAYS.edgeB, span_start: MINI_ARRAYS.spanStart,
   span_season: MINI_ARRAYS.spanSeason, span_kind: MINI_ARRAYS.spanKind, span_team: MINI_ARRAYS.spanTeam,
   span_link: MINI_ARRAYS.spanLink, span_games: MINI_ARRAYS.spanGames, span_first_game: MINI_ARRAYS.spanFirstGame,
-  opp_a: MINI_ARRAYS.oppA!, opp_b: MINI_ARRAYS.oppB!, opp_games: MINI_ARRAYS.oppGames!,
+  opp_a: MINI_OPPONENTS.oppA, opp_b: MINI_OPPONENTS.oppB, opp_games: MINI_OPPONENTS.oppGames,
 } satisfies Record<string, ArrayBufferView>
 
 /** Writes the C-mini serving database. Rows come from the in-memory fake so both sides share one source. */

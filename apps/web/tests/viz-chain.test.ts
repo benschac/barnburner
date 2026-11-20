@@ -29,7 +29,7 @@ test('chainGraph builds the sample chain graph', () => {
 
 test('chainGraph from a player to themself is one node and one empty chain', () => {
   const tables: ChainTables = {
-    players: [chainSample.tables.players[0]!],
+    players: chainSample.tables.players.slice(0, 1),
     teams: [],
     hops: [],
     summary: [{ from: 11, to: 11, distance: 0, pathCount: 1, pathCountCapped: 0 }],
