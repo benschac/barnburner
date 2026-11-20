@@ -51,7 +51,7 @@ export const runReview = async ({
   out,
   now,
 }: ReviewOptions): Promise<Result.Result<ReviewSummary, ReviewError>> => {
-  const next = async (): Promise<string | undefined> =>
+  const readAnswer = async (): Promise<string | undefined> =>
     (await nextLine())?.trim();
   const summary = { approved: 0, rejected: 0, skipped: 0 };
   let exhausted = false;
@@ -64,12 +64,13 @@ export const runReview = async ({
     const decided = (
       decision: Result.Result<InsightCard, NotPendingError>,
       changed: boolean
-    ) => Result.map(decision, (next) => ({ card: next, changed }));
+    ) =>
+      Result.map(decision, (updatedCard) => ({ card: updatedCard, changed }));
     const text = formatForReview(card);
     if (Result.isFailure(text)) return Result.fail(text.failure);
     out(text.success);
     out("[a]pprove / [r]eject / [e] skip:");
-    const answer = await next();
+    const answer = await readAnswer();
     if (answer === undefined) {
       exhausted = true;
       return Result.succeed({ card, changed: false });
@@ -81,10 +82,10 @@ export const runReview = async ({
     }
     if (key === "r") {
       out(`Reason (${REASONS.join(", ")}):`);
-      let reason = (await next())?.toLowerCase();
+      let reason = (await readAnswer())?.toLowerCase();
       while (reason !== undefined && !isReason(reason)) {
         out(`Unknown reason "${reason}".`);
-        reason = (await next())?.toLowerCase();
+        reason = (await readAnswer())?.toLowerCase();
       }
       if (reason === undefined) {
         exhausted = true;
@@ -114,7 +115,7 @@ export const runReview = async ({
       const result = await decide(card);
       if (Result.isFailure(result)) return Result.fail(result.failure);
       updated.push(result.success.card);
-      changed = changed || result.success.changed;
+      changed ||= result.success.changed;
     }
     if (changed) {
       const written = writeCards(dir, team, updated);
@@ -146,7 +147,9 @@ const main = async (): Promise<void> => {
         const next = await iterator.next();
         return next.done === true ? undefined : next.value;
       },
-      out: (text) => process.stdout.write(`${text}\n`),
+      out: (text) => {
+        process.stdout.write(`${text}\n`);
+      },
       now: DateTime.formatIso(await Effect.runPromise(DateTime.now)),
     });
     if (Result.isFailure(result)) {

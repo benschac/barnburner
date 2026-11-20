@@ -8,7 +8,7 @@ import { makeSnapshots, Snapshots } from "../src/snapshots.ts";
 export async function makeTestApi(
   season: unknown,
   expectedGamesPerTeam: number,
-  poster: unknown | null = null
+  poster: unknown = null
 ) {
   const snapshots = await Effect.runPromise(
     makeSnapshots({ season, poster, expectedGamesPerTeam })

@@ -111,15 +111,22 @@ export function summarize(events: readonly TraceEvent[]): RunSummary {
   };
 }
 
-export function formatSummary(runId: string, summary: RunSummary): string {
-  const lines: string[] = [];
-  lines.push(`Run ${runId}`);
-  lines.push(`Events: ${summary.events} (${formatCounts(summary.byType)})`);
-  lines.push(`Outcome: ${summary.outcome ?? "none"}`);
-  lines.push(`Cards: ${summary.cards}`);
-  lines.push(
-    `Tokens: ${summary.tokens.input} in / ${summary.tokens.output} out`
+function formatCounts(counts: Record<string, number>): string {
+  return (
+    Object.entries(counts)
+      .map(([key, count]) => `${key} ${count}`)
+      .join(", ") || "none"
   );
+}
+
+export function formatSummary(runId: string, summary: RunSummary): string {
+  const lines: string[] = [
+    `Run ${runId}`,
+    `Events: ${summary.events} (${formatCounts(summary.byType)})`,
+    `Outcome: ${summary.outcome ?? "none"}`,
+    `Cards: ${summary.cards}`,
+    `Tokens: ${summary.tokens.input} in / ${summary.tokens.output} out`,
+  ];
   for (const [model, usage] of Object.entries(summary.models)) {
     lines.push(
       `  ${model}: ${usage.calls} calls, ${usage.inputTokens} in / ${usage.outputTokens} out`
@@ -137,14 +144,6 @@ export function formatSummary(runId: string, summary: RunSummary): string {
     lines.push(`  check ${check}: ${count} failed`);
   }
   return lines.join("\n");
-}
-
-function formatCounts(counts: Record<string, number>): string {
-  return (
-    Object.entries(counts)
-      .map(([key, count]) => `${key} ${count}`)
-      .join(", ") || "none"
-  );
 }
 
 function parseArgs(argv: readonly string[]): { runId: string; dir: string } {

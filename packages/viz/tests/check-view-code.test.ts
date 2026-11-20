@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { checkViewCode } from "../src/check-view-code.ts";
 import type { ViewCodeProblem } from "../src/check-view-code.ts";
 
-const BT = String.fromCharCode(96); // a backtick, so template text can be written inside plain strings
+const BT = String.fromCodePoint(96); // a backtick, so template text can be written inside plain strings
 
 const module = (body: string): string =>
   [

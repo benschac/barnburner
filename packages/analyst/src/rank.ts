@@ -6,7 +6,7 @@ import { toJson } from "./json.ts";
 import { Llm } from "./llm.ts";
 import type { LlmError } from "./llm.ts";
 import { render } from "./render.ts";
-import type { RenderError, Row } from "./render.ts";
+import type { RenderError } from "./render.ts";
 
 export class RankError extends Schema.TaggedError<
   RankError,
@@ -94,7 +94,7 @@ type RenderedCard = {
 const renderCard = (
   card: InsightCard
 ): Result.Result<RenderedCard, DroppedCard> => {
-  const rows = card.evidence.result as unknown as Row[];
+  const rows = card.evidence.result;
   const dropped = (error: RenderError) =>
     Result.fail<DroppedCard>({
       id: card.id,

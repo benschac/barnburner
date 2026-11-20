@@ -379,9 +379,9 @@ export type BenchData = {
 
 /** What a mounted renderer lets the harness drive. */
 export type BenchHandle = {
-  pan(dx: number, dy: number): void;
-  zoom(factor: number): void;
-  destroy(): void;
+  readonly pan: (dx: number, dy: number) => void;
+  readonly zoom: (factor: number) => void;
+  readonly destroy: () => void;
 };
 
 /** A renderer could not mount. `message` is shown on the bench page; `cause` is the foreign failure, when there is one. */
@@ -406,9 +406,9 @@ export const benchMountError = (cause: unknown): BenchMountError =>
  */
 export type BenchRenderer = {
   readonly name: string;
-  mount(
+  readonly mount: (
     root: HTMLElement,
     data: BenchData,
     theme: VizTheme
-  ): Effect.Effect<BenchHandle, BenchMountError>;
+  ) => Effect.Effect<BenchHandle, BenchMountError>;
 };

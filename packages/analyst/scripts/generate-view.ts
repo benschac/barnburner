@@ -211,17 +211,15 @@ if (import.meta.main) {
     process.exitCode = 1;
   } else {
     // A defect only: every expected failure is handled by tag in run().
-    await Effect.runPromise(run(parsed.success)).then(
-      (summary) => {
-        if (summary !== undefined)
-          process.stdout.write(`${toPrettyJson(summary)}\n`);
-      },
-      (defect) => {
-        // defect: an unexpected throw from a dependency, not a modelled failure
-        logError(String(defect));
-        process.exitCode = 1;
-      }
-    );
+    try {
+      const summary = await Effect.runPromise(run(parsed.success));
+      if (summary !== undefined)
+        process.stdout.write(`${toPrettyJson(summary)}\n`);
+    } catch (defect) {
+      // defect: an unexpected throw from a dependency, not a modelled failure
+      logError(String(defect));
+      process.exitCode = 1;
+    }
   }
 }
 

@@ -137,7 +137,9 @@ test("runReview applies scripted answers and writes back", async () => {
   const summary = await runReview({
     dir,
     nextLine: scripted(["a", "r", "bogus", "wrong", ""]),
-    out: (text) => output.push(text),
+    out: (text) => {
+      output.push(text);
+    },
     now: NOW,
   });
   assert.deepEqual(
@@ -178,7 +180,9 @@ test("runReview shows each card before requesting an answer", async () => {
   const answers = ["a", "e"];
   await runReview({
     dir,
-    out: (text) => events.push(`out:${text.split("\n")[0]}`),
+    out: (text) => {
+      events.push(`out:${text.split("\n")[0]}`);
+    },
     nextLine: async () => {
       events.push("read");
       return answers.shift();

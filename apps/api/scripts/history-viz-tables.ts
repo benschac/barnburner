@@ -274,9 +274,9 @@ const app = root.pipe(
   ])
 );
 
-const fail = (message: string) =>
+const fail = (text: string) =>
   Effect.sync(() => {
-    process.stderr.write(`${message}\n`);
+    process.stderr.write(`${text}\n`);
     process.exitCode = 1;
   });
 

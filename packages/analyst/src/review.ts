@@ -85,7 +85,7 @@ export const formatForReview = (
   card: InsightCard
 ): Result.Result<string, RenderError> => {
   const bindings: Record<string, Binding> = card.bindings;
-  const rows = card.evidence.result as Row[];
+  const rows = card.evidence.result;
   const headline = render(card.headline, bindings, rows);
   if (Result.isFailure(headline)) return headline;
   const body = render(card.body, bindings, rows);

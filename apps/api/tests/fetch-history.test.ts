@@ -11,7 +11,6 @@ import {
 } from "node:fs";
 import { createServer } from "node:http";
 import type { Server } from "node:http";
-import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
@@ -19,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { gzipSync } from "node:zlib";
 
-import { Effect } from "effect";
+import { Effect, Predicate } from "effect";
 
 const execFileAsync = promisify(execFile);
 const script = fileURLToPath(
@@ -60,7 +59,9 @@ before(async () => {
       });
     })
   );
-  const { port } = server.address() as AddressInfo;
+  const address = server.address();
+  assert.ok(address !== null && typeof address === "object");
+  const { port } = address;
   baseUrl = `http://127.0.0.1:${port}`;
 });
 
@@ -97,11 +98,11 @@ async function run(args: string[], env: Record<string, string> = {}) {
     );
     return { status: 0, stdout, stderr };
   } catch (error) {
-    const failed = error as { code?: number; stdout?: string; stderr?: string };
+    const failed = Predicate.isObject(error) ? error : {};
     return {
-      status: failed.code ?? 1,
-      stdout: failed.stdout ?? "",
-      stderr: failed.stderr ?? "",
+      status: typeof failed.code === "number" ? failed.code : 1,
+      stdout: typeof failed.stdout === "string" ? failed.stdout : "",
+      stderr: typeof failed.stderr === "string" ? failed.stderr : "",
     };
   }
 }
@@ -144,7 +145,7 @@ test("a missing pointer logs a skip and exits 0 without a download", async () =>
   const dir = workDir();
   try {
     const out = join(dir, "nhl-serve.sqlite");
-    const before = hits;
+    const hitsBefore = hits;
     const result = await run([
       "--pointer",
       join(dir, "absent.json"),
@@ -154,7 +155,7 @@ test("a missing pointer logs a skip and exits 0 without a download", async () =>
     assert.equal(result.status, 0);
     assert.match(result.stdout, /no history pointer; skipping/);
     assert.equal(existsSync(out), false);
-    assert.equal(hits, before);
+    assert.equal(hits, hitsBefore);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -165,11 +166,11 @@ test("an existing file that matches the pointer skips the download", async () =>
   try {
     const out = join(dir, "nhl-serve.sqlite");
     writeFileSync(out, payload);
-    const before = hits;
+    const hitsBefore = hits;
     const result = await run(["--pointer", writePointer(dir), "--out", out]);
     assert.equal(result.status, 0);
     assert.match(result.stdout, /skipping download/);
-    assert.equal(hits, before);
+    assert.equal(hits, hitsBefore);
     assert.deepEqual(readFileSync(out), payload);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -207,7 +208,7 @@ test("an invalid pointer fails before any network request", async () => {
   const dir = workDir();
   try {
     const out = join(dir, "nhl-serve.sqlite");
-    const before = hits;
+    const hitsBefore = hits;
     for (const bad of [
       { snapshotId: "short" },
       { url: "http://example.com/x.gz" },
@@ -224,7 +225,7 @@ test("an invalid pointer fails before any network request", async () => {
       assert.equal(result.status, 1, JSON.stringify(bad));
       assert.match(result.stderr, /invalid/);
     }
-    assert.equal(hits, before);
+    assert.equal(hits, hitsBefore);
     assert.equal(existsSync(out), false);
   } finally {
     rmSync(dir, { recursive: true, force: true });
