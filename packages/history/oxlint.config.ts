@@ -15,6 +15,13 @@ export default defineConfig({
   },
   overrides: [
     {
+      // The package entry point re-exports the public API.
+      files: ["src/index.ts"],
+      rules: {
+        "oxc/no-barrel-file": "off",
+      },
+    },
+    {
       files: ["**/*.test.ts"],
       rules: {
         "typescript/no-floating-promises": "off",
