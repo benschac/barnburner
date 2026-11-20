@@ -35,7 +35,7 @@ test("llm: run returns text, steps, usage and toolCalls from a mock model", asyn
     }),
   });
   const result = await run(
-    Llm.run({ system: "be brief", prompt: "hi", model })
+    Llm.use((llm) => llm.run({ system: "be brief", prompt: "hi", model }))
   );
   assert.equal(result.text, "hello");
   assert.equal(result.steps.length, 1);
@@ -50,7 +50,9 @@ test("llm: failures map to LlmError", async () => {
       throw new Error("boom");
     },
   });
-  const error = await run(Llm.run({ prompt: "hi", model }).pipe(Effect.flip));
+  const error = await run(
+    Llm.use((llm) => llm.run({ prompt: "hi", model })).pipe(Effect.flip)
+  );
   assert.ok(Schema.is(LlmError)(error));
   assert.match(error.message, /boom/);
 });
