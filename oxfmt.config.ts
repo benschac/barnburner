@@ -20,6 +20,8 @@ export default defineConfig({
     // Vendored third-party code, kept identical to upstream.
     "tools/oxlint/oxlint-plugin-jev/**",
     "tools/oxlint/anti-slop/vendor/**",
+    // One HTML page with minified inline CSS and scripts; formatting it rewrites the whole file.
+    "docs/analyst-agent-plan.html",
     // Model prompts: reflowing them changes what the model reads.
     "packages/analyst/src/prompts/**",
   ],

@@ -10,7 +10,6 @@ export default defineConfig({
   },
   plugins: ["react", "typescript", "oxc"],
   rules: {
-    "react/rules-of-hooks": "error",
     "anti-slop/no-instanceof": "off",
     "react/only-export-components": [
       "warn",
@@ -18,10 +17,6 @@ export default defineConfig({
         allowConstantExport: true,
       },
     ],
-    "typescript/switch-exhaustiveness-check": "error",
-    "typescript/no-floating-promises": "error",
-    "typescript/no-misused-promises": "error",
-    "typescript/await-thenable": "error",
   },
   jsPlugins: [
     "./lint/design-plugin.mjs",

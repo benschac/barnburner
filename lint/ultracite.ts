@@ -1,9 +1,11 @@
-// Ultracite rules this repository turns off. lint/oxlint.ts applies these after Ultracite's presets
+// Ultracite rules this repository turns off or sets an option on. lint/oxlint.ts applies these after Ultracite's presets
 // and before the house configs, so a house config that sets one of these rules still wins.
 //
 // - `conflicts`: the rule rejects code that a house rule in AGENTS.md prescribes.
-// - `wrong`: the rule's fix breaks code that type-checks.
+// - `configured`: the rule stays on with an option, because its default breaks code that type-checks.
 // - `style`: a style choice that disagrees with how this repository is written.
+// - `declined`: a rule left off for good, because most of its findings are in tests and it finds
+//   few bugs here.
 // - `pending`: the rule has findings in existing code that need fixing by hand. Each is a
 //   follow-up: fix the findings, then delete the entry.
 
@@ -47,15 +49,17 @@ const conflicts = {
   // Effect core modules: its fix builds `new Set([...a, ...b])` for a membership test, which
   // core/no-set-dedupe rejects in Effect files.
   "unicorn/prefer-set-has": "off",
+  // Effect core modules: asks for `toSorted`, where core/no-native-sort asks for `Array.sort` with
+  // an `Order`.
+  "unicorn/no-array-sort": "off",
 } as const;
 
-const wrong = {
-  // A type alias stays assignable to an index-signature type, such as the node and edge data G6
-  // takes; an interface does not, so its fix broke apps/web/src/viz/specs/chain.ts.
+const configured = {
+  // Object types are type aliases: an alias stays assignable to an index-signature type, such as
+  // the node and edge data G6 takes, and an interface does not.
   "typescript/consistent-type-definitions": "off",
-  // Its fix turns `memo(function TeamPoster(...) {...})` into an arrow, which drops the component's
-  // display name (react/display-name then fails).
-  "prefer-arrow-callback": "off",
+  // A named function keeps a component's display name in `memo(function TeamPoster(...) {...})`.
+  "prefer-arrow-callback": ["error", { allowNamedFunctions: true }],
 } as const;
 
 const style = {
@@ -81,23 +85,28 @@ const style = {
   "no-bitwise": "off",
 } as const;
 
-const pending = {
-  // 260 findings
+const declined = {
+  // The `u` and `v` flags change nothing for the ASCII patterns used here; 183 of 260 findings are in tests.
   "require-unicode-regexp": "off",
+  // Tests and scripts await in order on purpose (48 of 67 findings are in tests); Effect code has
+  // no `await`, and effecttsgo/all-of-map-to-for-each covers the Effect form.
+  "no-await-in-loop": "off",
+  // Truthiness checks on strings, numbers and nullable values are the existing style.
+  "typescript/strict-boolean-expressions": "off",
+  // An `async` test or handler with no `await` is how node:test and route signatures are written
+  // (16 of 18 findings are in tests).
+  "require-await": "off",
+} as const;
+
+const pending = {
   // 76 findings
   "typescript/no-unsafe-member-access": "off",
-  // 67 findings
-  "no-await-in-loop": "off",
-  // 42 findings
-  "typescript/strict-boolean-expressions": "off",
   // 26 findings
   "typescript/no-unsafe-type-assertion": "off",
   // 20 findings
   "typescript/no-unsafe-assignment": "off",
   // 19 findings
   "typescript/method-signature-style": "off",
-  // 18 findings
-  "require-await": "off",
   // 17 findings
   "no-shadow": "off",
   // 12 findings
@@ -106,8 +115,6 @@ const pending = {
   "typescript/no-unnecessary-type-conversion": "off",
   // 11 findings
   "typescript/no-explicit-any": "off",
-  // 10 findings
-  "unicorn/no-array-sort": "off",
   // 10 findings
   "typescript/strict-void-return": "off",
   // 10 findings
@@ -173,7 +180,7 @@ const pending = {
 } as const;
 
 export const off: OxlintConfig = {
-  rules: { ...conflicts, ...wrong, ...style, ...pending },
+  rules: { ...conflicts, ...configured, ...style, ...declined, ...pending },
   overrides: [
     {
       // JavaScript files carry no types, so every value is `any` to the type-aware rules.

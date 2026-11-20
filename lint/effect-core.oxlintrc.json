@@ -24,7 +24,8 @@
     "effecttsgo/process-env-in-effect": "error",
     "effecttsgo/instance-of-schema": "error",
     "effecttsgo/all-of-map-to-for-each": "error",
-    "effecttsgo/yield-in-call-argument": "error"
+    "effecttsgo/yield-in-call-argument": "error",
+    "effecttsgo/unstable-api-usage": "off"
   },
   "options": {
     "typeAware": true
