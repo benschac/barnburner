@@ -62,8 +62,10 @@ test("opponents of 16: 14 (4 games), 12 (3), 11 (2), 15 (2), 13 (1)", () => {
 test("every player lists exactly the C-mini pairs, symmetric, most games first then lower ID", () => {
   const expected = new Map<number, { playerId: number; games: number }[]>();
   for (const [a, b, games] of PAIRS) {
-    expected.set(a, [...(expected.get(a) ?? []), { playerId: b, games }]);
-    expected.set(b, [...(expected.get(b) ?? []), { playerId: a, games }]);
+    const listA = expected.get(a) ?? [];
+    expected.set(a, [...listA, { playerId: b, games }]);
+    const listB = expected.get(b) ?? [];
+    expected.set(b, [...listB, { playerId: a, games }]);
   }
   for (const playerId of MINI_ARRAYS.playerIds) {
     const want = Array.sortBy(

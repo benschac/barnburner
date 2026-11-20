@@ -261,7 +261,8 @@ const finalRows: readonly FinalRow[] = (() => {
   // the 1951-52 Final, so the Final of year 1952 is those two games.
   const bySeason = new Map<number, MiniGame[]>();
   for (const game of MINI_GAMES.filter((g) => g.gameType === 3)) {
-    bySeason.set(game.seasonId, [...(bySeason.get(game.seasonId) ?? []), game]);
+    const existing = bySeason.get(game.seasonId) ?? [];
+    bySeason.set(game.seasonId, [...existing, game]);
   }
   const finals = [...bySeason.entries()].map(([seasonId, games]) => {
     const participants = new Map<number, FinalParticipant>();
