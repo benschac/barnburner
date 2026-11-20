@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { Effect, Layer } from 'effect'
-import { Option } from 'effect'
+import { Duration, Effect, Layer, Option, Predicate } from 'effect'
 import { AsyncResult, Atom, AtomRegistry, Hydration } from 'effect/reactivity'
 import { FetchHttpClient, HttpRouter } from 'effect/http'
 import { RpcClient, RpcSerialization } from 'effect/rpc'
@@ -26,6 +25,8 @@ const web = HttpRouter.toWebHandler(HistoryRoutes.pipe(
 const served = protocolOver((input, init) => web.handler(new Request(input, init)))
 const down = protocolOver(() => Promise.reject(new TypeError('network down')))
 
+const pause = (ms: number) => Effect.runPromise(Effect.sleep(Duration.millis(ms)))
+
 const read = async <A, E>(layer: typeof served, atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>) => {
   const registry = AtomRegistry.make({ initialValues: [[historyProtocol, layer]] })
   const unmount = registry.mount(atom)
@@ -33,7 +34,7 @@ const read = async <A, E>(layer: typeof served, atom: Atom.Atom<AsyncResult.Asyn
     for (let tries = 0; tries < 200; tries++) {
       const result = registry.get(atom)
       if (AsyncResult.isNotInitial(result) && !AsyncResult.isWaiting(result)) return result
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await pause(10)
     }
     assert.fail('the atom never settled')
   } finally {
@@ -45,7 +46,8 @@ const read = async <A, E>(layer: typeof served, atom: Atom.Atom<AsyncResult.Asyn
 const failureTag = <A, E>(result: AsyncResult.AsyncResult<A, E>) => {
   assert.ok(AsyncResult.isFailure(result))
   const error = Effect.runSync(Effect.flip(Effect.failCause(result.cause)))
-  return (error as { readonly _tag: string })._tag
+  assert.ok(Predicate.hasProperty(error, '_tag'))
+  return String(error._tag)
 }
 
 const calls = [
@@ -70,11 +72,13 @@ for (const [name, make, other] of calls) {
     assert.notEqual(make(), other())
   })
   test(`${name} reads a success through the real handler`, async () => {
+    // SAFETY: every query atom's success carries snapshotId; the tuple type unions the atoms' differing result types.
     const result = await read(served, make() as Atom.Atom<AsyncResult.AsyncResult<{ readonly snapshotId: string }, unknown>>)
     assert.ok(AsyncResult.isSuccess(result), `${name} did not succeed`)
     assert.equal(result.value.snapshotId, '0123456789ab')
   })
   test(`${name} reports HistoryUnavailable when the transport fails`, async () => {
+    // SAFETY: only the failure tag is read, so the atom's result types are widened.
     const result = await read(down, make() as Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>)
     assert.equal(failureTag(result), 'HistoryUnavailable')
   })
@@ -95,11 +99,10 @@ const unknownCalls = [
 
 for (const [name, make] of unknownCalls) {
   test(`${name} fails as UnknownPlayer for a player the store does not hold`, async () => {
+    // SAFETY: only the failure tag is read, so the atom's result types are widened.
     assert.equal(failureTag(await read(served, make() as Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>)), 'UnknownPlayer')
   })
 }
-
-const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 test('a search key accepts any string, including a lone surrogate', async () => {
   const result = await read(served, searchPlayers({ query: String.fromCharCode(0xd800), limit: 5 }))

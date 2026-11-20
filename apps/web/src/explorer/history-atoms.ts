@@ -1,7 +1,7 @@
 import { Cause, Duration, Layer, Match, Option, Schema } from 'effect'
 import { AsyncResult, Atom, AtomRpc } from 'effect/reactivity'
 import { FetchHttpClient } from 'effect/http'
-import { RpcClient, RpcClientError, RpcSerialization } from 'effect/rpc'
+import { Rpc, RpcClient, RpcClientError, RpcSerialization } from 'effect/rpc'
 import {
   FindPath, FindPathInput, GetFarthest, GetFarthestInput, GetFinalsCoverage, GetFinalsCoverageInput, GetLink, GetLinkInput,
   GetOpponents, GetOpponentsInput, GetOpposedGames, GetOpposedGamesInput, GetPlayer, GetPlayerInput, GetRoster,
@@ -73,7 +73,7 @@ type NoServices = Schema.Top & Schema.ConstraintCodec<unknown, unknown>
  */
 
 const fromQuery = <S extends NoServices, F extends NoServices>(
-  rpc: { readonly _tag: string, readonly successSchema: S, readonly errorSchema: F },
+  rpc: Pick<Rpc.AnyWithProps, '_tag'> & { readonly successSchema: S, readonly errorSchema: F },
   key: string,
   query: Atom.Atom<AsyncResult.AsyncResult<S['Type'], F['Type'] | RpcClientError.RpcClientError>>,
 ) => Atom.map(Atom.serializable(query, {
