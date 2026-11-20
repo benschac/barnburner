@@ -109,7 +109,7 @@ export const fillOpponentHops = (
         PlayedAgainst: (h) =>
           Effect.gen(function* () {
             const games = yield* store.opposedGames(h.from, h.to);
-            const first = Array.sortBy(
+            const first = Array.sortBy<typeof games>(
               Order.mapInput(
                 Order.String,
                 (game: (typeof games)[number]) => game.gameDate
