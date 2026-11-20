@@ -1,7 +1,7 @@
 {
   "name": "@nhl-reddit-stats/api",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "exports": {
     "./web-handler": {
@@ -33,8 +33,8 @@
     "@effect/sql-sqlite-node": "4.1.2",
     "@nhl-reddit-stats/analyst": "0.0.0",
     "@nhl-reddit-stats/history": "workspace:*",
-    "@nhl-reddit-stats/viz": "workspace:*",
     "@nhl-reddit-stats/season": "0.0.0",
+    "@nhl-reddit-stats/viz": "workspace:*",
     "effect": "4.1.2"
   },
   "devDependencies": {

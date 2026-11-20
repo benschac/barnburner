@@ -1,6 +1,11 @@
 {
   "compilerOptions": {
-    "plugins": [{ "name": "@effect/language-service", "ignoreEffectWarningsInTscExitCode": true }],
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "ignoreEffectWarningsInTscExitCode": true
+      }
+    ],
     "target": "ES2023",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",

@@ -4,5 +4,10 @@
     "resolveJsonModule": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.plan.tsbuildinfo"
   },
-  "include": ["content-collections.ts", "plan-viewer/**/*.ts", "scripts/build-analyst-plan.ts", ".content-collections/generated/**/*.d.ts"]
+  "include": [
+    "content-collections.ts",
+    "plan-viewer/**/*.ts",
+    "scripts/build-analyst-plan.ts",
+    ".content-collections/generated/**/*.d.ts"
+  ]
 }

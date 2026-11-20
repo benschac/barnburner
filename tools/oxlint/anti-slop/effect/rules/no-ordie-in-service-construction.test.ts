@@ -2,18 +2,26 @@ import { RuleTester } from "oxlint/plugins-dev";
 
 import { noOrDieInServiceConstructionRule } from "./no-ordie-in-service-construction.ts";
 
-const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "ts" } } });
+const tester = new RuleTester({
+  languageOptions: { parserOptions: { lang: "ts" } },
+});
 const imports = `
 	import * as Context from "effect/Context";
 	import * as Effect from "effect/Effect";
 	import * as Layer from "effect/Layer";
 `;
-const constructionOrDie = { messageId: "constructionOrDie", data: { member: "orDie" } };
+const constructionOrDie = {
+  messageId: "constructionOrDie",
+  data: { member: "orDie" },
+};
 
-tester.run("anti-slop-effect/no-ordie-in-service-construction", noOrDieInServiceConstructionRule, {
-	valid: [
-		// orDie inside an operation of the returned service.
-		`${imports}
+tester.run(
+  "anti-slop-effect/no-ordie-in-service-construction",
+  noOrDieInServiceConstructionRule,
+  {
+    valid: [
+      // orDie inside an operation of the returned service.
+      `${imports}
 		export class Store extends Context.Service<Store, StoreShape>()("@app/Store", {
 			make: Effect.gen(function* () {
 				const sql = yield* Sql;
@@ -27,8 +35,8 @@ tester.run("anti-slop-effect/no-ordie-in-service-construction", noOrDieInService
 		}) {
 			static readonly layer = Layer.effect(this, this.make);
 		}`,
-		// orDie inside an Effect.fn operation and in an effect make defines without running it.
-		`${imports}
+      // orDie inside an Effect.fn operation and in an effect make defines without running it.
+      `${imports}
 		export class Store extends Context.Service<Store, StoreShape>()("@app/Store", {
 			make: Effect.gen(function* () {
 				const find = Effect.fn("Store.find")(function* (id: string) {
@@ -41,24 +49,24 @@ tester.run("anti-slop-effect/no-ordie-in-service-construction", noOrDieInService
 		}) {
 			static readonly layer = Layer.effect(this, this.make);
 		}`,
-		// orDie outside service construction.
-		`${imports}
+      // orDie outside service construction.
+      `${imports}
 		const program = Effect.gen(function* () {
 			yield* risky.pipe(Effect.orDie);
 		});`,
-		{
-			filename: "store.test.ts",
-			code: `${imports}
+      {
+        filename: "store.test.ts",
+        code: `${imports}
 			const layer = Store.layer.pipe(Layer.orDie);`,
-		},
-		// Not Effect's Layer.
-		`
+      },
+      // Not Effect's Layer.
+      `
 		import * as Layer from "other-library";
 		const layer = live.pipe(Layer.orDie);`,
-	],
-	invalid: [
-		{
-			code: `${imports}
+    ],
+    invalid: [
+      {
+        code: `${imports}
 			export class Client extends Context.Service<Client, ClientShape>()("@app/Client", {
 				make: Effect.gen(function* () {
 					const token = yield* Config.string("TOKEN").pipe(Effect.orDie);
@@ -67,10 +75,10 @@ tester.run("anti-slop-effect/no-ordie-in-service-construction", noOrDieInService
 			}) {
 				static readonly layer = Layer.effect(this, this.make);
 			}`,
-			errors: [constructionOrDie],
-		},
-		{
-			code: `${imports}
+        errors: [constructionOrDie],
+      },
+      {
+        code: `${imports}
 			export class Client extends Context.Service<Client, ClientShape>()("@app/Client", {
 				make: Effect.gen(function* () {
 					return {};
@@ -78,10 +86,12 @@ tester.run("anti-slop-effect/no-ordie-in-service-construction", noOrDieInService
 			}) {
 				static readonly layer = Layer.effect(this, this.make);
 			}`,
-			errors: [{ messageId: "constructionOrDie", data: { member: "orDieWith" } }],
-		},
-		{
-			code: `${imports}
+        errors: [
+          { messageId: "constructionOrDie", data: { member: "orDieWith" } },
+        ],
+      },
+      {
+        code: `${imports}
 			export class Database extends Context.Service<Database, DatabaseShape>()("@app/Database") {
 				static readonly make = (file: string) => Effect.gen(function* () {
 					yield* migrate(file).pipe(Effect.orDie);
@@ -89,20 +99,21 @@ tester.run("anti-slop-effect/no-ordie-in-service-construction", noOrDieInService
 				});
 				static readonly layer = (file: string) => Layer.effect(this, this.make(file));
 			}`,
-			errors: [constructionOrDie],
-		},
-		{
-			code: `${imports}
+        errors: [constructionOrDie],
+      },
+      {
+        code: `${imports}
 			export const live = Layer.effect(Store, Effect.gen(function* () {
 				const key = yield* Effect.suspend(() => loadKey.pipe(Effect.orDie));
 				return { key };
 			}));`,
-			errors: [constructionOrDie],
-		},
-		{
-			code: `${imports}
+        errors: [constructionOrDie],
+      },
+      {
+        code: `${imports}
 			const logLayer = layerJsonl(path).pipe(Layer.orDie);`,
-			errors: [{ messageId: "layerOrDie" }],
-		},
-	],
-});
+        errors: [{ messageId: "layerOrDie" }],
+      },
+    ],
+  }
+);

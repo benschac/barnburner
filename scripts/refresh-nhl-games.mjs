@@ -1,11 +1,12 @@
 /* oxlint-disable no-restricted-imports, no-restricted-properties -- legacy: port to the Effect platform services, see "Node scripts" in AGENTS.md */
 
-import { logError, logInfo } from '../lib/logger.mjs'
+import { randomUUID } from "node:crypto";
 import { readFile, writeFile, rename, unlink, mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { randomUUID } from "node:crypto";
 import { parseArgs } from "node:util";
+
+import { logError, logInfo } from "../lib/logger.mjs";
 import {
   buildSnapshot,
   scheduleUrl,
@@ -19,7 +20,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 export async function writeSnapshot(
   path,
   snapshot,
-  expectedGamesPerTeam = GAMES_PER_TEAM,
+  expectedGamesPerTeam = GAMES_PER_TEAM
 ) {
   validateSnapshot(snapshot, expectedGamesPerTeam);
   await mkdir(dirname(path), { recursive: true });
@@ -51,7 +52,7 @@ export async function refreshSnapshot({
     let schedule;
     if (fromDir) {
       schedule = JSON.parse(
-        await readFile(join(fromDir, `${abbrev}.json`), "utf8"),
+        await readFile(join(fromDir, `${abbrev}.json`), "utf8")
       );
     } else {
       const response = await fetcher(scheduleUrl(abbrev), {
@@ -59,7 +60,7 @@ export async function refreshSnapshot({
       });
       if (!response.ok)
         throw new Error(
-          `${abbrev} schedule request failed with HTTP ${response.status}`,
+          `${abbrev} schedule request failed with HTTP ${response.status}`
         );
       schedule = await response.json();
     }
@@ -69,7 +70,7 @@ export async function refreshSnapshot({
     schedules,
     teams,
     fetchedAt ?? new Date().toISOString(),
-    expectedGamesPerTeam,
+    expectedGamesPerTeam
   );
   await writeSnapshot(output, snapshot, expectedGamesPerTeam);
   return snapshot;
@@ -86,11 +87,11 @@ async function main() {
   if (values["fetched-at"] && !values["from-dir"])
     throw new Error("--fetched-at is only valid with --from-dir");
   const teams = JSON.parse(
-    await readFile(join(root, "data/teams.json"), "utf8"),
+    await readFile(join(root, "data/teams.json"), "utf8")
   );
   if (teams.length !== 32) throw new Error("Expected all 32 NHL teams");
   const output = resolve(
-    values.output ?? join(root, `data/nhl-${SEASON}.json`),
+    values.output ?? join(root, `data/nhl-${SEASON}.json`)
   );
   const snapshot = await refreshSnapshot({
     teams,
@@ -99,7 +100,7 @@ async function main() {
     fetchedAt: values["fetched-at"],
   });
   logInfo(
-    `Saved ${snapshot.games.length} games for ${snapshot.teams.length} teams to ${output}`,
+    `Saved ${snapshot.games.length} games for ${snapshot.teams.length} teams to ${output}`
   );
 }
 

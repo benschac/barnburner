@@ -1,7 +1,7 @@
 {
   "name": "@nhl-reddit-stats/web",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "docs:plan": "bun scripts/build-analyst-plan.ts",
@@ -66,8 +66,8 @@
     "@types/three": "0.187.0",
     "oxlint": "1.94.0",
     "playwright": "1.65.1",
-    "rolldown": "1.2.18",
     "remark-gfm": "4.0.1",
+    "rolldown": "1.2.18",
     "typescript": "~7.0.2"
   }
 }

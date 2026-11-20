@@ -11,7 +11,10 @@ function unwrapParentheses(node: ESTree.Expression): ESTree.Expression {
 
 function isConditionalSpread(node: ESTree.Expression): boolean {
   const expression = unwrapParentheses(node);
-  return expression.type === "ConditionalExpression" || expression.type === "LogicalExpression";
+  return (
+    expression.type === "ConditionalExpression" ||
+    expression.type === "LogicalExpression"
+  );
 }
 
 /** Ban spreading ternary and logical expressions in every spread position. */

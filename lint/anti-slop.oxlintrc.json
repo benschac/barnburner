@@ -451,26 +451,19 @@
       }
     },
     {
-      "files": [
-        "**/src/use-*.ts",
-        "**/src/tools/*.ts"
-      ],
+      "files": ["**/src/use-*.ts", "**/src/tools/*.ts"],
       "rules": {
         "enfect/effect-run-in-body": "off"
       }
     },
     {
-      "files": [
-        "**/lint/**"
-      ],
+      "files": ["**/lint/**"],
       "rules": {
         "anti-slop/no-runtime-typeof": "off"
       }
     },
     {
-      "files": [
-        "**/src/json.ts"
-      ],
+      "files": ["**/src/json.ts"],
       "rules": {
         "anti-slop/no-unknown-parameters": "off",
         "anti-slop/no-unknown-returns": "off"

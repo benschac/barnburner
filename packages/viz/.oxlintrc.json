@@ -1,11 +1,10 @@
 {
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
   "extends": [
-    "../../lint/effect-core.oxlintrc.json", "../../lint/anti-slop.oxlintrc.json"
+    "../../lint/effect-core.oxlintrc.json",
+    "../../lint/anti-slop.oxlintrc.json"
   ],
-  "jsPlugins": [
-    "../../lint/union-model-plugin.mjs"
-  ],
+  "jsPlugins": ["../../lint/union-model-plugin.mjs"],
   "rules": {
     "unions/discriminated": "error",
     "unions/no-in-narrowing": "error",
@@ -20,9 +19,7 @@
   },
   "overrides": [
     {
-      "files": [
-        "**/*.test.ts"
-      ],
+      "files": ["**/*.test.ts"],
       "rules": {
         "typescript/no-floating-promises": "off"
       }

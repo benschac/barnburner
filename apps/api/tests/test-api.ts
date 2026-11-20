@@ -1,14 +1,30 @@
-import { Effect, Layer } from 'effect'
-import { HttpRouter } from 'effect/http'
-import { BoxScores } from '../src/boxscores.ts'
-import { ApiRoutes } from '../src/routes.ts'
-import { makeSnapshots, Snapshots } from '../src/snapshots.ts'
+import { Effect, Layer } from "effect";
+import { HttpRouter } from "effect/http";
 
-export async function makeTestApi(season: unknown, expectedGamesPerTeam: number, poster: unknown | null = null) {
-  const snapshots = await Effect.runPromise(makeSnapshots({ season, poster, expectedGamesPerTeam }))
-  const app = HttpRouter.toWebHandler(ApiRoutes.pipe(Layer.provide([Layer.succeed(Snapshots, snapshots), BoxScores.layerArchive({})])), { disableLogger: true })
+import { BoxScores } from "../src/boxscores.ts";
+import { ApiRoutes } from "../src/routes.ts";
+import { makeSnapshots, Snapshots } from "../src/snapshots.ts";
+
+export async function makeTestApi(
+  season: unknown,
+  expectedGamesPerTeam: number,
+  poster: unknown | null = null
+) {
+  const snapshots = await Effect.runPromise(
+    makeSnapshots({ season, poster, expectedGamesPerTeam })
+  );
+  const app = HttpRouter.toWebHandler(
+    ApiRoutes.pipe(
+      Layer.provide([
+        Layer.succeed(Snapshots, snapshots),
+        BoxScores.layerArchive({}),
+      ])
+    ),
+    { disableLogger: true }
+  );
   return {
-    request: (path: string, init?: RequestInit) => app.handler(new Request(`http://localhost${path}`, init)),
+    request: (path: string, init?: RequestInit) =>
+      app.handler(new Request(`http://localhost${path}`, init)),
     dispose: app.dispose,
-  }
+  };
 }

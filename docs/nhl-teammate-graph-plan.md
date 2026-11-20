@@ -38,7 +38,7 @@ Measured on the archive fetched Nov 17 2026 (latest game Nov 16). This is the **
 | # | Decision | Why |
 | --- | --- | --- |
 | D1 | **SQLite plus an in-memory graph is the engine.** LadybugDB and Neo4j Aura are dropped, and so is the engine bake-off. | Every query the product needs runs in about a millisecond on arrays that fit in memory. A graph database adds a native dependency or a network hop and removes nothing. |
-| D2 | **Three kinds of link.** *Played with*: both have a games-played credit for the same team in the same game. *Goalie partners*: both goalies are on the same team's box score for the same game and at least one has no credit in it, usually the dressed backup. *Played against*: credited on opposite sides of the same game. A chain uses the first two, so every teammate hop has a game behind it. | Ben's call, Nov 17: two goalies on the roster for a game have played together, and opponents should be shown too. Only players with at least one credited NHL game are in the graph, so an emergency backup who never played is not. |
+| D2 | **Three kinds of link.** _Played with_: both have a games-played credit for the same team in the same game. _Goalie partners_: both goalies are on the same team's box score for the same game and at least one has no credit in it, usually the dressed backup. _Played against_: credited on opposite sides of the same game. A chain uses the first two, so every teammate hop has a game behind it. | Ben's call, Nov 17: two goalies on the roster for a game have played together, and opponents should be shown too. Only players with at least one credited NHL game are in the graph, so an emergency backup who never played is not. |
 | D14 | **Played against is its own relation and an optional path mode.** Its links carry a game count only. The default chain and the Finals question use teammates. | Opponents are seven times denser than teammates, which would make every route short. Per-season detail for 10.2 million opponent pair-seasons is about 80 MB; the shared games for one pair take under a millisecond to look up instead. |
 | D3 | **Path search runs in the API function.** The graph is loaded once per warm function. The browser gets results, not the graph. | One implementation to test. Moving search to the browser later needs no contract change. |
 | D4 | **One serving file.** `nhl-serve.sqlite` (about 80 MiB) holds the lookup tables and the graph arrays as blobs. The API reads it with the built-in `node:sqlite`, read-only. | One artifact to version, verify, and ship. No new dependency: `node:sqlite` loads in Node 24.18 and Bun 1.4.3. **V1** proves it inside the packaged Vercel function. |
@@ -658,12 +658,12 @@ What the model writes: the body of one ES module with a default export.
 
 ```ts
 export default function render(ctx: {
-  root: HTMLElement                      // draw only inside this element
-  tables: Record<string, Row[]>
-  theme: VizTheme
-  size: { width: number; height: number }
-  libs: { G2, G6, d3, THREE }            // the frame provides these; the module imports nothing
-}): () => void                           // returns its own cleanup
+  root: HTMLElement; // draw only inside this element
+  tables: Record<string, Row[]>;
+  theme: VizTheme;
+  size: { width: number; height: number };
+  libs: { G2; G6; d3; THREE }; // the frame provides these; the module imports nothing
+}): () => void; // returns its own cleanup
 ```
 
 #### Frame messages
@@ -1239,13 +1239,13 @@ Filled as the gates run. Snapshot 4b755090e186 (8,842 players, latest game 2026-
 
 **Sizes so far**
 
-| What | Raw | Gzipped |
-| --- | --- | --- |
-| Frame page (G2, G6, D3, Three.js inline) | 3.14 MB | 0.90 MB |
-| JavaScript G2 adds to a page | 1.33 MB | 391 kB |
-| JavaScript G6 adds to a page | 1.80 MB | 497 kB |
-| Stylesheet before FZ2 | 2,588 kB | 49 kB |
-| Stylesheet after FZ2 | 1,047 kB | 22 kB |
+| What                                     | Raw      | Gzipped |
+| ---------------------------------------- | -------- | ------- |
+| Frame page (G2, G6, D3, Three.js inline) | 3.14 MB  | 0.90 MB |
+| JavaScript G2 adds to a page             | 1.33 MB  | 391 kB  |
+| JavaScript G6 adds to a page             | 1.80 MB  | 497 kB  |
+| Stylesheet before FZ2                    | 2,588 kB | 49 kB   |
+| Stylesheet after FZ2                     | 1,047 kB | 22 kB   |
 
 - Decoding a 500,000-row table inside the frame takes about half a second, with the frame unresponsive meanwhile.
 - cosmos.gl's own simulation-end signal took 84 s on the ten-node sample in one run, so "settle time" by that signal is not comparable with G6's; decide what settle means before FR5.
@@ -1272,7 +1272,7 @@ Filled as the gates run. Snapshot 4b755090e186 (8,842 players, latest game 2026-
 | FN7 | Packaging check on the Next output | Sonnet · high | FN6 | `web/fn7-packaging-check` | #174 | PR open; reviewed. Gate passed, and passed again on the revised check: see §Results |
 | FZ1 | Turn zero-runtime on, poster as one island | Sonnet · high | FN6 | `web/fz1-zero-runtime` |  | second round in progress at Sonnet · xhigh: see note 10 |
 | FZ2 | Narrow the theme pack | Sonnet · low | FN6 | `web/fz2-theme-pack` | #173 | PR open; reviewed, fixes in a second commit |
-| FZ3 | The first zero-runtime page | Sonnet · medium | FZ1 | | | not started |
+| FZ3 | The first zero-runtime page | Sonnet · medium | FZ1 |  |  | not started |
 | FT1 | `chain` tables | Haiku · medium | FC1 | `web/ft1-chain-tables` | #136 | PR open; reviewed |
 | FT2 | `pair` tables | Haiku · medium | FC1 | `web/ft2-pair-tables` | #137 | PR open; reviewed |
 | FT3 | `ego` tables | Sonnet · low | FC1 | `web/ft3-ego-tables` | #138 | PR open; reviewed |
@@ -1295,7 +1295,7 @@ Filled as the gates run. Snapshot 4b755090e186 (8,842 players, latest game 2026-
 | FR2 | G6 canvas renderer | Sonnet · low | FC1, FP1 | `web/fr2-g6-canvas` | #149 | PR open; reviewed. Ran the league sample in the harness after its fix (worker's run) |
 | FR3 | G6 WebGL renderer | Sonnet · low | FC1, FP1 | `web/fr3-g6-webgl` | #150 | PR open; reviewed. Ran the league sample in the harness after its fix (worker's run) |
 | FR4 | cosmos.gl renderer | Sonnet · low | FC1, FP1 | `web/fr4-cosmos` | #151 | PR open; reviewed. Ran the league sample in the harness; settle time is very long: see §Results |
-| FR5 | Speed gate | Orchestrator | FR1–FR4, FT7 | | | not started |
+| FR5 | Speed gate | Orchestrator | FR1–FR4, FT7 |  |  | not started |
 | FS1 | Frame runtime | Sonnet · high | FC1, FP1 | `web/fs1-frame-runtime` | #148 | PR open; reviewed (Codex and orchestrator) |
 | FS2 | Frame bundle | Sonnet · low | FS1 | `web/fs2-frame-bundle` | #158 | PR open; reviewed |
 | FS3 | Frame headers | Sonnet · low | FN1 | `web/fs3-frame-headers` | #161 | PR open; reviewed |
@@ -1309,11 +1309,11 @@ Filled as the gates run. Snapshot 4b755090e186 (8,842 players, latest game 2026-
 | FE1 | Render harness | Sonnet · medium | FS5 | `web/fe1-render-harness` | #177 | PR open; reviewed, fixes in a second commit. Ran against the real sandbox page |
 | FE2 | Bake-off runner | Sonnet · low | FM3, FE1 | `web/fe2-bakeoff-runner` | #178 | PR open; reviewed, fixes in a second commit. No model called yet |
 | FE3 | Bake-off report | Haiku · medium | — | `web/fe3-bakeoff-report` | #153 | PR open; reviewed |
-| FE4 | Bake-off gate | Orchestrator | FE2, FE3, FM2, FT7 | | | not started |
+| FE4 | Bake-off gate | Orchestrator | FE2, FE3, FM2, FT7 |  |  | not started |
 | FX1 | History query atoms | Sonnet · medium | FP1 | `web/fx1-history-atoms` | #152 | PR open; reviewed |
 | FX2 | URL state atoms | Sonnet · low | FX1, FV3 | `web/fx2-url-state` | #170 | PR open; reviewed, fixes in a second commit |
-| FX3 | Atoms across islands and from the server | Sonnet · medium | FX1, FZ1 | | | not started |
-| FJ1 | Decide and write the explorer cards | Orchestrator | FZ3, FX2, FX3, FV8, FV11, FR5, FS6, FE4 | | | not started |
+| FX3 | Atoms across islands and from the server | Sonnet · medium | FX1, FZ1 |  |  | not started |
+| FJ1 | Decide and write the explorer cards | Orchestrator | FZ3, FX2, FX3, FV8, FV11, FR5, FS6, FE4 |  |  | not started |
 
 Updated Nov 18 2026 by the frontend orchestrator. Six PRs merged (#129 to #134: FC0, FP1, FC1, FV2, FN1, FM1). 43 card PRs are open in one Graphite stack on `main`, #135 to #166 and #168 to #178, with this ledger (#167) on top. Stack order: FM3, FT1–FT6, FV7, FV6, FV1, FV9, FV10, FS4, FS1, FR2–FR4, FX1, FE3, FP2, FP3, FV3, FN4, FS2, FN2, FN3, FS3, FN5, FT7, FM2, FR1, FV4, FV5, FM4, FX2, FV8, FN6, FZ2, FN7, FV11, FS5, FE1, FE2. From FM2 upward, review fixes are a second commit on each branch.
 
@@ -1331,7 +1331,6 @@ Ledger notes:
 10. **FZ1 scope.** The enforced zero-runtime build needed changes outside FZ1's Write list, each approved narrowly: a `webpack` version pin, `<T,>` on generic arrows the island build parses as JSX, a `<Theme>` wrap in `ThemePreference.tsx`, one dialog style in `GameBoxscore.tsx`, two `.gitignore` lines, and `turbo.json` outputs. FZ1 came back twice without passing, so its second round ran at Sonnet · xhigh. That round found why G6's React nodes broke inside an island: `@antv/g6-extension-react` loads `react-dom/client` from `node_modules` while an island shares Next's vendored React, and React refuses the mismatch. The fix renders nodes by portal from the island's own `react-dom`.
 11. **Frame policy.** The frame page is one inline script allowed by a hash in the page's own policy, plus `blob:` modules. With `script-src 'self'`, posted code could have requested scripts from our origin. Chrome does not recognise the `webrtc` directive; FS6 decides what that means.
 12. **FS2 order.** FS2 no longer hooks the frame build into `dev` and `build`; FN6 does, so the frame is never published by the Vite build, which has no sandbox headers.
-
 
 ## Later
 

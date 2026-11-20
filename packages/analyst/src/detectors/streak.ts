@@ -1,10 +1,10 @@
-import type { CardDraft } from '../card.ts'
+import type { CardDraft } from "../card.ts";
 
-const quote = (team: string): string => `'${team.replaceAll("'", "''")}'`
+const quote = (team: string): string => `'${team.replaceAll("'", "''")}'`;
 
 // The current run of identical results (W, L or OTL), compared with the longest run of that type this season.
 export const streak = (team: string): CardDraft[] => {
-  const t = quote(team)
+  const t = quote(team);
   const base = `WITH f AS (
   SELECT game_id, result, row_number() OVER (ORDER BY date, game_id) AS seq
   FROM team_games
@@ -18,18 +18,18 @@ runs AS (
 ),
 cur AS (
   SELECT result, len, last_seq FROM runs ORDER BY last_seq DESC LIMIT 1
-)`
+)`;
   return [
     {
       team,
-      kind: 'trend',
-      headline: '{team} are on a {len}-game {label} streak',
-      body: 'Their longest {label} streak this season is {longest} games.',
+      kind: "trend",
+      headline: "{team} are on a {len}-game {label} streak",
+      body: "Their longest {label} streak this season is {longest} games.",
       bindings: {
-        team: { column: 'team', row: 0 },
-        len: { column: 'len', row: 0 },
-        label: { column: 'label', row: 0 },
-        longest: { column: 'longest', row: 0 },
+        team: { column: "team", row: 0 },
+        len: { column: "len", row: 0 },
+        label: { column: "label", row: 0 },
+        longest: { column: "longest", row: 0 },
       },
       evidence: {
         query: `${base}
@@ -43,5 +43,5 @@ FROM cur`,
 SELECT game_id FROM f WHERE seq > (SELECT last_seq - len FROM cur)`,
       },
     },
-  ]
-}
+  ];
+};

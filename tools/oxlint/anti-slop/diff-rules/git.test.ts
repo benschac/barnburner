@@ -2,12 +2,24 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { DEFAULT_EXCLUDES } from "./config.ts";
+
 import { DEFAULT_BRANCHES } from "../modes/changed.ts";
-import { BASE_CANDIDATES, collectChanges, historySummary, type ChangeSet } from "./git.ts";
+import { DEFAULT_EXCLUDES } from "./config.ts";
+import {
+  BASE_CANDIDATES,
+  collectChanges,
+  historySummary,
+  type ChangeSet,
+} from "./git.ts";
 
 // Keep the developer's git configuration out of the scratch repositories.
 process.env.GIT_CONFIG_GLOBAL = "/dev/null";
@@ -19,11 +31,24 @@ const test = (name: string, run: () => void): void => {
 };
 
 function sh(cwd: string, ...args: string[]): string {
-  const result = spawnSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", ...args], {
-    cwd,
-    encoding: "utf8",
-  });
-  if (result.status !== 0) throw new Error(`git ${args.join(" ")}: ${result.stderr}`);
+  const result = spawnSync(
+    "git",
+    [
+      "-c",
+      "user.name=Test",
+      "-c",
+      "user.email=test@example.com",
+      "-c",
+      "commit.gpgsign=false",
+      ...args,
+    ],
+    {
+      cwd,
+      encoding: "utf8",
+    }
+  );
+  if (result.status !== 0)
+    throw new Error(`git ${args.join(" ")}: ${result.stderr}`);
   return result.stdout.trim();
 }
 
@@ -32,8 +57,13 @@ function write(root: string, path: string, content: string | Buffer): void {
   writeFileSync(join(root, path), content);
 }
 
-function commit(root: string, message: string, files: Record<string, string>): string {
-  for (const [path, content] of Object.entries(files)) write(root, path, content);
+function commit(
+  root: string,
+  message: string,
+  files: Record<string, string>
+): string {
+  for (const [path, content] of Object.entries(files))
+    write(root, path, content);
   sh(root, "add", "-A");
   sh(root, "commit", "-q", "-m", message);
   return sh(root, "rev-parse", "HEAD");
@@ -47,7 +77,8 @@ function repo(branch = "main"): string {
   return root;
 }
 
-const paths = (change: ChangeSet): string[] => change.files.map((file) => file.path);
+const paths = (change: ChangeSet): string[] =>
+  change.files.map((file) => file.path);
 
 test("diffs a feature branch against its merge-base with main and lists its commits", () => {
   const root = repo();
@@ -64,7 +95,10 @@ test("diffs a feature branch against its merge-base with main and lists its comm
   assert.equal(change.baseCommit, base);
   assert.equal(change.branch, "feature");
   assert.deepEqual(paths(change), ["src/b.ts"]);
-  assert.deepEqual(change.commits.map((item) => item.subject), ["add b"]);
+  assert.deepEqual(
+    change.commits.map((item) => item.subject),
+    ["add b"]
+  );
   assert.equal(change.files[0]?.status, "added");
   assert.equal(change.files[0]?.added, 1);
 });
@@ -89,7 +123,12 @@ test("prefers origin/HEAD over local main", () => {
   const first = commit(root, "initial", { "a.txt": "1\n" });
   commit(root, "second", { "a.txt": "2\n" });
   sh(root, "update-ref", "refs/remotes/origin/main", first);
-  sh(root, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main");
+  sh(
+    root,
+    "symbolic-ref",
+    "refs/remotes/origin/HEAD",
+    "refs/remotes/origin/main"
+  );
 
   const change = collectChanges({ cwd: root, mode: "full", exclude: [] });
   assert.equal(change.baseLabel, "origin/HEAD");
@@ -102,10 +141,19 @@ test("an explicit --base wins over the defaults and must name a commit", () => {
   const first = commit(root, "initial", { "a.txt": "1\n" });
   commit(root, "second", { "b.txt": "2\n" });
   sh(root, "tag", "v1", first);
-  const change = collectChanges({ cwd: root, mode: "full", base: "v1", exclude: [] });
+  const change = collectChanges({
+    cwd: root,
+    mode: "full",
+    base: "v1",
+    exclude: [],
+  });
   assert.equal(change.baseLabel, "v1");
   assert.deepEqual(paths(change), ["b.txt"]);
-  assert.throws(() => collectChanges({ cwd: root, mode: "full", base: "nope", exclude: [] }), /does not name a commit/);
+  assert.throws(
+    () =>
+      collectChanges({ cwd: root, mode: "full", base: "nope", exclude: [] }),
+    /does not name a commit/
+  );
 });
 
 test("full and working include staged, unstaged, and untracked changes; staged and committed do not mix them", () => {
@@ -118,22 +166,32 @@ test("full and working include staged, unstaged, and untracked changes; staged a
   write(root, "unstaged.txt", "2\n");
   write(root, "untracked.txt", "new\n");
 
-  assert.deepEqual(paths(collectChanges({ cwd: root, mode: "full", exclude: [] })), [
-    "committed.txt",
-    "staged.txt",
-    "unstaged.txt",
-    "untracked.txt",
-  ]);
-  assert.deepEqual(paths(collectChanges({ cwd: root, mode: "working", exclude: [] })), [
-    "staged.txt",
-    "unstaged.txt",
-    "untracked.txt",
-  ]);
-  assert.deepEqual(paths(collectChanges({ cwd: root, mode: "staged", exclude: [] })), ["staged.txt"]);
-  assert.deepEqual(paths(collectChanges({ cwd: root, mode: "committed", exclude: [] })), ["committed.txt"]);
+  assert.deepEqual(
+    paths(collectChanges({ cwd: root, mode: "full", exclude: [] })),
+    ["committed.txt", "staged.txt", "unstaged.txt", "untracked.txt"]
+  );
+  assert.deepEqual(
+    paths(collectChanges({ cwd: root, mode: "working", exclude: [] })),
+    ["staged.txt", "unstaged.txt", "untracked.txt"]
+  );
+  assert.deepEqual(
+    paths(collectChanges({ cwd: root, mode: "staged", exclude: [] })),
+    ["staged.txt"]
+  );
+  assert.deepEqual(
+    paths(collectChanges({ cwd: root, mode: "committed", exclude: [] })),
+    ["committed.txt"]
+  );
 
-  const untracked = collectChanges({ cwd: root, mode: "working", exclude: [] }).files.find((file) => file.path === "untracked.txt");
-  assert.match(untracked?.patch ?? "", /^\+\+\+ b\/untracked\.txt\n@@ -0,0 \+1,1 @@\n\+new\n$/m);
+  const untracked = collectChanges({
+    cwd: root,
+    mode: "working",
+    exclude: [],
+  }).files.find((file) => file.path === "untracked.txt");
+  assert.match(
+    untracked?.patch ?? "",
+    /^\+\+\+ b\/untracked\.txt\n@@ -0,0 \+1,1 @@\n\+new\n$/m
+  );
 });
 
 test("leaves out default excludes, configured globs, and binary files", () => {
@@ -148,14 +206,20 @@ test("leaves out default excludes, configured globs, and binary files", () => {
   write(root, "tracked.bin", Buffer.from([1, 0, 2]));
   sh(root, "add", "tracked.bin");
 
-  const change = collectChanges({ cwd: root, mode: "full", exclude: [...DEFAULT_EXCLUDES, "src/gen/**"] });
+  const change = collectChanges({
+    cwd: root,
+    mode: "full",
+    exclude: [...DEFAULT_EXCLUDES, "src/gen/**"],
+  });
   assert.deepEqual(paths(change), ["src/keep.ts"]);
   assert.deepEqual(change.skipped, ["logo.png", "tracked.bin"]);
 });
 
 test("reports deletions and renames", () => {
   const root = repo();
-  const body = Array.from({ length: 20 }, (_, index) => `line ${index}`).join("\n");
+  const body = Array.from({ length: 20 }, (_, index) => `line ${index}`).join(
+    "\n"
+  );
   commit(root, "initial", { "old.ts": `${body}\n`, "gone.ts": "bye\n" });
   sh(root, "mv", "old.ts", "new.ts");
   sh(root, "rm", "-q", "gone.ts");
@@ -165,7 +229,7 @@ test("reports deletions and renames", () => {
     [
       ["gone.ts", "deleted", undefined],
       ["new.ts", "renamed", "old.ts"],
-    ],
+    ]
   );
 });
 
@@ -186,8 +250,14 @@ test("works before the first commit", () => {
   assert.equal(change.baseLabel, "(no commits)");
   assert.equal(change.baseCommit, undefined);
   assert.deepEqual(paths(change), ["staged.txt", "untracked.txt"]);
-  assert.deepEqual(paths(collectChanges({ cwd: root, mode: "staged", exclude: [] })), ["staged.txt"]);
-  assert.deepEqual(paths(collectChanges({ cwd: root, mode: "committed", exclude: [] })), []);
+  assert.deepEqual(
+    paths(collectChanges({ cwd: root, mode: "staged", exclude: [] })),
+    ["staged.txt"]
+  );
+  assert.deepEqual(
+    paths(collectChanges({ cwd: root, mode: "committed", exclude: [] })),
+    []
+  );
 });
 
 test("without any base branch it judges uncommitted changes and says so", () => {
@@ -203,7 +273,10 @@ test("without any base branch it judges uncommitted changes and says so", () => 
 test("fails outside a git work tree", () => {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "diff-rules-nogit-")));
   scratch.push(dir);
-  assert.throws(() => collectChanges({ cwd: dir, mode: "full", exclude: [] }), /not inside a git work tree/);
+  assert.throws(
+    () => collectChanges({ cwd: dir, mode: "full", exclude: [] }),
+    /not inside a git work tree/
+  );
 });
 
 test("history summarises per-file subjects and co-change counts before the base", () => {
@@ -227,20 +300,37 @@ test("history summarises per-file subjects and co-change counts before the base"
     { left: "a.ts", right: "b.ts", commits: 2 },
     { left: "a.ts", right: "c.ts", commits: 1 },
   ]);
-  assert.deepEqual(history.files["a.ts"], { subjects: ["a and c", "a and b two"], recentCommits: 3 });
-  assert.deepEqual(history.files["c.ts"], { subjects: ["a and c"], recentCommits: 1 });
+  assert.deepEqual(history.files["a.ts"], {
+    subjects: ["a and c", "a and b two"],
+    recentCommits: 3,
+  });
+  assert.deepEqual(history.files["c.ts"], {
+    subjects: ["a and c"],
+    recentCommits: 1,
+  });
 });
 
 test("co-change ignores mass-change commits", () => {
   const root = repo();
-  const many = Object.fromEntries(Array.from({ length: 60 }, (_, index) => [`f${index}.ts`, "1\n"]));
-  commit(root, "reformat everything", { ...many, "a.ts": "1\n", "b.ts": "1\n" });
-  const history = historySummary(root, sh(root, "rev-parse", "HEAD"), ["a.ts", "b.ts"], {
-    commitsPerFile: 1,
-    coChangeCommits: 10,
-    maxFiles: 10,
-    maxPairs: 10,
+  const many = Object.fromEntries(
+    Array.from({ length: 60 }, (_, index) => [`f${index}.ts`, "1\n"])
+  );
+  commit(root, "reformat everything", {
+    ...many,
+    "a.ts": "1\n",
+    "b.ts": "1\n",
   });
+  const history = historySummary(
+    root,
+    sh(root, "rev-parse", "HEAD"),
+    ["a.ts", "b.ts"],
+    {
+      commitsPerFile: 1,
+      coChangeCommits: 10,
+      maxFiles: 10,
+      maxPairs: 10,
+    }
+  );
   assert.deepEqual(history.coChanges, []);
   assert.equal(history.files["a.ts"]?.recentCommits, 1);
 });

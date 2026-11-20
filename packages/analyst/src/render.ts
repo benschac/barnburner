@@ -37,14 +37,24 @@ export type RenderError = UnknownPlaceholderError | MissingCellError;
 const cellText = (
   placeholder: string,
   bindings: Record<string, Binding>,
-  rows: Row[],
+  rows: Row[]
 ): Result.Result<string, RenderError> => {
-  const binding = Object.hasOwn(bindings, placeholder) ? bindings[placeholder] : undefined;
-  if (binding === undefined) return Result.fail(new UnknownPlaceholderError({ placeholder }));
+  const binding = Object.hasOwn(bindings, placeholder)
+    ? bindings[placeholder]
+    : undefined;
+  if (binding === undefined)
+    return Result.fail(new UnknownPlaceholderError({ placeholder }));
   const row = Number.isInteger(binding.row) ? rows[binding.row] : undefined;
-  const value = row && Object.hasOwn(row, binding.column) ? row[binding.column] : undefined;
+  const value =
+    row && Object.hasOwn(row, binding.column) ? row[binding.column] : undefined;
   if (value === undefined || value === null) {
-    return Result.fail(new MissingCellError({ placeholder, column: binding.column, row: binding.row }));
+    return Result.fail(
+      new MissingCellError({
+        placeholder,
+        column: binding.column,
+        row: binding.row,
+      })
+    );
   }
   return Result.succeed(String(value));
 };
@@ -57,7 +67,7 @@ const cellText = (
 export function render(
   template: string,
   bindings: Record<string, Binding>,
-  rows: Row[],
+  rows: Row[]
 ): Result.Result<string, RenderError> {
   const parts: string[] = [];
   let last = 0;
@@ -73,5 +83,7 @@ export function render(
 
 /** Returns every digit that appears outside a `{placeholder}`, in order. */
 export function literalDigits(template: string): string[] {
-  return [...template.replace(PLACEHOLDER, "").matchAll(DIGIT)].map((match) => match[0]);
+  return [...template.replace(PLACEHOLDER, "").matchAll(DIGIT)].map(
+    (match) => match[0]
+  );
 }
