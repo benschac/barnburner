@@ -175,6 +175,7 @@ test("each sample decodes, and its notes name every table", () => {
     [FinalsTables, finalsSample],
   ] as const;
   for (const [schema, sample] of sets) {
+    // SAFETY: each schema in `sets` encodes the tables value it is paired with; roundTrip only checks decode(encode(x)) equals x.
     roundTrip(schema as Schema.Codec<unknown, unknown>, sample.tables);
     Schema.decodeSync(ViewData)(sample);
     for (const table of Object.keys(sample.tables))
@@ -314,8 +315,10 @@ test("chain hops are in D6 order, from 0, and join up", () => {
   const { hops, summary } = chainSample.tables;
   const [{ from, to, distance, pathCount }] = summary;
   const chains = new Map<number, (typeof hops)[number][]>();
-  for (const hop of hops)
-    chains.set(hop.chain, [...(chains.get(hop.chain) ?? []), hop]);
+  for (const hop of hops) {
+    const chain = chains.get(hop.chain) ?? [];
+    chains.set(hop.chain, [...chain, hop]);
+  }
   assert.deepEqual(
     [...chains.keys()],
     Array.from({ length: chains.size }, (_, i) => i)
