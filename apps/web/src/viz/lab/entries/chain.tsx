@@ -1,77 +1,14 @@
-import { ChainTables, type LabEntry } from '@nhl-reddit-stats/viz'
+import type { ChainTables, LabEntry } from '@nhl-reddit-stats/viz'
 import { samples } from '@nhl-reddit-stats/viz/samples'
-import { Effect, Layer, ManagedRuntime, Match, Result, Schema } from 'effect'
+import { Result } from 'effect'
 import { useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
 import { Text, View } from 'tamagui'
+import { useChainFile } from '../../../use-chain-file'
 import { G6Graph, type G6NodeProps } from '../../G6Graph'
+import { describeFailure } from '../../chain-file'
 import { PlayerCard } from '../../PlayerCard'
 import { chainGraph, type ChainGraph, type ChainNodeData } from '../../specs/chain'
-
-// An export file is { tables, notes }, as the export command writes it.
-const ChainFile = Schema.Struct({ tables: ChainTables, notes: Schema.String })
-const decodeChainText = Schema.decodeUnknownResult(Schema.fromJsonString(ChainFile))
-
-class ChainFileReadError extends Schema.TaggedError<ChainFileReadError>()('ChainFileReadError', {
-  fileName: Schema.String,
-  reason: Schema.String,
-}) {}
-
-class ChainFileDecodeError extends Schema.TaggedError<ChainFileDecodeError>()('ChainFileDecodeError', {
-  fileName: Schema.String,
-}) {}
-
-class ChainFileNoSummary extends Schema.TaggedError<ChainFileNoSummary>()('ChainFileNoSummary', {}) {}
-
-/** A summary or hop names a player the players table does not list; chainGraph would throw on that. */
-class ChainFileMissingPlayer extends Schema.TaggedError<ChainFileMissingPlayer>()('ChainFileMissingPlayer', {
-  row: Schema.Literals(['summary', 'hop']),
-  playerId: Schema.Int,
-}) {}
-
-type ChainFileFailure = ChainFileReadError | ChainFileDecodeError | ChainFileNoSummary | ChainFileMissingPlayer
-
-function chainFileProblem(tables: ChainTables): Result.Result<ChainTables, ChainFileNoSummary | ChainFileMissingPlayer> {
-  const summary = tables.summary[0]
-  if (summary === undefined) return Result.fail(new ChainFileNoSummary({}))
-  const known = new Set(tables.players.map((player) => player.playerId))
-  for (const playerId of [summary.from, summary.to]) {
-    if (!known.has(playerId)) return Result.fail(new ChainFileMissingPlayer({ row: 'summary', playerId }))
-  }
-  for (const hop of tables.hops) {
-    for (const playerId of [hop.from, hop.to]) {
-      if (!known.has(playerId)) return Result.fail(new ChainFileMissingPlayer({ row: 'hop', playerId }))
-    }
-  }
-  return Result.succeed(tables)
-}
-
-const describeFailure = (failure: ChainFileFailure): string =>
-  Match.valueTags(failure, {
-    ChainFileReadError: ({ fileName, reason }) => `${fileName} could not be read: ${reason}.`,
-    ChainFileDecodeError: ({ fileName }) => `${fileName} is not a chain export.`,
-    ChainFileNoSummary: () => 'the file has no summary row.',
-    ChainFileMissingPlayer: ({ row, playerId }) => `the ${row} names player ${playerId}, which the players table does not list.`,
-  })
-
-/** Reads, decodes, and checks one picked file. Every failure is a tagged error. */
-const loadChainFile = (picked: File) =>
-  Effect.gen(function* () {
-    // foreign: the browser's read error is translated into a tagged error here.
-    const text = yield* Effect.tryPromise({
-      try: () => picked.text(),
-      catch: (cause) => new ChainFileReadError({ fileName: picked.name, reason: String(cause) }),
-    })
-    const decoded = decodeChainText(text)
-    if (!Result.isSuccess(decoded)) return yield* new ChainFileDecodeError({ fileName: picked.name })
-    const checked = chainFileProblem(decoded.success.tables)
-    if (!Result.isSuccess(checked)) return yield* checked.failure
-    return checked.success
-  })
-
-/** Runs the loader at the browser boundary, where the file input needs a promise. */
-const browserRuntime = ManagedRuntime.make(Layer.empty)
-const readChainFile = (picked: File) => browserRuntime.runPromise(Effect.result(loadChainFile(picked)))
 
 function ChainPlayer({ data }: G6NodeProps) {
   // SAFETY: G6 hands node data back untyped; chainGraph wrote exactly these fields.
@@ -102,6 +39,7 @@ function ChainView() {
   const [note, setNote] = useState('Sample: 11 to 14.')
   const [hovered, setHovered] = useState<string | null>(null)
   const latestPick = useRef(0)
+  const readChainFile = useChainFile()
   const graph = useMemo(() => chainGraph(tables), [tables])
   // Hovering an edge highlights every edge of every chain that uses it.
   const highlightedEdges = useMemo(
