@@ -41,6 +41,7 @@ class TruthUnreadable extends Schema.TaggedError<
 >()("TruthUnreadable", {
   path: Schema.String,
   message: Schema.String,
+  cause: Schema.Defect(),
 }) {}
 
 // The baseline snapshot's pinned values (plan C-accept). They apply only under `--baseline`.
@@ -151,20 +152,22 @@ const readTruth = (path: string) =>
     const text = yield* Effect.try({
       try: () => readFileSync(path, "utf-8"),
       // foreign: node:fs throws its own errors
-      catch: () =>
+      catch: (cause) =>
         new TruthUnreadable({
           path,
           message: "The truth file could not be read.",
+          cause,
         }),
     });
     return yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Truth))(
       text
     ).pipe(
       Effect.mapError(
-        () =>
+        (cause) =>
           new TruthUnreadable({
             path,
             message: "The truth file does not match the expected shape.",
+            cause,
           })
       )
     );
@@ -183,7 +186,7 @@ const answerOf = (
       distance: found.success.distance,
       chains: found.success.pathCount,
     });
-  if (found.failure._tag === "NoPath")
+  if (Predicate.isTagged(found.failure, "NoPath"))
     return Effect.succeed<Answer | null>(null);
   return Effect.fail(found.failure);
 };
