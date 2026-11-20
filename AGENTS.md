@@ -20,7 +20,7 @@ Run these from the repository root before reporting a code change as done. Repor
 - `bun run format:check` must exit 0. `bun run format` fixes it; see Formatting.
 - If typecheck cannot find an `@nhl-reddit-stats/*` module, run `bun install` and retry: a new workspace is not linked yet.
 - Fix the code when a check fails. Do not disable a rule, lower a diagnostic's severity, or add an ignore comment to pass.
-- CI runs these checks only for `packages/history` and `apps/api`, on pull requests that touch their paths. For every other workspace the local run is the only gate.
+- CI runs these checks only for `packages/history` and `apps/api`, on pull requests that touch their paths. For every other workspace the local run is the only gate. `bun run format:check` runs in CI on every pull request.
 
 # Library documentation
 
@@ -97,9 +97,9 @@ Write new code to the three models below in every workspace. This table shows wh
 | `apps/web` | `plan-viewer/plan.ts` only | no | no | core, react, next |
 | `packages/season` | no | no | no | core |
 
-- Every workspace lints with type information (`effect-tsgo --tsrs-lint oxlint`). `typescript/switch-exhaustiveness-check`, `typescript/no-floating-promises`, `typescript/no-misused-promises`, and `typescript/await-thenable` are errors. Run it through `bun run lint`; plain `oxlint` cannot load that config.
+- Every workspace lints with type information (`effect-tsgo --tsrs-lint oxlint`). `typescript/switch-exhaustiveness-check`, `typescript/no-floating-promises`, `typescript/no-misused-promises`, `typescript/await-thenable`, and `typescript/no-non-null-assertion` are errors, set by Ultracite's core preset; do not repeat a rule Ultracite already sets in a workspace or house config. Run it through `bun run lint`; plain `oxlint` cannot load that config.
 - Each workspace's lint config is `oxlint.config.ts`, built from `lint/oxlint.ts`: Ultracite's oxlint presets (`ultracite/oxlint/core`, and `react` and `next` in `apps/web`), then `lint/ultracite.ts`, then the house configs (`lint/effect-core.oxlintrc.json`, `lint/anti-slop.oxlintrc.json`), so a house severity wins. Ultracite's rules are built-in rules with no changed-lines mode: they check every line.
-- `lint/ultracite.ts` turns off the Ultracite rules that contradict a house rule here (`conflicts`), whose fix breaks typed code (`wrong`), or that disagree with this repository's style (`style`), each with its reason. `pending` lists rules with existing findings still to fix: fix every finding of one, then delete its entry. Do not add an entry to get a change past lint.
+- `lint/ultracite.ts` turns off the Ultracite rules that contradict a house rule here (`conflicts`), that disagree with this repository's style (`style`), or that find few bugs here and report mostly tests (`declined`), each with its reason. `configured` keeps a rule on with an option where its default breaks typed code. `pending` lists rules with existing findings still to fix: fix every finding of one, then delete its entry. Do not add an entry to get a change past lint.
 - `apps/web` also runs the design and actor-pattern plugins described under Design-system enforcement.
 - To adopt a rule in another workspace, copy the setup from `packages/history`: its `lint` script, the `jsPlugins` and `unions/*` rules in `oxlint.config.ts`, and the `diagnosticSeverity` block in `tsconfig.json`. Update the table in the same change.
 
@@ -135,12 +135,12 @@ Write new code to the three models below in every workspace. This table shows wh
 
 - Do not write the non-null assertion `!`. Narrow with a check, restructure so the value is known to exist, or fail with a tagged error when absence is an expected outcome.
 - Where absence would be a programming defect, check and `throw` with a `// defect: <reason>` comment, as in the error model.
-- `packages/viz` enforces this in `bun run lint` with `typescript/no-non-null-assertion`. Add the rule to a package's `oxlint.config.ts` when that package adopts it.
+- Every workspace enforces this in `bun run lint`: Ultracite's core preset sets `typescript/no-non-null-assertion` to `error`.
 
 # Formatting
 
 - Oxfmt formats the repository with Ultracite's preset (`oxfmt.config.ts` spreads `ultracite/oxfmt`). `bun run format` writes; `bun run format:check` fails on an unformatted file.
-- `oxfmt.config.ts` skips data files, `.agent-sources/`, installed skills, the generated `apps/web/tamagui-prompt.md`, vendored third-party code, and the analyst model prompts. Oxfmt also skips what `.gitignore` lists.
+- `oxfmt.config.ts` skips data files, `.agent-sources/`, installed skills, the generated `apps/web/tamagui-prompt.md`, vendored third-party code, `docs/analyst-agent-plan.html`, and the analyst model prompts. Oxfmt also skips what `.gitignore` lists.
 - The formatter wraps long lines and sorts imports, so a comment that a check reads by position must sit directly above its statement. Write `if (cond) {` and put `// defect: <reason>` above the `throw` inside the block, not above a one-line `if (cond) throw`. Put `// foreign: <reason>` directly above the line with the `in` check. Leave a blank line between a file-header comment (such as a legacy `oxlint-disable`) and the first import, or import sorting moves the comment with that import.
 
 # Design-system enforcement

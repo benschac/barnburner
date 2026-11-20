@@ -9,10 +9,6 @@ export default defineConfig({
   rules: {
     "unions/discriminated": "error",
     "unions/no-in-narrowing": "error",
-    "typescript/switch-exhaustiveness-check": "error",
-    "typescript/no-floating-promises": "error",
-    "typescript/no-misused-promises": "error",
-    "typescript/await-thenable": "error",
   },
   options: {
     typeAware: true,

@@ -8,12 +8,6 @@ export default defineConfig({
   options: {
     typeAware: true,
   },
-  rules: {
-    "typescript/switch-exhaustiveness-check": "error",
-    "typescript/no-floating-promises": "error",
-    "typescript/no-misused-promises": "error",
-    "typescript/await-thenable": "error",
-  },
   overrides: [
     {
       files: ["**/*.test.ts", "**/*.test.tsx"],
