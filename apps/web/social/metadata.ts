@@ -6,7 +6,7 @@ import { socialImageSize } from "./card.ts";
 
 // Reads SITE_URL, VERCEL_PROJECT_PRODUCTION_URL, VERCEL_URL and VERCEL_ENV. An index signature accepts both
 // Node's ProcessEnv and Next's, which also requires NODE_ENV.
-export type SiteEnv = { readonly [key: string]: string | undefined };
+export type SiteEnv = Readonly<Record<string, string | undefined>>;
 
 export function siteOrigin(env: SiteEnv) {
   const host =

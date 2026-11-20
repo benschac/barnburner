@@ -18,7 +18,7 @@ export interface CaseResult {
 }
 
 export interface EvalRun {
-  readonly results: ReadonlyArray<CaseResult>;
+  readonly results: readonly CaseResult[];
   readonly passed: number;
   readonly total: number;
   readonly score: number;
@@ -27,7 +27,7 @@ export interface EvalRun {
 const describe = (e: unknown): string => {
   // foreign: e is whatever an answerer or driver raised
   if (typeof e === "object" && e !== null && "message" in e)
-    return String((e as { message: unknown }).message);
+    return String(e.message);
   return String(e);
 };
 
@@ -114,7 +114,7 @@ const runCase = (
   });
 
 export const runEvals = (input: {
-  readonly cases: ReadonlyArray<EvalCase>;
+  readonly cases: readonly EvalCase[];
   readonly db: Db;
   readonly answerer: Answerer;
 }): Effect.Effect<EvalRun> =>

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 
 import { Effect, Result, Schema } from "effect";
 
@@ -14,11 +13,7 @@ import { guardQuery } from "../src/guard.ts";
 import { literalDigits, render } from "../src/render.ts";
 import type { Db } from "../src/shapes.ts";
 
-const dataDir = join(
-  fileURLToPath(new URL(".", import.meta.url)),
-  "fixtures",
-  "data"
-);
+const dataDir = join(import.meta.dirname, "fixtures", "data");
 
 const withDb = (run: (db: Db) => Promise<void>): Promise<void> =>
   Effect.runPromise(

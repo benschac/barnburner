@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 import { NodeRuntime } from "@effect/platform-node";
@@ -82,7 +81,7 @@ interface Tally {
 const readTeams = (dataDir: string) =>
   Effect.gen(function* () {
     const text = yield* Effect.tryPromise({
-      try: () => readFile(join(dataDir, "teams.json"), "utf8"),
+      try: () => readFile(join(dataDir, "teams.json"), "utf-8"),
       catch: (cause) =>
         new EvalDetectorsError({
           message: `cannot read teams.json: ${String(cause)}`,
@@ -284,10 +283,7 @@ export const runCli = (
     out(formatReport(report));
   });
 
-if (
-  process.argv[1] &&
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-) {
+if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) {
   const program = runCli(process.argv.slice(2)).pipe(
     Effect.tapCause((cause) => Console.error(String(Cause.squash(cause))))
   );

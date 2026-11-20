@@ -48,9 +48,9 @@ for (const mode of ["light", "dark"] as const) {
     for (const key of Object.values(fieldKeys)) {
       assert.equal(variables[`--viz-${key}`], contract.themes[mode][key]);
     }
-    theme.series.forEach((colour, index) =>
-      assert.equal(variables[`--viz-series-${index}`], colour)
-    );
+    theme.series.forEach((colour, index) => {
+      assert.equal(variables[`--viz-series-${index}`], colour);
+    });
     assert.equal(variables["--viz-font-body"], fonts["font-body"]);
     assert.equal(variables["--viz-font-score"], fonts["font-score"]);
     assert.equal(variables["color-scheme"], mode);

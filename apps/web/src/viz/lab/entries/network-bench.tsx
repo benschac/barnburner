@@ -58,7 +58,7 @@ function BenchPage() {
   const [loaded, setLoaded] = useState<BenchData | undefined>(undefined);
   const [note, setNote] = useState("");
   const [running, setRunning] = useState(false);
-  const [results, setResults] = useState<ReadonlyArray<BenchResult>>([]);
+  const [results, setResults] = useState<readonly BenchResult[]>([]);
 
   const selected =
     source === "ego" ? egoData : source === "league" ? leagueData : loaded;
@@ -131,7 +131,9 @@ function BenchPage() {
         Renderer{" "}
         <select
           value={renderer}
-          onChange={(event) => setRenderer(event.target.value)}
+          onChange={(event) => {
+            setRenderer(event.target.value);
+          }}
         >
           {renderers.map((item) => (
             <option key={item.id} value={item.id}>

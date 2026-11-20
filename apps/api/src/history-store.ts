@@ -116,7 +116,7 @@ const YearsRequest = Schema.Struct({
 
 /** Accent-folded and lower-cased, as `players.search_name` is built. */
 const foldName = (name: string): string =>
-  name.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+  name.normalize("NFD").replaceAll(/\p{M}/gu, "").toLowerCase();
 
 const OPPONENT_BLOBS = ["opp_a", "opp_b", "opp_games"] as const;
 
@@ -441,7 +441,7 @@ const buildHistoryStore = (
       if (needle.length === 0) return Effect.succeed([]);
       return searchQuery({ needle, limit }).pipe(
         queried,
-        Effect.map((rows): ReadonlyArray<PlayerRow> => rows)
+        Effect.map((rows): readonly PlayerRow[] => rows)
       );
     };
 
@@ -450,7 +450,7 @@ const buildHistoryStore = (
         const found = yield* playerQuery({ playerId }).pipe(queried);
         if (found._tag === "None")
           return yield* new UnknownPlayer({ playerId });
-        const stints: ReadonlyArray<StintRow> = yield* stintsQuery({
+        const stints: readonly StintRow[] = yield* stintsQuery({
           playerId,
         }).pipe(queried);
         return { player: found.value, stints } satisfies PlayerDetail;
@@ -458,7 +458,7 @@ const buildHistoryStore = (
 
     const roster: HistoryStore["roster"] = (teamId, seasonId, gameType) =>
       Effect.gen(function* () {
-        const rows: ReadonlyArray<RosterRow> = yield* rosterQuery({
+        const rows: readonly RosterRow[] = yield* rosterQuery({
           teamId,
           seasonId,
           gameType,
@@ -494,7 +494,7 @@ const buildHistoryStore = (
       Effect.gen(function* () {
         yield* requireKnown(a);
         yield* requireKnown(b);
-        const rows: ReadonlyArray<OpposedGameRow> = yield* opposedQuery({
+        const rows: readonly OpposedGameRow[] = yield* opposedQuery({
           a,
           b,
         }).pipe(queried);

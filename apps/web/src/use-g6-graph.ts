@@ -24,13 +24,13 @@ export function useG6Graph(
   build: BuildG6Graph,
   heightPx: number,
   onEdgeHover: ((edgeId: string | null) => void) | undefined,
-  highlightedEdges: ReadonlyArray<string> | undefined
+  highlightedEdges: readonly string[] | undefined
 ) {
   const root = useRef<HTMLElement | null>(null);
   const [failure, setFailure] = useState<G6RenderError | null>(null);
   // The latest callback and highlight list, read by the graph without rebuilding it.
   const hoverCallback = useRef(onEdgeHover);
-  const highlighted = useRef<ReadonlyArray<string>>(highlightedEdges ?? []);
+  const highlighted = useRef<readonly string[]>(highlightedEdges ?? []);
   const live = useRef<{ graph: Graph; drawn: Promise<unknown> } | null>(null);
   useEffect(() => {
     hoverCallback.current = onEdgeHover;

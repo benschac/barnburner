@@ -4,7 +4,7 @@ import { join, relative } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-const dataDir = fileURLToPath(new URL("./fixtures/data", import.meta.url));
+const dataDir = fileURLToPath(new URL("fixtures/data", import.meta.url));
 
 function jsonFiles(dir: string): string[] {
   return readdirSync(dir, { recursive: true, withFileTypes: false })
@@ -18,7 +18,7 @@ test("every fixture file parses as JSON", () => {
   assert.equal(files.length, 5);
   for (const file of files) {
     assert.doesNotThrow(
-      () => JSON.parse(readFileSync(file, "utf8")),
+      () => JSON.parse(readFileSync(file, "utf-8")),
       relative(dataDir, file)
     );
   }

@@ -22,7 +22,8 @@ import {
   Scope,
 } from "effect";
 import { FetchHttpClient, HttpRouter } from "effect/http";
-import { RpcClient, RpcClientError, RpcSerialization } from "effect/rpc";
+import type { RpcClientError } from "effect/rpc";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 
 import {
   MINI_ARRAYS,
@@ -469,7 +470,7 @@ test("closing the History layer releases the SQLite connection, and the file ope
     assert.equal(reopened.snapshotId, MINI_SNAPSHOT_ID);
     await Effect.runPromise(Scope.close(again, Exit.void));
   };
-  return run().finally(() =>
-    rmSync(directory, { recursive: true, force: true })
-  );
+  return run().finally(() => {
+    rmSync(directory, { recursive: true, force: true });
+  });
 });

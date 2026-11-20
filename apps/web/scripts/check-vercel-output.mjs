@@ -65,7 +65,9 @@ const directory = await realpath(
 );
 const cleanup = () => rm(directory, { recursive: true, force: true });
 // An assertion that fails before the final cleanup still leaves no temporary files.
-process.once("exit", () => rmSync(directory, { recursive: true, force: true }));
+process.once("exit", () => {
+  rmSync(directory, { recursive: true, force: true });
+});
 
 const SNAPSHOT_NAME = "nhl-serve.sqlite";
 const sizeOf = (path) =>
@@ -102,7 +104,7 @@ const FunctionManifest = Schema.Struct({
   filePathMap: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
 });
 const readManifest = async (path, schema) => {
-  const text = await readFile(path, "utf8").then(
+  const text = await readFile(path, "utf-8").then(
     (value) => Result.succeed(value),
     (cause) =>
       Result.fail(
@@ -393,7 +395,7 @@ const chunkImports = async (handlerDirectory, entry) => {
   const missing = [];
   const pending = [entry];
   for (const file of pending) {
-    const text = await readFile(join(handlerDirectory, file), "utf8").catch(
+    const text = await readFile(join(handlerDirectory, file), "utf-8").catch(
       () => null
     );
     if (text === null) {

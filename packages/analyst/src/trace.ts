@@ -1,6 +1,5 @@
 import { appendFileSync, mkdirSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
 
 import { DateTime, Result, Schema, Tuple } from "effect";
 
@@ -138,10 +137,7 @@ export const DEFAULT_MAX_TOOL_OUTPUT_CHARS = 2000;
 
 // Repo root is four levels up from src/ (packages/analyst/src -> repo root).
 export function defaultTraceDir(): string {
-  return resolve(
-    dirname(fileURLToPath(import.meta.url)),
-    "../../../.audit/agent-runs"
-  );
+  return resolve(import.meta.dirname, "../../../.audit/agent-runs");
 }
 
 export function truncateText(text: string, max: number): string {
@@ -196,7 +192,7 @@ export function openTrace(
       const line = toJson(event);
       const parsed = parseTraceLine(line);
       if (Result.isFailure(parsed)) return parsed;
-      appendFileSync(path, `${line}\n`, "utf8");
+      appendFileSync(path, `${line}\n`, "utf-8");
       return Result.succeed(event);
     },
   });

@@ -1,6 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
 
 import { Array, Effect, Order, Result, Schema } from "effect";
 
@@ -88,7 +87,7 @@ export const recheckInsights = ({
   if (!existsSync(dir))
     return Effect.succeed({ unchanged: 0, refreshed: 0, stale: 0 });
   const poster = decodePoster(
-    readFileSync(join(dataDir, "nhl-poster-20262027.json"), "utf8")
+    readFileSync(join(dataDir, "nhl-poster-20262027.json"), "utf-8")
   );
   const asOf = {
     fetchedAt: poster.fetchedAt,
@@ -120,7 +119,7 @@ const main = async (): Promise<void> => {
     const i = args.indexOf(name);
     return i === -1 ? undefined : args[i + 1];
   };
-  const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+  const root = resolve(import.meta.dirname, "../../..");
   const dir = flag("--dir") ?? join(root, "data/insights/20262027");
   const dataDir = flag("--data") ?? join(root, "data");
   const result = await Effect.runPromise(

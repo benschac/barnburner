@@ -56,84 +56,100 @@ export function Division({
         </Score>
       </Row>
       <List pt="1.5">
-        {teams.map(({ team, games }) => {
-          return (
-            <Row
-              render="li"
-              h="8"
-              gap="4"
-              key={team}
-              cursor="pointer"
-              onClick={() => navigateTeam(team)}
-              onMouseEnter={() => onPrefetchTeam(team)}
-              onFocus={() => onPrefetchTeam(team)}
-              bg={
-                selectedGame?.team === team
-                  ? "highlight print:transparent"
-                  : "transparent"
-              }
+        {teams.map(({ team, games }) => (
+          <Row
+            render="li"
+            h="8"
+            gap="4"
+            key={team}
+            cursor="pointer"
+            onClick={() => {
+              navigateTeam(team);
+            }}
+            onMouseEnter={() => {
+              onPrefetchTeam(team);
+            }}
+            onFocus={() => {
+              onPrefetchTeam(team);
+            }}
+            bg={
+              selectedGame?.team === team
+                ? "highlight print:transparent"
+                : "transparent"
+            }
+          >
+            <View
+              render={<a href={teamHref(team)} />}
+              aria-label={`View ${team} wins and losses`}
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
             >
-              <View
-                render={<a href={teamHref(team)} />}
-                aria-label={`View ${team} wins and losses`}
-                onClick={(event) => event.stopPropagation()}
-              >
-                <Logo
-                  src={teamLogo(team, theme)}
-                  alt={team}
-                  w="8"
-                  h="icon"
-                  scale={1.18}
-                />
-              </View>
-              <Row gap="1">
-                {games.map(({ game, index, outcome }) => {
-                  const { result, venue } = game;
-                  const label = result
-                    ? `${outcome === "overtime" ? "OT/SO loss" : outcome}, ${selectedTeam} ${result.goalsFor}–${result.goalsAgainst} ${team}${result.decision === "REG" ? "" : ` ${result.decision}`}`
-                    : "still to play";
-                  return (
+              <Logo
+                src={teamLogo(team, theme)}
+                alt={team}
+                w="8"
+                h="icon"
+                scale={1.18}
+              />
+            </View>
+            <Row gap="1">
+              {games.map(({ game, index, outcome }) => {
+                const { result, venue } = game;
+                const label = result
+                  ? `${outcome === "overtime" ? "OT/SO loss" : outcome}, ${selectedTeam} ${result.goalsFor}–${result.goalsAgainst} ${team}${result.decision === "REG" ? "" : ` ${result.decision}`}`
+                  : "still to play";
+                return (
+                  <View
+                    render={<a href={teamHref(team)} />}
+                    key={game.id}
+                    w="icon"
+                    h="icon"
+                    p="0"
+                    items="center"
+                    justify="center"
+                    bg="transparent hover:surface"
+                    rounded="sm"
+                    borderWidth={1}
+                    cursor="pointer"
+                    borderColor={
+                      index === activeGame
+                        ? "gold print:transparent"
+                        : "transparent focus-visible:gold"
+                    }
+                    aria-label={`${venue === "home" ? "vs" : "at"} ${team}, ${gameDateTime(game)}, ${label}`}
+                    onMouseEnter={() => {
+                      onPointGame(index);
+                    }}
+                    onMouseLeave={() => {
+                      onPointGame(null);
+                    }}
+                    onFocus={() => {
+                      onHoldGame(index);
+                    }}
+                    onBlur={() => {
+                      onHoldGame(null);
+                    }}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                    }}
+                  >
                     <View
-                      render={<a href={teamHref(team)} />}
-                      key={game.id}
-                      w="icon"
-                      h="icon"
-                      p="0"
-                      items="center"
-                      justify="center"
-                      bg="transparent hover:surface"
-                      rounded="sm"
-                      borderWidth={1}
-                      cursor="pointer"
-                      borderColor={
-                        index === activeGame
-                          ? "gold print:transparent"
-                          : "transparent focus-visible:gold"
-                      }
-                      aria-label={`${venue === "home" ? "vs" : "at"} ${team}, ${gameDateTime(game)}, ${label}`}
-                      onMouseEnter={() => onPointGame(index)}
-                      onMouseLeave={() => onPointGame(null)}
-                      onFocus={() => onHoldGame(index)}
-                      onBlur={() => onHoldGame(null)}
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <View
-                        w="6"
-                        h="6"
-                        bg={outcomeColors[outcome]}
-                        maskRepeat="no-repeat"
-                        maskSize="contain"
-                        maskPosition="center"
-                        maskImage={`url('/assets/icons/${venue === "home" ? "home" : "flight"}.svg')`}
-                        rotate={venue === "away" ? "90deg" : "0deg"}
-                      />
-                    </View>
-                  );
-                })}
-              </Row>
+                      w="6"
+                      h="6"
+                      bg={outcomeColors[outcome]}
+                      maskRepeat="no-repeat"
+                      maskSize="contain"
+                      maskPosition="center"
+                      maskImage={`url('/assets/icons/${venue === "home" ? "home" : "flight"}.svg')`}
+                      rotate={venue === "away" ? "90deg" : "0deg"}
+                    />
+                  </View>
+                );
+              })}
             </Row>
-          );
-        })}
+          </Row>
+        ))}
       </List>
       <View
         h="16"

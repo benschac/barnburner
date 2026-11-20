@@ -107,7 +107,7 @@ export type FrameDeps = {
  */
 export const themeVariables = (
   theme: VizTheme
-): ReadonlyArray<readonly [name: string, value: string]> => [
+): readonly (readonly [name: string, value: string])[] => [
   ["color-scheme", theme.mode],
   ...Object.entries(cssVariables(theme)),
 ];
@@ -128,7 +128,9 @@ export const loadModule = (code: string): Promise<ModuleNamespace> => {
   const url = URL.createObjectURL(
     new Blob([code], { type: "text/javascript" })
   );
-  return import(url).finally(() => URL.revokeObjectURL(url));
+  return import(url).finally(() => {
+    URL.revokeObjectURL(url);
+  });
 };
 
 type LoadedModule = {
@@ -165,8 +167,9 @@ export const createFrame = (deps: FrameDeps) => {
     win.parent.postMessage(message, "*");
   };
 
-  const fail = (id: string, error: ViewFailed): void =>
+  const fail = (id: string, error: ViewFailed): void => {
     post(Failed.make({ id, message: error.message }));
+  };
 
   /** Ends `view`: stops its frame loop, calls its cleanup, and clears the root. A cleanup that throws is reported. */
   const retire = (view: ActiveView): Effect.Effect<void> => {
@@ -181,9 +184,15 @@ export const createFrame = (deps: FrameDeps) => {
         : Effect.try({ try: cleanup, catch: viewFailed("The cleanup threw. ") })
     ).pipe(
       Effect.catchTag("ViewFailed", (error) =>
-        Effect.sync(() => fail(view.id, error))
+        Effect.sync(() => {
+          fail(view.id, error);
+        })
       ),
-      Effect.ensuring(Effect.sync(() => root.replaceChildren()))
+      Effect.ensuring(
+        Effect.sync(() => {
+          root.replaceChildren();
+        })
+      )
     );
   };
 
@@ -235,11 +244,11 @@ export const createFrame = (deps: FrameDeps) => {
       const view: ActiveView = { id: message.id, cleanup: null, frame: null };
       active = view;
       const startedAt = deps.now();
-      yield* Effect.sync(() =>
-        themeVariables(message.theme).forEach(([name, value]) =>
-          deps.variables.setProperty(name, value)
-        )
-      );
+      yield* Effect.sync(() => {
+        themeVariables(message.theme).forEach(([name, value]) => {
+          deps.variables.setProperty(name, value);
+        });
+      });
       const run = Effect.gen(function* () {
         const namespace =
           loaded !== null && loaded.code === message.code
@@ -283,7 +292,9 @@ export const createFrame = (deps: FrameDeps) => {
             catch: viewFailed("The cleanup threw. "),
           }).pipe(
             Effect.catchTag("ViewFailed", (error) =>
-              Effect.sync(() => fail(view.id, error))
+              Effect.sync(() => {
+                fail(view.id, error);
+              })
             )
           );
           if (active === null) root.replaceChildren();

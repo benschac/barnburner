@@ -7,7 +7,7 @@ import { logError, logInfo } from "../../../lib/logger.mjs";
 // The history serving file ships inside the history function, so a failed fetch fails the build.
 const fetchHistory = spawnSync(
   process.execPath,
-  [fileURLToPath(new URL("./fetch-history.ts", import.meta.url))],
+  [fileURLToPath(new URL("fetch-history.ts", import.meta.url))],
   { stdio: "inherit" }
 );
 if (fetchHistory.status !== 0) process.exit(1);

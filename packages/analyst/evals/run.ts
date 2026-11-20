@@ -1,7 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
 
 import { Array, DateTime, Effect, Match, Order, Schema } from "effect";
 
@@ -29,7 +28,7 @@ const io = <A>(operation: () => Promise<A>) =>
     catch: (cause) => new EvalCliError({ message: String(cause) }),
   });
 const hash = (text: string) => createHash("sha256").update(text).digest("hex");
-const here = dirname(fileURLToPath(import.meta.url));
+const here = import.meta.dirname;
 
 export const loadCases = (dir: string) =>
   Effect.gen(function* () {
@@ -40,7 +39,7 @@ export const loadCases = (dir: string) =>
     );
     const loaded = yield* Effect.forEach(names, (name) =>
       Effect.gen(function* () {
-        const text = yield* io(() => readFile(join(dir, name), "utf8"));
+        const text = yield* io(() => readFile(join(dir, name), "utf-8"));
         const decoded = yield* Schema.decodeUnknownEffect(
           Schema.fromJsonString(EvalCases)
         )(text).pipe(
@@ -89,7 +88,7 @@ export const evaluate = <E, R>(input: {
   readonly answer: (item: EvalCase) => Effect.Effect<AskResult, E, R>;
 }) =>
   Effect.gen(function* () {
-    const runs: Array<{ caseId: string; run: AskResult }> = [];
+    const runs: { caseId: string; run: AskResult }[] = [];
     const services = yield* Effect.context<R>();
     const result = yield* runEvals({
       cases: input.cases,
@@ -213,7 +212,7 @@ export const runCli = (
       resolve(options.get("--cases-dir") ?? join(here, "qa"))
     );
     const prompt = yield* io(() =>
-      readFile(join(here, "../src/ask.ts"), "utf8")
+      readFile(join(here, "../src/ask.ts"), "utf-8")
     );
     const config = llmConfigFromEnv();
     const outputDir = resolve(
@@ -294,10 +293,7 @@ export const runCli = (
     );
   });
 
-if (
-  process.argv[1] &&
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-) {
+if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) {
   await Effect.runPromise(
     runCli(process.argv.slice(2)).pipe(
       Effect.catch((error) =>

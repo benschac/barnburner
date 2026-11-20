@@ -33,7 +33,7 @@ export type HistoryStore = {
   readonly searchPlayers: (
     query: string,
     limit: number
-  ) => Effect.Effect<ReadonlyArray<PlayerRow>, HistoryUnavailable>;
+  ) => Effect.Effect<readonly PlayerRow[], HistoryUnavailable>;
   /** Stints are ordered by season, game type, team. */
   readonly player: (
     playerId: number
@@ -43,10 +43,7 @@ export type HistoryStore = {
     teamId: number,
     seasonId: number,
     gameType: GameType
-  ) => Effect.Effect<
-    ReadonlyArray<RosterRow>,
-    HistoryUnavailable | UnknownRoster
-  >;
+  ) => Effect.Effect<readonly RosterRow[], HistoryUnavailable | UnknownRoster>;
   /**
    * Games of one span of the pair, oldest first. `PlayedWith`: both have an `appearances` row for the team
    * in that season and game type. `GoaliePartners`: both are on the team's `dressed_goalies` rows for the
@@ -61,7 +58,7 @@ export type HistoryStore = {
     teamId: number,
     link: LinkKind
   ) => Effect.Effect<
-    ReadonlyArray<SharedGameRow>,
+    readonly SharedGameRow[],
     HistoryUnavailable | UnknownPlayer
   >;
   /** Every game on opposite sides, oldest first. */
@@ -69,12 +66,12 @@ export type HistoryStore = {
     a: number,
     b: number
   ) => Effect.Effect<
-    ReadonlyArray<OpposedGameRow>,
+    readonly OpposedGameRow[],
     HistoryUnavailable | UnknownPlayer
   >;
   /** The Finals whose year is in range, ascending. */
   readonly finals: (
     fromYear: number,
     toYear: number
-  ) => Effect.Effect<ReadonlyArray<FinalRow>, HistoryUnavailable>;
+  ) => Effect.Effect<readonly FinalRow[], HistoryUnavailable>;
 };

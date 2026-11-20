@@ -36,17 +36,19 @@ export const TeamPoster = memo(function TeamPoster({
   const [inspection, setInspection] = useState(() => idleInspection(team));
   const activeGame = inspectedGame(inspection, team);
   const pointGame = useCallback(
-    (game: number | null) =>
+    (game: number | null) => {
       setInspection((state) =>
         inspectGame(state, { type: "point", team, game })
-      ),
+      );
+    },
     [team]
   );
   const holdGame = useCallback(
-    (game: number | null) =>
+    (game: number | null) => {
       setInspection((state) =>
         inspectGame(state, { type: "hold", team, game })
-      ),
+      );
+    },
     [team]
   );
   const {

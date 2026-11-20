@@ -9,7 +9,8 @@ import {
 import { HistoryRpcs } from "@nhl-reddit-stats/history/rpc";
 import { Effect, Layer, Schema } from "effect";
 import { FetchHttpClient, HttpRouter } from "effect/http";
-import { RpcClient, RpcClientError, RpcSerialization } from "effect/rpc";
+import type { RpcClientError } from "effect/rpc";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 
 import {
   MINI_SNAPSHOT_ID,

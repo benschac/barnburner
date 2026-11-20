@@ -260,7 +260,9 @@ function drawChart(
         ctx.clip();
         ctx.beginPath();
         ctx.moveTo(first.x, zero);
-        geometry.line.forEach(({ x, y }) => ctx.lineTo(x, y));
+        geometry.line.forEach(({ x, y }) => {
+          ctx.lineTo(x, y);
+        });
         ctx.lineTo(last.x, zero);
         ctx.closePath();
         ctx.fillStyle = positive ? colors.positive : colors.negative;
@@ -269,7 +271,9 @@ function drawChart(
       }
       ctx.beginPath();
       ctx.moveTo(first.x, first.y);
-      geometry.line.slice(1).forEach(({ x, y }) => ctx.lineTo(x, y));
+      geometry.line.slice(1).forEach(({ x, y }) => {
+        ctx.lineTo(x, y);
+      });
       ctx.lineWidth = 3;
       ctx.lineJoin = "round";
       ctx.strokeStyle = colors.line;
@@ -546,7 +550,9 @@ export function Chart({
               : "Playoff cushion chart. Use arrow keys to inspect games."
           }
           onKeyDown={navigateGames}
-          onFocus={() => setIsFocused(true)}
+          onFocus={() => {
+            setIsFocused(true);
+          }}
           onBlur={() => {
             setIsFocused(false);
             onHoldGame(null);
@@ -562,7 +568,9 @@ export function Chart({
             display="block"
             role="img"
             onMouseMove={pointAt}
-            onMouseLeave={() => onPointGame(null)}
+            onMouseLeave={() => {
+              onPointGame(null);
+            }}
             onClick={holdAt}
             aria-label={
               kind === "season"

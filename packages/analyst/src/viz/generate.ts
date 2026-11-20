@@ -45,7 +45,7 @@ export interface GeneratedViewResult {
 }
 
 // The text a repair is told about: a frame's Failed message, or the problems from checkViewCode.
-export type ViewFailure = string | ReadonlyArray<ViewCodeProblem>;
+export type ViewFailure = string | readonly ViewCodeProblem[];
 
 export interface RepairViewInput {
   readonly code: string;
@@ -60,12 +60,12 @@ export const SAMPLE_ROWS = 3;
 // For each table: its name, row count, column names (from every row) and first rows. Never the whole data.
 export const describeTables = (
   tables: Tables
-): ReadonlyArray<{
+): readonly {
   readonly name: string;
   readonly rowCount: number;
-  readonly columns: ReadonlyArray<string>;
+  readonly columns: readonly string[];
   readonly sampleRows: Tables[string];
-}> =>
+}[] =>
   Object.entries(tables).map(([name, rows]) => {
     const sampleRows = rows.slice(0, SAMPLE_ROWS);
 

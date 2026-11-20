@@ -133,14 +133,14 @@ const withDb = (use: (db: string) => void) => {
   }
 };
 
-const query = (db: string, ...args: ReadonlyArray<string>) => {
+const query = (db: string, ...args: readonly string[]) => {
   const run = spawnSync(process.execPath, [script, "--db", db, ...args], {
-    encoding: "utf8",
+    encoding: "utf-8",
   });
   return { code: run.status, out: run.stdout, err: run.stderr };
 };
 
-test("path prints one line per hop with team, season, and evidence game", () =>
+test("path prints one line per hop with team, season, and evidence game", () => {
   withDb((db) => {
     const run = query(db, "path", "Player Eleven", "Player Fourteen");
     assert.equal(run.code, 0, run.err);
@@ -153,9 +153,10 @@ test("path prints one line per hop with team, season, and evidence game", () =>
       run.out,
       /Player Twelve \u2192 Player Fourteen: 2 games, BBB 1951\u201352 regular season, game 1951020001 \(1951-10-10\)/
     );
-  }));
+  });
+});
 
-test("path accepts numeric IDs, accent-folded names, and filters", () =>
+test("path accepts numeric IDs, accent-folded names, and filters", () => {
   withDb((db) => {
     assert.equal(query(db, "path", "11", "dvorak").code, 1);
     const playoff = query(db, "path", "14", "15", "--playoff");
@@ -167,9 +168,10 @@ test("path accepts numeric IDs, accent-folded names, and filters", () =>
       none.err,
       "No chain between Player Eleven and Twin Skater with these filters.\n"
     );
-  }));
+  });
+});
 
-test("player, link, opponents, farthest, and finals print their answers", () =>
+test("player, link, opponents, farthest, and finals print their answers", () => {
   withDb((db) => {
     const player = query(db, "player", "jaromir dvorak");
     assert.equal(player.code, 0, player.err);
@@ -189,9 +191,10 @@ test("player, link, opponents, farthest, and finals print their answers", () =>
     const finals = query(db, "finals", "14", "--from", "1950", "--to", "1952");
     assert.equal(finals.code, 0, finals.err);
     assert.match(finals.out, /1952: Player Fifteen/);
-  }));
+  });
+});
 
-test("an ambiguous name lists the players and exits non-zero", () =>
+test("an ambiguous name lists the players and exits non-zero", () => {
   withDb((db) => {
     const run = query(db, "player", "Twin Skater");
     assert.equal(run.code, 1);
@@ -199,9 +202,10 @@ test("an ambiguous name lists the players and exits non-zero", () =>
     assert.match(run.err, /id 18, D/);
     assert.match(run.err, /id 20, R/);
     assert.equal(query(db, "player", "20").code, 0);
-  }));
+  });
+});
 
-test("bad input exits non-zero with a one-line message", () =>
+test("bad input exits non-zero with a one-line message", () => {
   withDb((db) => {
     const unknown = query(db, "player", "Nobody Atall");
     assert.equal(unknown.code, 1);
@@ -212,7 +216,8 @@ test("bad input exits non-zero with a one-line message", () =>
       query(db, "path", "11", "12", "--regular", "--playoff").code,
       1
     );
-  }));
+  });
+});
 
 test("a missing serving file is reported as unavailable", () => {
   const run = spawnSync(
@@ -224,7 +229,7 @@ test("a missing serving file is reported as unavailable", () => {
       "player",
       "11",
     ],
-    { encoding: "utf8" }
+    { encoding: "utf-8" }
   );
   assert.equal(run.status, 1);
   assert.match(run.stderr, /^History unavailable/);

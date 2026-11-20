@@ -106,7 +106,7 @@ const clubFromRoster = (
 const teamRow = (
   store: HistoryStore,
   hop: ChainHopRow,
-  stints: ReadonlyArray<StintRow>
+  stints: readonly StintRow[]
 ): Effect.Effect<TeamRow, HistoryUnavailable | UnknownPlayer> =>
   Effect.gen(function* () {
     const stint = stints.find((s) => s.teamId === hop.teamId);

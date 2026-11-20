@@ -9,7 +9,8 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { createServer, type Server } from "node:http";
+import { createServer } from "node:http";
+import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -54,7 +55,9 @@ before(async () => {
   });
   await Effect.runPromise(
     Effect.callback<void>((resume) => {
-      server.listen(0, "127.0.0.1", () => resume(Effect.void));
+      server.listen(0, "127.0.0.1", () => {
+        resume(Effect.void);
+      });
     })
   );
   const { port } = server.address() as AddressInfo;
@@ -88,7 +91,7 @@ async function run(args: string[], env: Record<string, string> = {}) {
       process.execPath,
       [script, ...args],
       {
-        encoding: "utf8",
+        encoding: "utf-8",
         env: { ...process.env, HISTORY_KEEP_LOCAL: "", ...env },
       }
     );
@@ -186,7 +189,7 @@ test("a missing pointer removes a stale output unless --keep-existing", async ()
       "--keep-existing",
     ]);
     assert.equal(kept.status, 0);
-    assert.equal(readFileSync(out, "utf8"), "stale");
+    assert.equal(readFileSync(out, "utf-8"), "stale");
     const removed = await run([
       "--pointer",
       join(dir, "absent.json"),
@@ -258,7 +261,7 @@ test("HISTORY_KEEP_LOCAL=1 keeps a stale output like --keep-existing", async () 
       { HISTORY_KEEP_LOCAL: "1" }
     );
     assert.equal(kept.status, 0, kept.stderr);
-    assert.equal(readFileSync(out, "utf8"), "stale");
+    assert.equal(readFileSync(out, "utf-8"), "stale");
     const removed = await run(
       ["--pointer", join(dir, "absent.json"), "--out", out],
       { HISTORY_KEEP_LOCAL: "0" }

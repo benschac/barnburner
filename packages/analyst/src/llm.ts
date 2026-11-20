@@ -56,16 +56,16 @@ export interface LlmRunInput {
   readonly tools?: ToolSet;
   readonly stopWhen?:
     | StopCondition<any, any>
-    | ReadonlyArray<StopCondition<any, any>>;
+    | readonly StopCondition<any, any>[];
   // A gateway "provider/model" string or a LanguageModel instance; defaults to the generate model.
   readonly model?: LanguageModel;
 }
 
 export interface LlmRunResult {
   readonly text: string;
-  readonly steps: ReadonlyArray<StepResult<any, any>>;
+  readonly steps: readonly StepResult<any, any>[];
   readonly usage: LanguageModelUsage;
-  readonly toolCalls: ReadonlyArray<StepResult<any, any>["toolCalls"][number]>;
+  readonly toolCalls: readonly StepResult<any, any>["toolCalls"][number][];
 }
 
 export interface LlmService {

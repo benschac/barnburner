@@ -6,13 +6,10 @@ import { test } from "node:test";
 
 import { Result } from "effect";
 
-import { cardId, type InsightCard } from "../src/card.ts";
-import {
-  mergePending,
-  readCards,
-  type StoreError,
-  writeCards,
-} from "../src/store.ts";
+import { cardId } from "../src/card.ts";
+import type { InsightCard } from "../src/card.ts";
+import { mergePending, readCards, writeCards } from "../src/store.ts";
+import type { StoreError } from "../src/store.ts";
 
 const makeCard = (
   headline: string,
@@ -47,7 +44,7 @@ test("writeCards then readCards round-trips with pretty JSON and a trailing newl
   const dir = tempDir();
   const cards = [makeCard("one"), makeCard("two", "approved")];
   assert.ok(Result.isSuccess(writeCards(dir, "NJD", cards)));
-  const raw = readFileSync(join(dir, "NJD.json"), "utf8");
+  const raw = readFileSync(join(dir, "NJD.json"), "utf-8");
   assert.ok(raw.endsWith("\n"));
   assert.equal(raw, `${JSON.stringify(JSON.parse(raw), null, 2)}\n`);
   assert.deepEqual(Result.getOrThrow(readCards(dir, "NJD")), cards);
@@ -89,13 +86,13 @@ test("writeCards rejects a card for another team and keeps the existing file", (
   const dir = tempDir();
   const existing = [makeCard("existing")];
   writeCards(dir, "NJD", existing);
-  const before = readFileSync(join(dir, "NJD.json"), "utf8");
+  const before = readFileSync(join(dir, "NJD.json"), "utf-8");
   const error = failure(
     writeCards(dir, "NJD", [makeCard("from nyr", "pending", "NYR")])
   );
   assert.equal(error._tag, "StoreError");
   assert.match(error.reason, /^cannot write card .* with team NYR to NJD$/);
-  assert.equal(readFileSync(join(dir, "NJD.json"), "utf8"), before);
+  assert.equal(readFileSync(join(dir, "NJD.json"), "utf-8"), before);
   assert.deepEqual(Result.getOrThrow(readCards(dir, "NJD")), existing);
 });
 
@@ -103,7 +100,7 @@ test("writeCards rejects an invalid card and keeps the existing file", () => {
   const dir = tempDir();
   const existing = [makeCard("existing")];
   writeCards(dir, "NJD", existing);
-  const before = readFileSync(join(dir, "NJD.json"), "utf8");
+  const before = readFileSync(join(dir, "NJD.json"), "utf-8");
   const invalid = {
     ...makeCard("bad"),
     status: "bogus",
@@ -111,7 +108,7 @@ test("writeCards rejects an invalid card and keeps the existing file", () => {
   const error = failure(writeCards(dir, "NJD", [makeCard("good"), invalid]));
   assert.equal(error._tag, "StoreError");
   assert.match(error.reason, /^invalid cards: /);
-  assert.equal(readFileSync(join(dir, "NJD.json"), "utf8"), before);
+  assert.equal(readFileSync(join(dir, "NJD.json"), "utf-8"), before);
 });
 
 test("mergePending adds a card with a new id", () => {

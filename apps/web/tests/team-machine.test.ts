@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { SeasonSnapshot, TeamData } from "@nhl-reddit-stats/season";
+import type { TeamData } from "@nhl-reddit-stats/season";
+import { SeasonSnapshot } from "@nhl-reddit-stats/season";
 import { SnapshotLoadError } from "@nhl-reddit-stats/season/rpc";
 import { createEffectActor, send, waitFor } from "@xstate/effect";
 import { sendAndAwait } from "@xstate/effect/test";

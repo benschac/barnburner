@@ -89,7 +89,9 @@ function Frame(props: FrameProps) {
                 actor.send({ type: "Ready" });
                 draw.current();
               },
-              Rendered: ({ id }) => actor.send({ type: "Rendered", id }),
+              Rendered: ({ id }) => {
+                actor.send({ type: "Rendered", id });
+              },
               Failed: ({ id, message: text }) => {
                 if (id === lastId) setMessage(text);
                 actor.send({ type: "Failed", id });
@@ -176,14 +178,14 @@ export function VizFrameIsland({
       theme={theme}
       onReport={onReport}
       onRender={onRender}
-      onTimedOut={() =>
+      onTimedOut={() => {
         setSlot((current) => ({
           code: current.code,
           attempt: current.attempt,
           frame: current.frame + 1,
           timeouts: current.timeouts + 1,
-        }))
-      }
+        }));
+      }}
     />
   );
 }

@@ -73,7 +73,7 @@ const draft: CardDraft = {
 
 // Plays the scripted responses in order, repeating the last one.
 const scripted = (
-  responses: ReadonlyArray<ReturnType<typeof call> | typeof prose>
+  responses: readonly (ReturnType<typeof call> | typeof prose)[]
 ) => {
   let index = 0;
 
@@ -102,7 +102,7 @@ const run = async (model: MockLanguageModelV4) => {
       ).pipe(Effect.provide(Llm.layer()))
     );
 
-    const events = readFileSync(join(dir, `${result.runId}.jsonl`), "utf8")
+    const events = readFileSync(join(dir, `${result.runId}.jsonl`), "utf-8")
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line));

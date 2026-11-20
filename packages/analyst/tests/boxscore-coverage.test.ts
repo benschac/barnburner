@@ -7,10 +7,10 @@ import { Effect } from "effect";
 import { openDb } from "../src/db.ts";
 import { VIEWS } from "../src/shapes.ts";
 
-const fixtures = fileURLToPath(new URL("./fixtures/data", import.meta.url));
+const fixtures = fileURLToPath(new URL("fixtures/data", import.meta.url));
 
 const coverage = async (dataDir: string) =>
-  Effect.runPromise(
+  await Effect.runPromise(
     Effect.scoped(
       Effect.gen(function* () {
         const db = yield* openDb({ dataDir });

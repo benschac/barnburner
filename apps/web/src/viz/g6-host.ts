@@ -15,7 +15,7 @@ export const HIGHLIGHTED = "highlighted";
 export const DIMMED = "dimmed";
 
 /** Adds and removes only the two states the host owns; any other state of an edge is kept. */
-export function applyHighlight(graph: Graph, edgeIds: ReadonlyArray<string>) {
+export function applyHighlight(graph: Graph, edgeIds: readonly string[]) {
   const marked = new Set(edgeIds);
   const states: Record<string, string[]> = {};
   for (const edge of graph.getEdgeData()) {

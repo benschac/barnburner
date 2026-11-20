@@ -174,7 +174,7 @@ const passingSpans = (
   linkId: number,
   filter: Filter,
   partner: 0 | 1
-): ReadonlyArray<LinkSpan> => {
+): readonly LinkSpan[] => {
   const {
     spanStart,
     spanLink,
@@ -308,10 +308,7 @@ const opponentGamesBetween = (
 export const opponents = (
   graph: Graph,
   playerId: number
-): Result.Result<
-  ReadonlyArray<Opponent>,
-  UnknownPlayer | HistoryUnavailable
-> => {
+): Result.Result<readonly Opponent[], UnknownPlayer | HistoryUnavailable> => {
   const index = graph.indexOf.get(playerId);
   if (index === undefined) return Result.fail(new UnknownPlayer({ playerId }));
   const adjacency = opponentAdjacency(graph);

@@ -73,7 +73,7 @@ export type RenderViewResult = {
   readonly failureMessage: string | null;
 };
 
-const median = (values: ReadonlyArray<number>): number => {
+const median = (values: readonly number[]): number => {
   if (values.length === 0) return 0;
   const sorted = Arr.sort(values, Order.Number);
   const middle = Math.floor(sorted.length / 2);
@@ -104,7 +104,7 @@ const settling = (report: FrameReport): Option.Option<Settling> =>
 
 const frameRates = (
   report: FrameReport
-): ReadonlyArray<{ readonly id: string; readonly fps: number }> =>
+): readonly { readonly id: string; readonly fps: number }[] =>
   Match.valueTags(report, {
     Ready: () => [],
     Rendered: () => [],
@@ -112,7 +112,7 @@ const frameRates = (
     FrameRate: ({ id, fps }) => [{ id, fps }],
   });
 
-const failureOf = (report: FrameReport, id: string): ReadonlyArray<string> =>
+const failureOf = (report: FrameReport, id: string): readonly string[] =>
   Match.valueTags(report, {
     Ready: () => [],
     Rendered: () => [],
@@ -160,9 +160,9 @@ const readTexts = (page: Page) =>
  * already empty at Run. Empty until the run has begun.
  */
 const reportsSince = (
-  texts: ReadonlyArray<string>,
+  texts: readonly string[],
   before: number
-): ReadonlyArray<FrameReport> => {
+): readonly FrameReport[] => {
   const stale = texts[before - 1] !== EMPTY;
   const fresh = texts.slice(before);
   if (fresh.length === 0) return [];
@@ -264,7 +264,7 @@ const run = (browser: Browser, input: RenderViewInput) =>
         reason: `no Rendered or Failed within ${settleTimeout} ms`,
       });
     });
-    let reports: ReadonlyArray<FrameReport> = [];
+    let reports: readonly FrameReport[] = [];
     if (Predicate.isTagged(settled, "Rendered")) {
       yield* Effect.sleep(sampleMs);
       const texts = yield* readTexts(page);

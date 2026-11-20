@@ -5,12 +5,11 @@ import { pathToFileURL } from "node:url";
 import { Result } from "effect";
 
 import { logError } from "../../../lib/logger.mjs";
-import {
-  defaultTraceDir,
-  parseTraceLine,
-  type OutcomeStatus,
-  type TraceEvent,
-  type TraceLineError,
+import { defaultTraceDir, parseTraceLine } from "../src/trace.ts";
+import type {
+  OutcomeStatus,
+  TraceEvent,
+  TraceLineError,
 } from "../src/trace.ts";
 
 export interface ModelUsage {
@@ -74,12 +73,13 @@ export function summarize(events: readonly TraceEvent[]): RunSummary {
         outputTokens += event.outputTokens;
         break;
       }
-      case "tool_call":
+      case "tool_call": {
         toolCalls += 1;
         toolsByName[event.tool] = (toolsByName[event.tool] ?? 0) + 1;
         if (event.error !== undefined) toolErrors += 1;
         break;
-      case "verify":
+      }
+      case "verify": {
         checks += 1;
         if (!event.passed) {
           failed += 1;
@@ -87,12 +87,15 @@ export function summarize(events: readonly TraceEvent[]): RunSummary {
           failuresByCheck[key] = (failuresByCheck[key] ?? 0) + 1;
         }
         break;
-      case "card":
+      }
+      case "card": {
         cards += 1;
         break;
-      case "outcome":
+      }
+      case "outcome": {
         outcome = event.status;
         break;
+      }
     }
   }
 
@@ -182,7 +185,7 @@ export function parseTrace(
 function main(argv: readonly string[]): void {
   const { runId, dir } = parseArgs(argv);
   const path = join(dir, `${runId}.jsonl`);
-  const events = parseTrace(readFileSync(path, "utf8"));
+  const events = parseTrace(readFileSync(path, "utf-8"));
   if (Result.isFailure(events)) {
     logError(events.failure.message);
     process.exitCode = 1;

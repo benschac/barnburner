@@ -11,7 +11,7 @@ import type { ColourField } from "./theme-css.ts";
 type ThemeValues = Readonly<Record<string, string>>;
 
 const kebab = (field: string) =>
-  field.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+  field.replaceAll(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
 
 /** Font families are not contract values; they arrive with the theme values under these keys. */
 export const fontKeys = { body: "font-body", score: "font-score" } as const;

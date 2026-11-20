@@ -8,7 +8,8 @@ import { Effect, Result, Schema } from "effect";
 import { logError } from "../../../lib/logger.mjs";
 import { toPrettyJson } from "../src/json.ts";
 import { Llm } from "../src/llm.ts";
-import { generateChecked, ViewCodeError } from "../src/viz/generate.ts";
+import type { ViewCodeError } from "../src/viz/generate.ts";
+import { generateChecked } from "../src/viz/generate.ts";
 
 // Expected failures of this command. Each is handled by tag in run(); only defects reach the catch-all.
 export class GenerateCommandError extends Schema.TaggedError<
@@ -48,7 +49,7 @@ export interface GenerateArgs {
 
 // Flags are `--name value` pairs. Every flag is required, may appear once, and must have a non-empty value.
 export const parseArgs = (
-  argv: ReadonlyArray<string>
+  argv: readonly string[]
 ): Result.Result<GenerateArgs, GenerateCommandError> => {
   const fail = (message: string) =>
     Result.fail(new GenerateCommandError({ message: `${message}\n${usage}` }));
@@ -96,7 +97,7 @@ export const parseArgs = (
 
 const readText = (path: string): Effect.Effect<string, ReadFileError> =>
   Effect.try({
-    try: () => readFileSync(path, "utf8"),
+    try: () => readFileSync(path, "utf-8"),
     catch: (cause) => new ReadFileError({ path, cause: String(cause) }),
   });
 
@@ -105,7 +106,9 @@ const writeText = (
   text: string
 ): Effect.Effect<void, WriteFileError> =>
   Effect.try({
-    try: () => writeFileSync(path, text),
+    try: () => {
+      writeFileSync(path, text);
+    },
     catch: (cause) => new WriteFileError({ path, cause: String(cause) }),
   });
 

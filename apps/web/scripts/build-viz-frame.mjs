@@ -44,10 +44,10 @@ try {
 }
 // An inline script ends at the first closing tag or opens a comment state at '<!--'; escape both.
 const script = code
-  .replace(/<\/script/gi, "<\\/script")
-  .replace(/<!--/g, "<\\!--");
+  .replaceAll(/<\/script/gi, "<\\/script")
+  .replaceAll("<!--", "<\\!--");
 const hash = createHash("sha256").update(script).digest("base64");
-const source = readFileSync(here("../src/viz/frame/viz-frame.html"), "utf8");
+const source = readFileSync(here("../src/viz/frame/viz-frame.html"), "utf-8");
 const tag = '<script type="module" src="./frame.js"></script>';
 if (!source.includes(tag) || !source.includes("<head>")) {
   logError(

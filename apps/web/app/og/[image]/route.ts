@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
 import { TeamData, teams } from "@nhl-reddit-stats/season";
 import { Resvg } from "@resvg/resvg-js";
@@ -17,13 +16,13 @@ export const dynamic = "force-static";
 export const dynamicParams = false;
 
 // apps/web, found from this module's own location so the working directory does not matter.
-const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+const webRoot = resolve(import.meta.dirname, "../../..");
 const snapshots = Schema.decodeUnknownSync(TeamData)({ season, poster });
 
 async function render(abbrev: string) {
   const logo = await readFile(
     resolve(webRoot, `public${teamLogo(abbrev, "dark")}`),
-    "utf8"
+    "utf-8"
   );
   return new Resvg(renderSocialCard(teamPoster(snapshots, abbrev), logo), {
     font: {

@@ -11,6 +11,7 @@ import { ask } from "../src/ask.ts";
 import { Llm } from "../src/llm.ts";
 import type { Db } from "../src/shapes.ts";
 import { makeGate, rejectOnAbort } from "./gate.ts";
+
 const db: Db = {
   query: () => Effect.succeed({ rows: [], rowCount: 0 }),
   queryCanonical: () => Effect.succeed({ rows: [], rowCount: 0 }),
@@ -104,7 +105,7 @@ test("ask answers a canonical cell and traces the executed tool", async () => {
     assert.equal(result.outcome._tag, "Answered");
     if (result.outcome._tag === "Answered")
       assert.equal(result.outcome.value, 8);
-    const events = readFileSync(join(dir, `${result.runId}.jsonl`), "utf8")
+    const events = readFileSync(join(dir, `${result.runId}.jsonl`), "utf-8")
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line));
@@ -199,7 +200,7 @@ test("ask counts invalid tool arguments toward failure limit", async () => {
     );
     assert.equal(result.outcome._tag, "Crashed");
     assert.equal(result.steps, 3);
-    const events = readFileSync(join(dir, `${result.runId}.jsonl`), "utf8")
+    const events = readFileSync(join(dir, `${result.runId}.jsonl`), "utf-8")
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line));
@@ -260,7 +261,7 @@ test("ask traces rejected tool execution once with measured duration", async () 
       ).pipe(Effect.provide(Llm.layer()))
     );
     assert.equal(result.outcome._tag, "Crashed");
-    const events = readFileSync(join(dir, `${result.runId}.jsonl`), "utf8")
+    const events = readFileSync(join(dir, `${result.runId}.jsonl`), "utf-8")
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line));

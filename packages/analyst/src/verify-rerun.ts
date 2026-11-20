@@ -36,7 +36,7 @@ const check5 = (db: Db, card: InsightCard) =>
 
 const check6 = (db: Db, card: InsightCard, finals: ReadonlySet<number>) => {
   const { gamesQuery, gameIds } = card.evidence;
-  const verifyIds = (ids: ReadonlyArray<unknown>): VerifyResult => {
+  const verifyIds = (ids: readonly unknown[]): VerifyResult => {
     if (toJson(ids) !== toJson(gameIds))
       return fail(6, "canonical rerun of gamesQuery differs from gameIds");
     const missing = gameIds.filter((id) => !finals.has(id));

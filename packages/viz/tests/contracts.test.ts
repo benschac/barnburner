@@ -107,7 +107,7 @@ test("VizTheme round-trips", () => {
 });
 
 test("every frame message round-trips and is told apart by its tag", () => {
-  const messages: ReadonlyArray<FrameMessage> = [
+  const messages: readonly FrameMessage[] = [
     {
       _tag: "Render",
       id: "v1",
@@ -178,24 +178,23 @@ test("each sample decodes, and its notes name every table", () => {
     roundTrip(schema as Schema.Codec<unknown, unknown>, sample.tables);
     Schema.decodeSync(ViewData)(sample);
     for (const table of Object.keys(sample.tables))
-      assert.ok(sample.notes.includes(table + ":"), table);
+      assert.ok(sample.notes.includes(`${table}:`), table);
   }
 });
 
 // Every ID a row holds must have a `players` row, and every team ID a `teams` row.
 const playerIds = (
-  table: ReadonlyArray<{ readonly playerId: number }>
+  table: readonly { readonly playerId: number }[]
 ): Set<number> => new Set(table.map((p) => p.playerId));
-const teamIds = (
-  table: ReadonlyArray<{ readonly teamId: number }>
-): Set<number> => new Set(table.map((t) => t.teamId));
+const teamIds = (table: readonly { readonly teamId: number }[]): Set<number> =>
+  new Set(table.map((t) => t.teamId));
 const assertKnown = (
   label: string,
   known: Set<number>,
-  ids: ReadonlyArray<number | null>
+  ids: readonly (number | null)[]
 ): void => {
   for (const id of ids)
-    if (id !== null) assert.ok(known.has(id), label + ": " + String(id));
+    if (id !== null) assert.ok(known.has(id), `${label}: ${String(id)}`);
 };
 
 test("every player and team ID in a row has a players or teams row", () => {
@@ -263,13 +262,13 @@ test("every player and team ID in a row has a players or teams row", () => {
 
   // The reverse holds too: a players row is never an orphan the view cannot reach.
   const reached = (
-    table: ReadonlyArray<{ readonly playerId: number }>,
-    ids: ReadonlyArray<number | null>
+    table: readonly { readonly playerId: number }[],
+    ids: readonly (number | null)[]
   ): void => {
     for (const p of table)
       assert.ok(
         ids.includes(p.playerId),
-        "unused player " + String(p.playerId)
+        `unused player ${String(p.playerId)}`
       );
   };
   reached(
@@ -295,7 +294,7 @@ test("every player and team ID in a row has a players or teams row", () => {
 });
 
 // Strictly ascending: in order, with no two equal.
-const ascending = <A>(xs: ReadonlyArray<A>, order: Order.Order<A>) =>
+const ascending = <A>(xs: readonly A[], order: Order.Order<A>) =>
   xs.every((x, i) => i === 0 || order(xs[i - 1], x) < 0);
 
 test("every a is below b", () => {
@@ -314,7 +313,7 @@ test("every a is below b", () => {
 test("chain hops are in D6 order, from 0, and join up", () => {
   const { hops, summary } = chainSample.tables;
   const [{ from, to, distance, pathCount }] = summary;
-  const chains = new Map<number, Array<(typeof hops)[number]>>();
+  const chains = new Map<number, (typeof hops)[number][]>();
   for (const hop of hops)
     chains.set(hop.chain, [...(chains.get(hop.chain) ?? []), hop]);
   assert.deepEqual(
@@ -332,8 +331,10 @@ test("chain hops are in D6 order, from 0, and join up", () => {
       Array.from({ length: distance }, (_, i) => i)
     );
     assert.equal(steps[0].from, from);
-    assert.equal(steps[steps.length - 1].to, to);
-    steps.slice(1).forEach((h, i) => assert.equal(h.from, steps[i].to));
+    assert.equal(steps.at(-1)?.to, to);
+    steps.slice(1).forEach((h, i) => {
+      assert.equal(h.from, steps[i].to);
+    });
   }
   // D6: compare two chains hop by hop; more games first, then the lower player ID.
   const ordered = [...chains.values()];
@@ -343,11 +344,11 @@ test("chain hops are in D6 order, from 0, and join up", () => {
     const at = before.findIndex(
       (h, k) => h.games !== after[k].games || h.to !== after[k].to
     );
-    assert.ok(at >= 0, "two chains are identical");
+    assert.ok(at !== -1, "two chains are identical");
     const [x, y] = [before[at], after[at]];
     assert.ok(
       x.games > y.games || (x.games === y.games && x.to < y.to),
-      "chain " + String(i) + " precedes chain " + String(i - 1)
+      `chain ${String(i)} precedes chain ${String(i - 1)}`
     );
   }
   // The first chain is 11-12-14, then 11-13-14.
@@ -485,7 +486,7 @@ test("series must be the seven colours in order", () => {
 });
 
 test("each message decodes in its own direction and is refused in the other", () => {
-  const host: ReadonlyArray<HostMessage> = [
+  const host: readonly HostMessage[] = [
     {
       _tag: "Render",
       id: "v1",
@@ -495,7 +496,7 @@ test("each message decodes in its own direction and is refused in the other", ()
     },
     { _tag: "Dispose", id: "v1" },
   ];
-  const report: ReadonlyArray<FrameReport> = [
+  const report: readonly FrameReport[] = [
     { _tag: "Ready", versions: { G2: "5.4.8" } },
     { _tag: "Rendered", id: "v1", ms: 42.5 },
     { _tag: "Failed", id: "v1", message: "boom" },

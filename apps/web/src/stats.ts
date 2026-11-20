@@ -202,9 +202,9 @@ export function teamPoster(
     ? final.toReversed().findIndex((game) => game.outcome !== lastOutcome)
     : 0;
   const streakCount = streakLength === -1 ? final.length : streakLength;
-  const streak = !lastOutcome
-    ? "no final games yet"
-    : `${lastOutcome === "win" ? "won" : lastOutcome === "overtime" ? "OT/SO losses in" : "lost"} ${streakCount} straight`;
+  const streak = lastOutcome
+    ? `${lastOutcome === "win" ? "won" : lastOutcome === "overtime" ? "OT/SO losses in" : "lost"} ${streakCount} straight`
+    : "no final games yet";
   const throughDate =
     currentStanding?.date ?? data.season.fetchedAt.slice(0, 10);
   const club = data.poster.clubs.find((entry) => entry.team === selectedTeam);

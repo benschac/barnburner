@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 
 import { Effect, Result, Schema } from "effect";
 
@@ -13,11 +12,7 @@ import { guardQuery } from "../src/guard.ts";
 import { literalDigits, render } from "../src/render.ts";
 import type { Db } from "../src/shapes.ts";
 
-const dataDir = join(
-  fileURLToPath(new URL(".", import.meta.url)),
-  "fixtures",
-  "data"
-);
+const dataDir = join(import.meta.dirname, "fixtures", "data");
 
 const withDb = (run: (db: Db) => Promise<void>): Promise<void> =>
   Effect.runPromise(
@@ -63,7 +58,7 @@ test("last-ten works with fewer finals than the window", async () => {
     const drafts = lastTen("NJD");
     assert.equal(drafts.length, 1);
     assert.equal(drafts[0]?.kind, "trend");
-    const out = await check(db, drafts[0] as CardDraft);
+    const out = await check(db, drafts[0]);
     assert.equal(out.headline, "NJD are 2-1-0 in their last 3 games");
     assert.match(out.body, /Their season record is 2-1-0 over 3 games\./);
     assert.equal(out.games.length, 3);
@@ -72,7 +67,7 @@ test("last-ten works with fewer finals than the window", async () => {
 
 test("streak is a trend that states the current and longest runs without a tie claim", async () => {
   await withDb(async (db) => {
-    const draft = streak("NJD")[0] as CardDraft;
+    const draft = streak("NJD")[0];
     assert.equal(draft.kind, "trend");
     assert.equal(draft.assert, undefined);
     const out = await check(db, draft);
@@ -90,7 +85,7 @@ test("streak is a trend that states the current and longest runs without a tie c
 
 test("streak for WSH is a losing streak", async () => {
   await withDb(async (db) => {
-    const out = await check(db, streak("WSH")[0] as CardDraft);
+    const out = await check(db, streak("WSH")[0]);
     assert.equal(out.headline, "WSH are on a 2-game losing streak");
   });
 });

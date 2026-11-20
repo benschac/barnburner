@@ -7,8 +7,10 @@ import { pairSample } from "@nhl-reddit-stats/viz/samples";
 import {
   gamesBySeason,
   gamesBySeasonRows,
-  type GamesBySeasonSpec,
-  type GamesFacetSpec,
+} from "../src/viz/specs/games-by-season.ts";
+import type {
+  GamesBySeasonSpec,
+  GamesFacetSpec,
 } from "../src/viz/specs/games-by-season.ts";
 
 // The shared-games result is the facet; anything else fails the test rather than being cast.

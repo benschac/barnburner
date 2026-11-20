@@ -13,11 +13,11 @@ import {
   parseTraceLine,
   truncateText,
   TRACE_EVENT_TYPES,
-  type TraceOptions,
 } from "../src/trace.ts";
+import type { TraceOptions } from "../src/trace.ts";
 
 const fixturePath = fileURLToPath(
-  new URL("./fixtures/trace.jsonl", import.meta.url)
+  new URL("fixtures/trace.jsonl", import.meta.url)
 );
 
 function withTempDir(run: (dir: string) => void): void {
@@ -46,7 +46,7 @@ function rejects(line: string, message: RegExp): void {
 }
 
 test("fixture has one valid event of each type", () => {
-  const lines = readFileSync(fixturePath, "utf8").trim().split("\n");
+  const lines = readFileSync(fixturePath, "utf-8").trim().split("\n");
   const events = lines.map(parse);
   assert.deepEqual(
     events.map((event) => event.type),
@@ -72,7 +72,7 @@ test("writer appends one JSONL line per event with ts and runId", () => {
     });
     trace.append({ type: "outcome", status: "cards" });
     assert.equal(trace.path, join(dir, "run-1.jsonl"));
-    const lines = readFileSync(trace.path, "utf8").trim().split("\n");
+    const lines = readFileSync(trace.path, "utf-8").trim().split("\n");
     assert.equal(lines.length, 2);
     const [first, second] = lines.map(parse);
     assert.equal(first?.ts, "2026-01-02T03:04:05.000Z");
@@ -110,7 +110,10 @@ test("writer reopened on the same run appends rather than overwrites", () => {
     });
     const again = open({ runId: "run-2", dir });
     again.append({ type: "verify", check: 2, passed: false, detail: "nope" });
-    assert.equal(readFileSync(again.path, "utf8").trim().split("\n").length, 2);
+    assert.equal(
+      readFileSync(again.path, "utf-8").trim().split("\n").length,
+      2
+    );
   });
 });
 
@@ -195,7 +198,7 @@ test("writer refuses events that would serialize to unreadable lines", () => {
         trace.append({
           type: "model_call",
           model: "m",
-          inputTokens: NaN,
+          inputTokens: Number.NaN,
           outputTokens: 1,
           latencyMs: 1,
         })

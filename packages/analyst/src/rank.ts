@@ -42,15 +42,15 @@ export const TOP_N = 3;
 export const normalizeHeadline = (headline: string): string =>
   headline
     .toLowerCase()
-    .replace(/\{[^}]*\}/g, " ")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/\{[^}]*\}/g, " ")
+    .replaceAll(/[^a-z0-9\s]/g, " ")
+    .replaceAll(/\s+/g, " ")
     .trim();
 
 // Dedupe by id first, then by near-identical headline; first occurrence wins.
 export const dedupeCards = (
-  cards: ReadonlyArray<InsightCard>
-): ReadonlyArray<InsightCard> => {
+  cards: readonly InsightCard[]
+): readonly InsightCard[] => {
   const ids = new Set<string>();
   const headlines = new Set<string>();
   const kept: InsightCard[] = [];
@@ -81,8 +81,8 @@ export interface DroppedCard {
 }
 
 export interface RankResult {
-  readonly ranked: ReadonlyArray<RankedCard>;
-  readonly dropped: ReadonlyArray<DroppedCard>;
+  readonly ranked: readonly RankedCard[];
+  readonly dropped: readonly DroppedCard[];
 }
 
 interface RenderedCard {
@@ -112,8 +112,8 @@ const renderCard = (
 };
 
 const buildPrompt = (
-  cards: ReadonlyArray<RenderedCard>,
-  posterFacts: ReadonlyArray<string>
+  cards: readonly RenderedCard[],
+  posterFacts: readonly string[]
 ) =>
   toJson({
     posterFacts,
@@ -163,8 +163,8 @@ const byRank: Order.Order<RankedCard> = Order.combine(
 );
 
 export interface RankInput {
-  readonly cards: ReadonlyArray<InsightCard>;
-  readonly posterFacts: ReadonlyArray<string>;
+  readonly cards: readonly InsightCard[];
+  readonly posterFacts: readonly string[];
   readonly model?: LanguageModel;
 }
 

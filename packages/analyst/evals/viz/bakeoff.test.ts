@@ -13,7 +13,7 @@ import type { BakeoffModel, BakeoffRenderer } from "./bakeoff.ts";
 const GOOD = "export default function view() { return null }";
 const BAD = 'import x from "y"\nexport default 1';
 
-const setup = async (ids: ReadonlyArray<string>) => {
+const setup = async (ids: readonly string[]) => {
   const dir = await mkdtemp(join(tmpdir(), "bakeoff-"));
   const datasetPaths: Record<string, string> = {};
   for (const id of ids) {
@@ -315,10 +315,10 @@ test("resolveDatasetPaths: exact, single qualified, and ambiguous or missing", a
   assert.ok(Result.isFailure(many));
   assert.equal(many.failure._tag, "DatasetFileError");
   // SAFETY: the _tag assertion on the previous line proves failure is a DatasetFileError, which carries matches.
-  assert.deepEqual(
-    (many.failure as { matches: ReadonlyArray<string> }).matches,
-    ["league-a.json", "league-b.json"]
-  );
+  assert.deepEqual((many.failure as { matches: readonly string[] }).matches, [
+    "league-a.json",
+    "league-b.json",
+  ]);
   const none = await Effect.runPromise(
     Effect.result(resolveDatasetPaths(dir, ["finals"]))
   );

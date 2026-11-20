@@ -28,7 +28,7 @@ const card = (
     asOf: { fetchedAt: "t", completedGameIds: 1 },
     model: "m",
     runId: "r",
-  } as InsightCard;
+  };
 };
 const ctx = (touchesBoxscores = false, finals: number[] = [1, 2]) => ({
   touchesBoxscores,
@@ -44,7 +44,7 @@ test("passes a clean card", async () => {
 
 test("fails check 5 on drift and on SqlError", async () => {
   const drift = await run(fakeDb({ [Q]: [{ wins: 2 }] }), card());
-  assert.equal(drift.ok === false && drift.check, 5);
+  assert.equal(!drift.ok && drift.check, 5);
   const err = await run(
     fakeDb({ [Q]: new SqlError({ message: "boom", sql: Q }) }),
     card()
@@ -59,10 +59,10 @@ test("check 5 ignores row key order but not values or row order", async () => {
     { ok: true }
   );
   const differs = await run(fakeDb({ [Q]: [{ wins: 1, losses: 3 }] }), stored);
-  assert.equal(differs.ok === false && differs.check, 5);
+  assert.equal(!differs.ok && differs.check, 5);
   const two = card({ result: [{ n: 1 }, { n: 2 }] });
   const reordered = await run(fakeDb({ [Q]: [{ n: 2 }, { n: 1 }] }), two);
-  assert.equal(reordered.ok === false && reordered.check, 5);
+  assert.equal(!reordered.ok && reordered.check, 5);
 });
 
 test("check 6: changed game list, non-final game, gameIds without query", async () => {
@@ -72,15 +72,15 @@ test("check 6: changed game list, non-final game, gameIds without query", async 
     { ok: true }
   );
   const changed = await run(fakeDb({ ...base, [G]: [{ game_id: 1 }] }), c);
-  assert.equal(changed.ok === false && changed.check, 6);
+  assert.equal(!changed.ok && changed.check, 6);
   const nonFinal = await run(
     fakeDb({ ...base, [G]: [{ game_id: 1 }, { game_id: 2 }] }),
     c,
     ctx(false, [1])
   );
-  assert.equal(nonFinal.ok === false && nonFinal.check, 6);
+  assert.equal(!nonFinal.ok && nonFinal.check, 6);
   const stray = await run(fakeDb(base), card({ gameIds: [1] }));
-  assert.equal(stray.ok === false && stray.check, 6);
+  assert.equal(!stray.ok && stray.check, 6);
 });
 
 test("check 7: coverage matches, is wrong, or is on a non-boxscore card", async () => {
@@ -103,11 +103,11 @@ test("check 7: coverage matches, is wrong, or is on a non-boxscore card", async 
     c,
     ctx(true)
   );
-  assert.equal(wrong.ok === false && wrong.check, 7);
+  assert.equal(!wrong.ok && wrong.check, 7);
   const extra = await run(fakeDb(base), c, ctx(false));
-  assert.equal(extra.ok === false && extra.check, 7);
+  assert.equal(!extra.ok && extra.check, 7);
   const missing = await run(fakeDb(base), card(), ctx(true));
-  assert.equal(missing.ok === false && missing.check, 7);
+  assert.equal(!missing.ok && missing.check, 7);
 });
 
 test("check 8: assert must be a single true", async () => {
@@ -123,6 +123,6 @@ test("check 8: assert must be a single true", async () => {
     [{ ok: true }, { ok: true }],
   ]) {
     const r = await run(fakeDb({ ...base, [A]: rows }), card({ assert: A }));
-    assert.equal(r.ok === false && r.check, 8);
+    assert.equal(!r.ok && r.check, 8);
   }
 });

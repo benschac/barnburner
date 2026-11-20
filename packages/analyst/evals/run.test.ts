@@ -158,7 +158,7 @@ test("eval CLI persists an explicitly offline receipt with data and prompt hashe
       name.endsWith("-agent.json")
     );
     assert.ok(name);
-    const receipt = JSON.parse(await readFile(join(dir, name), "utf8"));
+    const receipt = JSON.parse(await readFile(join(dir, name), "utf-8"));
     assert.equal(receipt.runtime.version, process.version);
     assert.ok(
       receipt.implementation.some(

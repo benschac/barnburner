@@ -21,7 +21,7 @@ const forkFrameEffect = (effect: Effect.Effect<void>): void => {
 };
 
 const boot = Effect.gen(function* () {
-  const root = document.getElementById("root");
+  const root = document.querySelector<HTMLElement>("#root");
   if (root === null)
     return yield* new FrameBootFailed({
       message: "viz-frame.html has no #root element.",

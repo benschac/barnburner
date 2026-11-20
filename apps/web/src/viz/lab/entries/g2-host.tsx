@@ -31,14 +31,19 @@ function Cases({ tables }: { tables: LeagueTables }) {
   const [width, setWidth] = useState<number | undefined>(undefined);
   return (
     <>
-      <button type="button" onClick={() => setHideAxis((value) => !value)}>
+      <button
+        type="button"
+        onClick={() => {
+          setHideAxis((value) => !value);
+        }}
+      >
         toggle y axis
       </button>
       <button
         type="button"
-        onClick={() =>
-          setWidth((value) => (value === undefined ? 300 : undefined))
-        }
+        onClick={() => {
+          setWidth((value) => (value === undefined ? 300 : undefined));
+        }}
       >
         spec carries width
       </button>

@@ -48,7 +48,7 @@ export interface GenerateInput {
   readonly team: string;
   readonly db: Db;
   // Facts the poster already states; the prompt tells the model not to restate them.
-  readonly posterFacts?: ReadonlyArray<string>;
+  readonly posterFacts?: readonly string[];
   readonly fetchedAt?: string;
   readonly model?: LanguageModel;
   readonly traceDir?: string;
@@ -61,7 +61,7 @@ export interface GenerateResult extends Pick<
   "runId" | "model" | "steps" | "inputTokens" | "outputTokens" | "latencyMs"
 > {
   readonly outcome: Outcome;
-  readonly cards: ReadonlyArray<InsightCard>;
+  readonly cards: readonly InsightCard[];
   // Why the run declined, found nothing, or crashed.
   readonly reason: typeof RunReason.Type;
 }

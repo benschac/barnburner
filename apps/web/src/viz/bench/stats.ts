@@ -30,32 +30,37 @@ const phaseMs = 1000;
  * The fixed ten-second script: five one-second phases, repeated twice: pan right, zoom in,
  * pan down-left, zoom out, pan back up. The zooms pair up so the view ends at the scale it began.
  */
-export function benchScript(): ReadonlyArray<BenchStep> {
+export function benchScript(): readonly BenchStep[] {
   const steps: BenchStep[] = [];
   for (let index = 0; index < scriptMs / phaseMs; index += 1) {
     const fromMs = index * phaseMs;
     const toMs = fromMs + phaseMs;
     switch (index % 5) {
-      case 0:
+      case 0: {
         steps.push(
           PanStep.make({ fromMs, toMs, dxPerSecond: 240, dyPerSecond: 0 })
         );
         break;
-      case 1:
+      }
+      case 1: {
         steps.push(ZoomStep.make({ fromMs, toMs, factorPerSecond: 2 }));
         break;
-      case 2:
+      }
+      case 2: {
         steps.push(
           PanStep.make({ fromMs, toMs, dxPerSecond: -160, dyPerSecond: 160 })
         );
         break;
-      case 3:
+      }
+      case 3: {
         steps.push(ZoomStep.make({ fromMs, toMs, factorPerSecond: 0.5 }));
         break;
-      default:
+      }
+      default: {
         steps.push(
           PanStep.make({ fromMs, toMs, dxPerSecond: -80, dyPerSecond: -160 })
         );
+      }
     }
   }
   return steps;
@@ -63,10 +68,10 @@ export function benchScript(): ReadonlyArray<BenchStep> {
 
 /** Each step active in `[fromMs, toMs)`, with how many milliseconds of it fall in the window. */
 export function overlaps(
-  script: ReadonlyArray<BenchStep>,
+  script: readonly BenchStep[],
   fromMs: number,
   toMs: number
-): ReadonlyArray<{ readonly step: BenchStep; readonly ms: number }> {
+): readonly { readonly step: BenchStep; readonly ms: number }[] {
   const found: { readonly step: BenchStep; readonly ms: number }[] = [];
   for (const step of script) {
     const ms = Math.min(toMs, step.toMs) - Math.max(fromMs, step.fromMs);
@@ -76,7 +81,7 @@ export function overlaps(
 }
 
 /** The median of a list; 0 for an empty list. */
-export function median(values: ReadonlyArray<number>): number {
+export function median(values: readonly number[]): number {
   if (values.length === 0) return 0;
   const sorted = Arr.sort(values, Order.Number);
   const mid = Math.floor(sorted.length / 2);
@@ -86,14 +91,12 @@ export function median(values: ReadonlyArray<number>): number {
 }
 
 /** The worst (lowest) of a list of frame rates; 0 for an empty list. */
-export function worst(rates: ReadonlyArray<number>): number {
+export function worst(rates: readonly number[]): number {
   return rates.length === 0 ? 0 : Math.min(...rates);
 }
 
 /** The frame rate of each frame, from the times (ms) at which frames were drawn. Equal times are skipped. */
-export function frameRates(
-  times: ReadonlyArray<number>
-): ReadonlyArray<number> {
+export function frameRates(times: readonly number[]): readonly number[] {
   const rates: number[] = [];
   for (let index = 1; index < times.length; index += 1) {
     const gap = times[index] - times[index - 1];
@@ -108,7 +111,7 @@ export type BenchSummary = {
   readonly worstFps: number;
 };
 
-export function summarize(times: ReadonlyArray<number>): BenchSummary {
+export function summarize(times: readonly number[]): BenchSummary {
   const rates = frameRates(times);
   return {
     frames: times.length,
@@ -127,16 +130,16 @@ export class BenchFileError extends Schema.TaggedError<
 }) {}
 
 type Tabled = {
-  readonly players: ReadonlyArray<{
+  readonly players: readonly {
     readonly playerId: number;
     readonly name: string;
     readonly games: number;
-  }>;
-  readonly links: ReadonlyArray<{
+  }[];
+  readonly links: readonly {
     readonly a: number;
     readonly b: number;
     readonly games: number;
-  }>;
+  }[];
 };
 
 /** Rejects negative or non-finite games, repeated players, and links to a player that is not a node. */

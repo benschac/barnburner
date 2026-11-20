@@ -8,14 +8,14 @@ import { Effect, Schema } from "effect";
 import { openDb } from "../src/db.ts";
 import { EvalCases } from "./case.ts";
 
-const file = new URL("./qa/easy.json", import.meta.url);
+const file = new URL("qa/easy.json", import.meta.url);
 const dataDir = fileURLToPath(
   new URL("../tests/fixtures/data", import.meta.url)
 );
 
 test("six easy cases decode and return one value column on fixture data", async () => {
   const cases = Schema.decodeUnknownSync(EvalCases)(
-    JSON.parse(await readFile(file, "utf8"))
+    JSON.parse(await readFile(file, "utf-8"))
   );
   assert.equal(cases.length, 6);
 

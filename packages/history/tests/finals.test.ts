@@ -90,7 +90,7 @@ const part = (playerId: number, firstGameId: number) => ({
   teamId: 1,
   firstGameId,
 });
-const finals: ReadonlyArray<FinalRow> = [
+const finals: readonly FinalRow[] = [
   // Teammate 2 played the Final (game 900) before the link's first game (2000): still a hit.
   {
     year: 1990,

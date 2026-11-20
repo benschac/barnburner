@@ -44,7 +44,7 @@ const expectFailure = (
   assert.ok(Result.isFailure(result), `expected a failure ${from} to ${to}`);
   return result.failure;
 };
-const ids = (result: PathResult): ReadonlyArray<number> => {
+const ids = (result: PathResult): readonly number[] => {
   const hops = result.paths[0];
   return [hops[0].from, ...hops.map((hop) => hop.to)];
 };
@@ -169,7 +169,7 @@ test("bfsDistances: a full sweep from 11 leaves 19 and 20 unreached", () => {
   assert.deepEqual(byId, [0, 1, 1, 2, 3, 4, 5, 6, UNREACHED, UNREACHED]);
 });
 
-const chainIds = (path: PathResult["paths"][number]): ReadonlyArray<number> =>
+const chainIds = (path: PathResult["paths"][number]): readonly number[] =>
   path.length === 0 ? [] : [path[0].from, ...path.map((hop) => hop.to)];
 const findLimit = (from: number, to: number, limit: number): PathResult => {
   const result = findPaths(MINI_GRAPH, from, to, DEFAULT_FILTER, "with", limit);
@@ -305,7 +305,7 @@ test("equal games tie-break to the lower player ID, for limit 1 and in tied-chai
 // Start 0, target 7. Chains 0-1-{2,3}-7 (two tied) and 0-1-... Off-path players 4, 5, 6 hang off the target
 // and each other at distance 1 and 2 from it, closer to the target than the start but on no chain from it.
 const withOffPath = () => {
-  const edges: ReadonlyArray<readonly [number, number]> = [
+  const edges: readonly (readonly [number, number])[] = [
     [0, 1],
     [1, 2],
     [1, 3],

@@ -11,7 +11,6 @@ const plugin = withTamagui({
 // package whose symlink resolves to apps/api/dist, so Next would compile web-handler.js, and copy all of its
 // box-score chunks, into the route bundle. This hook externalizes the built API for the Node server compiler so the
 // route does a runtime import() of the same dist files that Vercel runs, and each box-score chunk loads on demand.
-const apiRequest = /^@nhl-reddit-stats\/api\//;
 const keepApiExternal = (config, { isServer, nextRuntime }) => {
   if (isServer && nextRuntime === "nodejs") {
     const existing = Array.isArray(config.externals)
@@ -19,7 +18,7 @@ const keepApiExternal = (config, { isServer, nextRuntime }) => {
       : [config.externals];
     config.externals = [
       ({ request }, callback) =>
-        request !== undefined && apiRequest.test(request)
+        request !== undefined && request.startsWith("@nhl-reddit-stats/api/")
           ? callback(null, `module ${request}`)
           : callback(),
       ...existing,

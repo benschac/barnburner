@@ -138,7 +138,7 @@ test("runRecheck rewrites only changed files", async () => {
     Result.getOrThrow(readCards(dir, "NJD"))[0]?.evidence.result,
     [{ wins: 4 }]
   );
-  assert.ok(readFileSync(join(dir, "NYR.json"), "utf8").includes('"wins": 4'));
+  assert.ok(readFileSync(join(dir, "NYR.json"), "utf-8").includes('"wins": 4'));
 });
 
 test("runRecheck fails with StoreError on an unreadable team file", async () => {
