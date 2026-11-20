@@ -9,18 +9,23 @@
 // - A quoted export name, such as export { render as "default" }, is not recognised as a default export.
 // - Only \n ends a line here. U+2028 and U+2029 do not end a line comment or count as line breaks.
 
-export type ViewCodeProblem =
-  | { readonly _tag: "MissingDefaultExport" }
-  | {
-      readonly _tag: "ModuleLoader";
-      readonly keyword: "import" | "require";
-      readonly line: number;
-    }
-  | {
-      readonly _tag: "ForbiddenGlobal";
-      readonly name: string;
-      readonly line: number;
-    };
+import { Array, Order, Schema } from "effect";
+
+const MissingDefaultExport = Schema.TaggedStruct("MissingDefaultExport", {});
+const ModuleLoader = Schema.TaggedStruct("ModuleLoader", {
+  keyword: Schema.Literals(["import", "require"]),
+  line: Schema.Number,
+});
+const ForbiddenGlobal = Schema.TaggedStruct("ForbiddenGlobal", {
+  name: Schema.String,
+  line: Schema.Number,
+});
+const ViewCodeProblemSchema = Schema.Union([
+  MissingDefaultExport,
+  ModuleLoader,
+  ForbiddenGlobal,
+]);
+export type ViewCodeProblem = typeof ViewCodeProblemSchema.Type;
 
 const OWNERS = new Set([
   "window",
@@ -176,21 +181,15 @@ export function checkViewCode(code: string): readonly ViewCodeProblem[] {
   for (const match of masked.matchAll(moduleLoader)) {
     const keyword: "import" | "require" =
       match[1] === "import" ? "import" : "require";
-    add(match.index, (line) => ({ _tag: "ModuleLoader", keyword, line }));
+    add(match.index, (line) => ModuleLoader.make({ keyword, line }));
   }
   for (const match of masked.matchAll(reExport)) {
-    add(match.index, (line) => ({
-      _tag: "ModuleLoader",
-      keyword: "import",
-      line,
-    }));
+    add(match.index, (line) => ModuleLoader.make({ keyword: "import", line }));
   }
   for (const match of masked.matchAll(newFunction)) {
-    add(match.index, (line) => ({
-      _tag: "ForbiddenGlobal",
-      name: "new Function",
-      line,
-    }));
+    add(match.index, (line) =>
+      ForbiddenGlobal.make({ name: "new Function", line })
+    );
   }
 
   // A name the module declares itself is its own, not the global, so a bare use of it is not reported.
@@ -211,11 +210,12 @@ export function checkViewCode(code: string): readonly ViewCodeProblem[] {
         OWNERS.has(owner) &&
         ownedForbidden(owner, name)
       ) {
-        add(match.index, (line) => ({
-          _tag: "ForbiddenGlobal",
-          name: `${owner}.${name}`,
-          line,
-        }));
+        add(match.index, (line) =>
+          ForbiddenGlobal.make({
+            name: `${owner}.${name}`,
+            line,
+          })
+        );
       }
       continue;
     }
@@ -225,13 +225,14 @@ export function checkViewCode(code: string): readonly ViewCodeProblem[] {
       match.index + name.length + CONTEXT
     );
     if (objectKeyContext.test(before) && objectKeyAfter.test(after)) continue;
-    add(match.index, (line) => ({ _tag: "ForbiddenGlobal", name, line }));
+    add(match.index, (line) => ForbiddenGlobal.make({ name, line }));
   }
 
-  const problems = found
-    .sort((a, b) => a.index - b.index)
-    .map((entry) => entry.problem);
+  const problems = Array.sort(
+    found,
+    Order.mapInput(Order.Number, (entry: Found) => entry.index)
+  ).map((entry) => entry.problem);
   if (!defaultExport.test(masked))
-    return [{ _tag: "MissingDefaultExport" }, ...problems];
+    return [MissingDefaultExport.make({}), ...problems];
   return problems;
 }
