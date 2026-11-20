@@ -7,6 +7,13 @@
       "skillPath": "skills/animate/SKILL.md",
       "computedHash": "60613e9badee4110074d32e1f5d8bf63b720961c2acb9eefe962cd0e591e2e58"
     },
+    "board": {
+      "source": "vercel/board",
+      "commit": "a9f28f1fdcd17871e0d5f8f6184f2b4917e4150b",
+      "sourceType": "github",
+      "skillPath": "skills/board/SKILL.md",
+      "computedHash": "21fb0ef5b5cb526b3a9aa6ba35afd21f2476b4485b85aba33af096f13b5f6524"
+    },
     "find-animation-opportunities": {
       "source": "emilkowalski/skills",
       "sourceType": "github",

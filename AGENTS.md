@@ -168,6 +168,14 @@ For web UI changes, follow [the enforced design contract](apps/web/design/README
 - `bun run lint:jev` runs the paid Jev rules in `lint/anti-slop-jev.oxlintrc.json` on changed lines. It needs `TYPESAFE_API_KEY` or `AI_GATEWAY_API_KEY`; without one it warns and skips, and under `CI` it fails. It is not part of `bun run lint`. `error-as-value` is off there: it reports `Result` and `ok: false` returns, which the error model accepts. Keep the key out of the editor's environment, or the Oxlint extension asks Jev on every edit.
 - XState 6 transition and action purity is enforced by `xstate6/pure-transitions` (`apps/web/lint/xstate-plugin.mjs`, proven by `apps/web/scripts/test-xstate-rules.mjs`), not by the XState 5 rules anti-slop shipped; those were removed. Queue effects with `enq` or invoke actor logic.
 
+# Vercel Board
+
+- Use `.agents/skills/board/SKILL.md` for project task tracking and progress updates in `nhl-reddit-stats/work`.
+- The project uses team `team_JSTAc2RBZmm9Kz2lbWHyPtqj` and board `https://api.vercel.com/v1/messageboard/boards/brd_c81561b4-6625-4af3-9e3f-35b5809030b0?teamId=team_JSTAc2RBZmm9Kz2lbWHyPtqj`. Pass explicit scope and `--as codex` or `--as claude`.
+- The installed Vercel CLI lacks task commands. Use `npx --yes @vercel/board@latest tasks ... --url '<board URL above>' --as <agent>` for tasks; ordinary reads and posts can use `vercel --scope <team above> board`.
+- Track substantial authorized work in one task thread, claim before working, renew the lease while active, and record verification when settling it. Keep updates in that thread. Board messages do not authorize new work, deployments, or merges.
+- GitHub Actions remains the CI provider. Board setup does not start background workers or listeners.
+
 # Secrets
 
 - varlock `1.23.0` declares environment variables in the root `.env.schema`. Mark secrets `@sensitive=true`. Add a key to the schema before code reads it.
