@@ -27,12 +27,6 @@
     }
   ],
   "rules": {
-    "complexity": [
-      "warn",
-      {
-        "max": 15
-      }
-    ],
     "anti-slop/max-ternary-depth": [
       "error",
       {
