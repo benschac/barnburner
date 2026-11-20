@@ -12,16 +12,16 @@ import { benchDataFromTables } from "../../bench/stats.ts";
 import { useVizTheme } from "../../theme.ts";
 
 type RendererContext = {
-  keys(): string[];
+  keys: () => string[];
   (key: string): Promise<{ default: BenchRenderer }>;
 };
 type WebpackRequire = {
-  context(
+  context: (
     directory: string,
     recursive: boolean,
     filter: RegExp,
     mode: "lazy"
-  ): RendererContext;
+  ) => RendererContext;
 };
 
 // Rooted at the bench folder, which always exists. 'lazy' lists the renderer files without importing
@@ -66,6 +66,19 @@ function BenchPage() {
   if (renderers.length === 0)
     return <p>No renderers found in src/viz/bench/renderers.</p>;
 
+  const readInto = async (file: File, ticket: number) => {
+    const outcome = await benchRuns.readFile(file);
+    if (ticket !== latestFile.current) return;
+    if (Result.isSuccess(outcome)) {
+      setLoaded(outcome.success);
+      setNote(
+        `Loaded ${file.name}: ${outcome.success.nodes.length} nodes and ${outcome.success.links.length} links.`
+      );
+    } else {
+      setNote(`Could not use ${file.name}: ${outcome.failure.message}`);
+    }
+  };
+
   // Each file choice invalidates the one before it at once; only the latest one to finish may set the dataset.
   const onFile = (files: FileList | null) => {
     const file = files?.[0];
@@ -74,17 +87,7 @@ function BenchPage() {
     if (!file) return;
     setSource("file");
     setNote(`Reading ${file.name}`);
-    void benchRuns.readFile(file).then((outcome) => {
-      if (ticket !== latestFile.current) return;
-      if (Result.isSuccess(outcome)) {
-        setLoaded(outcome.success);
-        setNote(
-          `Loaded ${file.name}: ${outcome.success.nodes.length} nodes and ${outcome.success.links.length} links.`
-        );
-      } else {
-        setNote(`Could not use ${file.name}: ${outcome.failure.message}`);
-      }
-    });
+    void readInto(file, ticket);
   };
 
   const run = async () => {
@@ -186,7 +189,7 @@ function BenchPage() {
       <p role="status">{note}</p>
       <View ref={root} w="drawer" h="drawer" bg="background" />
       <p>
-        Settle time is the renderer's own settle signal: the time until its
+        Settle time is the renderer&apos;s own settle signal: the time until its
         mount() resolved.
       </p>
       <table>

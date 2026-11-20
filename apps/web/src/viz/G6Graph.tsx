@@ -2,8 +2,9 @@ import { Renderer as WebGLRenderer } from "@antv/g-webgl";
 import { ExtensionCategory, Graph, getExtension, register } from "@antv/g6";
 import type { GraphData, GraphOptions, NodeOptions } from "@antv/g6";
 import { ReactNode as G6ReactNode } from "@antv/g6-extension-react";
+import type { VizTheme } from "@nhl-reddit-stats/viz";
 import { Predicate, Result } from "effect";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import type { ComponentType } from "react";
 import {
   TamaguiProvider,
@@ -19,7 +20,7 @@ import { useG6Graph } from "../use-g6-graph";
 import { G6RenderError, DIMMED, HIGHLIGHTED } from "./g6-host";
 import { g6Theme, useVizTheme } from "./theme";
 
-export { G6RenderError };
+export { G6RenderError } from "./g6-host";
 
 // The G6 host (plan D6, section C-viz): mounts a graph for `{ nodes, edges }`, applies g6Theme, redraws on
 // data or theme change, resizes with its container, and destroys the graph on unmount.
@@ -82,6 +83,25 @@ function registerReactNode() {
     register(ExtensionCategory.NODE, REACT_NODE, G6ReactNode);
 }
 
+/** The render callback G6 calls for each node: a function of the node's datum, not a component of this tree. */
+function reactNodeComponent(
+  NodeView: ComponentType<G6NodeProps>,
+  mode: VizTheme["mode"]
+) {
+  return (datum: { id: string; data?: G6NodeData }) => (
+    // G6 renders each node in its own React root, so it needs its own Tamagui provider.
+    // isSubtreeRoot keeps its theme class off <html>, which AppTheme owns.
+    <TamaguiProvider
+      config={config}
+      defaultTheme={mode}
+      disableInjectCSS
+      isSubtreeRoot
+    >
+      <NodeView id={datum.id} data={datum.data ?? {}} />
+    </TamaguiProvider>
+  );
+}
+
 export function G6Graph({
   data,
   layout,
@@ -91,19 +111,8 @@ export function G6Graph({
   onEdgeHover,
   highlightedEdges,
 }: G6GraphProps) {
-  const vizTheme = useVizTheme();
-  // useVizTheme builds a new object each render; key on the values the graph reads.
-  const themeKey = [
-    vizTheme.mode,
-    vizTheme.background,
-    vizTheme.surface,
-    vizTheme.rule,
-    vizTheme.color,
-    vizTheme.muted,
-    vizTheme.brand,
-  ].join("|");
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- themeKey stands for vizTheme
-  const theme = useMemo(() => vizTheme, [themeKey]);
+  // useVizTheme keeps one object until a value changes, so the graph rebuilds only then.
+  const theme = useVizTheme();
   const heightPx = pixels(height);
   const build = useCallback(
     (container: HTMLElement): Result.Result<Graph, G6RenderError> => {
@@ -129,18 +138,7 @@ export function G6Graph({
             type: REACT_NODE,
             style: {
               size: REACT_NODE_SIZE,
-              component: (datum: { id: string; data?: G6NodeData }) => (
-                // G6 renders each node in its own React root, so it needs its own Tamagui provider.
-                // isSubtreeRoot keeps its theme class off <html>, which AppTheme owns.
-                <TamaguiProvider
-                  config={config}
-                  defaultTheme={theme.mode}
-                  disableInjectCSS
-                  isSubtreeRoot
-                >
-                  <NodeView id={datum.id} data={datum.data ?? {}} />
-                </TamaguiProvider>
-              ),
+              component: reactNodeComponent(NodeView, theme.mode),
             },
             state: nodeState,
           }
@@ -151,7 +149,7 @@ export function G6Graph({
               lineWidth: 1,
               labelText: (datum) => {
                 const name = datum.data?.name;
-                return Predicate.isString(name) ? name : String(datum.id);
+                return Predicate.isString(name) ? name : datum.id;
               },
               labelFontFamily: theme.fonts.body,
             },
@@ -207,9 +205,8 @@ export function G6Graph({
     highlightedEdges
   );
 
-  // SAFETY: Tamagui types the ref for native views; on web the root is the HTMLElement the graph mounts into.
   return (
-    <Frame ref={root as never} size={height}>
+    <Frame ref={root} size={height}>
       {failure ? (
         <Copy color="muted" role="alert">
           This graph could not be drawn: {failure.message}

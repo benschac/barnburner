@@ -8,15 +8,15 @@ import { Text, View } from "tamagui";
 import { AppTheme, ThemeControls } from "../ThemePreference";
 
 type WebpackContext = {
-  keys(): string[];
+  keys: () => string[];
   (key: string): { default: LabEntry<ReactNode> };
 };
 type WebpackRequire = {
-  context(
+  context: (
     directory: string,
     recursive: boolean,
     filter: RegExp
-  ): WebpackContext;
+  ) => WebpackContext;
 };
 
 // Webpack bundles every file in the folder, so adding an entry file is enough.

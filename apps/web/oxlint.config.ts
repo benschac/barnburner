@@ -72,10 +72,13 @@ export default defineConfig({
       },
     },
     {
-      // Module augmentation merges declarations, which only an interface can do.
+      // Module augmentation merges declarations, which only an interface can do, and
+      // `TamaguiCustomConfig extends AppConfig {}` adds no members of its own.
       files: ["tamagui.config.ts"],
       rules: {
         "typescript/consistent-type-definitions": "off",
+        "typescript/no-empty-interface": "off",
+        "typescript/no-empty-object-type": "off",
       },
     },
     {

@@ -29,19 +29,20 @@ const decodeJson = Schema.decodeUnknownResult(
 );
 const decodeExport = Schema.decodeUnknownResult(ExportFile);
 
-const readText = (
+const readText = async (
   file: File
-): Promise<Result.Result<string, FinalsFileError>> =>
-  file.text().then(
-    (text) => Result.succeed(text),
-    (cause) =>
-      Result.fail(
-        new FinalsFileError({
-          file: file.name,
-          message: `could not read the file: ${String(cause)}`,
-        })
-      )
-  );
+): Promise<Result.Result<string, FinalsFileError>> => {
+  try {
+    return Result.succeed(await file.text());
+  } catch (cause) {
+    return Result.fail(
+      new FinalsFileError({
+        file: file.name,
+        message: `could not read the file: ${String(cause)}`,
+      })
+    );
+  }
+};
 
 function readExport(
   name: string,

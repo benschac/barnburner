@@ -400,15 +400,15 @@ export function Chart({
   const regionRef = useRef<HTMLElement>(null);
   const [isFocused, setIsFocused] = useState(false);
   const theme = useTheme();
-  const win = String(theme["chart-win"].val);
-  const loss = String(theme["chart-loss"].val);
-  const grid = String(theme.rule.val);
-  const muted = String(theme.muted.val);
-  const gold = String(theme.gold.val);
-  const pending = String(theme.pending.val);
-  const positive = String(theme["chart-positive"].val);
-  const negative = String(theme["chart-negative"].val);
-  const line = String(theme["chart-line"].val);
+  const win = theme["chart-win"].val;
+  const loss = theme["chart-loss"].val;
+  const grid = theme.rule.val;
+  const muted = theme.muted.val;
+  const gold = theme.gold.val;
+  const pending = theme.pending.val;
+  const positive = theme["chart-positive"].val;
+  const negative = theme["chart-negative"].val;
+  const line = theme["chart-line"].val;
   const colors = useMemo(
     () => ({ win, loss, grid, muted, gold, pending, positive, negative, line }),
     [win, loss, grid, muted, gold, pending, positive, negative, line]
@@ -457,7 +457,8 @@ export function Chart({
       if (reducedMotion.matches) finish();
     };
     redraw.current = paint;
-    void fontsReady.then(() => {
+    const start = async () => {
+      await fontsReady;
       if (cancelled || !ref.current || !axisRef.current) return;
       const ratio = Math.max(2, window.devicePixelRatio || 1);
       context = scaleCanvas(ref.current, plotWidth, height, ratio);
@@ -478,7 +479,8 @@ export function Chart({
         if (progress < 1) frame = requestAnimationFrame(animate);
       };
       frame = requestAnimationFrame(animate);
-    });
+    };
+    void start();
     window.addEventListener("beforeprint", beforePrint);
     window.addEventListener("afterprint", afterPrint);
     reducedMotion.addEventListener("change", motionChanged);

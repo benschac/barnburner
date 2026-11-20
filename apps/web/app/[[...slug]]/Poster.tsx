@@ -12,7 +12,7 @@ const Poster = dynamic(
       import("@vercel/analytics/react"),
       import("../../src/fonts"),
     ]);
-    return function Poster() {
+    return function PosterShell() {
       return (
         <AppTheme>
           <App />

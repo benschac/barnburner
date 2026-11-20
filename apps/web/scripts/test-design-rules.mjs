@@ -341,16 +341,18 @@ cases.push(
 const frameDir = `${vizRoot}/frame`;
 const frameFile = `${frameDir}/frame.ts`;
 // The override applies to exactly this path, so lint the fixture there only when no real file would be overwritten.
-const frameFree = !(await readFile(frameFile, "utf-8").then(
-  () => true,
-  () => false
-));
+const frameFree = !(await readFile(frameFile, "utf-8")
+  .then(() => true)
+  .catch(() => false));
 const frameSource =
   'const mod = await import(URL.createObjectURL(blob)); document.documentElement.style.setProperty("--bg", theme.background); export default mod';
-const rmdirIfEmpty = (path) =>
-  rmdir(path).catch((error) => {
+const rmdirIfEmpty = async (path) => {
+  try {
+    await rmdir(path);
+  } catch (error) {
     if (!["ENOTEMPTY", "EEXIST", "ENOENT"].includes(error.code)) throw error;
-  });
+  }
+};
 const createdVizRoot =
   (await mkdir(vizRoot, { recursive: true })) !== undefined;
 const vizDir = `${root}src/viz/design-rule-test-${dir.split("-").at(-1)}`;

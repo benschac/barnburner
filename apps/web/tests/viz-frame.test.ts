@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { setImmediate as nextTurn } from "node:timers/promises";
 
 import type { FrameReport, VizTheme } from "@nhl-reddit-stats/viz";
-import { Effect } from "effect";
+import { Array as Arr, Effect } from "effect";
 
 import { createFrame, themeVariables } from "../src/viz/frame/frame.ts";
 import type {
@@ -157,7 +157,8 @@ const harness = (modules: Modules = {}) => {
     stop,
     reports: () => parent.posted.map((entry) => entry.message),
     send: (data: unknown, source: unknown = parent) => {
-      for (const listener of [...listeners.message]) listener({ source, data });
+      for (const listener of Arr.fromIterable(listeners.message))
+        listener({ source, data });
     },
     /** Runs the next animation frame callbacks at `time`; the clock moves with it. */
     frame: (time: number) => {
@@ -170,10 +171,10 @@ const harness = (modules: Modules = {}) => {
     },
     pendingFrames: () => frames.size,
     error: (event: FrameErrorEvent) => {
-      for (const listener of [...listeners.error]) listener(event);
+      for (const listener of Arr.fromIterable(listeners.error)) listener(event);
     },
     reject: (reason: unknown) => {
-      for (const listener of [...listeners.unhandledrejection])
+      for (const listener of Arr.fromIterable(listeners.unhandledrejection))
         listener({ reason });
     },
   };

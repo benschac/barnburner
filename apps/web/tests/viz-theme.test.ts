@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { VizTheme } from "@nhl-reddit-stats/viz";
-import { Schema } from "effect";
+import { Predicate, Record, Schema } from "effect";
 
 import contract from "../design/contract.json" with { type: "json" };
 import { themeVariables } from "../src/viz/frame/frame.ts";
@@ -60,9 +60,10 @@ for (const mode of ["light", "dark"] as const) {
   test(`every VizTheme field is filled from the ${mode} contract theme`, () => {
     const theme = vizTheme(valuesFor(mode), mode);
     assert.equal(theme.mode, mode);
-    for (const [field, key] of Object.entries(fieldKeys)) {
+    for (const field of Record.keys(fieldKeys)) {
+      const key = fieldKeys[field];
       assert.equal(
-        theme[field as keyof typeof fieldKeys],
+        theme[field],
         contract.themes[mode][key as keyof typeof contract.themes.light],
         field
       );
@@ -132,7 +133,7 @@ function stringsIn(value: unknown): string[] {
 
 function at(value: unknown, path: readonly string[]): unknown {
   return path.reduce<unknown>(
-    (node, key) => (node as Record<string, unknown> | undefined)?.[key],
+    (node, key) => (Predicate.isObjectOrArray(node) ? node[key] : undefined),
     value
   );
 }

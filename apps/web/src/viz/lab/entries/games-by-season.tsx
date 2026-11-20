@@ -26,17 +26,20 @@ const decodeJson = Schema.decodeUnknownResult(
 );
 const decodeExport = Schema.decodeUnknownResult(ExportFile);
 
-const readText = (file: File): Promise<Result.Result<string, PairFileError>> =>
-  file.text().then(
-    (text) => Result.succeed(text),
-    (cause) =>
-      Result.fail(
-        new PairFileError({
-          file: file.name,
-          message: `could not read the file: ${String(cause)}`,
-        })
-      )
-  );
+const readText = async (
+  file: File
+): Promise<Result.Result<string, PairFileError>> => {
+  try {
+    return Result.succeed(await file.text());
+  } catch (cause) {
+    return Result.fail(
+      new PairFileError({
+        file: file.name,
+        message: `could not read the file: ${String(cause)}`,
+      })
+    );
+  }
+};
 
 function readExport(
   name: string,
