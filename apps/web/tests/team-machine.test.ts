@@ -30,9 +30,9 @@ test("rapid switching shares the initial load and ready navigation reuses its sn
       assert.equal(ready.context.team, "BOS");
       assert.equal(ready.context.snapshot, snapshot);
       const loadingStates: boolean[] = [];
-      const subscription = actor.subscribe((state) =>
-        loadingStates.push(state.matches("loading"))
-      );
+      const subscription = actor.subscribe((state) => {
+        loadingStates.push(state.matches("loading"));
+      });
       yield* sendAndAwait(actor, { type: "SELECT_TEAM", team: "TOR" });
       const toronto = yield* waitFor(actor, (state) => state.matches("ready"), {
         timeout: "2 seconds",

@@ -1,6 +1,7 @@
 import type { G2Spec } from "@antv/g2";
 import { Effect } from "effect";
 import { useEffect, useRef, useState } from "react";
+import type { TamaguiElement } from "tamagui";
 
 import { createChart } from "./viz/g2-spec";
 import type { G2Theme } from "./viz/g2-spec";
@@ -12,12 +13,12 @@ import type { G2Theme } from "./viz/g2-spec";
  * logs a failed render through the Effect logger and reports it as `failed`.
  */
 export function useG2Chart(spec: G2Spec, theme: G2Theme, heightPx: number) {
-  const host = useRef<HTMLElement | null>(null);
+  const host = useRef<TamaguiElement>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const node = host.current;
-    if (!node) return;
+    if (!(node instanceof HTMLElement)) return;
     let disposed = false;
     // A rejection from a chart that was disposed is expected; from a live chart it is a failure.
     const onFailure = (cause: unknown) => {

@@ -71,10 +71,9 @@ process.once("exit", () => {
 
 const SNAPSHOT_NAME = "nhl-serve.sqlite";
 const sizeOf = (path) =>
-  stat(path).then(
-    (file) => (file.isFile() ? file.size : null),
-    () => null
-  );
+  stat(path)
+    .then((file) => (file.isFile() ? file.size : null))
+    .catch(() => null);
 const inside = (root, path) => {
   const from = relative(root, path);
   return from !== ".." && !from.startsWith(`..${sep}`) && !isAbsolute(from);
@@ -104,16 +103,17 @@ const FunctionManifest = Schema.Struct({
   filePathMap: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
 });
 const readManifest = async (path, schema) => {
-  const text = await readFile(path, "utf-8").then(
-    (value) => Result.succeed(value),
-    (cause) =>
-      Result.fail(
-        new OutputManifestError({
-          path,
-          reason: `cannot read the file: ${cause.message}`,
-        })
-      )
-  );
+  let text;
+  try {
+    text = Result.succeed(await readFile(path, "utf-8"));
+  } catch (cause) {
+    text = Result.fail(
+      new OutputManifestError({
+        path,
+        reason: `cannot read the file: ${cause.message}`,
+      })
+    );
+  }
   return Result.flatMap(text, (value) =>
     Result.mapError(
       Schema.decodeUnknownResult(Schema.fromJsonString(schema))(value),
@@ -162,8 +162,8 @@ const findFunctions = async (root, prefix = "") => {
     if (entry.name.endsWith(".func"))
       found.set(path.slice(0, -".func".length), join(root, path));
     else
-      for (const [name, directory] of await findFunctions(root, `${path}/`))
-        found.set(name, directory);
+      for (const [name, nested] of await findFunctions(root, `${path}/`))
+        found.set(name, nested);
   }
   return found;
 };
@@ -172,13 +172,16 @@ const apiFunctions = [...functions].filter(([name]) => name.startsWith("api/"));
 const found = `found ${functions.size} functions${apiFunctions.length > 0 ? `; api: ${apiFunctions.map(([name]) => name).join(", ")}` : ""}`;
 
 const readConfig = async (name) => {
-  const directory = functions.get(name);
+  const functionDirectory = functions.get(name);
   assert.ok(
-    directory,
+    functionDirectory,
     `functions/${name}.func is missing from ${output}; ${found}`
   );
   const vc = await must(
-    await readManifest(join(directory, ".vc-config.json"), FunctionManifest)
+    await readManifest(
+      join(functionDirectory, ".vc-config.json"),
+      FunctionManifest
+    )
   );
   assert.match(
     vc.runtime,
@@ -189,7 +192,7 @@ const readConfig = async (name) => {
     vc.filePathMap === undefined || Object.keys(vc.filePathMap).length === 0,
     `functions/${name}.func lists filePathMap entries (files kept outside the function directory); build with --standalone so the function carries its own files`
   );
-  return { directory, vc };
+  return { directory: functionDirectory, vc };
 };
 
 // Cancellation: vercel.json sets supportsCancellation for app/api/**/route.ts, so every packaged API function must carry it.
@@ -237,8 +240,8 @@ const scanFunction = async (source) => {
 // The snapshot is traced for /api/history only: that route needs its own function, and no other function may carry the file.
 const historyRoot = await realpath((await readConfig("api/history")).directory);
 const owners = new Map();
-for (const [name, directory] of functions) {
-  const root = await realpath(directory);
+for (const [name, functionDirectory] of functions) {
+  const root = await realpath(functionDirectory);
   const known = owners.get(root);
   if (known === undefined) owners.set(root, [name]);
   else known.push(name);
@@ -337,22 +340,25 @@ const startFunction = async (name, vc, source) => {
         })
       )
   );
-  const port = await Effect.runPromise(
-    Effect.raceFirst(listening, exitedBeforeListening).pipe(
-      Effect.timeoutOrElse({
-        duration: REQUEST_TIMEOUT_MS,
-        orElse: () =>
-          Effect.fail(
-            new assert.AssertionError({
-              message: `functions/${name}.func did not listen within ${REQUEST_TIMEOUT_MS} ms\n${log}`,
-            })
-          ),
-      })
-    )
-  ).catch(async (error) => {
+  let port;
+  try {
+    port = await Effect.runPromise(
+      Effect.raceFirst(listening, exitedBeforeListening).pipe(
+        Effect.timeoutOrElse({
+          duration: REQUEST_TIMEOUT_MS,
+          orElse: () =>
+            Effect.fail(
+              new assert.AssertionError({
+                message: `functions/${name}.func did not listen within ${REQUEST_TIMEOUT_MS} ms\n${log}`,
+              })
+            ),
+        })
+      )
+    );
+  } catch (error) {
     child.kill();
     throw error;
-  });
+  }
   const pathname = `/${name}`;
   // Vercel's router tells a Next function which route it matched; the launcher's routing reads this header.
   // A redirect would let a live endpoint answer for the packaged function, so it fails the request.

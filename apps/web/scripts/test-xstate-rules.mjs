@@ -422,7 +422,6 @@ const program = Effect.fn("testXStateRules")(function* () {
   yield* Effect.logInfo(`${cases.length} xstate6 lint cases passed`);
 }, Effect.scoped);
 
-program().pipe(
-  Effect.provide([NodeServices.layer, loggerLayer]),
-  NodeRuntime.runMain
+NodeRuntime.runMain(
+  program().pipe(Effect.provide([NodeServices.layer, loggerLayer]))
 );

@@ -292,7 +292,7 @@ export default {
         const report = (node, message) =>
           context.report({
             node,
-            message: message.replaceAll("@@", String.fromCharCode(96)),
+            message: message.replaceAll("@@", String.fromCodePoint(96)),
           });
 
         const analyze = (fn) => {

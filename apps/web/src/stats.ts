@@ -229,7 +229,7 @@ export function teamPoster(
   );
   const recent = final
     .slice(-5)
-    .reverse()
+    .toReversed()
     .map((game) => ({
       id: game.game.id,
       team: game.opponent,

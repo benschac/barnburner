@@ -227,7 +227,7 @@ for (const [name, make] of unknownCalls) {
 test("a search key accepts any string, including a lone surrogate", async () => {
   const result = await read(
     served,
-    searchPlayers({ query: String.fromCharCode(0xd800), limit: 5 })
+    searchPlayers({ query: String.fromCodePoint(0xd800), limit: 5 })
   );
   assert.ok(AsyncResult.isSuccess(result));
 });

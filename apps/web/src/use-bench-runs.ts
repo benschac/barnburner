@@ -8,7 +8,7 @@ import { useCallback } from "react";
 
 import { loadRenderer, readBenchFile, runBench } from "./viz/bench/harness.ts";
 
-type BenchFile = { readonly name: string; text(): Promise<string> };
+type BenchFile = { readonly name: string; text: () => Promise<string> };
 
 /** The bench page's boundary to Effect: the page needs promises, so each run ends inside a callback of this hook. */
 export function useBenchRuns() {

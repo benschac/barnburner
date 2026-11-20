@@ -1,9 +1,10 @@
 import type { VizTheme } from "@nhl-reddit-stats/viz";
+import { Record } from "effect";
+import { useState } from "react";
 import { getConfig, getVariableValue, useTheme, useThemeName } from "tamagui";
 
 import contract from "../../design/contract.json" with { type: "json" };
 import { colourFields } from "./theme-css.ts";
-import type { ColourField } from "./theme-css.ts";
 
 // One source for the charts: every colour is a value of design/contract.json, read through the
 // Tamagui theme (useVizTheme) or passed in (vizTheme). No colour literal lives in this folder.
@@ -29,9 +30,9 @@ export function vizTheme(
   values: ThemeValues,
   mode: VizTheme["mode"]
 ): VizTheme {
-  const c = Object.fromEntries(
-    colourFields.map((field) => [field, read(values, kebab(field))])
-  ) as Record<ColourField, string>;
+  const c = Record.fromEntries(
+    colourFields.map((field) => [field, read(values, kebab(field))] as const)
+  );
   return {
     mode,
     background: c.background,
@@ -196,6 +197,17 @@ export function teamColor(
   return theme.series[index % theme.series.length];
 }
 
+/**
+ * Returns the same object for as long as `key` stays the same, so a value built fresh every render can be a
+ * dependency of an effect or a memo.
+ */
+function useStableValue<T>(key: string, value: T): T {
+  const [kept, setKept] = useState({ key, value });
+  if (kept.key === key) return kept.value;
+  setKept({ key, value });
+  return value;
+}
+
 /** The one hook that reads the Tamagui theme. */
 export function useVizTheme(): VizTheme {
   const theme = useTheme();
@@ -215,5 +227,9 @@ export function useVizTheme(): VizTheme {
   values[fontKeys.score] = String(
     getVariableValue(getConfig().fonts.score.family)
   );
-  return vizTheme(values, name.startsWith("dark") ? "dark" : "light");
+  const mode = name.startsWith("dark") ? "dark" : "light";
+  return useStableValue(
+    Object.values(values).join("|") + mode,
+    vizTheme(values, mode)
+  );
 }

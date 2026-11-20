@@ -4,7 +4,7 @@ import { View, getTokens, getVariableValue, styled } from "tamagui";
 
 import { Copy } from "../components/team-poster/primitives";
 import { useG2Chart } from "../use-g2-chart";
-import { cssVariables, g2Theme, useVizTheme } from "./theme";
+import { g2Theme, useVizTheme } from "./theme";
 
 /** The chart heights, as size tokens of the design contract. */
 export type G2ChartHeight = "hero" | "seasonChart" | "playoffChart" | "drawer";
@@ -37,16 +37,13 @@ const pixels = (height: G2ChartHeight): number =>
  */
 export function G2Chart({ spec, height }: G2ChartProps) {
   const theme = useVizTheme();
-  // useVizTheme returns a new object every render; redraw only when a value changes.
-  const themeKey = Object.values(cssVariables(theme)).join("|") + theme.mode;
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- themeKey stands for every value of theme
-  const g2 = useMemo(() => g2Theme(theme), [themeKey]);
+  // useVizTheme keeps one object until a value changes, so the chart redraws only then.
+  const g2 = useMemo(() => g2Theme(theme), [theme]);
   const heightPx = pixels(height);
   const { host, failed } = useG2Chart(spec, g2, heightPx);
 
-  // SAFETY: Tamagui types the ref for native views; on web the host is the HTMLElement the chart mounts into.
   return (
-    <Frame ref={host as never} size={height}>
+    <Frame ref={host} size={height}>
       {failed ? (
         <Copy color="muted">This chart could not be drawn.</Copy>
       ) : null}

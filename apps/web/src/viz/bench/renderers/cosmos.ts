@@ -83,7 +83,9 @@ const buildScene = (data: BenchData, theme: VizTheme) => {
   const linkRgb = toRgb(theme.muted);
 
   const index = new Map<number, number>();
-  data.nodes.forEach((node, i) => index.set(node.playerId, i));
+  data.nodes.forEach((node, i) => {
+    index.set(node.playerId, i);
+  });
   const maxNode = maxGames(data.nodes);
 
   const positions = new Float32Array(data.nodes.length * 2);

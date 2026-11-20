@@ -68,18 +68,18 @@ export type FrameEvents = {
 /** The part of `window` the frame uses, so a test can supply a fake. */
 export type FrameWindow = {
   readonly parent: {
-    postMessage(message: FrameReport, targetOrigin: string): void;
+    postMessage: (message: FrameReport, targetOrigin: string) => void;
   };
-  addEventListener<K extends keyof FrameEvents>(
+  addEventListener: <K extends keyof FrameEvents>(
     type: K,
     listener: (event: FrameEvents[K]) => void
-  ): void;
-  removeEventListener<K extends keyof FrameEvents>(
+  ) => void;
+  removeEventListener: <K extends keyof FrameEvents>(
     type: K,
     listener: (event: FrameEvents[K]) => void
-  ): void;
-  requestAnimationFrame(callback: (time: number) => void): number;
-  cancelAnimationFrame(handle: number): void;
+  ) => void;
+  requestAnimationFrame: (callback: (time: number) => void) => number;
+  cancelAnimationFrame: (handle: number) => void;
 };
 
 /** What a dynamic `import()` yields. The code is the model's, so `default` is checked before the frame calls it. */
@@ -90,7 +90,7 @@ export type FrameDeps = {
   /** The element a view draws in. The frame clears it when a view ends. */
   readonly root: HTMLElement;
   /** Where the theme's CSS variables are set, normally `document.documentElement.style`. */
-  readonly variables: { setProperty(name: string, value: string): void };
+  readonly variables: { setProperty: (name: string, value: string) => void };
   readonly libs: ViewContext["libs"];
   readonly versions: Readonly<Record<string, string>>;
   /** Turns the posted code into its module namespace. */
