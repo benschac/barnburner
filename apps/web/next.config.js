@@ -14,9 +14,10 @@ const plugin = withTamagui({
 const apiRequest = /^@nhl-reddit-stats\/api\//
 const keepApiExternal = (config, { isServer, nextRuntime }) => {
   if (isServer && nextRuntime === 'nodejs') {
+    const existing = Array.isArray(config.externals) ? config.externals : [config.externals]
     config.externals = [
       ({ request }, callback) => (request !== undefined && apiRequest.test(request) ? callback(null, `module ${request}`) : callback()),
-      ...(Array.isArray(config.externals) ? config.externals : [config.externals]),
+      ...existing,
     ]
   }
   return config

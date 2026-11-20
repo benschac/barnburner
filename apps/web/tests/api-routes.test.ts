@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, before, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { Effect, Layer, Schema } from 'effect'
-import { FetchHttpClient } from 'effect/http'
+import { Array as Arr, Duration, Effect, Order, Schedule, Schema } from 'effect'
+import { FetchHttpClient, HttpClient, HttpClientRequest } from 'effect/http'
 import { BoxscoreSource, rpcBoxscoreSourceLayer } from '../src/season-source.ts'
 
 // This test exercises the production build Next emits, not the route TypeScript. Build first:
@@ -23,7 +23,7 @@ const missingBuild = [
 ].flatMap(([path, what]) => existsSync(path) ? [] : [what])
 assert.deepEqual(missingBuild, [], `api-routes.test.ts needs a prior build; missing: ${missingBuild.join(', ')}`)
 
-const gameIds = readdirSync(archive).flatMap((file) => /^\d+\.json$/.test(file) ? [Number(file.slice(0, -5))] : []).sort((a, b) => a - b)
+const gameIds = Arr.sort(readdirSync(archive).flatMap((file) => /^\d+\.json$/.test(file) ? [Number(file.slice(0, -5))] : []), Order.Number)
 const apiChunks = readdirSync(apiDist).filter((file) => /^chunk-.*\.js$/.test(file))
 
 // What only the API handler or an archived box score contains. The compiled route must hold none of it.
@@ -63,14 +63,26 @@ test('the API stays one chunk file per archived game, traced as files', () => {
 })
 
 // Run the built server with a loader hook that records every API chunk Node loads.
-const freePort = () => new Promise<number>((resolve, reject) => {
+const freePort = Effect.callback<number>((resume) => {
   const server = createServer()
-  server.once('error', reject)
+  server.once('error', (error) => resume(Effect.die(error)))
   server.listen(0, '127.0.0.1', () => {
     const address = server.address()
-    server.close(() => resolve(typeof address === 'object' && address !== null ? address.port : 0))
+    server.close(() => resume(Effect.succeed(typeof address === 'object' && address !== null ? address.port : 0)))
   })
 })
+
+// Requests go through the Effect HttpClient; the response is reduced to what the assertions read.
+const send = (url: string, init?: { readonly method: 'POST'; readonly body: string; readonly contentType?: string }) =>
+  Effect.gen(function* () {
+    const request = init === undefined
+      ? HttpClientRequest.get(url)
+      : HttpClientRequest.post(url).pipe(HttpClientRequest.bodyText(init.body, init.contentType))
+    const response = yield* HttpClient.execute(request)
+    return { status: response.status, contentType: response.headers['content-type'] ?? '', text: yield* response.text }
+  }).pipe(Effect.provide(FetchHttpClient.layer))
+const request = (url: string, init?: { readonly method: 'POST'; readonly body: string; readonly contentType?: string }) =>
+  Effect.runPromise(send(url, init))
 const recorder = `import { registerHooks } from 'node:module'
 import { appendFileSync } from 'node:fs'
 registerHooks({ load(url, context, nextLoad) {
@@ -85,7 +97,7 @@ let log = ''
 let serverOutput = ''
 
 before(async () => {
-  const port = await freePort()
+  const port = await Effect.runPromise(freePort)
   origin = `http://127.0.0.1:${port}`
   log = join(mkdtempSync(join(tmpdir(), 'api-routes-')), 'api-loads.log')
   const nextBin = createRequire(import.meta.url).resolve('next/dist/bin/next')
@@ -95,36 +107,39 @@ before(async () => {
   })
   server.stdout?.on('data', (chunk: Buffer) => { serverOutput += chunk.toString() })
   server.stderr?.on('data', (chunk: Buffer) => { serverOutput += chunk.toString() })
-  for (let attempt = 0; attempt < 100; attempt++) {
-    if (server.exitCode !== null) assert.fail(`next start exited early:\n${serverOutput}`)
-    try { await fetch(`${origin}/api/games?team=ANA`); return } catch { await new Promise((resolve) => setTimeout(resolve, 100)) }
-  }
-  assert.fail(`next start did not answer:\n${serverOutput}`)
+  const child = server
+  await Effect.runPromise(Effect.suspend(() => {
+    if (child.exitCode !== null) assert.fail(`next start exited early:\n${serverOutput}`)
+    return send(`${origin}/api/games?team=ANA`)
+  }).pipe(
+    Effect.retry({ schedule: Schedule.spaced(Duration.millis(100)), times: 100 }),
+    Effect.catch(() => Effect.sync(() => assert.fail(`next start did not answer:\n${serverOutput}`))),
+  ))
 })
 
 after(() => { server?.kill() })
 
 test('under next start, GET /api/games answers JSON', async () => {
-  const response = await fetch(`${origin}/api/games?team=ANA`)
+  const response = await request(`${origin}/api/games?team=ANA`)
   assert.equal(response.status, 200)
-  assert.match(response.headers.get('content-type') ?? '', /application\/json/)
-  const body = Schema.decodeUnknownSync(Schema.Struct({ team: Schema.String, count: Schema.Int }))(await response.json())
+  assert.match(response.contentType, /application\/json/)
+  const body = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Struct({ team: Schema.String, count: Schema.Int })))(response.text)
   assert.equal(body.team, 'ANA')
   assert.ok(body.count > 0)
 })
 
 test('unknown API paths answer the API JSON error, not the poster page', async () => {
-  const missing = await fetch(`${origin}/api/missing`)
+  const missing = await request(`${origin}/api/missing`)
   assert.equal(missing.status, 404)
-  assert.match(missing.headers.get('content-type') ?? '', /application\/json/)
-  assert.deepEqual(await missing.json(), { error: 'Not found' })
-  const post = await fetch(`${origin}/api/missing`, { method: 'POST', body: '{}' })
+  assert.match(missing.contentType, /application\/json/)
+  assert.deepEqual(Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Struct({ error: Schema.String })))(missing.text), { error: 'Not found' })
+  const post = await request(`${origin}/api/missing`, { method: 'POST', body: '{}' })
   assert.equal(post.status, 405)
-  assert.match(post.headers.get('content-type') ?? '', /application\/json/)
+  assert.match(post.contentType, /application\/json/)
 })
 
 test('the rpc route rejects oversized POSTs', async () => {
-  const oversized = await fetch(`${origin}/api/rpc`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: 'x'.repeat(16384) })
+  const oversized = await request(`${origin}/api/rpc`, { method: 'POST', body: 'x'.repeat(16384), contentType: 'application/json' })
   assert.equal(oversized.status, 413)
 })
 
@@ -133,11 +148,10 @@ test('each box-score request through next start loads exactly one chunk file', a
   const handlerLoads = loaded(log)
   assert.ok(handlerLoads.some((url) => url.endsWith('/web-handler.js')), 'the route must load the built web-handler.js')
   assert.equal(handlerLoads.filter((url) => /\/chunk-[^/]*\.js$/.test(url)).length, 0)
-  const fetchRpc = FetchHttpClient.Fetch.of((input, init) => fetch(input, init))
   const loadBox = (gameId: number) => Effect.runPromise(Effect.gen(function* () {
     const source = yield* BoxscoreSource
     return yield* source.load(gameId)
-  }).pipe(Effect.provide(rpcBoxscoreSourceLayer(`${origin}/api/rpc`).pipe(Layer.provide(Layer.succeed(FetchHttpClient.Fetch, fetchRpc))))))
+  }).pipe(Effect.provide(rpcBoxscoreSourceLayer(`${origin}/api/rpc`))))
   for (const [index, gameId] of [gameIds[0], gameIds[1]].entries()) {
     const box = await loadBox(gameId)
     assert.equal(box.gameId, gameId)
