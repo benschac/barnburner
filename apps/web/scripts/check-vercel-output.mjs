@@ -394,7 +394,7 @@ const startFunction = async (name, vc, source) => {
   };
 };
 
-// The packaged API is the built apps/api/dist, imported at run time (it stays external to webpack). The function must carry
+// The packaged API is the built apps/api/dist, imported at run time (a runtime import that Next does not bundle). The function must carry
 // its handler and every box-score chunk that handler imports as separate files, found the way the route finds them.
 const chunkImports = async (handlerDirectory, entry) => {
   const referenced = new Set();

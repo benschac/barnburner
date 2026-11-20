@@ -1,4 +1,4 @@
-import type { BenchData, BenchRenderer, LabEntry } from "@nhl-reddit-stats/viz";
+import type { BenchData, LabEntry } from "@nhl-reddit-stats/viz";
 import { samples } from "@nhl-reddit-stats/viz/samples";
 import { Result, Schema } from "effect";
 import { useRef, useState } from "react";
@@ -8,34 +8,11 @@ import type { TamaguiElement } from "tamagui";
 
 import { useBenchRuns } from "../../../use-bench-runs.ts";
 import type { BenchResult } from "../../bench/harness.ts";
+import { rendererLoaders } from "../../bench/renderer-loaders.ts";
 import { benchDataFromTables } from "../../bench/stats.ts";
 import { useVizTheme } from "../../theme.ts";
 
-type RendererContext = {
-  keys: () => string[];
-  (key: string): Promise<{ default: BenchRenderer }>;
-};
-type WebpackRequire = {
-  context: (
-    directory: string,
-    recursive: boolean,
-    filter: RegExp,
-    mode: "lazy"
-  ) => RendererContext;
-};
-
-// Rooted at the bench folder, which always exists. 'lazy' lists the renderer files without importing
-// them: each one becomes its own chunk, fetched when Run is pressed. Adding a renderer file is enough.
-declare const require: WebpackRequire;
-const context = require.context(
-  "../../bench",
-  true,
-  /^\.\/renderers\/[^/]+\.ts$/,
-  "lazy"
-);
-const renderers = context
-  .keys()
-  .map((key) => ({ id: key.replace(/^.*\//, "").replace(/\.ts$/, ""), key }));
+const renderers = rendererLoaders;
 
 const toPrettyJson = Schema.encodeSync(
   Schema.fromJsonString(Schema.Unknown, { space: 2 })
@@ -103,7 +80,7 @@ function BenchPage() {
     try {
       const outcome = await benchRuns.run(
         chosen.id,
-        () => context(chosen.key),
+        chosen.load,
         data,
         theme,
         element

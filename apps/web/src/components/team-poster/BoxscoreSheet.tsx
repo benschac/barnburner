@@ -1,6 +1,6 @@
 import type { GameBoxscore } from "@nhl-reddit-stats/season/rpc";
 import { DateTime } from "effect";
-import { useLayoutEffect, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { Theme, View, useThemeName } from "tamagui";
 import type { TamaguiElement } from "tamagui";
 
@@ -253,7 +253,11 @@ function Scoreboard({ boxscore }: { boxscore: GameBoxscore }) {
 
 export function BoxscoreSheet({ boxscore }: { boxscore: GameBoxscore }) {
   const theme = useThemeName();
-  const ref = useRef<TamaguiElement>(null);
+  const ref = useRef<TamaguiElement | HTMLElement | null>(null);
+  // A callback ref type-checks against both View and the div that `tamagui build` extracts it to; a RefObject does not.
+  const attach = useCallback((node: TamaguiElement | HTMLElement | null) => {
+    ref.current = node;
+  }, []);
   useLayoutEffect(() => {
     const element = ref.current;
     if (
@@ -273,7 +277,7 @@ export function BoxscoreSheet({ boxscore }: { boxscore: GameBoxscore }) {
     };
   }, []);
   return (
-    <View ref={ref}>
+    <View ref={attach}>
       <Scoreboard boxscore={boxscore} />
       <View
         display="grid"
