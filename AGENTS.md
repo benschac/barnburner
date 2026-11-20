@@ -17,6 +17,7 @@ Run these from the repository root before reporting a code change as done. Repor
 - `bun run typecheck` and `bun run lint` cover all six workspaces and must exit 0. Lint takes about 45 seconds.
 - Tests run per workspace; there is no root `test` script. Use `bun run --cwd packages/<name> test` for `analyst`, `history`, and `viz`, `bun run test:api`, `bun run test:data`, and `bun run test:history`. The web app has `test:teams`, `test:social`, and `test:plan` under `bun run --cwd apps/web`.
 - For web UI changes, also run `bun run check:tamagui`.
+- For any change under `apps/web`, also run `bun run --cwd apps/web build`. Lint and typecheck do not bundle the app, so they miss what only webpack rejects, such as `import.meta.dirname`. CI runs this build on pull requests that touch `apps/web`.
 - `bun run format:check` must exit 0. `bun run format` fixes it; see Formatting.
 - If typecheck cannot find an `@nhl-reddit-stats/*` module, run `bun install` and retry: a new workspace is not linked yet.
 - Fix the code when a check fails. Do not disable a rule, lower a diagnostic's severity, or add an ignore comment to pass.

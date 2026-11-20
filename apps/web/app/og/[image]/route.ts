@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { TeamData, teams } from "@nhl-reddit-stats/season";
 import { Resvg } from "@resvg/resvg-js";
@@ -16,7 +17,7 @@ export const dynamic = "force-static";
 export const dynamicParams = false;
 
 // apps/web, found from this module's own location so the working directory does not matter.
-const webRoot = resolve(import.meta.dirname, "../../..");
+const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const snapshots = Schema.decodeUnknownSync(TeamData)({ season, poster });
 
 async function render(abbrev: string) {
