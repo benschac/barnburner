@@ -1,11 +1,13 @@
 import { Renderer as WebGLRenderer } from '@antv/g-webgl'
-import { EdgeEvent, type IElementEvent, ExtensionCategory, Graph, getExtension, register, type GraphData } from '@antv/g6'
+import { EdgeEvent, type IElementEvent, ExtensionCategory, Graph, getExtension, register, type GraphData, type GraphOptions, type NodeOptions } from '@antv/g6'
 import { ReactNode as G6ReactNode } from '@antv/g6-extension-react'
-import { Effect, Schema } from 'effect'
+import { Predicate, Schema } from 'effect'
 import { TamaguiProvider, View, getTokens, getVariableValue, styled } from 'tamagui'
 import { config } from '../../tamagui.config'
 import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react'
 import { Copy } from '../components/team-poster/primitives'
+import { logFailure } from '../use-log-failure'
+import { settleWithin } from '../use-settle'
 import { g6Theme, useVizTheme } from './theme'
 
 /** A graph that could not be drawn: `stage` says where it failed. */
@@ -17,8 +19,11 @@ export class G6RenderError extends Schema.TaggedError<G6RenderError, { readonly 
 // The G6 host (plan D6, section C-viz): mounts a graph for `{ nodes, edges }`, applies g6Theme, redraws on
 // data or theme change, resizes with its container, and destroys the graph on unmount.
 
+/** The data a node carries: the values its drawing reads. */
+export type G6NodeData = Readonly<Record<string, string | number | boolean>>
+
 /** What a custom node component receives: the node's id and its `data`. */
-export type G6NodeProps = { readonly id: string; readonly data: Readonly<Record<string, unknown>> }
+export type G6NodeProps = { readonly id: string; readonly data: G6NodeData }
 
 /** The graph heights, as size tokens of the design contract. */
 export type G6GraphHeight = 'hero' | 'drawer'
@@ -123,47 +128,47 @@ export function G6Graph({ data, layout, node: NodeView, renderer = 'canvas', hei
     const nodeSize = NodeView ? REACT_NODE_SIZE : DEFAULT_NODE_SIZE
     // Force spacing follows the drawn node, so a card is kept clear of its neighbours as a dot is.
     const radius = Math.hypot(nodeSize[0], nodeSize[1]) / 2 + NODE_GAP
-    const graph = new Graph({
+    const nodeState = {
+      active: { stroke: theme.brand, lineWidth: 2 },
+      inactive: { opacity: 0.35 },
+    }
+    const nodeOptions: NodeOptions = NodeView
+      ? {
+          type: REACT_NODE,
+          style: {
+            size: REACT_NODE_SIZE,
+            component: (datum: { id: string; data?: G6NodeData }) => (
+              // G6 renders each node in its own React root, so it needs its own Tamagui provider.
+              // isSubtreeRoot keeps its theme class off <html>, which AppTheme owns.
+              <TamaguiProvider config={config} defaultTheme={theme.mode} disableInjectCSS isSubtreeRoot>
+                <NodeView id={datum.id} data={datum.data ?? {}} />
+              </TamaguiProvider>
+            ),
+          },
+          state: nodeState,
+        }
+      : {
+          style: {
+            ...colours.node.style,
+            size: DEFAULT_NODE_SIZE[0],
+            lineWidth: 1,
+            labelText: (datum) => {
+              const name = datum.data?.name
+              return Predicate.isString(name) ? name : String(datum.id)
+            },
+            labelFontFamily: theme.fonts.body,
+          },
+          state: nodeState,
+        }
+    const options: GraphOptions = {
       container,
       width: container.clientWidth,
       height: heightPx,
       background: colours.background,
-      ...(renderer === 'webgl' ? { renderer: () => new WebGLRenderer() } : {}),
       animation: false,
       padding: 24,
       data,
-      node: {
-        ...(NodeView
-          ? {
-              type: REACT_NODE,
-              style: {
-                size: REACT_NODE_SIZE,
-                component: (datum: { id: string; data?: Record<string, unknown> }) => (
-                  // G6 renders each node in its own React root, so it needs its own Tamagui provider.
-                  // isSubtreeRoot keeps its theme class off <html>, which AppTheme owns.
-                  <TamaguiProvider config={config} defaultTheme={theme.mode} disableInjectCSS isSubtreeRoot>
-                    <NodeView id={datum.id} data={datum.data ?? {}} />
-                  </TamaguiProvider>
-                ),
-              },
-            }
-          : {
-              style: {
-                ...colours.node.style,
-                size: DEFAULT_NODE_SIZE[0],
-                lineWidth: 1,
-                labelText: (datum) => {
-                  const name = datum.data?.name
-                  return typeof name === 'string' ? name : String(datum.id)
-                },
-                labelFontFamily: theme.fonts.body,
-              },
-            }),
-        state: {
-          active: { stroke: theme.brand, lineWidth: 2 },
-          inactive: { opacity: 0.35 },
-        },
-      },
+      node: nodeOptions,
       edge: {
         style: { ...colours.edge.style, lineWidth: 1, labelFontFamily: theme.fonts.body },
         state: {
@@ -175,7 +180,9 @@ export function G6Graph({ data, layout, node: NodeView, renderer = 'canvas', hei
       },
       layout: layout === 'dagre' ? { type: 'dagre', rankdir: 'LR', nodesep: 24, ranksep: 64 } : { type: 'd3-force', animation: false, link: { distance: Math.max(140, radius * 2) }, collide: { radius }, manyBody: { strength: -300 } },
       behaviors: ['drag-canvas', 'zoom-canvas', { type: 'hover-activate', degree: 1 }],
-    })
+    }
+    if (renderer === 'webgl') options.renderer = () => new WebGLRenderer()
+    const graph = new Graph(options)
     graph.on(EdgeEvent.POINTER_ENTER, (event: IElementEvent) => hoverCallback.current?.(String(event.target.id)))
     graph.on(EdgeEvent.POINTER_LEAVE, () => hoverCallback.current?.(null))
     const leave = () => hoverCallback.current?.(null)
@@ -185,7 +192,7 @@ export function G6Graph({ data, layout, node: NodeView, renderer = 'canvas', hei
     const fail = (stage: 'render' | 'fit') => (cause: unknown) => {
       if (!alive) return undefined
       const error = new G6RenderError({ stage, message: cause instanceof Error ? cause.message : String(cause) })
-      void Effect.runFork(Effect.logError('G6 graph failed', error))
+      logFailure('G6 graph failed', error)
       setFailure(error)
       return undefined
     }
@@ -212,17 +219,13 @@ export function G6Graph({ data, layout, node: NodeView, renderer = 'canvas', hei
       observer.disconnect()
       container.removeEventListener('pointerleave', leave)
       // Destroying mid-render logs a G6 error, so wait for the render; but never wait on one that stays pending.
-      let timer = 0
-      const timeout = new Promise<void>((resolve) => {
-        timer = window.setTimeout(resolve, SETTLE_MS)
-      })
-      void Promise.race([drawn, timeout]).then(() => {
-        window.clearTimeout(timer)
+      void settleWithin(drawn, SETTLE_MS).then(() => {
         graph.destroy()
       })
     }
   }, [data, layout, NodeView, renderer, heightPx, theme])
 
+  // SAFETY: Tamagui types the ref for native views; on web the root is the HTMLElement the graph mounts into.
   return (
     <Frame ref={root as never} size={height}>
       {failure ? <Copy color="muted" role="alert">This graph could not be drawn: {failure.message}</Copy> : null}
