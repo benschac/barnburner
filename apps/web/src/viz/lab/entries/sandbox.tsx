@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Match, Result, Schema } from 'effect'
+import { Match, Predicate, Result, Schema } from 'effect'
 import { Text, View } from 'tamagui'
 import { samples } from '@nhl-reddit-stats/viz/samples'
 import { ViewData } from '@nhl-reddit-stats/viz'
@@ -54,7 +54,7 @@ function Sandbox() {
   const [draft, setDraft] = useState(starter)
   const [dataDraft, setDataDraft] = useState(starterData)
   const [code, setCode] = useState(starter)
-  const [tables, setTables] = useState(samples.chain.tables as ViewData['tables'])
+  const [tables, setTables] = useState<ViewData['tables']>(samples.chain.tables)
   const [attempt, setAttempt] = useState(0)
   const [problem, setProblem] = useState('')
   // The log is every recent message; the outcome is only what the frame reported for the render id this page sent.
@@ -77,12 +77,13 @@ function Sandbox() {
     setOutcome(noOutcome)
   }
   const onReport = (report: FrameReport) => {
-    if (report._tag !== 'FrameRate') setLog((previous) => [...previous.slice(1 - MESSAGES_SHOWN), describe(report)])
-    if (report._tag === 'Ready' || report.id !== renderId.current) return
+    const rate = Predicate.isTagged(report, 'FrameRate') ? report : undefined
+    if (!rate) setLog((previous) => [...previous.slice(1 - MESSAGES_SHOWN), describe(report)])
+    if (Predicate.isTagged(report, 'Ready') || report.id !== renderId.current) return
     setOutcome((previous) => ({
       reports: [...previous.reports.slice(1 - REPORTS_KEPT), report],
-      samples: previous.samples + (report._tag === 'FrameRate' ? 1 : 0),
-      fps: report._tag === 'FrameRate' ? report.fps : previous.fps,
+      samples: previous.samples + (rate ? 1 : 0),
+      fps: rate ? rate.fps : previous.fps,
     }))
   }
   return (

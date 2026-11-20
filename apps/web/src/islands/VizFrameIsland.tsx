@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Text, View } from 'tamagui'
-import { Effect, Fiber, Match, Option, Schema, Scope } from 'effect'
+import { Effect, Match, Option, Schema, Scope } from 'effect'
 import { createEffectActor } from '@xstate/effect'
-import { FrameReport, VizTheme } from '@nhl-reddit-stats/viz'
+import { FrameReport, Render, VizTheme } from '@nhl-reddit-stats/viz'
 import type { Tables } from '@nhl-reddit-stats/viz'
 import { frameMachine } from '../viz/frame/frame-machine.ts'
 import { useVizTheme } from '../viz/theme.ts'
+import { useScopedProgram } from '../use-scoped-program.ts'
 
 // The host of the sandboxed visualization frame (plan section C-viz, decision D17). The frame is an untrusted
 // iframe: every message from it is checked against its window and decoded, and `Rendered` and `Failed` only
@@ -41,11 +42,11 @@ function Frame(props: FrameProps) {
   const draw = useRef<() => void>(() => {})
   const key = themeKey(props.theme)
 
-  useEffect(() => {
+  useScopedProgram(() => {
     let ready = false
     let count = 0
     let lastId = ''
-    const program = Effect.gen(function* () {
+    return Effect.gen(function* () {
       const scope = yield* Scope.Scope
       const actor = yield* createEffectActor(frameMachine, { input: { limitMs: LIMIT_MS } })
       actor.subscribe((snapshot) => {
@@ -62,7 +63,7 @@ function Frame(props: FrameProps) {
         actor.send({ type: 'Render', id: lastId })
         const { code, tables, theme } = latest.current
         latest.current.onRender?.(lastId)
-        target.postMessage({ _tag: 'Render', id: lastId, code, tables, theme }, '*')
+        target.postMessage(Render.make({ id: lastId, code, tables, theme }), '*')
       }
       const onMessage = (event: MessageEvent): void => {
         // The frame has an opaque origin, so its window is the only thing that identifies it.
@@ -96,9 +97,7 @@ function Frame(props: FrameProps) {
       }))
       return yield* Effect.never
     }).pipe(Effect.scoped)
-    const fiber = Effect.runFork(program)
-    return () => { Effect.runFork(Fiber.interrupt(fiber)) }
-  }, [])
+  })
 
   useEffect(() => { latest.current = props })
 
