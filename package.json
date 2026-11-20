@@ -4,7 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "packageManager": "bun@1.4.3",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "docs:plan": "bun run --cwd apps/web docs:plan",
     "typecheck:plan": "bun run --cwd apps/web typecheck:plan",
@@ -41,22 +44,26 @@
     "evals": "varlock run -- bun run --cwd packages/analyst evals",
     "env:check": "varlock load --agent",
     "history:accept": "bun run --cwd apps/api history:accept",
-    "history:query": "bun run --cwd apps/api history:query"
+    "history:query": "bun run --cwd apps/api history:query",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
   },
   "dependencies": {
     "effect": "4.1.2"
   },
   "devDependencies": {
     "@effect/platform-node": "4.1.2",
-    "oxlint": "1.94.0",
-    "turbo": "2.11.10",
     "@effect/tsgo": "0.73.2",
-    "@oxlint/plugins": "1.94.0",
-    "@interfere/landmines": "0.1.1",
-    "eslint-plugin-ai-guard": "1.4.7",
-    "@typescript-eslint/parser": "8.73.0",
     "@enfect/oxlint": "0.10.0",
+    "@interfere/landmines": "0.1.1",
+    "@oxlint/plugins": "1.94.0",
+    "@typescript-eslint/parser": "8.73.0",
+    "eslint-plugin-ai-guard": "1.4.7",
+    "oxfmt": "0.79.0",
+    "oxlint": "1.94.0",
     "oxlint-plugin-jev": "file:./tools/oxlint/oxlint-plugin-jev",
+    "turbo": "2.11.10",
+    "ultracite": "8.3.1",
     "varlock": "1.23.0"
   }
 }
