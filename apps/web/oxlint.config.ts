@@ -1,0 +1,96 @@
+import { defineConfig } from "oxlint";
+
+import { web, ultracite } from "../../lint/oxlint.ts";
+
+export default defineConfig({
+  ...ultracite,
+  extends: web,
+  options: {
+    typeAware: true,
+  },
+  plugins: ["react", "typescript", "oxc"],
+  rules: {
+    "react/rules-of-hooks": "error",
+    "anti-slop/no-instanceof": "off",
+    "react/only-export-components": [
+      "warn",
+      {
+        allowConstantExport: true,
+      },
+    ],
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+  },
+  jsPlugins: [
+    "./lint/design-plugin.mjs",
+    "./lint/patterns-plugin.mjs",
+    "./lint/xstate-plugin.mjs",
+    "@xstate/effect/oxlint",
+  ],
+  overrides: [
+    {
+      files: ["src/viz/**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"],
+      rules: {
+        "design/viz-theme-colors": "error",
+      },
+    },
+    {
+      files: ["src/**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"],
+      rules: {
+        "no-restricted-imports": [
+          "error",
+          {
+            patterns: [
+              {
+                group: [
+                  "**/api/**",
+                  "@nhl-reddit-stats/api",
+                  "@nhl-reddit-stats/api/*",
+                ],
+                message:
+                  "Browser code imports shared season contracts, never API implementations.",
+              },
+              {
+                group: ["**/data/boxscores/**", "**/lib/nhl-boxscores.mjs"],
+                message:
+                  "Browser code reads box scores through the GetGameBoxscore RPC summary, never the raw archive.",
+              },
+            ],
+          },
+        ],
+        "patterns/no-module-mutable-state": "error",
+        "xstate6/pure-transitions": "error",
+        "xstate-effect/no-inline-effect": "error",
+        "design/semantic-colors": "error",
+        "design/token-values": "error",
+        "design/no-style-escape": "error",
+        "design/no-css-imports": "error",
+      },
+    },
+    {
+      files: ["src/viz/frame/frame.ts"],
+      rules: {
+        "design/no-css-imports": "off",
+        "design/no-style-escape": "off",
+      },
+    },
+    {
+      files: [
+        "tamagui.build.ts",
+        "next.config.js",
+        "scripts/check-vercel-output.mjs",
+      ],
+      rules: {
+        "effecttsgo/process-env": "off",
+      },
+    },
+    {
+      files: ["**/*.test.ts", "**/*.test.tsx"],
+      rules: {
+        "typescript/no-floating-promises": "off",
+      },
+    },
+  ],
+});

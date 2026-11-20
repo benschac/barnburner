@@ -7,6 +7,9 @@ import { logInfo } from "../../../lib/logger.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const dir = await mkdtemp(`${root}src/pattern-rule-test-`);
+// Only the rules these cases prove count. A fixture is a bare snippet, so the other rules in the
+// package config (anti-slop, Ultracite) report on it for reasons unrelated to the case.
+const CHECKED = /^(patterns\(|xstate-effect\(|eslint\(no-restricted-imports\))/;
 const cases = [
   [
     "server import",
@@ -74,9 +77,7 @@ try {
     );
     // anti-slop rules also report on the fixture, a new file; count only the rules under test.
     const errors = diagnostics.filter(
-      (d) =>
-        d.severity === "error" &&
-        !/^(anti-slop[a-z-]*|landmines|ai-guard|enfect)\(/.test(d.code)
+      (d) => d.severity === "error" && CHECKED.test(d.code)
     );
     if (expected)
       assert.ok(

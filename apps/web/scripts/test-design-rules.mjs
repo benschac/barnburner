@@ -43,6 +43,9 @@ for (const { abbrev } of teams) {
   ]);
 }
 const dir = await mkdtemp(`${root}src/design-rule-test-`);
+// Only the rules these cases prove count. A fixture is a bare snippet, so the other rules in the
+// package config (anti-slop, Ultracite) report on it for reasons unrelated to the case.
+const CHECKED = "design(";
 const cases = [
   [
     "team banner colors",
@@ -367,20 +370,22 @@ else
   logInfo(
     "skipping the frame.ts fixture: a real src/viz/frame/frame.ts exists"
   );
-cases.push([
-  "frame page source elsewhere in src/viz",
-  frameSource,
-  false,
-  vizDir,
-  "design(no-css-imports)",
-]);
-cases.push([
-  "chart theme object outside src/viz",
-  "const t = { background: theme.background, node: { style: { fill: theme.surface, stroke: theme.rule } } }; export default t",
-  false,
-  dir,
-  "design(semantic-colors)",
-]);
+cases.push(
+  [
+    "frame page source elsewhere in src/viz",
+    frameSource,
+    false,
+    vizDir,
+    "design(no-css-imports)",
+  ],
+  [
+    "chart theme object outside src/viz",
+    "const t = { background: theme.background, node: { style: { fill: theme.surface, stroke: theme.rule } } }; export default t",
+    false,
+    dir,
+    "design(semantic-colors)",
+  ]
+);
 try {
   for (const [
     name,
@@ -406,9 +411,7 @@ try {
     );
     // anti-slop rules also report on the fixture, a new file; count only the rules under test.
     const errors = diagnostics.filter(
-      (d) =>
-        d.severity === "error" &&
-        !/^(anti-slop[a-z-]*|landmines|ai-guard|enfect)\(/.test(d.code)
+      (d) => d.severity === "error" && d.code.startsWith(CHECKED)
     );
     assert.equal(errors.length === 0, pass, `${name}: ${result.stdout}`);
     if (expected)
