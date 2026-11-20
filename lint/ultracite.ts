@@ -1,13 +1,14 @@
-// Ultracite rules this repository turns off or sets an option on. lint/oxlint.ts applies these after Ultracite's presets
-// and before the house configs, so a house config that sets one of these rules still wins.
+// Ultracite rules this repository turns off or sets an option on. lint/oxlint.ts applies these
+// after Ultracite's presets and before the house configs, so a house config that sets one of
+// these rules still wins.
 //
 // - `conflicts`: the rule rejects code that a house rule in AGENTS.md prescribes.
-// - `configured`: the rule stays on with an option, because its default breaks code that type-checks.
+// - `configured`: the rule stays on, with an option that fits how this code is written.
 // - `style`: a style choice that disagrees with how this repository is written.
 // - `declined`: a rule left off for good, because most of its findings are in tests and it finds
 //   few bugs here.
-// - `pending`: the rule has findings in existing code that need fixing by hand. Each is a
-//   follow-up: fix the findings, then delete the entry.
+// - `pending` (a comment on an entry): the rule has findings in existing code that need fixing by
+//   hand. Fix the findings, then delete the entry.
 
 import type { OxlintConfig } from "oxlint";
 
@@ -52,6 +53,9 @@ const conflicts = {
   // Effect core modules: asks for `toSorted`, where core/no-native-sort asks for `Array.sort` with
   // an `Order`.
   "unicorn/no-array-sort": "off",
+  // A type assertion is allowed with a `// SAFETY:` comment, which
+  // anti-slop/require-safety-comment-for-type-assertion enforces; this rule rejects those too.
+  "typescript/no-unsafe-type-assertion": "off",
 } as const;
 
 const configured = {
@@ -60,6 +64,8 @@ const configured = {
   "typescript/consistent-type-definitions": ["error", "type"],
   // A named function keeps a component's display name in `memo(function TeamPoster(...) {...})`.
   "prefer-arrow-callback": ["error", { allowNamedFunctions: true }],
+  // Function declarations are hoisted, and mutually recursive ones cannot all come first.
+  "no-use-before-define": ["error", { functions: false, variables: false }],
 } as const;
 
 const style = {
@@ -83,6 +89,8 @@ const style = {
   "typescript/dot-notation": "off",
   // Integer hashing and the seeded PRNG in the history scripts use bitwise operators on purpose.
   "no-bitwise": "off",
+  // SQL text carries `${DATA_DIR}` as a literal placeholder that packages/analyst/src/db.ts fills in.
+  "no-template-curly-in-string": "off",
 } as const;
 
 const declined = {
@@ -98,82 +106,12 @@ const declined = {
   "require-await": "off",
 } as const;
 
-const pending = {
-  // 26 findings
-  "typescript/no-unsafe-type-assertion": "off",
-  // 19 findings
-  "typescript/method-signature-style": "off",
-  // 17 findings
-  "no-shadow": "off",
-  // 11 findings
-  "typescript/no-unnecessary-type-conversion": "off",
-  // 11 findings
-  "typescript/no-explicit-any": "off",
-  // 10 findings
-  "typescript/strict-void-return": "off",
-  // 8 findings
-  "promise/prefer-catch": "off",
-  // 8 findings
-  "promise/always-return": "off",
-  // 6 findings
-  "typescript/use-unknown-in-catch-callback-variable": "off",
-  // 5 findings
-  "typescript/no-deprecated": "off",
-  // 4 findings
-  "unicorn/prefer-code-point": "off",
-  // 3 findings
-  "unicorn/no-useless-spread": "off",
-  // 3 findings
-  "node/callback-return": "off",
-  // 2 findings
-  "typescript/prefer-nullish-coalescing": "off",
-  // 2 findings
-  "typescript/no-redundant-type-constituents": "off",
-  // 2 findings
-  "typescript/no-base-to-string": "off",
-  // 2 findings
-  "import/no-cycle": "off",
-  // 2 findings
-  "no-use-before-define": "off",
-  // 2 findings
-  "no-template-curly-in-string": "off",
-  // 2 findings
-  "no-sequences": "off",
-  // 2 findings
-  "no-empty-function": "off",
-  // 1 finding
-  "unicorn/prefer-structured-clone": "off",
-  // 6 findings
-  "unicorn/prefer-single-call": "off",
-  // 1 finding
-  "unicorn/prefer-native-coercion-functions": "off",
-  // 1 finding
-  "unicorn/prefer-export-from": "off",
-  // 1 finding
-  "unicorn/no-immediate-mutation": "off",
-  // 1 finding
-  "unicorn/no-array-reverse": "off",
-  // 1 finding
-  "typescript/prefer-for-of": "off",
-  // 1 finding
-  "typescript/no-empty-object-type": "off",
-  // 1 finding
-  "typescript/no-empty-interface": "off",
-  // 1 finding
-  "promise/no-nesting": "off",
-  // 1 finding
-  "oxc/no-barrel-file": "off",
-  // 1 finding
-  "no-param-reassign": "off",
-  // 1 finding
-  "logical-assignment-operators": "off",
-} as const;
-
 export const off: OxlintConfig = {
-  rules: { ...conflicts, ...configured, ...style, ...declined, ...pending },
+  rules: { ...conflicts, ...configured, ...style, ...declined },
   overrides: [
     {
-      // Tests read fixtures and mocks as `any`; most no-unsafe findings were there.
+      // Tests read fixtures and mocks as `any`; most no-unsafe findings were there. A test may also
+      // check a JSON round trip or pass an async callback where the caller ignores the promise.
       files: [
         "**/*.test.{ts,tsx}",
         "**/tests/**",
@@ -186,6 +124,8 @@ export const off: OxlintConfig = {
         "typescript/no-unsafe-call": "off",
         "typescript/no-unsafe-member-access": "off",
         "typescript/no-unsafe-return": "off",
+        "typescript/strict-void-return": "off",
+        "unicorn/prefer-structured-clone": "off",
       },
     },
     {
@@ -213,16 +153,8 @@ export const webOff: OxlintConfig = {
     "jsx-a11y/prefer-tag-over-role": "off",
     "jsx-a11y/label-has-associated-control": "off",
     "jsx-a11y/control-has-associated-label": "off",
-    // pending: see the note at the top of this file.
-    // 3 findings
+    // pending, 3 findings: effects that re-run on a value they do not read (Charts.tsx,
+    // VizFrameIsland.tsx, use-boxscore.ts).
     "react/exhaustive-effect-dependencies": "off",
-    // 2 findings
-    "react/rule-suppression": "off",
-    // 1 finding
-    "react/no-unstable-nested-components": "off",
-    // 1 finding
-    "react/no-unescaped-entities": "off",
-    // 1 finding
-    "react/jsx-no-constructed-context-values": "off",
   },
 };
