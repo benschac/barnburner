@@ -37,7 +37,10 @@ export type BenchResult = {
 const messageOf = (cause: unknown) =>
   cause instanceof globalThis.Error ? cause.message : String(cause);
 
-type Camera = { pan(dx: number, dy: number): void; zoom(factor: number): void };
+type Camera = {
+  pan: (dx: number, dy: number) => void;
+  zoom: (factor: number) => void;
+};
 
 /**
  * Runs the ten-second script. Every animation frame moves the camera by the time since the previous
@@ -120,7 +123,7 @@ export const loadRenderer = (
 /** Reads a chosen file and decodes it; a read failure names the file. */
 export const readBenchFile = (file: {
   readonly name: string;
-  text(): Promise<string>;
+  text: () => Promise<string>;
 }): Effect.Effect<BenchData, BenchFileError> =>
   Effect.tryPromise({
     try: () => file.text(),

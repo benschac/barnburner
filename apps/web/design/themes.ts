@@ -21,8 +21,10 @@ export const teamBannerThemes = Object.fromEntries(
   TeamBannerTheme
 >;
 
+const isTeamCode = (team: string): team is TeamCode =>
+  Object.hasOwn(contract.teamPalettes, team);
+
 export function teamBannerThemeName(team: string): TeamBannerThemeName {
-  if (!Object.hasOwn(contract.teamPalettes, team))
-    throw new Error(`Missing team palette: ${team}`);
-  return `team-${team}` as TeamBannerThemeName;
+  if (!isTeamCode(team)) throw new Error(`Missing team palette: ${team}`);
+  return `team-${team}`;
 }

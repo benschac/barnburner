@@ -106,8 +106,8 @@ function objectValues(node, context, seen) {
   return result;
 }
 
-function values(node, context, seen = new Set()) {
-  node = unwrap(node);
+function values(start, context, seen = new Set()) {
+  const node = unwrap(start);
   if (!node || seen.has(node)) return null;
   const next = new Set(seen).add(node);
   if (node.type === "Literal") return [node.value];

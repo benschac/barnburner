@@ -2,6 +2,7 @@ import { EdgeEvent } from "@antv/g6";
 import type { Graph, IElementEvent } from "@antv/g6";
 import { Duration, Effect, Predicate, Result } from "effect";
 import { useEffect, useRef, useState } from "react";
+import type { TamaguiElement } from "tamagui";
 
 import { G6RenderError, applyHighlight } from "./viz/g6-host";
 
@@ -26,7 +27,7 @@ export function useG6Graph(
   onEdgeHover: ((edgeId: string | null) => void) | undefined,
   highlightedEdges: readonly string[] | undefined
 ) {
-  const root = useRef<HTMLElement | null>(null);
+  const root = useRef<TamaguiElement>(null);
   const [failure, setFailure] = useState<G6RenderError | null>(null);
   // The latest callback and highlight list, read by the graph without rebuilding it.
   const hoverCallback = useRef(onEdgeHover);
@@ -42,12 +43,13 @@ export function useG6Graph(
       void current.drawn.then(() => {
         if (live.current === current)
           applyHighlight(current.graph, highlighted.current);
+        return undefined;
       });
   }, [highlightedEdges]);
 
   useEffect(() => {
     const container = root.current;
-    if (!container) return;
+    if (!(container instanceof HTMLElement)) return;
     setFailure(null);
     const built = build(container);
     if (Result.isFailure(built)) {
@@ -56,7 +58,7 @@ export function useG6Graph(
     }
     const graph = built.success;
     graph.on(EdgeEvent.POINTER_ENTER, (event: IElementEvent) =>
-      hoverCallback.current?.(String(event.target.id))
+      hoverCallback.current?.(event.target.id)
     );
     graph.on(EdgeEvent.POINTER_LEAVE, () => hoverCallback.current?.(null));
     const leave = () => hoverCallback.current?.(null);
@@ -73,13 +75,20 @@ export function useG6Graph(
       setFailure(error);
       return undefined;
     };
-    const drawn = graph.render().then(async () => {
+    const draw = async () => {
+      try {
+        await graph.render();
+      } catch (cause) {
+        fail("render")(cause);
+        return;
+      }
       if (!alive) return;
       await graph.fitView({ when: "always" }, false).catch(fail("fit"));
       // A small graph is fitted to the box, not blown up past its natural size.
       if (alive && graph.getZoom() > 1) await graph.zoomTo(1, false);
       if (alive) applyHighlight(graph, highlighted.current);
-    }, fail("render"));
+    };
+    const drawn = draw();
     live.current = { graph, drawn };
     const observer = new ResizeObserver(() => {
       if (alive) graph.setSize(container.clientWidth, heightPx);
@@ -95,9 +104,15 @@ export function useG6Graph(
         try: () => drawn,
         catch: () => undefined,
       }).pipe(Effect.timeout(Duration.millis(SETTLE_MS)), Effect.ignore);
-      void Effect.runPromise(settled).then(() => {
-        graph.destroy();
-      });
+      void Effect.runPromise(
+        settled.pipe(
+          Effect.andThen(
+            Effect.sync(() => {
+              graph.destroy();
+            })
+          )
+        )
+      );
     };
   }, [build, heightPx]);
 

@@ -37,13 +37,15 @@ type Latest = Pick<
   "code" | "tables" | "theme" | "onTimedOut" | "onReport" | "onRender"
 >;
 
+const idle = (): void => undefined;
+
 // One iframe, one machine, one piece of code. A redraw of the same code (a new theme) reuses the frame.
 function Frame(props: FrameProps) {
   const frame = useRef<HTMLIFrameElement>(null);
   const latest = useRef<Latest>(props);
   const [phase, setPhase] = useState<Phase>("loading");
   const [message, setMessage] = useState("");
-  const draw = useRef<() => void>(() => {});
+  const draw = useRef<() => void>(idle);
   const key = themeKey(props.theme);
 
   useScopedProgram(() => {
@@ -106,7 +108,7 @@ function Frame(props: FrameProps) {
         scope,
         Effect.sync(() => {
           window.removeEventListener("message", onMessage);
-          draw.current = () => {};
+          draw.current = idle;
         })
       );
       return yield* Effect.never;

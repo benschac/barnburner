@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 import { TamaguiProvider, Text, View } from "tamagui";
 
@@ -44,20 +51,22 @@ export function AppTheme({ children }: { children: ReactNode }) {
       window.removeEventListener("storage", syncStorage);
     };
   }, []);
-  const changePreference = (next: ThemePreference) => {
+  const changePreference = useCallback((next: ThemePreference) => {
     setPreference(next);
     try {
       localStorage.setItem(storageKey, next);
     } catch {
       /* Theme switching remains available without storage. */
     }
-  };
+  }, []);
+  const contextValue = useMemo(
+    () => ({ preference, setPreference: changePreference }),
+    [preference, changePreference]
+  );
   const theme =
     preference === "system" ? (systemDark ? "dark" : "light") : preference;
   return (
-    <ThemePreferenceContext
-      value={{ preference, setPreference: changePreference }}
-    >
+    <ThemePreferenceContext value={contextValue}>
       <TamaguiProvider config={config} defaultTheme={theme} disableInjectCSS>
         {children}
       </TamaguiProvider>

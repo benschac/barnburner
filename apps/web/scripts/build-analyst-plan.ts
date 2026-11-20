@@ -7,7 +7,9 @@ const config = fileURLToPath(
 );
 const builder = await createBuilder(config);
 const errors: string[] = [];
-builder.on("_error", (event) => errors.push(event.error.message));
+builder.on("_error", (event) => {
+  errors.push(event.error.message);
+});
 await builder.build();
 if (errors.length)
   throw new Error(`Plan content failed to compile:\n${errors.join("\n")}`);
