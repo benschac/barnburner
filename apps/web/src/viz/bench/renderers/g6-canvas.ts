@@ -1,4 +1,4 @@
-import { Graph, GraphEvent } from '@antv/g6'
+import { Graph } from '@antv/g6'
 import { Array, Order } from 'effect'
 import type { BenchRenderer } from '@nhl-reddit-stats/viz/contracts'
 
@@ -48,13 +48,10 @@ const renderer: BenchRenderer = {
       layout: { type: 'd3-force', animation: false },
     })
 
-    // mount resolves once the force layout has settled (G6 emits AFTER_LAYOUT), not at first paint.
-    const settled = new Promise<void>((resolve) => {
-      graph.once(GraphEvent.AFTER_LAYOUT, () => resolve())
-    })
+    // mount resolves once the force layout has settled, not at first paint: render() awaits the
+    // post layout (the d3-force simulation) before it resolves.
     try {
       await graph.render()
-      await settled
     } catch (failure) {
       graph.destroy()
       throw failure
