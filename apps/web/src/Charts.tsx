@@ -151,6 +151,154 @@ function chartEase(progress: number) {
   return 3 * (1 - t) * t ** 2 + t ** 3;
 }
 
+type ChartScene = {
+  readonly ctx: CanvasRenderingContext2D;
+  readonly axis: CanvasRenderingContext2D;
+  readonly colors: ChartColors;
+  readonly font: string;
+  readonly seasonGames: TeamPosterData["seasonGames"];
+  readonly geometry: ChartGeometry;
+  readonly canvasHeight: number;
+  readonly zero: number;
+  readonly unit: number;
+  readonly x: (i: number) => number;
+};
+
+function chartTicks(kind: ChartKind, extent: number): number[] {
+  return kind === "season"
+    ? [
+        extent,
+        Math.ceil((extent * 2) / 3),
+        Math.ceil(extent / 3),
+        -Math.ceil(extent / 3),
+        -Math.ceil((extent * 2) / 3),
+        -extent,
+      ]
+    : [extent, Math.ceil(extent / 2), 0, -Math.ceil(extent / 2), -extent];
+}
+
+function drawGrid(scene: ChartScene, ticks: readonly number[]) {
+  const { ctx, axis, colors, zero, unit } = scene;
+  for (const tick of ticks) {
+    const y = zero - tick * unit;
+    ctx.beginPath();
+    ctx.setLineDash(tick === 0 ? [7, 6] : [2, 6]);
+    ctx.strokeStyle = tick === 0 ? colors.gold : colors.grid;
+    ctx.lineWidth = tick === 0 ? 2 : 1.5;
+    ctx.moveTo(0, y);
+    ctx.lineTo(plotWidth, y);
+    ctx.stroke();
+    axis.fillStyle = tick === 0 ? colors.gold : colors.muted;
+    axis.fillText(tick > 0 ? `+${tick}` : `${tick}`.replace("-", "−"), 8, y);
+  }
+  ctx.setLineDash([]);
+}
+
+function drawSeasonMarks(scene: ChartScene) {
+  const { ctx, colors, font, seasonGames, geometry, zero, x } = scene;
+  ctx.fillStyle = colors.grid;
+  ctx.fillRect(0, zero - 1, plotWidth, 2);
+  for (const bar of geometry.bars) {
+    ctx.globalAlpha = bar.opacity;
+    ctx.fillStyle = colors[bar.ink];
+    ctx.fillRect(bar.x - 4.3, bar.yStart, 8.6, bar.yEnd - bar.yStart);
+  }
+  ctx.globalAlpha = 1;
+  for (const [i, { venue }] of seasonGames.entries()) {
+    ctx.beginPath();
+    ctx.arc(x(i), 216, 3, 0, Math.PI * 2);
+    ctx.fillStyle = colors.muted;
+    ctx.strokeStyle = colors.muted;
+    ctx.lineWidth = 1.3;
+    if (venue === "home") ctx.fill();
+    else ctx.stroke();
+  }
+  ctx.font = `17px ${font}`;
+  ctx.fillStyle = colors.muted;
+  let labelEnd = 0;
+  seasonGames.forEach(({ date }, index) => {
+    if (date.slice(0, 7) !== seasonGames[index - 1]?.date.slice(0, 7)) {
+      const label = formatDate(monthName, date);
+      const position = Math.max(x(index) - 6, labelEnd);
+      ctx.fillText(label, position, 240);
+      labelEnd = position + ctx.measureText(label).width + 8;
+    }
+  });
+}
+
+// Fills the area between the line and zero, above zero in the positive colour and below it in the negative.
+function fillPlayoffArea(scene: ChartScene, firstX: number, lastX: number) {
+  const { ctx, colors, geometry, canvasHeight: height, zero } = scene;
+  for (const positive of [false, true]) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(
+      0,
+      positive ? 0 : zero,
+      plotWidth,
+      positive ? zero : height - zero
+    );
+    ctx.clip();
+    ctx.beginPath();
+    ctx.moveTo(firstX, zero);
+    geometry.line.forEach(({ x, y }) => {
+      ctx.lineTo(x, y);
+    });
+    ctx.lineTo(lastX, zero);
+    ctx.closePath();
+    ctx.fillStyle = positive ? colors.positive : colors.negative;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawPlayoffLine(scene: ChartScene) {
+  const { ctx, colors, geometry } = scene;
+  const first = geometry.line[0];
+  const last = geometry.line.at(-1);
+  if (!first || !last) return;
+  ctx.globalAlpha = geometry.opacity;
+  fillPlayoffArea(scene, first.x, last.x);
+  ctx.beginPath();
+  ctx.moveTo(first.x, first.y);
+  geometry.line.slice(1).forEach(({ x, y }) => {
+    ctx.lineTo(x, y);
+  });
+  ctx.lineWidth = 3;
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = colors.line;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 6.5, 0, Math.PI * 2);
+  ctx.fillStyle = colors.line;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function drawActiveGame(
+  scene: ChartScene,
+  kind: ChartKind,
+  activeGame: number
+) {
+  const { ctx, colors, seasonGames, canvasHeight, zero, unit } = scene;
+  const position = scene.x(activeGame);
+  ctx.beginPath();
+  ctx.setLineDash([3, 4]);
+  ctx.strokeStyle = colors.gold;
+  ctx.lineWidth = 1.5;
+  ctx.moveTo(position, 0);
+  ctx.lineTo(position, kind === "season" ? 208 : canvasHeight);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  const comparison = seasonGames[activeGame]?.result?.comparison;
+  if (kind === "playoff" && comparison) {
+    ctx.beginPath();
+    ctx.arc(position, zero - playoffGap(comparison) * unit, 4, 0, Math.PI * 2);
+    ctx.fillStyle = colors.gold;
+    ctx.fill();
+  }
+}
+
 function drawChart(
   ctx: CanvasRenderingContext2D,
   axis: CanvasRenderingContext2D,
@@ -190,125 +338,22 @@ function drawChart(
           ...playoffPoints.map(({ playoffMargin }) => Math.abs(playoffMargin))
         );
   const unit = (kind === "season" ? 96 : 56) / extent;
-  const ticks =
-    kind === "season"
-      ? [
-          extent,
-          Math.ceil((extent * 2) / 3),
-          Math.ceil(extent / 3),
-          -Math.ceil(extent / 3),
-          -Math.ceil((extent * 2) / 3),
-          -extent,
-        ]
-      : [extent, Math.ceil(extent / 2), 0, -Math.ceil(extent / 2), -extent];
-  for (const tick of ticks) {
-    const y = zero - tick * unit;
-    ctx.beginPath();
-    ctx.setLineDash(tick === 0 ? [7, 6] : [2, 6]);
-    ctx.strokeStyle = tick === 0 ? colors.gold : colors.grid;
-    ctx.lineWidth = tick === 0 ? 2 : 1.5;
-    ctx.moveTo(0, y);
-    ctx.lineTo(plotWidth, y);
-    ctx.stroke();
-    axis.fillStyle = tick === 0 ? colors.gold : colors.muted;
-    axis.fillText(tick > 0 ? `+${tick}` : `${tick}`.replace("-", "−"), 8, y);
-  }
-  ctx.setLineDash([]);
-  if (kind === "season") {
-    ctx.fillStyle = colors.grid;
-    ctx.fillRect(0, zero - 1, plotWidth, 2);
-    for (const bar of geometry.bars) {
-      ctx.globalAlpha = bar.opacity;
-      ctx.fillStyle = colors[bar.ink];
-      ctx.fillRect(bar.x - 4.3, bar.yStart, 8.6, bar.yEnd - bar.yStart);
-    }
-    ctx.globalAlpha = 1;
-    for (const [i, { venue }] of seasonGames.entries()) {
-      ctx.beginPath();
-      ctx.arc(x(i), 216, 3, 0, Math.PI * 2);
-      ctx.fillStyle = colors.muted;
-      ctx.strokeStyle = colors.muted;
-      ctx.lineWidth = 1.3;
-      if (venue === "home") ctx.fill();
-      else ctx.stroke();
-    }
-    ctx.font = `17px ${font}`;
-    ctx.fillStyle = colors.muted;
-    let labelEnd = 0;
-    seasonGames.forEach(({ date }, index) => {
-      if (date.slice(0, 7) !== seasonGames[index - 1]?.date.slice(0, 7)) {
-        const label = formatDate(monthName, date);
-        const position = Math.max(x(index) - 6, labelEnd);
-        ctx.fillText(label, position, 240);
-        labelEnd = position + ctx.measureText(label).width + 8;
-      }
-    });
-  } else {
-    const first = geometry.line[0];
-    const last = geometry.line.at(-1);
-    if (first && last) {
-      ctx.globalAlpha = geometry.opacity;
-      for (const positive of [false, true]) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(
-          0,
-          positive ? 0 : zero,
-          plotWidth,
-          positive ? zero : height - zero
-        );
-        ctx.clip();
-        ctx.beginPath();
-        ctx.moveTo(first.x, zero);
-        geometry.line.forEach(({ x, y }) => {
-          ctx.lineTo(x, y);
-        });
-        ctx.lineTo(last.x, zero);
-        ctx.closePath();
-        ctx.fillStyle = positive ? colors.positive : colors.negative;
-        ctx.fill();
-        ctx.restore();
-      }
-      ctx.beginPath();
-      ctx.moveTo(first.x, first.y);
-      geometry.line.slice(1).forEach(({ x, y }) => {
-        ctx.lineTo(x, y);
-      });
-      ctx.lineWidth = 3;
-      ctx.lineJoin = "round";
-      ctx.strokeStyle = colors.line;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(last.x, last.y, 6.5, 0, Math.PI * 2);
-      ctx.fillStyle = colors.line;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-  }
-  if (activeGame !== null) {
-    const position = x(activeGame);
-    ctx.beginPath();
-    ctx.setLineDash([3, 4]);
-    ctx.strokeStyle = colors.gold;
-    ctx.lineWidth = 1.5;
-    ctx.moveTo(position, 0);
-    ctx.lineTo(position, kind === "season" ? 208 : height);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    const comparison = seasonGames[activeGame]?.result?.comparison;
-    if (kind === "playoff" && comparison) {
-      ctx.beginPath();
-      ctx.arc(
-        position,
-        zero - playoffGap(comparison) * unit,
-        4,
-        0,
-        Math.PI * 2
-      );
-      ctx.fillStyle = colors.gold;
-      ctx.fill();
-    }
-  }
+  const scene: ChartScene = {
+    ctx,
+    axis,
+    colors,
+    font,
+    seasonGames,
+    geometry,
+    canvasHeight: height,
+    zero,
+    unit,
+    x,
+  };
+  drawGrid(scene, chartTicks(kind, extent));
+  if (kind === "season") drawSeasonMarks(scene);
+  else drawPlayoffLine(scene);
+  if (activeGame !== null) drawActiveGame(scene, kind, activeGame);
 }
 
 function scaleCanvas(
