@@ -7,13 +7,14 @@ import { G2Chart } from '../../G2Chart'
 
 /** The bar chart of players by games: a pure function of the tables. Options go in with `hideAxis` and `width`. */
 function gamesSpec(tables: LeagueTables, options: { hideAxis: boolean; width?: number }) {
-  return {
+  const spec = {
     type: 'interval',
     data: tables.players.map((player) => ({ name: player.name, games: player.games })),
     encode: { x: 'name', y: 'games' },
     axis: options.hideAxis ? { y: false, x: { labelAutoRotate: true } } : { x: { labelAutoRotate: true } },
-    ...(options.width === undefined ? {} : { width: options.width }),
   }
+  if (options.width === undefined) return spec
+  return Object.assign(spec, { width: options.width })
 }
 
 // Plain buttons in the lab: they exist to reach the host's two spec cases from a browser.
