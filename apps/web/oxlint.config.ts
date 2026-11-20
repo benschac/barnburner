@@ -79,6 +79,15 @@ export default defineConfig({
       },
     },
     {
+      // Imports .content-collections/generated, which is gitignored: in a checkout that has not
+      // built it the import is `any`. `bun run docs:plan` builds it, and `bun run typecheck:plan` then checks this file.
+      files: ["plan-viewer/render-plan.ts"],
+      rules: {
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-member-access": "off",
+      },
+    },
+    {
       files: [
         "tamagui.build.ts",
         "next.config.js",
