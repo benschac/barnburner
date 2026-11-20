@@ -11,7 +11,7 @@
   "scripts": {
     "typecheck": "effect-tsgo tsrs@7.1.0-beta.tsrs3 --noEmit -p tsconfig.json",
     "lint": "bun run --parallel --no-exit-on-error lint:oxlint lint:errors lint:unions lint:core lint:index",
-    "lint:oxlint": "node ../../tools/oxlint/anti-slop/modes/with-changes.ts effect-tsgo --tsrs-lint oxlint src tests",
+    "lint:oxlint": "effect-tsgo --tsrs-lint oxlint src tests",
     "lint:errors": "node ../../scripts/check-error-model.mjs src",
     "lint:unions": "node ../../scripts/test-union-rules.mjs .",
     "lint:core": "node ../../scripts/test-effect-core-rules.mjs .",
