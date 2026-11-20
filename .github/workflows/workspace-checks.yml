@@ -46,3 +46,6 @@ jobs:
       - name: Check web types and team behavior
         if: steps.changes.outputs.web == 'true'
         run: bun run --cwd apps/web typecheck && bun run --cwd apps/web test:teams
+      - name: Build the web app
+        if: steps.changes.outputs.web == 'true'
+        run: bun run --cwd apps/web build
