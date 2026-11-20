@@ -6,8 +6,8 @@ import { cp, mkdtemp, readdir, readFile, readlink, realpath, rm, stat, writeFile
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
-import { Effect, Layer, Result, Schema } from 'effect'
-import { FetchHttpClient } from 'effect/http'
+import { Deferred, Effect, Layer, Result, Schema } from 'effect'
+import { FetchHttpClient, HttpClient } from 'effect/http'
 import { RpcClient, RpcSerialization } from 'effect/rpc'
 import { HistoryRpcs } from '@nhl-reddit-stats/history/rpc'
 import { SeasonSource, rpcSeasonSourceLayer } from '../src/season-source.ts'
@@ -160,7 +160,9 @@ const historyRoot = await realpath((await readConfig('api/history')).directory)
 const owners = new Map()
 for (const [name, directory] of functions) {
   const root = await realpath(directory)
-  owners.set(root, [...(owners.get(root) ?? []), name])
+  const known = owners.get(root)
+  if (known === undefined) owners.set(root, [name])
+  else known.push(name)
 }
 for (const [root, names] of owners) {
   if (root === historyRoot) {
@@ -214,32 +216,40 @@ const startFunction = async (name, vc, source) => {
   })
   let log = ''
   child.stderr.on('data', (chunk) => { log += chunk })
-  const exited = new Promise((done) => child.once('exit', (code, signal) => done(`exited with ${code ?? signal}`)))
-  const port = await new Promise((done, fail) => {
+  const exited = Deferred.makeUnsafe()
+  child.once('exit', (code, signal) => {
+    Deferred.doneUnsafe(exited, Effect.succeed(`exited with ${code ?? signal}`))
+  })
+  const listening = Effect.callback((resume) => {
     child.stdout.on('data', (chunk) => {
       log += chunk
       const match = /LISTENING (\d+)/.exec(log)
-      if (match) done(Number(match[1]))
+      if (match) resume(Effect.succeed(Number(match[1])))
     })
-    void exited.then((reason) => fail(new assert.AssertionError({ message: `functions/${name}.func ${reason} before it listened\n${log}` })))
-    setTimeout(() => fail(new assert.AssertionError({ message: `functions/${name}.func did not listen within ${REQUEST_TIMEOUT_MS} ms\n${log}` })), REQUEST_TIMEOUT_MS).unref()
-  }).catch(async (error) => {
+  })
+  const exitedBeforeListening = Effect.flatMap(Deferred.await(exited), (reason) =>
+    Effect.fail(new assert.AssertionError({ message: `functions/${name}.func ${reason} before it listened\n${log}` })))
+  const port = await Effect.runPromise(
+    Effect.raceFirst(listening, exitedBeforeListening).pipe(
+      Effect.timeoutOrElse({
+        duration: REQUEST_TIMEOUT_MS,
+        orElse: () => Effect.fail(new assert.AssertionError({ message: `functions/${name}.func did not listen within ${REQUEST_TIMEOUT_MS} ms\n${log}` })),
+      }),
+    ),
+  ).catch(async (error) => {
     child.kill()
     throw error
   })
   const pathname = `/${name}`
   // Vercel's router tells a Next function which route it matched; the launcher's routing reads this header.
-  const fetchFunction = (input, init) => {
-    const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined))
-    headers.set('x-matched-path', pathname)
-    // A redirect would let a live endpoint answer for the packaged function, so it fails the request.
-    return fetch(input, { ...init, headers, redirect: 'error', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
-  }
+  // A redirect would let a live endpoint answer for the packaged function, so it fails the request.
+  const requestInit = Layer.succeed(FetchHttpClient.RequestInit, { headers: { 'x-matched-path': pathname }, redirect: 'error' })
+  const send = (effect) => Effect.runPromise(effect.pipe(Effect.provide(requestInit), Effect.timeout(REQUEST_TIMEOUT_MS)))
   return {
     isolated,
     launcherDirectory: dirname(launcher),
     url: `http://127.0.0.1:${port}${pathname}`,
-    fetch: fetchFunction,
+    send,
     // A failed check is more useful with whatever the function logged. The error is rethrown untouched: a fetch timeout is a DOMException whose message is read-only.
     async run(check) {
       try {
@@ -251,7 +261,7 @@ const startFunction = async (name, vc, source) => {
     },
     async stop() {
       child.kill()
-      await exited
+      await Effect.runPromise(Deferred.await(exited))
     },
   }
 }
@@ -305,19 +315,19 @@ try {
       await running.run(async () => {
         await assertPackagedApi(name, running, 'web-handler.js', true)
         if (route === 'rpc') {
-          const data = await Effect.runPromise(Effect.gen(function* () {
+          const data = await running.send(Effect.gen(function* () {
             const season = yield* SeasonSource
             return yield* season.load
-          }).pipe(Effect.provide(rpcSeasonSourceLayer(running.url).pipe(
-            Layer.provide(Layer.succeed(FetchHttpClient.Fetch, running.fetch)),
-          ))))
+          }).pipe(Effect.provide(rpcSeasonSourceLayer(running.url))))
           assert.equal(data.poster.clubs.length, 32, `RPC poster clubs: expected 32, found ${data.poster.clubs.length}`)
           assert.equal(data.season.games.length, 1344, `RPC season games: expected 1344, found ${data.season.games.length}`)
         } else {
           const url = `${running.url}${route === 'games' ? '?team=ANA' : ''}`
-          const response = await running.fetch(url)
-          assert.equal(response.status, 200, `GET ${name} expected status 200, found ${response.status}`)
-          const body = await response.json()
+          const { status, body } = await running.send(Effect.gen(function* () {
+            const response = yield* HttpClient.get(url)
+            return { status: response.status, body: response.status === 200 ? yield* response.json : null }
+          }).pipe(Effect.provide(FetchHttpClient.layer)))
+          assert.equal(status, 200, `GET ${name} expected status 200, found ${status}`)
           if (route === 'games') assert.equal(body.count, 84, `GET ${name}?team=ANA expected count 84, found ${body.count}`)
           if (route === 'poster') assert.equal(body.clubs.length, 32, `GET ${name} expected 32 clubs, found ${body.clubs.length}`)
           if (route === 'teams') assert.equal(body.teams.length, 32, `GET ${name} expected 32 teams, found ${body.teams.length}`)
@@ -357,14 +367,13 @@ try {
         return yield* client.SearchPlayers({ query: 'a', limit: 3 })
       })).pipe(Effect.provide(RpcClient.layerProtocolHttp({ url: running.url }).pipe(
         Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]),
-        Layer.provide(Layer.succeed(FetchHttpClient.Fetch, running.fetch)),
       )))
       if (size === null) {
-        const failure = await Effect.runPromise(Effect.flip(search))
+        const failure = await running.send(Effect.flip(search))
         assert.equal(failure._tag, 'HistoryUnavailable', `without a bundled snapshot /api/history must answer HistoryUnavailable, found ${failure._tag}`)
         logInfo(`Packaged history function (${historyConfig.runtime}) has no snapshot and answered HistoryUnavailable`)
       } else {
-        const result = await Effect.runPromise(search)
+        const result = await running.send(search)
         assert.ok(result.snapshotId.length > 0, 'SearchPlayers returned an empty snapshotId from the packaged file')
         assert.ok(result.players.length > 0, 'SearchPlayers returned no rows from the packaged file')
         logInfo(`Packaged history function (${historyConfig.runtime}) served SearchPlayers from ${relative(historyFunction, shipped)} (${size} bytes)`)
