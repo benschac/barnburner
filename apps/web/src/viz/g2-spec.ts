@@ -30,7 +30,8 @@ function withTheme<T>(node: T, theme: G2Theme): T {
   if (!Predicate.isObject(node)) return node;
   const children = node.children;
   if (!Array.isArray(children)) return node;
-  const themedChildren = children.map((child) => {
+  const items: readonly unknown[] = children;
+  const themedChildren = items.map((child) => {
     const themed = withTheme(child, theme);
     if (!Predicate.isObject(themed) || Object.hasOwn(themed, "theme"))
       return themed;
