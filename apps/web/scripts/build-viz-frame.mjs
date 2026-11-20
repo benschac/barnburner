@@ -6,7 +6,7 @@ import { rolldown } from 'rolldown'
 import { logError, logInfo } from '../../../lib/logger.mjs'
 
 // The sandboxed visualization frame (plan D17) is its own bundle: it shares no code with the Next app.
-// frame.ts is bundled with G2, G6, D3, and Three.js into ONE script, written inline into
+// main.ts (the frame's entry, which boots frame.ts) is bundled with G2, G6, D3, and Three.js into ONE script, written inline into
 // public/viz-frame/viz-frame.html. No .js file is emitted, so the frame's policy needs no 'self' for scripts:
 // a meta policy allows only this script's SHA-256 and blob: modules, which stops posted view code from
 // requesting any path on the app's origin (the frame cannot call our API). The response header's own
@@ -21,7 +21,7 @@ mkdirSync(outdir, { recursive: true })
 let code
 try {
   const bundle = await rolldown({
-    input: here('../src/viz/frame/frame.ts'),
+    input: here('../src/viz/frame/main.ts'),
     platform: 'browser',
     logLevel: 'warn',
   })
