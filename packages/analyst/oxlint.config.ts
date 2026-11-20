@@ -15,6 +15,21 @@ export default defineConfig({
   },
   overrides: [
     {
+      // These take a model's tool arguments or a card read from disk and decode it with a schema
+      // as their first step, so `unknown` is the honest parameter type.
+      files: [
+        "src/tools/answer.ts",
+        "src/tools/decline.ts",
+        "src/tools/submit-card.ts",
+        "src/verify.ts",
+        "src/verify-static.ts",
+        "src/shapes.ts",
+      ],
+      rules: {
+        "anti-slop/no-unknown-parameters": "off",
+      },
+    },
+    {
       files: ["**/*.test.ts"],
       rules: {
         "typescript/no-floating-promises": "off",

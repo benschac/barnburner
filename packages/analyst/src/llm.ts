@@ -165,5 +165,4 @@ export class Llm extends Context.Service<Llm, LlmService>()("analyst/Llm") {
     Effect.sync(() => Llm.of(makeLlm(config)));
   static readonly layer = (config?: LlmConfig) =>
     Layer.effect(Llm, Llm.make(config));
-  static run = (input: LlmRunInput) => Llm.use((llm) => llm.run(input));
 }
