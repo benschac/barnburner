@@ -17,7 +17,7 @@ Run these from the repository root before reporting a code change as done. Repor
 - `bun run typecheck` and `bun run lint` cover all six workspaces and must exit 0. Lint takes about 45 seconds.
 - Tests run per workspace; there is no root `test` script. Use `bun run --cwd packages/<name> test` for `analyst`, `history`, and `viz`, `bun run test:api`, `bun run test:data`, and `bun run test:history`. The web app has `test:teams`, `test:social`, and `test:plan` under `bun run --cwd apps/web`.
 - For web UI changes, also run `bun run check:tamagui`.
-- For any change under `apps/web`, also run `bun run --cwd apps/web build`. Lint and typecheck do not bundle the app, so they miss what only webpack rejects, such as `import.meta.dirname`. CI runs this build on pull requests that touch `apps/web`.
+- For any change under `apps/web`, also run `bun run --cwd apps/web build`. Lint and typecheck do not bundle the app, so they miss what only the bundler rejects, such as `import.meta.dirname`. CI runs this build on pull requests that touch `apps/web`.
 - `bun run format:check` must exit 0. `bun run format` fixes it; see Formatting.
 - If typecheck cannot find an `@nhl-reddit-stats/*` module, run `bun install` and retry: a new workspace is not linked yet.
 - Fix the code when a check fails. Do not disable a rule, lower a diagnostic's severity, or add an ignore comment to pass.
@@ -53,7 +53,7 @@ For Effect and `@effect/*`, the installed packages are the reference. Do not cac
 
 For AntV G2 5 or G6 5 charts, graphs, themes, or views, search `.agent-sources/antv/g2/index.md` or `g6/index.md`, then read the matching line range of that `docs.txt`; pages are English where the site has them and Chinese otherwise (the index has a language column). The `antv-g2-chart` and `antv-g6-graph` skills are cached under `.agent-sources/antv/skills/`. Refresh with `node scripts/refresh-antv-sources.mjs`.
 
-For Next.js 16 App Router, route handlers, metadata and image routes, `next.config.js`, or webpack builds, search `.agent-sources/next/index.md`, then read the matching line range of `.agent-sources/next/docs.txt` (pinned to the v16.4.6 tag). Refresh with `node scripts/refresh-next-sources.mjs`.
+For Next.js 16 App Router, route handlers, metadata and image routes, `next.config.js`, or Turbopack builds, search `.agent-sources/next/index.md`, then read the matching line range of `.agent-sources/next/docs.txt` (pinned to the v16.4.6 tag). Refresh with `node scripts/refresh-next-sources.mjs`.
 
 # Landing a stack
 
@@ -100,7 +100,7 @@ Write new code to the three models below in every workspace. This table shows wh
 
 - Every workspace lints with type information (`effect-tsgo --tsrs-lint oxlint`). `typescript/switch-exhaustiveness-check`, `typescript/no-floating-promises`, `typescript/no-misused-promises`, `typescript/await-thenable`, and `typescript/no-non-null-assertion` are errors, set by Ultracite's core preset; do not repeat a rule Ultracite already sets in a workspace or house config. Run it through `bun run lint`; plain `oxlint` cannot load that config.
 - Each workspace's lint config is `oxlint.config.ts`, built from `lint/oxlint.ts`: Ultracite's oxlint presets (`ultracite/oxlint/core`, and `react` and `next` in `apps/web`), then `lint/ultracite.ts`, then the house configs (`lint/effect-core.oxlintrc.json`, `lint/anti-slop.oxlintrc.json`), so a house severity wins. Every rule checks every line.
-- `lint/ultracite.ts` turns off the Ultracite rules that contradict a house rule here (`conflicts`), that disagree with this repository's style (`style`), or that find few bugs here and report mostly tests (`declined`), each with its reason. `configured` keeps a rule on with an option that fits this code. An entry or file override marked `pending` has existing findings still to fix: fix them, then delete it. Today that is `typescript/no-deprecated` in `apps/web/next.config.js` (`withTamagui`, whose replacement is a move to Turbopack). Do not add an entry to get a change past lint.
+- `lint/ultracite.ts` turns off the Ultracite rules that contradict a house rule here (`conflicts`), that disagree with this repository's style (`style`), or that find few bugs here and report mostly tests (`declined`), each with its reason. `configured` keeps a rule on with an option that fits this code. An entry or file override marked `pending` has existing findings still to fix: fix them, then delete it. No entry is pending today. Do not add an entry to get a change past lint.
 - `apps/web` also runs the design and actor-pattern plugins described under Design-system enforcement.
 - To adopt a rule in another workspace, copy the setup from `packages/history`: its `lint` script, the `jsPlugins` and `unions/*` rules in `oxlint.config.ts`, and the `diagnosticSeverity` block in `tsconfig.json`. Update the table in the same change.
 

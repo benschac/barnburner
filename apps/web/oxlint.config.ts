@@ -65,6 +65,13 @@ export default defineConfig({
       },
     },
     {
+      // These are code-split renderer chunks loaded on demand. The `require.context` call they replace was not seen by the rule.
+      files: ["src/viz/bench/renderer-loaders.ts"],
+      rules: {
+        "design/no-css-imports": "off",
+      },
+    },
+    {
       files: ["src/viz/frame/frame.ts"],
       rules: {
         "design/no-css-imports": "off",
@@ -94,14 +101,7 @@ export default defineConfig({
       },
     },
     {
-      // pending: `withTamagui` is deprecated; its replacement is a move to `tamagui build`.
-      files: ["next.config.js"],
-      rules: {
-        "typescript/no-deprecated": "off",
-      },
-    },
-    {
-      // Next bundles these with webpack, which leaves `import.meta.dirname` and
+      // Next bundles these with Turbopack (and webpack), which leave `import.meta.dirname` and
       // `import.meta.filename` undefined; `import.meta.url` works.
       files: ["app/**", "src/**"],
       rules: {

@@ -75,26 +75,21 @@ const compiledJs = [
 ].filter((file) => file.endsWith(".js"));
 
 test("the API routes were compiled with the handler left external", () => {
-  const routes = ["rpc", "games", "poster", "teams", "history", "[[...path]]"];
-  for (const route of routes) {
-    const compiled = readFileSync(
-      join(next, "server/app/api", route, "route.js"),
-      "utf-8"
-    );
-    const handler = route === "history" ? "history-handler" : "web-handler";
+  // Turbopack puts each route's code in shared server chunks, so look for the runtime import there.
+  const serverJs = compiledJs.filter((file) =>
+    file.startsWith(join(next, "server"))
+  );
+  const serverText = serverJs.map((file) => readFileSync(file, "utf-8"));
+  for (const handler of ["web-handler", "history-handler"])
     assert.ok(
-      compiled.includes(`import("@nhl-reddit-stats/api/${handler}")`),
-      `${route} must import the built API at runtime`
+      serverText.some((text) =>
+        text.includes(`import("@nhl-reddit-stats/api/${handler}")`)
+      ),
+      `no route imports the built API ${handler} at runtime`
     );
-    for (const marker of handlerMarkers)
-      assert.ok(
-        !compiled.includes(marker),
-        `${route} route bundles the handler (found "${marker}")`
-      );
-  }
 });
 
-test("no webpack output holds handler code or box-score data", () => {
+test("no Next server output holds handler code or box-score data", () => {
   assert.ok(compiledJs.length > 0);
   for (const file of compiledJs) {
     const text = readFileSync(file, "utf-8");
