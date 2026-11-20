@@ -1,12 +1,12 @@
-import { Cause, Effect } from "effect";
+import { Cause, Effect, Predicate, Schema } from "effect";
 
 import type { Db } from "../src/shapes.ts";
 import type { EvalAnswer, EvalCase } from "./case.ts";
 import { grade } from "./grade.ts";
 
-export type Answerer = (
+export type Answerer<R = never> = (
   evalCase: EvalCase
-) => Effect.Effect<EvalAnswer, unknown>;
+) => Effect.Effect<EvalAnswer, unknown, R>;
 
 export type CaseResult = {
   readonly id: string;
@@ -24,11 +24,12 @@ export type EvalRun = {
   readonly score: number;
 };
 
-const describe = (e: unknown): string => {
-  // foreign: e is whatever an answerer or driver raised
-  if (typeof e === "object" && e !== null && "message" in e)
-    return String(e.message);
-  return String(e);
+const describe = (cause: Cause.Cause<unknown>): string => {
+  // foreign: the squashed value is whatever an answerer or driver raised
+  const raised = Cause.squash(cause);
+  return Predicate.hasProperty(raised, "message")
+    ? String(raised.message)
+    : String(raised);
 };
 
 const truthValue = (
@@ -42,28 +43,27 @@ const truthValue = (
           ok: false as const,
           reason: `truthSql returned ${res.rows.length} rows, expected exactly 1`,
         };
-      const cell = (res.rows[0] as Record<string, unknown>).value;
-      const n = typeof cell === "bigint" ? Number(cell) : cell;
-      if (typeof n !== "number" || !Number.isFinite(n))
+      const cell = res.rows[0]?.value;
+      if (!Schema.is(Schema.Finite)(cell))
         return {
           ok: false as const,
           reason: "truthSql value column is not a finite number",
         };
-      return { ok: true as const, value: n };
+      return { ok: true as const, value: cell };
     }),
     Effect.catch((e) =>
       Effect.succeed({
         ok: false as const,
-        reason: `truthSql failed: ${describe(e)}`,
+        reason: `truthSql failed: ${e.message}`,
       })
     )
   );
 
-const runCase = (
+const runCase = <R>(
   evalCase: EvalCase,
   db: Db,
-  answerer: Answerer
-): Effect.Effect<CaseResult> =>
+  answerer: Answerer<R>
+): Effect.Effect<CaseResult, never, R> =>
   Effect.gen(function* () {
     let truth: number | null = null;
     if (evalCase.expect === "value") {
@@ -89,7 +89,7 @@ const runCase = (
       Effect.catchCause((cause) =>
         Effect.succeed({
           ok: false as const,
-          reason: describe(Cause.squash(cause)),
+          reason: describe(cause),
         })
       )
     );
@@ -113,11 +113,11 @@ const runCase = (
         };
   });
 
-export const runEvals = (input: {
+export const runEvals = <R = never>(input: {
   readonly cases: readonly EvalCase[];
   readonly db: Db;
-  readonly answerer: Answerer;
-}): Effect.Effect<EvalRun> =>
+  readonly answerer: Answerer<R>;
+}): Effect.Effect<EvalRun, never, R> =>
   Effect.gen(function* () {
     const results = yield* Effect.forEach(input.cases, (c) =>
       runCase(c, input.db, input.answerer)

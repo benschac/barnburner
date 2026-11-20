@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 
 import type { LanguageModel } from "ai";
-import { Cause, Clock, Effect, Exit, Result, Schema } from "effect";
+import { Cause, Clock, Effect, Exit, Match, Result, Schema } from "effect";
 
 import { toJson } from "./json.ts";
-import { Llm } from "./llm.ts";
+import { Llm, modelLabel } from "./llm.ts";
 import type { Answer, Db } from "./shapes.ts";
-import { VIEWS } from "./shapes.ts";
+import { Crashed, VIEWS } from "./shapes.ts";
 import { makeToolset } from "./toolset.ts";
 import { openTrace } from "./trace.ts";
 import type { TracePayload } from "./trace.ts";
@@ -24,9 +24,7 @@ export type AskInput = {
   readonly traceDir?: string;
 };
 export type AskResult = {
-  readonly outcome:
-    | Answer
-    | { readonly _tag: "Crashed"; readonly reason: string };
+  readonly outcome: Answer | typeof Crashed.Type;
   readonly runId: string;
   readonly model: string;
   readonly steps: number | null;
@@ -40,13 +38,12 @@ export const ask = (input: AskInput): Effect.Effect<AskResult, AskError, Llm> =>
     const llm = yield* Llm;
     const runId = randomUUID();
     const model = input.model ?? llm.config.generateModel;
-    const label =
-      typeof model === "string" ? model : `${model.provider}/${model.modelId}`;
+    const label = modelLabel(model);
     const trace = yield* Effect.try({
       try: () =>
         openTrace({
           runId,
-          ...(input.traceDir === undefined ? {} : { dir: input.traceDir }),
+          dir: input.traceDir,
         }),
       catch: (cause) => new AskError({ message: String(cause) }),
     });
@@ -87,7 +84,7 @@ export const ask = (input: AskInput): Effect.Effect<AskResult, AskError, Llm> =>
       const reason = String(Cause.squash(result.cause));
       yield* append({ type: "outcome", status: "crashed", detail: reason });
       return {
-        outcome: { _tag: "Crashed", reason },
+        outcome: Crashed.make({ reason }),
         runId,
         model: label,
         steps: null,
@@ -109,18 +106,18 @@ export const ask = (input: AskInput): Effect.Effect<AskResult, AskError, Llm> =>
         outputTokens: value.usage.outputTokens,
       });
     }
-    const outcome = toolset.answer() ?? {
-      _tag: "Crashed" as const,
-      reason: "model stopped without a verified answer or decline",
-    };
+    const outcome =
+      toolset.answer() ??
+      Crashed.make({
+        reason: "model stopped without a verified answer or decline",
+      });
     yield* append({
       type: "outcome",
-      status:
-        outcome._tag === "Answered"
-          ? "answered"
-          : outcome._tag === "Declined"
-            ? "declined"
-            : "crashed",
+      status: Match.valueTags(outcome, {
+        Answered: () => "answered" as const,
+        Declined: () => "declined" as const,
+        Crashed: () => "crashed" as const,
+      }),
     });
     return {
       outcome,

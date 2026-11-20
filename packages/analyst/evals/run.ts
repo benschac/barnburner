@@ -11,7 +11,7 @@ import { openDb } from "../src/db.ts";
 import { toPrettyJson } from "../src/json.ts";
 import { Llm, llmConfigFromEnv } from "../src/llm.ts";
 import type { Db } from "../src/shapes.ts";
-import { EvalCases } from "./case.ts";
+import { EvalAnswered, EvalCases } from "./case.ts";
 import type { EvalAnswer, EvalCase } from "./case.ts";
 import { runEvals } from "./runner.ts";
 
@@ -67,12 +67,13 @@ export const evalAnswer = (
   Match.value(result.outcome).pipe(
     Match.tagsExhaustive({
       Answered: (answer) =>
-        typeof answer.value === "number" && Number.isFinite(answer.value)
-          ? Effect.succeed<EvalAnswer>({
-              _tag: "Answered",
-              value: answer.value,
-              coverage: answer.coverage,
-            })
+        Schema.is(Schema.Finite)(answer.value)
+          ? Effect.succeed<EvalAnswer>(
+              EvalAnswered.make({
+                value: answer.value,
+                coverage: answer.coverage,
+              })
+            )
           : Effect.fail(
               new EvalCliError({ message: "Answer is not a finite number" })
             ),
@@ -89,13 +90,11 @@ export const evaluate = <E, R>(input: {
 }) =>
   Effect.gen(function* () {
     const runs: { caseId: string; run: AskResult }[] = [];
-    const services = yield* Effect.context<R>();
     const result = yield* runEvals({
       cases: input.cases,
       db: input.db,
       answerer: (item) =>
         input.answer(item).pipe(
-          Effect.provide(services),
           Effect.tap((run) =>
             Effect.sync(() => {
               runs.push({ caseId: item.id, run });

@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, Predicate, Schema } from "effect";
 
 import type { InsightCard } from "./card.ts";
 import { toJson } from "./json.ts";
@@ -30,7 +30,7 @@ class Stale extends Schema.TaggedError<
 }) {}
 
 // Optional evidence, such as coverage, may be absent on either side.
-const same = (a: unknown, b: unknown): boolean =>
+const same = <A>(a: A | undefined, b: A | undefined): boolean =>
   a === undefined || b === undefined ? a === b : toJson(a) === toJson(b);
 
 const staleResult = (card: InsightCard, reason: string): RecheckResult => ({
@@ -68,17 +68,12 @@ export const recheck = (
         ),
       { discard: true }
     );
+    const { query, gamesQuery } = card.evidence;
+    const draftEvidence =
+      gamesQuery === undefined ? { query } : { query, gamesQuery };
     const fresh = yield* fillCard(
       deps,
-      {
-        ...card,
-        evidence: {
-          query: card.evidence.query,
-          ...(card.evidence.gamesQuery === undefined
-            ? {}
-            : { gamesQuery: card.evidence.gamesQuery }),
-        },
-      },
+      { ...card, evidence: draftEvidence },
       {
         model: card.model,
         runId: card.runId,
@@ -121,17 +116,18 @@ export const recheck = (
       !same(fresh.evidence.coverage, card.evidence.coverage);
     if (!changed) return { card, change: "unchanged" } satisfies RecheckResult;
     const { coverage: _old, ...evidence } = card.evidence;
+    const refreshed = {
+      ...evidence,
+      result: fresh.evidence.result,
+      gameIds: fresh.evidence.gameIds,
+    };
     return {
       card: {
         ...card,
-        evidence: {
-          ...evidence,
-          result: fresh.evidence.result,
-          gameIds: fresh.evidence.gameIds,
-          ...(fresh.evidence.coverage === undefined
-            ? {}
-            : { coverage: fresh.evidence.coverage }),
-        },
+        evidence:
+          fresh.evidence.coverage === undefined
+            ? refreshed
+            : { ...refreshed, coverage: fresh.evidence.coverage },
         asOf: ctx.asOf,
       },
       change: "refreshed",
@@ -139,7 +135,10 @@ export const recheck = (
   });
   return Effect.match(attempt, {
     onFailure: (error): RecheckResult =>
-      staleResult(card, error._tag === "Stale" ? error.reason : error.message),
+      staleResult(
+        card,
+        Predicate.isTagged(error, "Stale") ? error.reason : error.message
+      ),
     onSuccess: (result): RecheckResult => result,
   });
 };

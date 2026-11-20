@@ -1,5 +1,5 @@
 import { jsonSchema, tool } from "ai";
-import { Effect, Schema } from "effect";
+import { Effect, Exit, Result, Schema } from "effect";
 
 import type { InsightCard } from "../card.ts";
 import { cardId, CardDraft } from "../card.ts";
@@ -20,6 +20,12 @@ export type CardMeta = {
     readonly completedGameIds: number;
   };
 };
+
+const GameRow = Schema.Struct({ game_id: Schema.Finite });
+const CoverageRow = Schema.Struct({
+  archived: Schema.Finite,
+  finals: Schema.Finite,
+});
 
 const sqlText = (value: string): string => value.replaceAll("'", "''");
 
@@ -42,36 +48,35 @@ export const fillCard = (
       gamesQuery === undefined
         ? []
         : yield* Effect.flatMap(db.queryCanonical(gamesQuery), (games) =>
-            Effect.forEach(games.rows, (row) => {
-              const id = row["game_id"];
-              return typeof id === "number"
-                ? Effect.succeed(id)
-                : Effect.fail(
-                    new FillError({
-                      message:
-                        "gamesQuery must return an integer game_id column",
-                    })
-                  );
-            })
+            Effect.forEach(games.rows, (row) =>
+              Effect.mapBoth(Schema.decodeUnknownEffect(GameRow)(row), {
+                onSuccess: (decoded) => decoded.game_id,
+                onFailure: () =>
+                  new FillError({
+                    message: "gamesQuery must return an integer game_id column",
+                  }),
+              })
+            )
           );
     let coverage: { archived: number; finals: number } | undefined;
     if (verdict.touchesBoxscores) {
       const rows = (yield* db.query(
         `SELECT archived, finals FROM boxscore_coverage WHERE team = '${sqlText(draft.team)}'`
       )).rows;
-      const row = rows[0];
-      if (
-        row === undefined ||
-        typeof row["archived"] !== "number" ||
-        typeof row["finals"] !== "number"
-      ) {
+      const found = Schema.decodeUnknownResult(CoverageRow)(rows[0]);
+      if (Result.isFailure(found)) {
         return yield* new FillError({
           message: `no boxscore_coverage row for ${draft.team}`,
         });
       }
-      coverage = { archived: row["archived"], finals: row["finals"] };
+      coverage = found.success;
     }
-    return {
+    const evidenceBase = { query, result: result.rows, gameIds };
+    const withGames =
+      gamesQuery === undefined ? evidenceBase : { ...evidenceBase, gamesQuery };
+    const evidence =
+      coverage === undefined ? withGames : { ...withGames, coverage };
+    const base = {
       id: cardId(draft.team, query, draft.headline),
       status: "pending",
       team: draft.team,
@@ -79,18 +84,14 @@ export const fillCard = (
       headline: draft.headline,
       body: draft.body,
       bindings: draft.bindings,
-      ...(draft.assert === undefined ? {} : { assert: draft.assert }),
-      evidence: {
-        query,
-        ...(gamesQuery === undefined ? {} : { gamesQuery }),
-        result: result.rows,
-        gameIds,
-        ...(coverage === undefined ? {} : { coverage }),
-      },
+      evidence,
       asOf: meta.asOf,
       model: meta.model,
       runId: meta.runId,
     } satisfies InsightCard;
+    return draft.assert === undefined
+      ? base
+      : { ...base, assert: draft.assert };
   });
 
 export type SubmitCardDeps = {
@@ -129,7 +130,7 @@ const draftInputSchema = jsonSchema<CardDraft>(
       const decoded = Schema.decodeUnknownExit(Schema.toCodecJson(CardDraft))(
         value
       );
-      return decoded._tag === "Success"
+      return Exit.isSuccess(decoded)
         ? { success: true, value: decoded.value }
         : { success: false, error: new Error(String(decoded.cause)) };
     },
