@@ -2,7 +2,9 @@ import { RuleTester } from "oxlint/plugins-dev";
 
 import { noConditionalSpreadRule } from "./no-conditional-spread.ts";
 
-const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "tsx" } } });
+const tester = new RuleTester({
+  languageOptions: { parserOptions: { lang: "tsx" } },
+});
 const error = { messageId: "avoid" };
 
 if (noConditionalSpreadRule.meta?.fixable !== undefined) {
@@ -10,10 +12,20 @@ if (noConditionalSpreadRule.meta?.fixable !== undefined) {
 }
 
 tester.run("anti-slop/no-conditional-spread", noConditionalSpreadRule, {
-  valid: ["const value = { ...base };", "const value = [...items];", "fn(...args);"],
+  valid: [
+    "const value = { ...base };",
+    "const value = [...items];",
+    "fn(...args);",
+  ],
   invalid: [
-    { code: "const value = { ...(condition ? left : right) };", errors: [error] },
-    { code: "const value = { ...(!condition ? undefined : fields) };", errors: [error] },
+    {
+      code: "const value = { ...(condition ? left : right) };",
+      errors: [error],
+    },
+    {
+      code: "const value = { ...(!condition ? undefined : fields) };",
+      errors: [error],
+    },
     { code: "const value = { ...(condition && fields) };", errors: [error] },
     { code: "const value = { ...(maybeValue ?? {}) };", errors: [error] },
     { code: "const value = { ...(maybeValue || {}) };", errors: [error] },
@@ -25,7 +37,13 @@ tester.run("anti-slop/no-conditional-spread", noConditionalSpreadRule, {
       code: "const element = <Component {...(condition ? props : {})} />;",
       errors: [error],
     },
-    { code: "const element = <Component {...(condition && props)} />;", errors: [error] },
-    { code: "const element = <Component {...(maybeProps ?? {})} />;", errors: [error] },
+    {
+      code: "const element = <Component {...(condition && props)} />;",
+      errors: [error],
+    },
+    {
+      code: "const element = <Component {...(maybeProps ?? {})} />;",
+      errors: [error],
+    },
   ],
 });

@@ -1,108 +1,124 @@
-'use client'
+"use client";
 
-import { useEffect, useRef, useState } from 'react'
-import { Text, View } from 'tamagui'
-import { Effect, Match, Option, Schema, Scope } from 'effect'
-import { createEffectActor } from '@xstate/effect'
-import { FrameReport, Render, VizTheme } from '@nhl-reddit-stats/viz'
-import type { Tables } from '@nhl-reddit-stats/viz'
-import { frameMachine } from '../viz/frame/frame-machine.ts'
-import { useVizTheme } from '../viz/theme.ts'
-import { useScopedProgram } from '../use-scoped-program.ts'
+import { FrameReport, Render, VizTheme } from "@nhl-reddit-stats/viz";
+import type { Tables } from "@nhl-reddit-stats/viz";
+import { createEffectActor } from "@xstate/effect";
+import { Effect, Match, Option, Schema, Scope } from "effect";
+import { useEffect, useRef, useState } from "react";
+import { Text, View } from "tamagui";
+
+import { useScopedProgram } from "../use-scoped-program.ts";
+import { frameMachine } from "../viz/frame/frame-machine.ts";
+import { useVizTheme } from "../viz/theme.ts";
 
 // The host of the sandboxed visualization frame (plan section C-viz, decision D17). The frame is an untrusted
 // iframe: every message from it is checked against its window and decoded, and `Rendered` and `Failed` only
 // drive what this island shows, because a view can forge them.
 
-const FRAME_URL = '/viz-frame/viz-frame.html'
-const LIMIT_MS = 10_000
-const MAX_TIMEOUTS = 3
+const FRAME_URL = "/viz-frame/viz-frame.html";
+const LIMIT_MS = 10_000;
+const MAX_TIMEOUTS = 3;
 
-const themeKey = Schema.encodeSync(Schema.fromJsonString(VizTheme))
+const themeKey = Schema.encodeSync(Schema.fromJsonString(VizTheme));
 
-type Phase = 'loading' | 'rendering' | 'rendered' | 'failed'
+type Phase = "loading" | "rendering" | "rendered" | "failed";
 
 type FrameProps = {
-  code: string
-  tables: Tables
-  theme: VizTheme
-  onTimedOut: () => void
-  onReport?: ((report: FrameReport) => void) | undefined
-  onRender?: ((id: string) => void) | undefined
-}
+  code: string;
+  tables: Tables;
+  theme: VizTheme;
+  onTimedOut: () => void;
+  onReport?: ((report: FrameReport) => void) | undefined;
+  onRender?: ((id: string) => void) | undefined;
+};
 
-type Latest = Pick<FrameProps, 'code' | 'tables' | 'theme' | 'onTimedOut' | 'onReport' | 'onRender'>
+type Latest = Pick<
+  FrameProps,
+  "code" | "tables" | "theme" | "onTimedOut" | "onReport" | "onRender"
+>;
 
 // One iframe, one machine, one piece of code. A redraw of the same code (a new theme) reuses the frame.
 function Frame(props: FrameProps) {
-  const frame = useRef<HTMLIFrameElement>(null)
-  const latest = useRef<Latest>(props)
-  const [phase, setPhase] = useState<Phase>('loading')
-  const [message, setMessage] = useState('')
-  const draw = useRef<() => void>(() => {})
-  const key = themeKey(props.theme)
+  const frame = useRef<HTMLIFrameElement>(null);
+  const latest = useRef<Latest>(props);
+  const [phase, setPhase] = useState<Phase>("loading");
+  const [message, setMessage] = useState("");
+  const draw = useRef<() => void>(() => {});
+  const key = themeKey(props.theme);
 
   useScopedProgram(() => {
-    let ready = false
-    let count = 0
-    let lastId = ''
+    let ready = false;
+    let count = 0;
+    let lastId = "";
     return Effect.gen(function* () {
-      const scope = yield* Scope.Scope
-      const actor = yield* createEffectActor(frameMachine, { input: { limitMs: LIMIT_MS } })
+      const scope = yield* Scope.Scope;
+      const actor = yield* createEffectActor(frameMachine, {
+        input: { limitMs: LIMIT_MS },
+      });
       actor.subscribe((snapshot) => {
-        if (snapshot.matches('timedOut')) latest.current.onTimedOut()
-        else if (snapshot.matches('failed')) setPhase('failed')
-        else if (snapshot.matches('rendered')) setPhase('rendered')
-        else if (snapshot.matches('rendering')) setPhase('rendering')
-      })
+        if (snapshot.matches("timedOut")) latest.current.onTimedOut();
+        else if (snapshot.matches("failed")) setPhase("failed");
+        else if (snapshot.matches("rendered")) setPhase("rendered");
+        else if (snapshot.matches("rendering")) setPhase("rendering");
+      });
       draw.current = () => {
-        const target = frame.current?.contentWindow
-        if (!ready || !target) return
-        count += 1
-        lastId = `render-${count}`
-        actor.send({ type: 'Render', id: lastId })
-        const { code, tables, theme } = latest.current
-        latest.current.onRender?.(lastId)
-        target.postMessage(Render.make({ id: lastId, code, tables, theme }), '*')
-      }
+        const target = frame.current?.contentWindow;
+        if (!ready || !target) return;
+        count += 1;
+        lastId = `render-${count}`;
+        actor.send({ type: "Render", id: lastId });
+        const { code, tables, theme } = latest.current;
+        latest.current.onRender?.(lastId);
+        target.postMessage(
+          Render.make({ id: lastId, code, tables, theme }),
+          "*"
+        );
+      };
       const onMessage = (event: MessageEvent): void => {
         // The frame has an opaque origin, so its window is the only thing that identifies it.
-        if (event.source !== frame.current?.contentWindow) return
+        if (event.source !== frame.current?.contentWindow) return;
         Option.match(Schema.decodeUnknownOption(FrameReport)(event.data), {
           onNone: () => undefined,
           onSome: (report) => {
-            latest.current.onReport?.(report)
+            latest.current.onReport?.(report);
             Match.valueTags(report, {
               Ready: () => {
                 // The machine ignores a second Ready, so the host does too: a view cannot restart the render by repeating it.
-                if (ready) return
-                ready = true
-                actor.send({ type: 'Ready' })
-                draw.current()
+                if (ready) return;
+                ready = true;
+                actor.send({ type: "Ready" });
+                draw.current();
               },
-              Rendered: ({ id }) => actor.send({ type: 'Rendered', id }),
+              Rendered: ({ id }) => actor.send({ type: "Rendered", id }),
               Failed: ({ id, message: text }) => {
-                if (id === lastId) setMessage(text)
-                actor.send({ type: 'Failed', id })
+                if (id === lastId) setMessage(text);
+                actor.send({ type: "Failed", id });
               },
               FrameRate: () => undefined,
-            })
+            });
           },
+        });
+      };
+      window.addEventListener("message", onMessage);
+      yield* Scope.addFinalizer(
+        scope,
+        Effect.sync(() => {
+          window.removeEventListener("message", onMessage);
+          draw.current = () => {};
         })
-      }
-      window.addEventListener('message', onMessage)
-      yield* Scope.addFinalizer(scope, Effect.sync(() => {
-        window.removeEventListener('message', onMessage)
-        draw.current = () => {}
-      }))
-      return yield* Effect.never
-    }).pipe(Effect.scoped)
-  })
+      );
+      return yield* Effect.never;
+    }).pipe(Effect.scoped);
+  });
 
-  useEffect(() => { latest.current = props })
+  useEffect(() => {
+    latest.current = props;
+  });
 
   // The same code with new tables or a new theme: redraw in this frame.
-  useEffect(() => { draw.current() }, [key, props.tables])
+  useEffect(() => {
+    draw.current();
+  }, [key, props.tables]);
 
   return (
     <View gap="2">
@@ -116,28 +132,42 @@ function Frame(props: FrameProps) {
           height="100%"
         />
       </View>
-      {phase === 'failed' ? <Text fontFamily="body" color="color">{`Failed: ${message}`}</Text> : null}
+      {phase === "failed" ? (
+        <Text fontFamily="body" color="color">{`Failed: ${message}`}</Text>
+      ) : null}
     </View>
-  )
+  );
 }
 
 export type VizFrameIslandProps = {
-  code: string
-  tables: Tables
+  code: string;
+  tables: Tables;
   /** Every valid report the frame posts, for a page that wants to show them. */
-  onReport?: ((report: FrameReport) => void) | undefined
+  onReport?: ((report: FrameReport) => void) | undefined;
   /** Called with the id of each render the island sends, so a page can tell which reports are for it. */
-  onRender?: ((id: string) => void) | undefined
+  onRender?: ((id: string) => void) | undefined;
   /** A new value starts a fresh frame and a fresh timeout budget, even for unchanged code, as an explicit Run does. */
-  attempt?: number
-}
+  attempt?: number;
+};
 
-export function VizFrameIsland({ code, tables, onReport, onRender, attempt = 0 }: VizFrameIslandProps) {
-  const theme = useVizTheme()
+export function VizFrameIsland({
+  code,
+  tables,
+  onReport,
+  onRender,
+  attempt = 0,
+}: VizFrameIslandProps) {
+  const theme = useVizTheme();
   // Different code goes to a fresh frame, because the frame cannot tell which view an uncaught error came from.
-  const [slot, setSlot] = useState({ code, attempt, frame: 0, timeouts: 0 })
-  if (slot.code !== code || slot.attempt !== attempt) setSlot({ code, attempt, frame: slot.frame + 1, timeouts: 0 })
-  if (slot.timeouts >= MAX_TIMEOUTS) return <Text fontFamily="body" color="color">The view did not answer in time.</Text>
+  const [slot, setSlot] = useState({ code, attempt, frame: 0, timeouts: 0 });
+  if (slot.code !== code || slot.attempt !== attempt)
+    setSlot({ code, attempt, frame: slot.frame + 1, timeouts: 0 });
+  if (slot.timeouts >= MAX_TIMEOUTS)
+    return (
+      <Text fontFamily="body" color="color">
+        The view did not answer in time.
+      </Text>
+    );
   return (
     <Frame
       key={slot.frame}
@@ -146,9 +176,16 @@ export function VizFrameIsland({ code, tables, onReport, onRender, attempt = 0 }
       theme={theme}
       onReport={onReport}
       onRender={onRender}
-      onTimedOut={() => setSlot((current) => ({ code: current.code, attempt: current.attempt, frame: current.frame + 1, timeouts: current.timeouts + 1 }))}
+      onTimedOut={() =>
+        setSlot((current) => ({
+          code: current.code,
+          attempt: current.attempt,
+          frame: current.frame + 1,
+          timeouts: current.timeouts + 1,
+        }))
+      }
     />
-  )
+  );
 }
 
-export default VizFrameIsland
+export default VizFrameIsland;

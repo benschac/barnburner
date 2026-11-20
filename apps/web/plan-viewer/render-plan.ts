@@ -1,17 +1,38 @@
-import { readFile, writeFile } from 'node:fs/promises'
-import { createHash } from 'node:crypto'
-import { fileURLToPath } from 'node:url'
-import { allAnalystPlans } from '../.content-collections/generated/index.js'
-import design from '../design/contract.json' with { type: 'json' }
+import { createHash } from "node:crypto";
+import { readFile, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
+import { allAnalystPlans } from "../.content-collections/generated/index.js";
+import design from "../design/contract.json" with { type: "json" };
 
 export const renderAnalystPlan = async () => {
-const root = new URL('../../../', import.meta.url)
-if (allAnalystPlans.length !== 1) throw new Error('Expected exactly one generated analyst plan')
-const [data] = allAnalystPlans
-if (!data) throw new Error('Generated analyst plan is missing')
-const scales = { space: design.space, radius: design.radius, fontSize: design.fontSize, lineHeight: design.lineHeight, size: design.size }
-const variables = Object.entries(design.themes.dark).map(([key, value]) => '--' + key + ':' + value + ';').join('') + Object.entries(scales).map(([name, scale]) => Object.entries(scale).map(([key, value]) => '--' + name + '-' + key.replaceAll('.', '_') + ':' + value + 'px;').join('')).join('')
-const html = String.raw`<!doctype html>
+  const root = new URL("../../../", import.meta.url);
+  if (allAnalystPlans.length !== 1)
+    throw new Error("Expected exactly one generated analyst plan");
+  const [data] = allAnalystPlans;
+  if (!data) throw new Error("Generated analyst plan is missing");
+  const scales = {
+    space: design.space,
+    radius: design.radius,
+    fontSize: design.fontSize,
+    lineHeight: design.lineHeight,
+    size: design.size,
+  };
+  const variables =
+    Object.entries(design.themes.dark)
+      .map(([key, value]) => "--" + key + ":" + value + ";")
+      .join("") +
+    Object.entries(scales)
+      .map(([name, scale]) =>
+        Object.entries(scale)
+          .map(
+            ([key, value]) =>
+              "--" + name + "-" + key.replaceAll(".", "_") + ":" + value + "px;"
+          )
+          .join("")
+      )
+      .join("");
+  const html = String.raw`<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -56,7 +77,7 @@ const html = String.raw`<!doctype html>
 </main>
 <footer><div><a href="analyst-agent-plan.md">Markdown source</a> &middot; <span id="source-hash"></span><br><span id="source-status"></span></div><div>Content Collections + MDX<br>Rebuild this snapshot<br><code>bun run docs:plan</code></div></footer>
 </div>
-<script id="plan-data" type="application/json">${JSON.stringify(data).replaceAll('<', '\u003c')}</script>
+<script id="plan-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\u003c")}</script>
 <script>
 const plan = JSON.parse(document.getElementById('plan-data').textContent);
 const byId = new Map(plan.tasks.map(function(task) { return [task.id, task]; }));
@@ -191,10 +212,23 @@ renderRoadmap(); renderDetail(); renderDependency();
 <script src="https://cdn.jsdelivr.net/npm/pele@1.6.0/dist/pele.global.js" integrity="sha384-4lHoXtKDt+x/E+htiTc83bpFWyREQzJCMudNQHirqKiCTW7Mx790I/5Q7criNZ1G" crossorigin="anonymous" onload="onPeleReady()" onerror="onPeleFailed()"></script>
 </body>
 </html>
-`
-const output = new URL('docs/analyst-agent-plan.html', root)
-const source = await readFile(new URL('docs/analyst-agent-plan.md', root))
-if (createHash('sha256').update(source).digest('hex') !== data.sourceHash) throw new Error('Plan source changed during generation. Rebuild before publishing the snapshot.')
-await writeFile(output, html)
-process.stdout.write('Generated ' + fileURLToPath(output) + ' (' + data.tasks.length + ' tasks, ' + data.groups.length + ' workstreams, source ' + data.hash + ')\n')
-}
+`;
+  const output = new URL("docs/analyst-agent-plan.html", root);
+  const source = await readFile(new URL("docs/analyst-agent-plan.md", root));
+  if (createHash("sha256").update(source).digest("hex") !== data.sourceHash)
+    throw new Error(
+      "Plan source changed during generation. Rebuild before publishing the snapshot."
+    );
+  await writeFile(output, html);
+  process.stdout.write(
+    "Generated " +
+      fileURLToPath(output) +
+      " (" +
+      data.tasks.length +
+      " tasks, " +
+      data.groups.length +
+      " workstreams, source " +
+      data.hash +
+      ")\n"
+  );
+};

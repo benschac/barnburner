@@ -2,7 +2,9 @@ import { RuleTester } from "oxlint/plugins-dev";
 
 import { requireSafetyCommentForTypeAssertionRule } from "./require-safety-comment-for-type-assertion.ts";
 
-const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "ts" } } });
+const tester = new RuleTester({
+  languageOptions: { parserOptions: { lang: "ts" } },
+});
 const error = { messageId: "missingSafetyComment" };
 
 tester.run(
@@ -35,7 +37,7 @@ tester.run(
         errors: [error],
       },
     ],
-  },
+  }
 );
 
 tester.run(
@@ -54,7 +56,10 @@ tester.run(
     invalid: [
       { code: "const id = value as UserId;", errors: [error] },
       { code: "const id = <UserId>value;", errors: [error] },
-      { code: "const id = value as UserId; // SAFETY: Too late.", errors: [error] },
+      {
+        code: "const id = value as UserId; // SAFETY: Too late.",
+        errors: [error],
+      },
       {
         code: "// This cast seems fine.\nconst id = value as UserId;",
         errors: [error],
@@ -68,5 +73,5 @@ tester.run(
         errors: [error],
       },
     ],
-  },
+  }
 );

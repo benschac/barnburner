@@ -28,7 +28,12 @@ function parseArgs(argv: ReadonlyArray<string>): RunOptions {
   let mode: ChangeMode = "full";
   let fail = false;
   let json = false;
-  const values: Partial<Record<"base" | "configPath" | "backend" | "model" | "command" | "purpose", string>> = {};
+  const values: Partial<
+    Record<
+      "base" | "configPath" | "backend" | "model" | "command" | "purpose",
+      string
+    >
+  > = {};
   const valueFlags = {
     "--base": "base",
     "--config": "configPath",
@@ -39,7 +44,10 @@ function parseArgs(argv: ReadonlyArray<string>): RunOptions {
   } as const;
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index] ?? "";
-    const [flag = "", inline] = arg.startsWith("--") && arg.includes("=") ? [arg.slice(0, arg.indexOf("=")), arg.slice(arg.indexOf("=") + 1)] : [arg, undefined];
+    const [flag = "", inline] =
+      arg.startsWith("--") && arg.includes("=")
+        ? [arg.slice(0, arg.indexOf("=")), arg.slice(arg.indexOf("=") + 1)]
+        : [arg, undefined];
     if (flag === "--fail") fail = true;
     else if (flag === "--json") json = true;
     else if (flag === "--committed") mode = "committed";
@@ -50,7 +58,8 @@ function parseArgs(argv: ReadonlyArray<string>): RunOptions {
       process.exit(0);
     } else if (Object.hasOwn(valueFlags, flag)) {
       const value = inline ?? argv[(index += 1)];
-      if (value === undefined || value.length === 0) throw new Error(`${flag} needs a value`);
+      if (value === undefined || value.length === 0)
+        throw new Error(`${flag} needs a value`);
       values[valueFlags[flag as keyof typeof valueFlags]] = value;
     } else throw new Error(`unknown argument ${arg}`);
   }
@@ -58,10 +67,13 @@ function parseArgs(argv: ReadonlyArray<string>): RunOptions {
   if (values.backend !== undefined && backend === undefined) {
     throw new Error(`--backend must be one of ${BACKEND_NAMES.join(", ")}`);
   }
-  const named: { backend?: BackendName } = backend === undefined ? {} : { backend };
+  const named: { backend?: BackendName } =
+    backend === undefined ? {} : { backend };
   // The same override the oxlint rules' changed-lines mode reads.
-  const baseRef = values.base ?? (process.env.ANTI_SLOP_BASE?.trim() || undefined);
-  const base: { base?: string } = baseRef === undefined ? {} : { base: baseRef };
+  const baseRef =
+    values.base ?? (process.env.ANTI_SLOP_BASE?.trim() || undefined);
+  const base: { base?: string } =
+    baseRef === undefined ? {} : { base: baseRef };
   return {
     cwd: process.cwd(),
     env: process.env,
@@ -70,7 +82,9 @@ function parseArgs(argv: ReadonlyArray<string>): RunOptions {
     json,
     ...named,
     ...base,
-    ...(values.configPath === undefined ? {} : { configPath: values.configPath }),
+    ...(values.configPath === undefined
+      ? {}
+      : { configPath: values.configPath }),
     ...(values.model === undefined ? {} : { model: values.model }),
     ...(values.command === undefined ? {} : { command: values.command }),
     ...(values.purpose === undefined ? {} : { purpose: values.purpose }),

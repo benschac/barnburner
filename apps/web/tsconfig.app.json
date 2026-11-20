@@ -1,6 +1,11 @@
 {
   "compilerOptions": {
-    "plugins": [{ "name": "@effect/language-service", "ignoreEffectWarningsInTscExitCode": true }],
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "ignoreEffectWarningsInTscExitCode": true
+      }
+    ],
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "es2023",
     "lib": ["ES2023", "DOM"],

@@ -1,8 +1,21 @@
-import type { Effect } from 'effect'
-import type { HistoryUnavailable, UnknownPlayer, UnknownRoster } from './contracts.ts'
+import type { Effect } from "effect";
+
 import type {
-  FinalRow, GameType, Graph, LinkKind, OpposedGameRow, PlayerDetail, PlayerRow, RosterRow, SharedGameRow,
-} from './shapes.ts'
+  HistoryUnavailable,
+  UnknownPlayer,
+  UnknownRoster,
+} from "./contracts.ts";
+import type {
+  FinalRow,
+  GameType,
+  Graph,
+  LinkKind,
+  OpposedGameRow,
+  PlayerDetail,
+  PlayerRow,
+  RosterRow,
+  SharedGameRow,
+} from "./shapes.ts";
 
 /**
  * Storage port over the serving database (C-store). The SQLite store (A1) and the in-memory fake
@@ -14,16 +27,26 @@ import type {
  * lookup with no result (no shared games) succeeds with an empty array, not an error.
  */
 export type HistoryStore = {
-  readonly snapshotId: string
-  readonly graph: Graph
+  readonly snapshotId: string;
+  readonly graph: Graph;
   /** Substring match on `search_name` against the accent-folded, lower-cased query; most games first, then lower ID. */
-  readonly searchPlayers: (query: string, limit: number) => Effect.Effect<ReadonlyArray<PlayerRow>, HistoryUnavailable>
+  readonly searchPlayers: (
+    query: string,
+    limit: number
+  ) => Effect.Effect<ReadonlyArray<PlayerRow>, HistoryUnavailable>;
   /** Stints are ordered by season, game type, team. */
-  readonly player: (playerId: number) => Effect.Effect<PlayerDetail, HistoryUnavailable | UnknownPlayer>
+  readonly player: (
+    playerId: number
+  ) => Effect.Effect<PlayerDetail, HistoryUnavailable | UnknownPlayer>;
   /** Most games first, then lower ID. An empty roster is `UnknownRoster`. */
   readonly roster: (
-    teamId: number, seasonId: number, gameType: GameType,
-  ) => Effect.Effect<ReadonlyArray<RosterRow>, HistoryUnavailable | UnknownRoster>
+    teamId: number,
+    seasonId: number,
+    gameType: GameType
+  ) => Effect.Effect<
+    ReadonlyArray<RosterRow>,
+    HistoryUnavailable | UnknownRoster
+  >;
   /**
    * Games of one span of the pair, oldest first. `PlayedWith`: both have an `appearances` row for the team
    * in that season and game type. `GoaliePartners`: both are on the team's `dressed_goalies` rows for the
@@ -31,12 +54,27 @@ export type HistoryStore = {
    * pair: an empty list, never the player's own games.
    */
   readonly sharedGames: (
-    a: number, b: number, seasonId: number, gameType: GameType, teamId: number, link: LinkKind,
-  ) => Effect.Effect<ReadonlyArray<SharedGameRow>, HistoryUnavailable | UnknownPlayer>
+    a: number,
+    b: number,
+    seasonId: number,
+    gameType: GameType,
+    teamId: number,
+    link: LinkKind
+  ) => Effect.Effect<
+    ReadonlyArray<SharedGameRow>,
+    HistoryUnavailable | UnknownPlayer
+  >;
   /** Every game on opposite sides, oldest first. */
   readonly opposedGames: (
-    a: number, b: number,
-  ) => Effect.Effect<ReadonlyArray<OpposedGameRow>, HistoryUnavailable | UnknownPlayer>
+    a: number,
+    b: number
+  ) => Effect.Effect<
+    ReadonlyArray<OpposedGameRow>,
+    HistoryUnavailable | UnknownPlayer
+  >;
   /** The Finals whose year is in range, ascending. */
-  readonly finals: (fromYear: number, toYear: number) => Effect.Effect<ReadonlyArray<FinalRow>, HistoryUnavailable>
-}
+  readonly finals: (
+    fromYear: number,
+    toYear: number
+  ) => Effect.Effect<ReadonlyArray<FinalRow>, HistoryUnavailable>;
+};

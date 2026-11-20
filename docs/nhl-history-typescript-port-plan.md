@@ -63,6 +63,7 @@ P0 ─ P1 ─┬─ P2 ─┬─ P4 ─ P5 ─┬─ P6 ─ P7 ─┬─ P9 ─ 
   - Tagged errors for each.
 
   In `tests/fixtures.ts`: §C-mini as an inline archive (season files, dressed files, totals), from which every later test builds.
+
 - **Done:** pkg-check passes. The tests cover an atomic write that survives a crash mid-write, the cooldown re-check, and a 429 that is never surfaced as data.
 
 #### P2 · Port the game-report importer (Sonnet · medium)
@@ -145,14 +146,14 @@ P0 ─ P1 ─┬─ P2 ─┬─ P4 ─ P5 ─┬─ P6 ─ P7 ─┬─ P9 ─ 
 
 | ID | Title | Tier | Needs | Branch | PR | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| P0 | Scaffold `packages/history-build` | Sonnet · low | — | | | todo |
-| P1 | Shared I/O and the §C-mini fixture | Sonnet · medium | P0 | | | todo |
-| P2 | Port the game-report importer | Sonnet · medium | P1 | | | todo |
-| P3 | Port the dressed-goalie importer | Sonnet · medium | P1 | | | todo |
-| P4 | Port the reconciliation checker | Sonnet · medium | P2 | | | todo |
-| P5 | Port the base build | Sonnet · high | P3, P4 | | | todo |
-| P6 | Port the serving tables and Finals step | Sonnet · medium | P5 | | | todo |
-| P7 | Port the graph, partner, pack, and opponent steps | Sonnet · high | P6 | | | todo |
-| P8 | Port the archive manifest and fetch | Sonnet · medium | P1 | | | todo |
-| P9 | Parity gate | Sonnet · medium | P7, P8 | | | todo |
-| P10 | Cut over | Sonnet · low | P9 ×2 | | | todo |
+| P0 | Scaffold `packages/history-build` | Sonnet · low | — |  |  | todo |
+| P1 | Shared I/O and the §C-mini fixture | Sonnet · medium | P0 |  |  | todo |
+| P2 | Port the game-report importer | Sonnet · medium | P1 |  |  | todo |
+| P3 | Port the dressed-goalie importer | Sonnet · medium | P1 |  |  | todo |
+| P4 | Port the reconciliation checker | Sonnet · medium | P2 |  |  | todo |
+| P5 | Port the base build | Sonnet · high | P3, P4 |  |  | todo |
+| P6 | Port the serving tables and Finals step | Sonnet · medium | P5 |  |  | todo |
+| P7 | Port the graph, partner, pack, and opponent steps | Sonnet · high | P6 |  |  | todo |
+| P8 | Port the archive manifest and fetch | Sonnet · medium | P1 |  |  | todo |
+| P9 | Parity gate | Sonnet · medium | P7, P8 |  |  | todo |
+| P10 | Cut over | Sonnet · low | P9 ×2 |  |  | todo |

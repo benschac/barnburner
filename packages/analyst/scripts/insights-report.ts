@@ -1,9 +1,17 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+
 import { Result } from "effect";
+
 import { logError } from "../../../lib/logger.mjs";
-import { defaultTraceDir, parseTraceLine, type OutcomeStatus, type TraceEvent, type TraceLineError } from "../src/trace.ts";
+import {
+  defaultTraceDir,
+  parseTraceLine,
+  type OutcomeStatus,
+  type TraceEvent,
+  type TraceLineError,
+} from "../src/trace.ts";
 
 export interface ModelUsage {
   readonly calls: number;
@@ -16,8 +24,16 @@ export interface RunSummary {
   readonly byType: Record<string, number>;
   readonly models: Record<string, ModelUsage>;
   readonly tokens: { readonly input: number; readonly output: number };
-  readonly tools: { readonly calls: number; readonly errors: number; readonly byTool: Record<string, number> };
-  readonly verify: { readonly checks: number; readonly failed: number; readonly failuresByCheck: Record<string, number> };
+  readonly tools: {
+    readonly calls: number;
+    readonly errors: number;
+    readonly byTool: Record<string, number>;
+  };
+  readonly verify: {
+    readonly checks: number;
+    readonly failed: number;
+    readonly failuresByCheck: Record<string, number>;
+  };
   readonly cards: number;
   readonly outcome: OutcomeStatus | undefined;
 }
@@ -25,7 +41,10 @@ export interface RunSummary {
 // Pure aggregation over parsed trace events. No I/O.
 export function summarize(events: readonly TraceEvent[]): RunSummary {
   const byType: Record<string, number> = {};
-  const models: Record<string, { calls: number; inputTokens: number; outputTokens: number }> = {};
+  const models: Record<
+    string,
+    { calls: number; inputTokens: number; outputTokens: number }
+  > = {};
   const toolsByName: Record<string, number> = {};
   const failuresByCheck: Record<string, number> = {};
   let inputTokens = 0;
@@ -41,7 +60,11 @@ export function summarize(events: readonly TraceEvent[]): RunSummary {
     byType[event.type] = (byType[event.type] ?? 0) + 1;
     switch (event.type) {
       case "model_call": {
-        const usage = models[event.model] ?? { calls: 0, inputTokens: 0, outputTokens: 0 };
+        const usage = models[event.model] ?? {
+          calls: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+        };
         models[event.model] = {
           calls: usage.calls + 1,
           inputTokens: usage.inputTokens + event.inputTokens,
@@ -91,13 +114,22 @@ export function formatSummary(runId: string, summary: RunSummary): string {
   lines.push(`Events: ${summary.events} (${formatCounts(summary.byType)})`);
   lines.push(`Outcome: ${summary.outcome ?? "none"}`);
   lines.push(`Cards: ${summary.cards}`);
-  lines.push(`Tokens: ${summary.tokens.input} in / ${summary.tokens.output} out`);
+  lines.push(
+    `Tokens: ${summary.tokens.input} in / ${summary.tokens.output} out`
+  );
   for (const [model, usage] of Object.entries(summary.models)) {
-    lines.push(`  ${model}: ${usage.calls} calls, ${usage.inputTokens} in / ${usage.outputTokens} out`);
+    lines.push(
+      `  ${model}: ${usage.calls} calls, ${usage.inputTokens} in / ${usage.outputTokens} out`
+    );
   }
-  lines.push(`Tool calls: ${summary.tools.calls} (${summary.tools.errors} errors)`);
-  for (const [tool, count] of Object.entries(summary.tools.byTool)) lines.push(`  ${tool}: ${count}`);
-  lines.push(`Verify: ${summary.verify.failed} failed of ${summary.verify.checks} checks`);
+  lines.push(
+    `Tool calls: ${summary.tools.calls} (${summary.tools.errors} errors)`
+  );
+  for (const [tool, count] of Object.entries(summary.tools.byTool))
+    lines.push(`  ${tool}: ${count}`);
+  lines.push(
+    `Verify: ${summary.verify.failed} failed of ${summary.verify.checks} checks`
+  );
   for (const [check, count] of Object.entries(summary.verify.failuresByCheck)) {
     lines.push(`  check ${check}: ${count} failed`);
   }
@@ -105,7 +137,11 @@ export function formatSummary(runId: string, summary: RunSummary): string {
 }
 
 function formatCounts(counts: Record<string, number>): string {
-  return Object.entries(counts).map(([key, count]) => `${key} ${count}`).join(", ") || "none";
+  return (
+    Object.entries(counts)
+      .map(([key, count]) => `${key} ${count}`)
+      .join(", ") || "none"
+  );
 }
 
 function parseArgs(argv: readonly string[]): { runId: string; dir: string } {
@@ -124,13 +160,23 @@ function parseArgs(argv: readonly string[]): { runId: string; dir: string } {
       throw new Error(`unexpected argument: ${arg}`);
     }
   }
-  if (runId === undefined) throw new Error("usage: node scripts/insights-report.ts <runId> [--dir <dir>]");
+  if (runId === undefined)
+    throw new Error(
+      "usage: node scripts/insights-report.ts <runId> [--dir <dir>]"
+    );
   return { runId, dir };
 }
 
 // Parses every non-empty line; fails with the first line the trace format rejects.
-export function parseTrace(text: string): Result.Result<TraceEvent[], TraceLineError> {
-  return Result.all(text.split("\n").filter((line) => line.trim() !== "").map(parseTraceLine));
+export function parseTrace(
+  text: string
+): Result.Result<TraceEvent[], TraceLineError> {
+  return Result.all(
+    text
+      .split("\n")
+      .filter((line) => line.trim() !== "")
+      .map(parseTraceLine)
+  );
 }
 
 function main(argv: readonly string[]): void {
@@ -145,7 +191,10 @@ function main(argv: readonly string[]): void {
   process.stdout.write(`${formatSummary(runId, summarize(events.success))}\n`);
 }
 
-if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   try {
     main(process.argv.slice(2));
   } catch (error) {

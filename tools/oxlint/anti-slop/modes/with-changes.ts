@@ -23,35 +23,42 @@ import { CHANGES_ENV, changesJson } from "./changed.ts";
 const USAGE = "usage: node with-changes.ts <command...>";
 
 function spawn(command: ReadonlyArray<string>, env: NodeJS.ProcessEnv): number {
-	const [bin, ...args] = command;
-	if (bin === undefined) throw new Error(USAGE);
-	const result = spawnSync(bin, args, { stdio: "inherit", env, shell: process.platform === "win32" });
-	if (result.error !== undefined) throw result.error;
-	return result.status ?? 1;
+  const [bin, ...args] = command;
+  if (bin === undefined) throw new Error(USAGE);
+  const result = spawnSync(bin, args, {
+    stdio: "inherit",
+    env,
+    shell: process.platform === "win32",
+  });
+  if (result.error !== undefined) throw result.error;
+  return result.status ?? 1;
 }
 
 function run(command: ReadonlyArray<string>): number {
-	if (process.env.ANTI_SLOP_MODE?.trim() === "all") return spawn(command, process.env);
-	let json: string;
-	try {
-		json = changesJson(process.cwd());
-	} catch (error) {
-		console.error(`anti-slop: could not compute changed lines before linting; rules will run git themselves: ${errorMessage(error).trim()}`);
-		return spawn(command, process.env);
-	}
-	const dir = mkdtempSync(join(tmpdir(), "anti-slop-changes-"));
-	try {
-		const file = join(dir, "changes.json");
-		writeFileSync(file, json);
-		return spawn(command, { ...process.env, [CHANGES_ENV]: file });
-	} finally {
-		rmSync(dir, { recursive: true, force: true });
-	}
+  if (process.env.ANTI_SLOP_MODE?.trim() === "all")
+    return spawn(command, process.env);
+  let json: string;
+  try {
+    json = changesJson(process.cwd());
+  } catch (error) {
+    console.error(
+      `anti-slop: could not compute changed lines before linting; rules will run git themselves: ${errorMessage(error).trim()}`
+    );
+    return spawn(command, process.env);
+  }
+  const dir = mkdtempSync(join(tmpdir(), "anti-slop-changes-"));
+  try {
+    const file = join(dir, "changes.json");
+    writeFileSync(file, json);
+    return spawn(command, { ...process.env, [CHANGES_ENV]: file });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 try {
-	process.exit(run(process.argv.slice(2)));
+  process.exit(run(process.argv.slice(2)));
 } catch (error) {
-	console.error(`anti-slop with-changes: ${errorMessage(error)}`);
-	process.exit(2);
+  console.error(`anti-slop with-changes: ${errorMessage(error)}`);
+  process.exit(2);
 }

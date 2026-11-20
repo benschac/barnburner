@@ -2,7 +2,9 @@ import { RuleTester } from "oxlint/plugins-dev";
 
 import { maxTernaryDepthRule } from "./max-ternary-depth.ts";
 
-const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "ts" } } });
+const tester = new RuleTester({
+  languageOptions: { parserOptions: { lang: "ts" } },
+});
 
 tester.run("anti-slop/max-ternary-depth", maxTernaryDepthRule, {
   valid: [

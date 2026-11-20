@@ -1,10 +1,16 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
+import { test } from "node:test";
+
 import { generateText } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 
 const usage = {
-  inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
+  inputTokens: {
+    total: 10,
+    noCache: 10,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
   outputTokens: { total: 5, text: 5, reasoning: undefined },
 };
 

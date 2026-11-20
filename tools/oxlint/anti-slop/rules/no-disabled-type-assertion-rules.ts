@@ -10,7 +10,8 @@ const defaultTypeAssertionRules = [
   "typescript/no-unsafe-type-assertion",
 ];
 
-const directivePattern = /^\s*(?:oxlint|eslint)-disable(?:-next-line|-line)?(?=\s|$)(.*)$/su;
+const directivePattern =
+  /^\s*(?:oxlint|eslint)-disable(?:-next-line|-line)?(?=\s|$)(.*)$/su;
 
 /** Rule names are compared with `@typescript-eslint/` read as `typescript/`. */
 function normalizeRuleName(rule: string): string {
@@ -29,10 +30,17 @@ function directiveRules(value: string): readonly string[] | null {
 }
 
 function configuredAdditionalRules(option: unknown): readonly string[] {
-  if (typeof option !== "object" || option === null || !("additionalRules" in option)) return [];
+  if (
+    typeof option !== "object" ||
+    option === null ||
+    !("additionalRules" in option)
+  )
+    return [];
   const { additionalRules } = option;
   if (!Array.isArray(additionalRules)) return [];
-  return additionalRules.filter((rule): rule is string => typeof rule === "string").map(normalizeRuleName);
+  return additionalRules
+    .filter((rule): rule is string => typeof rule === "string")
+    .map(normalizeRuleName);
 }
 
 /** Disallow inline disables of the type-assertion rules, and disables that name no rule at all. */
@@ -53,7 +61,11 @@ export const noDisabledTypeAssertionRulesRule = defineRule({
       {
         type: "object",
         properties: {
-          additionalRules: { type: "array", items: { type: "string", minLength: 1 }, uniqueItems: true },
+          additionalRules: {
+            type: "array",
+            items: { type: "string", minLength: 1 },
+            uniqueItems: true,
+          },
         },
         additionalProperties: false,
       },
@@ -76,7 +88,11 @@ export const noDisabledTypeAssertionRulesRule = defineRule({
           }
           for (const rule of rules) {
             if (!typeAssertionRules.has(rule)) continue;
-            context.report({ node: comment, messageId: "disabledRule", data: { rule } });
+            context.report({
+              node: comment,
+              messageId: "disabledRule",
+              data: { rule },
+            });
           }
         }
       },

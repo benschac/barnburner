@@ -2,7 +2,9 @@ import { RuleTester } from "oxlint/plugins-dev";
 
 import { noReflectApplyRule } from "./no-reflect-apply.ts";
 
-const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "ts" } } });
+const tester = new RuleTester({
+  languageOptions: { parserOptions: { lang: "ts" } },
+});
 const error = { messageId: "reflectApply" };
 
 tester.run("anti-slop/no-reflect-apply", noReflectApplyRule, {
@@ -13,7 +15,13 @@ tester.run("anti-slop/no-reflect-apply", noReflectApplyRule, {
     "function invoke(Reflect: { apply(): number }) { return Reflect.apply(); }",
   ],
   invalid: [
-    { code: "const value = Reflect.apply(operation, owner, args);", errors: [error] },
-    { code: "const value = Reflect['apply'](operation, owner, args);", errors: [error] },
+    {
+      code: "const value = Reflect.apply(operation, owner, args);",
+      errors: [error],
+    },
+    {
+      code: "const value = Reflect['apply'](operation, owner, args);",
+      errors: [error],
+    },
   ],
 });

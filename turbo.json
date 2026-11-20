@@ -1,15 +1,17 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
-  "globalDependencies": ["data/*.json", "lib/*.mjs", "lib/*.d.mts", "data/history/serving.json"],
+  "globalDependencies": [
+    "data/*.json",
+    "lib/*.mjs",
+    "lib/*.d.mts",
+    "data/history/serving.json"
+  ],
   "tasks": {
     "@nhl-reddit-stats/api#history:fetch": {
       "cache": false
     },
     "build": {
-      "dependsOn": [
-        "^build",
-        "@nhl-reddit-stats/api#history:fetch"
-      ],
+      "dependsOn": ["^build", "@nhl-reddit-stats/api#history:fetch"],
       "env": [
         "NODE_ENV",
         "SITE_URL",
@@ -17,11 +19,7 @@
         "VERCEL_PROJECT_PRODUCTION_URL",
         "VERCEL_URL"
       ],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        ".env",
-        ".env.*"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", ".env", ".env.*"],
       "outputs": [
         ".next/**",
         "!.next/cache/**",
@@ -48,9 +46,7 @@
       "persistent": true
     },
     "preview": {
-      "dependsOn": [
-        "build"
-      ],
+      "dependsOn": ["build"],
       "cache": false,
       "persistent": true
     }

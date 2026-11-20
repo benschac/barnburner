@@ -1,9 +1,24 @@
 // oxlint-disable effecttsgo/async-function, effecttsgo/prefer-schema-over-json -- a standalone CLI outside any Effect runtime, so Effect's platform services do not apply
 
-import { chooseBackend, errorMessage, type Backend, type RuleAnswer } from "./backends.ts";
-import { defaultCacheDir, cacheKey, readCachedAnswer, writeCachedAnswer } from "./cache.ts";
+import {
+  chooseBackend,
+  errorMessage,
+  type Backend,
+  type RuleAnswer,
+} from "./backends.ts";
+import {
+  defaultCacheDir,
+  cacheKey,
+  readCachedAnswer,
+  writeCachedAnswer,
+} from "./cache.ts";
 import { loadConfig, type BackendName, type ResolvedConfig } from "./config.ts";
-import { collectChanges, historySummary, type ChangeMode, type ChangeSet } from "./git.ts";
+import {
+  collectChanges,
+  historySummary,
+  type ChangeMode,
+  type ChangeSet,
+} from "./git.ts";
 import { buildInputs, type JudgeInput } from "./input.ts";
 import type { DiffRule, Severity } from "./rules.ts";
 
@@ -65,7 +80,12 @@ const PREFIX = "diff-rules:";
 
 const isCI = (env: Env): boolean => {
   const value = env.CI?.trim().toLowerCase();
-  return value !== undefined && value.length > 0 && value !== "false" && value !== "0";
+  return (
+    value !== undefined &&
+    value.length > 0 &&
+    value !== "false" &&
+    value !== "0"
+  );
 };
 
 interface ChunkOutcome {
@@ -80,12 +100,16 @@ async function judgeChunk(
   rules: ReadonlyArray<DiffRule>,
   input: JudgeInput,
   cacheDir: string,
-  warn: (message: string) => void,
+  warn: (message: string) => void
 ): Promise<ChunkOutcome> {
   const answers: RuleAnswer[] = [];
   const pending: DiffRule[] = [];
   for (const rule of rules) {
-    const cached = readCachedAnswer(cacheDir, cacheKey(backend, rule, input), rule.id);
+    const cached = readCachedAnswer(
+      cacheDir,
+      cacheKey(backend, rule, input),
+      rule.id
+    );
     if (cached === undefined) pending.push(rule);
     else answers.push(cached);
   }
@@ -104,12 +128,22 @@ async function judgeChunk(
     }
     return { answers: [...answers, ...fresh], cached, requested: true };
   } catch (error) {
-    const where = input.total === 1 ? "" : ` (part ${input.index + 1} of ${input.total})`;
-    return { answers, cached, requested: true, error: `${backend.name}${where}: ${errorMessage(error)}` };
+    const where =
+      input.total === 1 ? "" : ` (part ${input.index + 1} of ${input.total})`;
+    return {
+      answers,
+      cached,
+      requested: true,
+      error: `${backend.name}${where}: ${errorMessage(error)}`,
+    };
   }
 }
 
-async function mapLimited<T, R>(items: ReadonlyArray<T>, limit: number, task: (item: T) => Promise<R>): Promise<R[]> {
+async function mapLimited<T, R>(
+  items: ReadonlyArray<T>,
+  limit: number,
+  task: (item: T) => Promise<R>
+): Promise<R[]> {
   const results: R[] = Array.from({ length: items.length });
   let next = 0;
   const worker = async (): Promise<void> => {
@@ -119,15 +153,22 @@ async function mapLimited<T, R>(items: ReadonlyArray<T>, limit: number, task: (i
       results[index] = await task(items[index] as T);
     }
   };
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, worker)
+  );
   return results;
 }
 
 /** A rule's answer for the whole change: its strongest answer across chunks. */
-function findingFor(rule: DiffRule, answers: ReadonlyArray<RuleAnswer>): Finding | undefined {
+function findingFor(
+  rule: DiffRule,
+  answers: ReadonlyArray<RuleAnswer>
+): Finding | undefined {
   const mine = answers.filter((answer) => answer.id === rule.id);
   if (mine.length === 0) return undefined;
-  const strongest = mine.reduce((best, answer) => (answer.probability > best.probability ? answer : best));
+  const strongest = mine.reduce((best, answer) =>
+    answer.probability > best.probability ? answer : best
+  );
   const firing = mine.filter((answer) => answer.probability >= rule.cutoff);
   const files = [...new Set(firing.flatMap((answer) => answer.files ?? []))];
   return {
@@ -137,13 +178,18 @@ function findingFor(rule: DiffRule, answers: ReadonlyArray<RuleAnswer>): Finding
     probability: strongest.probability,
     cutoff: rule.cutoff,
     message: rule.message,
-    ...(strongest.evidence === undefined ? {} : { evidence: strongest.evidence }),
+    ...(strongest.evidence === undefined
+      ? {}
+      : { evidence: strongest.evidence }),
     ...(files.length === 0 ? {} : { files }),
   };
 }
 
 function describeBase(change: ChangeSet): string {
-  const commit = change.baseCommit === undefined ? "" : ` (${change.baseCommit.slice(0, 7)})`;
+  const commit =
+    change.baseCommit === undefined
+      ? ""
+      : ` (${change.baseCommit.slice(0, 7)})`;
   if (change.mode === "staged") return "staged changes";
   if (change.mode === "working") return "uncommitted changes";
   return `${change.baseLabel}${commit}`;
@@ -151,22 +197,31 @@ function describeBase(change: ChangeSet): string {
 
 function formatHuman(report: Report, change: ChangeSet): string {
   const lines: string[] = [];
-  const shown = report.models.length > 0 ? report.models.join(", ") : (report.requestedModel ?? "");
+  const shown =
+    report.models.length > 0
+      ? report.models.join(", ")
+      : (report.requestedModel ?? "");
   const models = shown.length > 80 ? `${shown.slice(0, 77)}...` : shown;
   lines.push(
-    `${PREFIX} judged ${report.files} changed file(s) in ${report.chunks} request(s) against ${describeBase(change)} with ${report.backend ?? "?"}${models.length > 0 ? ` (${models})` : ""}; ${report.cachedAnswers} cached answer(s).`,
+    `${PREFIX} judged ${report.files} changed file(s) in ${report.chunks} request(s) against ${describeBase(change)} with ${report.backend ?? "?"}${models.length > 0 ? ` (${models})` : ""}; ${report.cachedAnswers} cached answer(s).`
   );
   for (const finding of report.findings.filter((item) => item.fired)) {
     lines.push("");
-    lines.push(`${finding.severity}  ${finding.id}  ${finding.probability.toFixed(2)} >= ${finding.cutoff.toFixed(2)}`);
+    lines.push(
+      `${finding.severity}  ${finding.id}  ${finding.probability.toFixed(2)} >= ${finding.cutoff.toFixed(2)}`
+    );
     lines.push(`  ${finding.message}`);
-    if (finding.evidence !== undefined) lines.push(`  evidence: ${finding.evidence}`);
-    if (finding.files !== undefined) lines.push(`  files: ${finding.files.join(", ")}`);
+    if (finding.evidence !== undefined)
+      lines.push(`  evidence: ${finding.evidence}`);
+    if (finding.files !== undefined)
+      lines.push(`  files: ${finding.files.join(", ")}`);
   }
   const fired = report.findings.filter((item) => item.fired);
   const errors = fired.filter((item) => item.severity === "error").length;
   lines.push("");
-  lines.push(`${PREFIX} ${fired.length - errors} warning(s), ${errors} error(s).`);
+  lines.push(
+    `${PREFIX} ${fired.length - errors} warning(s), ${errors} error(s).`
+  );
   return `${lines.join("\n")}\n`;
 }
 
@@ -178,9 +233,16 @@ export async function runDiffRules(options: RunOptions): Promise<RunResult> {
     warned.add(message);
     stderr += `${PREFIX} ${message}\n`;
   };
-  const finish = (exitCode: number, report: Report | undefined, human: string): RunResult => ({
+  const finish = (
+    exitCode: number,
+    report: Report | undefined,
+    human: string
+  ): RunResult => ({
     exitCode,
-    stdout: options.json && report !== undefined ? `${JSON.stringify(report, null, 2)}\n` : human,
+    stdout:
+      options.json && report !== undefined
+        ? `${JSON.stringify(report, null, 2)}\n`
+        : human,
     stderr,
     ...(report === undefined ? {} : { report }),
   });
@@ -200,19 +262,36 @@ export async function runDiffRules(options: RunOptions): Promise<RunResult> {
     return finish(2, undefined, "");
   }
   for (const note of change.notes) warn(note);
-  const failOnBackend = options.fail || (isCI(options.env) && config.ci === "fail");
+  const failOnBackend =
+    options.fail || (isCI(options.env) && config.ci === "fail");
   const baseReport = {
     base: change.baseLabel,
-    ...(change.baseCommit === undefined ? {} : { baseCommit: change.baseCommit }),
+    ...(change.baseCommit === undefined
+      ? {}
+      : { baseCommit: change.baseCommit }),
     mode: change.mode,
     files: change.files.length,
     notes: change.notes,
   };
 
   if (change.files.length === 0 || config.rules.length === 0) {
-    const reason = change.files.length === 0 ? "no changes to judge" : "no rules enabled";
-    const report: Report = { ...baseReport, models: [], chunks: 0, cachedAnswers: 0, requests: 0, skipped: reason, errors: [], findings: [] };
-    return finish(0, report, `${PREFIX} ${reason} against ${describeBase(change)}.\n`);
+    const reason =
+      change.files.length === 0 ? "no changes to judge" : "no rules enabled";
+    const report: Report = {
+      ...baseReport,
+      models: [],
+      chunks: 0,
+      cachedAnswers: 0,
+      requests: 0,
+      skipped: reason,
+      errors: [],
+      findings: [],
+    };
+    return finish(
+      0,
+      report,
+      `${PREFIX} ${reason} against ${describeBase(change)}.\n`
+    );
   }
 
   const choice = chooseBackend(options.backend, config, options.env, {
@@ -222,17 +301,37 @@ export async function runDiffRules(options: RunOptions): Promise<RunResult> {
   if (!choice.ok) {
     const skipped = `${choice.reason}; skipping diff rules`;
     warn(skipped);
-    const report: Report = { ...baseReport, backend: choice.name, models: [], chunks: 0, cachedAnswers: 0, requests: 0, skipped, errors: [], findings: [] };
+    const report: Report = {
+      ...baseReport,
+      backend: choice.name,
+      models: [],
+      chunks: 0,
+      cachedAnswers: 0,
+      requests: 0,
+      skipped,
+      errors: [],
+      findings: [],
+    };
     return finish(failOnBackend ? 2 : 0, report, "");
   }
   const { backend } = choice;
 
-  const purpose = options.purpose ?? options.env.ANTI_SLOP_DIFF_RULES_PURPOSE?.trim() ?? config.purpose;
+  const purpose =
+    options.purpose ??
+    options.env.ANTI_SLOP_DIFF_RULES_PURPOSE?.trim() ??
+    config.purpose;
   const history = historySummary(
     change.root,
     change.baseCommit,
-    change.files.filter((file) => file.status !== "added").map((file) => file.path),
-    { commitsPerFile: config.historyCommits, coChangeCommits: config.coChangeCommits, maxFiles: 60, maxPairs: 40 },
+    change.files
+      .filter((file) => file.status !== "added")
+      .map((file) => file.path),
+    {
+      commitsPerFile: config.historyCommits,
+      coChangeCommits: config.coChangeCommits,
+      maxFiles: 60,
+      maxPairs: 40,
+    }
   );
   const inputs = buildInputs(change, history, {
     maxChunkChars: config.maxChunkChars,
@@ -241,11 +340,13 @@ export async function runDiffRules(options: RunOptions): Promise<RunResult> {
   });
   const cacheDir = options.cacheDir ?? defaultCacheDir(options.cwd);
   const outcomes = await mapLimited(inputs, config.concurrency, (input) =>
-    judgeChunk(backend, config.rules, input, cacheDir, warn),
+    judgeChunk(backend, config.rules, input, cacheDir, warn)
   );
 
   const answers = outcomes.flatMap((outcome) => outcome.answers);
-  const errors = outcomes.flatMap((outcome) => (outcome.error === undefined ? [] : [outcome.error]));
+  const errors = outcomes.flatMap((outcome) =>
+    outcome.error === undefined ? [] : [outcome.error]
+  );
   for (const error of errors) warn(error);
   const findings = config.rules.flatMap((rule) => {
     const finding = findingFor(rule, answers);
@@ -263,7 +364,9 @@ export async function runDiffRules(options: RunOptions): Promise<RunResult> {
     findings,
   };
   const fired = findings.filter((finding) => finding.fired);
-  const failing = fired.some((finding) => finding.severity === "error") || (options.fail && fired.length > 0);
+  const failing =
+    fired.some((finding) => finding.severity === "error") ||
+    (options.fail && fired.length > 0);
   const exitCode = failing ? 1 : errors.length > 0 && failOnBackend ? 2 : 0;
   return finish(exitCode, report, formatHuman(report, change));
 }

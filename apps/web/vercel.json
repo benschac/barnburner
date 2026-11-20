@@ -10,8 +10,13 @@
     }
   },
   "functions": {
-    "app/api/history/route.ts": { "supportsCancellation": true, "maxDuration": 60 },
-    "app/api/{rpc,games,poster,teams}/route.ts": { "supportsCancellation": true },
+    "app/api/history/route.ts": {
+      "supportsCancellation": true,
+      "maxDuration": 60
+    },
+    "app/api/{rpc,games,poster,teams}/route.ts": {
+      "supportsCancellation": true
+    },
     "app/api/[[...path]]/route.ts": { "supportsCancellation": true }
   }
 }

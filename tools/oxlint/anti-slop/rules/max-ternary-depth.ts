@@ -23,7 +23,7 @@ function ternaryDepth(node: ESTree.Expression): number {
     Math.max(
       ternaryDepth(expression.test),
       ternaryDepth(expression.consequent),
-      ternaryDepth(expression.alternate),
+      ternaryDepth(expression.alternate)
     )
   );
 }
@@ -76,7 +76,11 @@ export const maxTernaryDepthRule = defineRule({
             : 2;
         const depth = ternaryDepth(node);
         if (depth > maxDepth) {
-          context.report({ node, messageId: "exceeded", data: { depth, maxDepth } });
+          context.report({
+            node,
+            messageId: "exceeded",
+            data: { depth, maxDepth },
+          });
         }
       },
     };
