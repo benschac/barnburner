@@ -24,6 +24,10 @@
     {
       "name": "enfect",
       "specifier": "../tools/oxlint/anti-slop/plugins/enfect.ts"
+    },
+    {
+      "name": "effect",
+      "specifier": "../tools/oxlint/anti-slop/plugins/effect.ts"
     }
   ],
   "rules": {
@@ -94,7 +98,17 @@
     "enfect/no-effect-ignore-then-as": "error",
     "enfect/avoid-expect-in-if": "error",
     "enfect/prefer-duration-constructors": "error",
-    "enfect/avoid-mutable-state": "error"
+    "enfect/avoid-mutable-state": "error",
+    "effect/noAliasTestLayer": "error",
+    "effect/noEagerAcquire": "error",
+    "effect/noManagedRuntimeInEffect": "error",
+    "effect/noPerCallCacheConstruction": "error",
+    "effect/noPointFreeLog": "error",
+    "effect/noRunCollectOnUnboundedStream": "error",
+    "effect/noSilentCatchAll": "error",
+    "effect/noUnboundedConcurrency": "error",
+    "effect/requireSuppressionReason": "error",
+    "effect/requireForceKillAfter": "error"
   },
   "overrides": [
     {
@@ -115,7 +129,8 @@
         "anti-slop/no-unknown-parameters": "off",
         "anti-slop/no-unknown-returns": "off",
         "anti-slop-effect/no-manual-tagged-construction": "off",
-        "anti-slop-effect/no-manual-tag-comparison": "off"
+        "anti-slop-effect/no-manual-tag-comparison": "off",
+        "effect/noUnboundedConcurrency": "off"
       }
     },
     {

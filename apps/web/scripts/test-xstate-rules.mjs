@@ -356,7 +356,7 @@ const program = Effect.fn("testXStateRules")(function* () {
         "json",
         ...Array.map(files, ({ file }) => file),
       ],
-      { cwd: root }
+      { cwd: root, forceKillAfter: "5 seconds" }
     )
   );
 
