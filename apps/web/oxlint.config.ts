@@ -91,6 +91,13 @@ export default defineConfig({
       },
     },
     {
+      // pending: `withTamagui` is deprecated; its replacement is a move to `tamagui build`.
+      files: ["next.config.js"],
+      rules: {
+        "typescript/no-deprecated": "off",
+      },
+    },
+    {
       files: [
         "tamagui.build.ts",
         "next.config.js",
