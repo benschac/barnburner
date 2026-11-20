@@ -1,11 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { once } from 'node:events'
 import { createServer } from 'node:http'
 import type { Server } from 'node:http'
 import { mkdtemp, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Effect, Result, Schema } from 'effect'
+import { Clock, Effect, Result, Schema } from 'effect'
 import { HostMessage, VizTheme } from '@nhl-reddit-stats/viz'
 import { renderView, RenderHarnessError } from './render.ts'
 
@@ -103,17 +104,16 @@ const page = `<!doctype html>${controls}
 // The same controls with no `frame-reports` element.
 const pageWithoutReports = `<!doctype html>${controls}`
 
-const serve = (html: string = page): Promise<{ readonly server: Server; readonly baseUrl: string }> =>
-  new Promise((resolve) => {
-    const server = createServer((request, response) => {
-      response.setHeader('content-type', 'text/html')
-      response.end(request.url?.startsWith('/frame.html') ? framePage : html)
-    })
-    server.listen(0, 'localhost', () => {
-      const address = server.address()
-      resolve({ server, baseUrl: `http://localhost:${typeof address === 'object' && address !== null ? address.port : 0}` })
-    })
+const serve = async (html: string = page): Promise<{ readonly server: Server; readonly baseUrl: string }> => {
+  const server = createServer((request, response) => {
+    response.setHeader('content-type', 'text/html')
+    response.end(request.url?.startsWith('/frame.html') ? framePage : html)
   })
+  server.listen(0, 'localhost')
+  await once(server, 'listening')
+  const address = server.address()
+  return { server, baseUrl: `http://localhost:${typeof address === 'object' && address !== null ? address.port : 0}` }
+}
 
 const tables = { hops: [{ chain: 0 }, { chain: 1 }, { chain: 2 }, { chain: 3 }] }
 
@@ -166,7 +166,8 @@ test('renderView returns a tagged error when the page never settles', async () =
     response.setHeader('content-type', 'text/html')
     response.end('<!doctype html><title>blank</title>')
   })
-  await new Promise<void>((resolve) => server.listen(0, 'localhost', resolve))
+  server.listen(0, 'localhost')
+  await once(server, 'listening')
   const address = server.address()
   try {
     const result = await Effect.runPromise(Effect.result(renderView({
@@ -176,7 +177,7 @@ test('renderView returns a tagged error when the page never settles', async () =
       settleTimeoutMs: 500,
     })))
     assert.ok(Result.isFailure(result))
-    assert.ok(result.failure instanceof RenderHarnessError)
+    assert.ok(Schema.is(RenderHarnessError)(result.failure))
     assert.equal(result.failure._tag, 'RenderHarnessError')
     assert.equal(result.failure.stage, 'open')
   } finally {
@@ -232,12 +233,12 @@ test('renderView submits tables and notes that make a valid Render for the frame
 
 test('renderView returns a tagged error when frame-reports is missing, within the settle timeout', async () => {
   const { server, baseUrl } = await serve(pageWithoutReports)
-  const started = Date.now()
+  const started = await Effect.runPromise(Clock.currentTimeMillis)
   try {
     const result = await Effect.runPromise(Effect.result(renderView({ baseUrl, code: 'x', tables, settleTimeoutMs: 1000 })))
     assert.ok(Result.isFailure(result))
     assert.equal(result.failure.stage, 'open')
-    assert.ok(Date.now() - started < 15_000)
+    assert.ok((await Effect.runPromise(Clock.currentTimeMillis)) - started < 15_000)
   } finally {
     server.close()
   }

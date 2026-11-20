@@ -5,7 +5,7 @@
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Effect, Exit, Match, Option, Schema } from 'effect'
+import { Array as Arr, Clock, Duration, Effect, Exit, Match, Option, Order, Predicate, Schema } from 'effect'
 import { chromium } from 'playwright'
 import type { Browser, Page } from 'playwright'
 import { FrameReport, ViewData } from '@nhl-reddit-stats/viz'
@@ -56,13 +56,13 @@ export type RenderViewResult = {
 
 const median = (values: ReadonlyArray<number>): number => {
   if (values.length === 0) return 0
-  const sorted = [...values].sort((a, b) => a - b)
+  const sorted = Arr.sort(values, Order.Number)
   const middle = Math.floor(sorted.length / 2)
   return sorted.length % 2 === 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
 }
 
 const harness = (stage: RenderHarnessError['stage']) => (cause: unknown) =>
-  new RenderHarnessError({ stage, reason: cause instanceof Error ? cause.message : String(cause) })
+  new RenderHarnessError({ stage, reason: Predicate.isError(cause) ? cause.message : String(cause) })
 
 const step = <A>(stage: RenderHarnessError['stage'], run: () => Promise<A>) =>
   Effect.tryPromise({ try: run, catch: harness(stage) })
@@ -134,7 +134,7 @@ const closeBrowser = (browser: Browser) => step('close', () => browser.close())
  */
 export const renderView = (input: RenderViewInput): Effect.Effect<RenderViewResult, RenderHarnessError> =>
   Effect.acquireUseRelease(
-    step('launch', () => chromium.launch({ headless: true, ...(input.channel === null ? {} : { channel: input.channel ?? 'chrome' }) })),
+    step('launch', () => chromium.launch(input.channel === null ? { headless: true } : { headless: true, channel: input.channel ?? 'chrome' })),
     (browser) => Effect.gen(function* () {
       const result = yield* Effect.exit(run(browser, input))
       const closed = yield* Effect.exit(closeBrowser(browser))
@@ -163,34 +163,42 @@ const run = (browser: Browser, input: RenderViewInput) => Effect.gen(function* (
     await page.getByLabel('View data').fill(encodeViewData({ tables: input.tables, notes: input.notes ?? '' }), { timeout: settleTimeout })
     await page.getByRole('button', { name: 'Run' }).click({ timeout: settleTimeout })
   })
-  const clickedAt = Date.now()
+  const clickedAt = yield* Clock.currentTimeMillis
   const alert = page.getByRole('alert')
   const settled = yield* Effect.gen(function* () {
-    while (Date.now() - clickedAt < settleTimeout) {
+    let now = clickedAt
+    // loop: polls the page until the frame settles or the timeout passes
+    while (now - clickedAt < settleTimeout) {
       // Next.js keeps an empty route announcer with role "alert"; only one with text is the page's complaint.
-      const complaint = (yield* step('wait', () => alert.allTextContents())).find((text) => text.trim() !== '')
+      const alertTexts = yield* step('wait', () => alert.allTextContents())
+      const complaint = alertTexts.find((text) => text.trim() !== '')
       if (complaint !== undefined) return yield* new RenderHarnessError({ stage: 'submit', reason: complaint })
-      const found = reportsSince(yield* readTexts(page), before).flatMap((report) => Option.toArray(settling(report)))[0]
+      const texts = yield* readTexts(page)
+      const found = reportsSince(texts, before).flatMap((report) => Option.toArray(settling(report)))[0]
       if (found !== undefined) return found
-      yield* Effect.sleep(100)
+      yield* Effect.sleep(Duration.millis(100))
+      now = yield* Clock.currentTimeMillis
     }
     return yield* new RenderHarnessError({ stage: 'wait', reason: `no Rendered or Failed within ${settleTimeout} ms` })
   })
   let reports: ReadonlyArray<FrameReport> = []
-  if (settled._tag === 'Rendered') {
+  if (Predicate.isTagged(settled, 'Rendered')) {
     yield* Effect.sleep(sampleMs)
-    reports = reportsSince(yield* readTexts(page), before)
+    const texts = yield* readTexts(page)
+    reports = reportsSince(texts, before)
   }
   // A view can paint and then fail in a callback; the frame reports that as a Failed for the same render.
   const lateFailure = reports.flatMap((report) => failureOf(report, settled.id))[0]
-  const failureMessage = settled._tag === 'Failed' ? settled.message : lateFailure ?? null
+  const failureMessage = Predicate.isTagged(settled, 'Failed') ? settled.message : lateFailure ?? null
   const outcome = failureMessage === null ? 'Rendered' : 'Failed'
   // A view that painted and then failed keeps the paint time the frame reported.
-  const firstPaintMs = settled._tag === 'Rendered' ? settled.ms : Date.now() - clickedAt
+  const finishedAt = yield* Clock.currentTimeMillis
+  const firstPaintMs = Predicate.isTagged(settled, 'Rendered') ? settled.ms : finishedAt - clickedAt
   const medianFps = outcome === 'Rendered'
     ? median(reports.flatMap((report) => frameRates(report)).filter((rate) => rate.id === settled.id).map((rate) => rate.fps))
     : 0
-  const screenshotPath = input.screenshotPath ?? join(yield* step('screenshot', () => mkdtemp(join(tmpdir(), 'render-view-'))), 'view.png')
+  const screenshotDir = input.screenshotPath === undefined ? yield* step('screenshot', () => mkdtemp(join(tmpdir(), 'render-view-'))) : ''
+  const screenshotPath = input.screenshotPath ?? join(screenshotDir, 'view.png')
   yield* step('screenshot', () => page.locator('iframe[title="Visualization"]').screenshot({ path: screenshotPath, timeout: settleTimeout }))
   return { outcome, firstPaintMs, medianFps, screenshotPath, failureMessage } satisfies RenderViewResult
 })
