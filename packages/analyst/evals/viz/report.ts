@@ -78,7 +78,7 @@ const shuffle = <T>(items: readonly T[], random: () => number): T[] => {
   return copy;
 };
 
-const labelFor = (index: number): string => String.fromCharCode(65 + index);
+const labelFor = (index: number): string => String.fromCodePoint(65 + index);
 
 // Groups records by dataset and prompt, keeping first-seen order.
 const groupByPrompt = (

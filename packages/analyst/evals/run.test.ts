@@ -110,7 +110,11 @@ test("eval cases are schema validated and content hashed", async () => {
 
 test("eval CLI help does not open a database or call a provider", async () => {
   const lines: string[] = [];
-  await Effect.runPromise(runCli(["--help"], (text) => lines.push(text)));
+  await Effect.runPromise(
+    runCli(["--help"], (text) => {
+      lines.push(text);
+    })
+  );
   assert.match(lines[0], /--data-dir/);
   const error = await Effect.runPromise(runCli([]).pipe(Effect.flip));
   assert.match(error.message, /--data-dir is required/);
@@ -154,8 +158,8 @@ test("eval CLI persists an explicitly offline receipt with data and prompt hashe
         }
       )
     );
-    const name = (await readdir(dir)).find((name) =>
-      name.endsWith("-agent.json")
+    const name = (await readdir(dir)).find((entry) =>
+      entry.endsWith("-agent.json")
     );
     assert.ok(name);
     const receipt = JSON.parse(await readFile(join(dir, name), "utf-8"));

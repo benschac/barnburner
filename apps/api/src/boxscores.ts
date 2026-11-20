@@ -96,7 +96,7 @@ export class BoxScores extends Context.Service<
   {
     readonly load: (
       gameId: number
-    ) => Effect.Effect<unknown | null, BoxscoreLoadError>;
+    ) => Effect.Effect<unknown, BoxscoreLoadError>;
   }
 >()("glanceboard/BoxScores") {
   static layerFiles = (directory: string) =>

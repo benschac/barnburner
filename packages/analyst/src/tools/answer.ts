@@ -1,5 +1,5 @@
 import { jsonSchema, tool } from "ai";
-import { Effect, Result } from "effect";
+import { Effect, Predicate, Result } from "effect";
 
 import type { Answer, Coverage, Db, Guard, Row } from "../shapes.ts";
 
@@ -21,9 +21,9 @@ type Checked<T> = { ok: true; input: T } | { ok: false; reason: string };
 
 // Runtime check of model-supplied arguments. Wrong types are reported, never coerced.
 export const checkAnswerInput = (raw: unknown): Checked<AnswerInput> => {
-  if (typeof raw !== "object" || raw === null)
+  if (!Predicate.isObject(raw))
     return { ok: false, reason: "input must be an object" };
-  const { query, row, column } = raw as Record<string, unknown>;
+  const { query, row, column } = raw;
   if (typeof query !== "string")
     return { ok: false, reason: "query must be a string" };
   if (typeof row !== "number" || !Number.isInteger(row) || row < 0) {

@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 
-import { Config, Effect } from "effect";
+import { Config, Effect, Predicate } from "effect";
 
 import { logError } from "../../../lib/logger.mjs";
 import { ask } from "../src/ask.ts";
@@ -41,21 +41,19 @@ if (args.length === 1 && question === "--help") {
   logError(usage);
   process.exitCode = 1;
 } else {
-  await Effect.runPromise(
-    Effect.scoped(
-      Effect.gen(function* () {
-        const db = yield* openDb({ dataDir });
-        return yield* ask({ question, team, db });
-      })
-    ).pipe(Effect.provide(Llm.layer()))
-  ).then(
-    (result) => {
-      process.stdout.write(`${toPrettyJson(result)}\n`);
-      if (result.outcome._tag === "Crashed") process.exitCode = 1;
-    },
-    (error: unknown) => {
-      logError(String(error));
-      process.exitCode = 1;
-    }
-  );
+  try {
+    const result = await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const db = yield* openDb({ dataDir });
+          return yield* ask({ question, team, db });
+        })
+      ).pipe(Effect.provide(Llm.layer()))
+    );
+    process.stdout.write(`${toPrettyJson(result)}\n`);
+    if (Predicate.isTagged(result.outcome, "Crashed")) process.exitCode = 1;
+  } catch (error) {
+    logError(String(error));
+    process.exitCode = 1;
+  }
 }

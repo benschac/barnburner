@@ -37,7 +37,7 @@ export type RenderError = UnknownPlaceholderError | MissingCellError;
 const cellText = (
   placeholder: string,
   bindings: Record<string, Binding>,
-  rows: Row[]
+  rows: readonly Row[]
 ): Result.Result<string, RenderError> => {
   const binding = Object.hasOwn(bindings, placeholder)
     ? bindings[placeholder]
@@ -67,7 +67,7 @@ const cellText = (
 export function render(
   template: string,
   bindings: Record<string, Binding>,
-  rows: Row[]
+  rows: readonly Row[]
 ): Result.Result<string, RenderError> {
   const parts: string[] = [];
   let last = 0;

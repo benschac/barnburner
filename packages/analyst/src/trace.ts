@@ -157,8 +157,20 @@ export type TraceWriter = {
   readonly runId: string;
   readonly path: string;
   // Fails, and writes nothing, when the event would serialize to a line the reader rejects.
-  append(payload: TracePayload): Result.Result<TraceEvent, TraceLineError>;
+  readonly append: (
+    payload: TracePayload
+  ) => Result.Result<TraceEvent, TraceLineError>;
 };
+
+// Decodes one JSONL line against the event schemas. Fails with TraceLineError on malformed input.
+export function parseTraceLine(
+  line: string
+): Result.Result<TraceEvent, TraceLineError> {
+  return Result.mapError(
+    decodeTraceLine(line),
+    (error) => new TraceLineError({ reason: error.message, line })
+  );
+}
 
 // Append-only JSONL writer: one line per event, written synchronously in call order.
 export function openTrace(
@@ -196,14 +208,4 @@ export function openTrace(
       return Result.succeed(event);
     },
   });
-}
-
-// Decodes one JSONL line against the event schemas. Fails with TraceLineError on malformed input.
-export function parseTraceLine(
-  line: string
-): Result.Result<TraceEvent, TraceLineError> {
-  return Result.mapError(
-    decodeTraceLine(line),
-    (error) => new TraceLineError({ reason: error.message, line })
-  );
 }

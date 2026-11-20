@@ -1,5 +1,5 @@
 import { tool, jsonSchema } from "ai";
-import { Effect } from "effect";
+import { Effect, Predicate } from "effect";
 
 export type DeclineDeps = {
   readonly onDecline: (reason: string) => void;
@@ -13,9 +13,9 @@ export type DeclineInput = {
 export const checkDeclineInput = (
   raw: unknown
 ): { ok: true; input: DeclineInput } | { ok: false; reason: string } => {
-  if (typeof raw !== "object" || raw === null)
+  if (!Predicate.isObject(raw))
     return { ok: false, reason: "input must be an object" };
-  const { reason } = raw as Record<string, unknown>;
+  const { reason } = raw;
   if (typeof reason !== "string" || reason.trim() === "")
     return { ok: false, reason: "reason must be a non-empty string" };
   return { ok: true, input: { reason: reason.trim() } };

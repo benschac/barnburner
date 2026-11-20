@@ -2,9 +2,10 @@
 
 import { Result } from "effect";
 
+import { UNREACHED } from "./chain-search.ts";
 import { UnknownPlayer } from "./contracts.ts";
 import type { TeammateGraph } from "./graph.ts";
-import { UNREACHED, bfsDistances, walkFirstPath } from "./paths.ts";
+import { bfsDistances, walkFirstPath } from "./paths.ts";
 import type { FarthestResult, Filter } from "./shapes.ts";
 
 /**

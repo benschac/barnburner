@@ -78,7 +78,9 @@ test("duckdb lock: load, lock, wrap, serialize", async () => {
     const serialized = await connection.runAndReadAll(
       "SELECT json_serialize_sql('SELECT id FROM t') AS j"
     );
-    const json = JSON.parse(String(serialized.getRowObjectsJson()[0]?.j));
+    const serializedSql = serialized.getRowObjectsJson()[0]?.j;
+    assert.ok(typeof serializedSql === "string");
+    const json = JSON.parse(serializedSql);
     assert.equal(json.error, false);
   } finally {
     connection.closeSync();

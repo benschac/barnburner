@@ -56,5 +56,6 @@ test("sql: tool wraps runSql", async () => {
     { query: "q" },
     { toolCallId: "t", messages: [], context: {} }
   );
-  assert.equal(JSON.parse(out as string).rowCount, 1);
+  assert.ok(typeof out === "string");
+  assert.equal(JSON.parse(out).rowCount, 1);
 });
