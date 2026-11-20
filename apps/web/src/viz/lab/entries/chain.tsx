@@ -1,6 +1,6 @@
 import { ChainTables, type LabEntry } from '@nhl-reddit-stats/viz'
 import { samples } from '@nhl-reddit-stats/viz/samples'
-import { Effect, Match, Result, Schema } from 'effect'
+import { Effect, Layer, ManagedRuntime, Match, Result, Schema } from 'effect'
 import { useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
 import { Text, View } from 'tamagui'
@@ -69,8 +69,12 @@ const loadChainFile = (picked: File) =>
     return checked.success
   })
 
+/** Runs the loader at the browser boundary, where the file input needs a promise. */
+const browserRuntime = ManagedRuntime.make(Layer.empty)
+const readChainFile = (picked: File) => browserRuntime.runPromise(Effect.result(loadChainFile(picked)))
+
 function ChainPlayer({ data }: G6NodeProps) {
-  // foreign: G6 hands node data back untyped; chainGraph wrote exactly these fields.
+  // SAFETY: G6 hands node data back untyped; chainGraph wrote exactly these fields.
   const player = data as ChainNodeData
   return (
     <PlayerCard
@@ -114,7 +118,7 @@ function ChainView() {
     if (picked === undefined) return
     const pick = latestPick.current + 1
     latestPick.current = pick
-    const outcome = await Effect.runPromise(Effect.result(loadChainFile(picked)))
+    const outcome = await readChainFile(picked)
     // Only the latest pick may update the graph or the status.
     if (pick !== latestPick.current) return
     if (Result.isSuccess(outcome)) {
