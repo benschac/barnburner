@@ -1,4 +1,5 @@
 // Shortest teammate paths in D6 order (C-search). Pure, no I/O. The hot loop works on typed arrays only.
+
 import { Array, Order, Result } from 'effect'
 import type { HistoryUnavailable, UnsupportedFilter } from './contracts.ts'
 import { NoPath, UnknownPlayer } from './contracts.ts'
@@ -103,8 +104,10 @@ export const walkFirstPath = (
   let node = from
   while (distanceToTarget[node] > 0) {
     const at = firstStepAt(graph, distanceToTarget, node, filter)
-    // defect: a node with a finite distance always has a closer passing neighbour
-    if (at < 0) throw new Error('walkFirstPath: no closer neighbour at a finite distance')
+    if (at < 0) {
+      // defect: a node with a finite distance always has a closer passing neighbour
+      throw new Error('walkFirstPath: no closer neighbour at a finite distance')
+    }
     hops.push(teammateHop(graph, linkIds[at], node, neighbours[at], filter))
     node = neighbours[at]
   }

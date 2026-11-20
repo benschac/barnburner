@@ -1,4 +1,5 @@
 // Farthest player from a start (C-search). Pure, no I/O; one sweep over typed arrays plus one early-exit BFS.
+
 import { Result } from 'effect'
 import { UnknownPlayer } from './contracts.ts'
 import type { TeammateGraph } from './graph.ts'

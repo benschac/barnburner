@@ -5,6 +5,7 @@
 //
 //   node scripts/index-xstate-docs.mjs           write .agent-sources/xstate/index.md and xstate-effect/index.md
 //   node scripts/index-xstate-docs.mjs --check   fail when either file does not match the installed packages
+
 import { NodeRuntime, NodeServices } from '@effect/platform-node'
 import { Array, Effect, FileSystem, Option, Order, Path, Schema } from 'effect'
 import { Command, Flag } from 'effect/cli'

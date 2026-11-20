@@ -91,8 +91,10 @@ export const pair = (
     const teamIds = Array.sort(firstSpan.keys(), Order.Number)
     const teams = yield* Effect.forEach(teamIds, (teamId) => {
       const span = firstSpan.get(teamId)
-      // defect: firstSpan has an entry for every id in teamIds
-      if (span === undefined) throw new Error('pair: no span for team ' + String(teamId))
+      if (span === undefined) {
+        // defect: firstSpan has an entry for every id in teamIds
+        throw new Error('pair: no span for team ' + String(teamId))
+      }
       return teamRow(store, teamId, span.seasonId, span.gameType, stints)
     })
 

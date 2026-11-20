@@ -10,6 +10,7 @@
  * leave the rest unchecked. A file rule is one match per file, and `location` still points the
  * diagnostic at the offending line.
  */
+
 import type { JevRule } from "oxlint-plugin-jev";
 
 /** The oxlint plugin name `./plugin.ts` registers; each rule is configured as `<name>/<id>`. */

@@ -2,6 +2,7 @@
 // packages/patterns/stream-large-files.md), an ast-grep hint that @enfect/oxlint does not ship as a rule. The
 // upstream pattern matches the path's source text against substrings such as `log`, so it also matches `catalog`
 // and `dialog`; this version compares whole words of the path instead.
+
 import { defineRule } from "@oxlint/plugins";
 
 import type { ESTree } from "@oxlint/plugins";

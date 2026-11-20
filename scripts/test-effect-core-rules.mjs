@@ -2,6 +2,7 @@
 /* oxlint-disable no-restricted-imports, no-restricted-properties -- legacy: port to the Effect platform services, see "Node scripts" in AGENTS.md */
 // Proves the Effect core module lint rules fire on native patterns and stay quiet on the Effect ones.
 // Usage: node scripts/test-effect-core-rules.mjs <package dir whose .oxlintrc.json extends lint/effect-core.oxlintrc.json>
+
 import { logInfo } from '../lib/logger.mjs'
 import assert from 'node:assert/strict'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
