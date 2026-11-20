@@ -17,6 +17,7 @@ Run these from the repository root before reporting a code change as done. Repor
 - `bun run typecheck` and `bun run lint` cover all six workspaces and must exit 0. Lint takes about 45 seconds.
 - Tests run per workspace; there is no root `test` script. Use `bun run --cwd packages/<name> test` for `analyst`, `history`, and `viz`, `bun run test:api`, `bun run test:data`, and `bun run test:history`. The web app has `test:teams`, `test:social`, and `test:plan` under `bun run --cwd apps/web`.
 - For web UI changes, also run `bun run check:tamagui`.
+- `bun run format:check` must exit 0. `bun run format` fixes it; see Formatting.
 - If typecheck cannot find an `@nhl-reddit-stats/*` module, run `bun install` and retry: a new workspace is not linked yet.
 - Fix the code when a check fails. Do not disable a rule, lower a diagnostic's severity, or add an ignore comment to pass.
 - CI runs these checks only for `packages/history` and `apps/api`, on pull requests that touch their paths. For every other workspace the local run is the only gate.
@@ -75,7 +76,7 @@ Adopt the stack incrementally through concrete features. Preserve this project's
 - A `yield*` loop that must stop early or poll may stay a loop; put a `// loop: <reason>` comment on the line above it.
 - `lint/effect-core-plugin.mjs` enforces this (`core/no-native-sort`, `core/no-set-dedupe`, `core/no-yield-in-loop`) in files that import Effect. `lint/effect-core.oxlintrc.json` bundles those rules with the `@effect/tsgo` rules for platform globals (`Date`, `Math.random`, timers, `console`, `process.env`, `fetch`, `new Promise`) and `Effect.all` over a `map`.
 - The rules run only in files that import `effect`. A branch cut before `lint/effect-core.oxlintrc.json` landed does not have them: rebase onto `main` and run `bun run lint` before review.
-- Every workspace (`analyst`, `history`, `viz`, `apps/api`, `apps/web`, `season`) enforces this in `bun run lint`, which also runs `scripts/test-effect-core-rules.mjs` and `scripts/index-effect-core.mjs --check`. A package adopts the rule by adding `"extends": ["../../lint/effect-core.oxlintrc.json"]` to its `.oxlintrc.json` and both scripts to its `lint` script.
+- Every workspace (`analyst`, `history`, `viz`, `apps/api`, `apps/web`, `season`) enforces this in `bun run lint`, which also runs `scripts/test-effect-core-rules.mjs` and `scripts/index-effect-core.mjs --check`. Every workspace's `oxlint.config.ts` extends it through `lint/oxlint.ts`; a package adopts the checks by adding both scripts to its `lint` script.
 
 # Node scripts
 
@@ -87,18 +88,20 @@ Adopt the stack incrementally through concrete features. Preserve this project's
 
 Write new code to the three models below in every workspace. This table shows where a check fails the build today.
 
-| Workspace | Error-model check (`lint`) | Union plugin (`lint`) | Effect diagnostics as errors (`typecheck`) |
-| --- | --- | --- | --- |
-| `packages/analyst` | `src` | yes | error model everywhere; JSON in `src` and `scripts` |
-| `packages/history` | `src` | yes | error model everywhere; JSON in `src` |
-| `packages/viz` | `src` | yes | error model everywhere; JSON in `src` |
-| `apps/api` | `scripts/fetch-history.ts` only | no | no |
-| `apps/web` | `plan-viewer/plan.ts` only | no | no |
-| `packages/season` | no | no | no |
+| Workspace | Error-model check (`lint`) | Union plugin (`lint`) | Effect diagnostics as errors (`typecheck`) | Ultracite presets (`lint`) |
+| --- | --- | --- | --- | --- |
+| `packages/analyst` | `src` | yes | error model everywhere; JSON in `src` and `scripts` | core |
+| `packages/history` | `src` | yes | error model everywhere; JSON in `src` | core |
+| `packages/viz` | `src` | yes | error model everywhere; JSON in `src` | core |
+| `apps/api` | `scripts/fetch-history.ts` only | no | no | core |
+| `apps/web` | `plan-viewer/plan.ts` only | no | no | core, react, next |
+| `packages/season` | no | no | no | core |
 
 - Every workspace lints with type information (`effect-tsgo --tsrs-lint oxlint`). `typescript/switch-exhaustiveness-check`, `typescript/no-floating-promises`, `typescript/no-misused-promises`, and `typescript/await-thenable` are errors. Run it through `bun run lint`; plain `oxlint` cannot load that config.
+- Each workspace's lint config is `oxlint.config.ts`, built from `lint/oxlint.ts`: Ultracite's oxlint presets (`ultracite/oxlint/core`, and `react` and `next` in `apps/web`), then `lint/ultracite.ts`, then the house configs (`lint/effect-core.oxlintrc.json`, `lint/anti-slop.oxlintrc.json`), so a house severity wins. Ultracite's rules are built-in rules with no changed-lines mode: they check every line.
+- `lint/ultracite.ts` turns off the Ultracite rules that contradict a house rule here (`conflicts`), whose fix breaks typed code (`wrong`), or that disagree with this repository's style (`style`), each with its reason. `pending` lists rules with existing findings still to fix: fix every finding of one, then delete its entry. Do not add an entry to get a change past lint.
 - `apps/web` also runs the design and actor-pattern plugins described under Design-system enforcement.
-- To adopt a rule in another workspace, copy the setup from `packages/history`: its `lint` script, the `jsPlugins` and `unions/*` rules in `.oxlintrc.json`, and the `diagnosticSeverity` block in `tsconfig.json`. Update the table in the same change.
+- To adopt a rule in another workspace, copy the setup from `packages/history`: its `lint` script, the `jsPlugins` and `unions/*` rules in `oxlint.config.ts`, and the `diagnosticSeverity` block in `tsconfig.json`. Update the table in the same change.
 
 ## Error model
 
@@ -132,7 +135,13 @@ Write new code to the three models below in every workspace. This table shows wh
 
 - Do not write the non-null assertion `!`. Narrow with a check, restructure so the value is known to exist, or fail with a tagged error when absence is an expected outcome.
 - Where absence would be a programming defect, check and `throw` with a `// defect: <reason>` comment, as in the error model.
-- `packages/viz` enforces this in `bun run lint` with `typescript/no-non-null-assertion`. Add the rule to a package's `.oxlintrc.json` when that package adopts it.
+- `packages/viz` enforces this in `bun run lint` with `typescript/no-non-null-assertion`. Add the rule to a package's `oxlint.config.ts` when that package adopts it.
+
+# Formatting
+
+- Oxfmt formats the repository with Ultracite's preset (`oxfmt.config.ts` spreads `ultracite/oxfmt`). `bun run format` writes; `bun run format:check` fails on an unformatted file.
+- `oxfmt.config.ts` skips data files, `.agent-sources/`, installed skills, the generated `apps/web/tamagui-prompt.md`, vendored third-party code, and the analyst model prompts. Oxfmt also skips what `.gitignore` lists.
+- The formatter wraps long lines and sorts imports, so a comment that a check reads by position must sit directly above its statement. Write `if (cond) {` and put `// defect: <reason>` above the `throw` inside the block, not above a one-line `if (cond) throw`. Put `// foreign: <reason>` directly above the line with the `in` check. Leave a blank line between a file-header comment (such as a legacy `oxlint-disable`) and the first import, or import sorting moves the comment with that import.
 
 # Design-system enforcement
 
@@ -141,10 +150,10 @@ For web UI changes, follow [the enforced design contract](apps/web/design/README
 # anti-slop lint
 
 - `tools/oxlint/anti-slop/` is a vendored copy of [anti-slop](https://github.com/K-Mistele/anti-slop); [UPSTREAM.md](tools/oxlint/anti-slop/UPSTREAM.md) records the commit. It is our code: change a rule there rather than disabling it.
-- `lint/anti-slop.oxlintrc.json` registers the `anti-slop`, `anti-slop-effect`, `anti-slop-martinfowler`, `landmines`, `ai-guard`, and `enfect` rules. Every workspace's `.oxlintrc.json` extends it, so `bun run lint` runs them.
-- Those rules set `mode: "changed"`: they report only lines changed since the merge base with `main` (set `ANTI_SLOP_BASE` for another base). New and edited code must pass them; existing code is cleaned up as it is touched. `ANTI_SLOP_MODE=all bun run lint` lists every finding.
+- `lint/anti-slop.oxlintrc.json` registers the `anti-slop`, `anti-slop-effect`, `anti-slop-martinfowler`, `landmines`, `ai-guard`, and `enfect` rules. Every workspace's `oxlint.config.ts` extends it through `lint/oxlint.ts`, so `bun run lint` runs them.
+- Those rules set `mode: "changed"`: they report only lines changed since the merge base with `main` (set `ANTI_SLOP_BASE` for another base). New and edited code must pass them; existing code is cleaned up as it is touched. `ANTI_SLOP_MODE=all bun run lint` lists every finding. A line whose only change is Oxfmt formatting does not count as changed: `modes/changed.ts` formats both sides of a file before diffing.
 - Each workspace's `lint` script runs its steps with `bun run --parallel --no-exit-on-error`. The `lint:oxlint` step runs oxlint through `tools/oxlint/anti-slop/modes/with-changes.ts`, which computes the changed lines with git before oxlint starts; keep that prefix. In `apps/web` the rule-fixture tests (`lint:design`, `lint:patterns`, `lint:xstate`, `lint:core`) run after `lint:oxlint`, because they write fixtures into files the main run reads.
-- Non-null assertions (`x!`, `x!.y`, `xs[i]!`) are forbidden and `typescript/no-non-null-assertion` fails lint as an error: narrow with `Option`, `Array.get`, an explicit check, or `assert.ok` in tests, and use a guarded read for typed-array indexing in hot loops. `complexity` is a built-in rule that cannot take a mode, so it runs at `warn` repo-wide.
+- Non-null assertions (`x!`, `x!.y`, `xs[i]!`) are forbidden and `typescript/no-non-null-assertion` fails lint as an error: narrow with `Option`, `Array.get`, an explicit check, or `assert.ok` in tests, and use a guarded read for typed-array indexing in hot loops. `complexity` is a built-in rule that cannot take a mode, so it runs at `warn` repo-wide. Ultracite sets it to `error`; the house config comes last, so `warn` holds.
 - These rules enforce the models above on changed lines: `anti-slop-effect/no-manual-tagged-type`, `no-manual-tagged-construction`, and `no-manual-tag-comparison` (union model); `anti-slop/no-instanceof` and `anti-slop-effect/require-cause-when-narrowing` (error model); `anti-slop/no-unknown-parameters` and `no-unknown-returns` (JSON boundary). Our copies of `no-manual-tag-comparison` and `no-manual-tagged-type` allow a `switch` over `_tag` and `Extract`/`Exclude` member selection.
 - Scoping: construction, tag comparison, `unknown` parameters and returns, and `anti-slop/no-runtime-typeof` are off in tests. `no-instanceof` is off in `apps/web`. `enfect/effect-run-in-body` is off for entry points (`src/main.ts`, `scripts/`, `evals/run.ts`, Next route files `app/**/page.tsx` and `app/**/route.ts`, and the viz frame entry `src/viz/frame/main.ts`), React hooks (`src/use-*.ts`), and tool callbacks (`src/tools/*.ts`), where a foreign caller needs a promise or a fiber. A `src/use-*.ts` file must export a hook that calls React hooks; do not name a plain helper `use-*` to reach the exemption. `no-runtime-typeof` is off in lint plugins.
 - Rules left out of `lint/anti-slop.oxlintrc.json` on purpose:
