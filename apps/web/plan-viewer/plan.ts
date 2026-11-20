@@ -104,35 +104,38 @@ export const parseAnalystPlan = (source: string) =>
           : refuse("Task card has no workstream", match[1]);
       })
     );
-    const buildTask = (
-      [, model, needs, branch, pr, status, notes]: string[],
-      id: string
-    ) =>
-      Result.gen(function* () {
-        if (!/^[A-Za-z][A-Za-z0-9-]*$/.test(id))
-          return yield* refuse("Invalid task ID", id);
-        const card = id.startsWith("P-")
-          ? {
-              heading: "Prerequisites (you)",
-              group: groups[0],
-              body: cardText
-                .split("\n")
-                .find((line) => line.startsWith(`- **${id}:**`)),
-              ids: [id],
-            }
-          : cards.find((item) => item.ids.includes(id));
-        if (!card?.body || !card.group)
-          return yield* refuse("No task card for", id);
-        const evalRow =
-          card.ids.length > 1 && id.startsWith("E")
-            ? tableRows(card.body).find((row) => row[0] === id)
-            : undefined;
-        const baseTitle = id.startsWith("P-")
-          ? prerequisiteTitles[id]
-          : card.heading.split(" · ")[1]?.split(" (")[0];
-        if (!baseTitle) return yield* refuse("No task title for", id);
-        const title =
-          baseTitle +
+    // A prerequisite's card is its bullet in the card text; every other task has a card of its own.
+    const taskCard = (id: string): Result.Result<PlanCard, PlanParseError> => {
+      const card = id.startsWith("P-")
+        ? {
+            heading: "Prerequisites (you)",
+            group: groups[0],
+            body: cardText
+              .split("\n")
+              .find((line) => line.startsWith(`- **${id}:**`)),
+            ids: [id],
+          }
+        : cards.find((item) => item.ids.includes(id));
+      return card?.body && card.group
+        ? Result.succeed({
+            heading: card.heading,
+            body: card.body,
+            ids: card.ids,
+            group: card.group,
+          })
+        : refuse("No task card for", id);
+    };
+    const taskTitle = (
+      card: PlanCard,
+      id: string,
+      evalRow: string[] | undefined
+    ): Result.Result<string, PlanParseError> => {
+      const baseTitle = id.startsWith("P-")
+        ? prerequisiteTitles[id]
+        : card.heading.split(" · ")[1]?.split(" (")[0];
+      if (!baseTitle) return refuse("No task title for", id);
+      return Result.succeed(
+        baseTitle +
           (evalRow
             ? ` / ${evalRow[2]
                 .split("/")
@@ -142,7 +145,22 @@ export const parseAnalystPlan = (source: string) =>
             : "") +
           (card.ids.length > 1 && id.startsWith("X")
             ? ` / ${new RegExp(`\\*\\*${id}, ([^:*]+)`).exec(card.body)?.[1]}`
-            : "");
+            : "")
+      );
+    };
+    const buildTask = (
+      [, model, needs, branch, pr, status, notes]: string[],
+      id: string
+    ) =>
+      Result.gen(function* () {
+        if (!/^[A-Za-z][A-Za-z0-9-]*$/.test(id))
+          return yield* refuse("Invalid task ID", id);
+        const card = yield* taskCard(id);
+        const evalRow =
+          card.ids.length > 1 && id.startsWith("E")
+            ? tableRows(card.body).find((row) => row[0] === id)
+            : undefined;
+        const title = yield* taskTitle(card, id, evalRow);
         const task: PlanTask = {
           id,
           group: card.ids.length > 1 ? card.heading.split(" · ")[0] : id,
