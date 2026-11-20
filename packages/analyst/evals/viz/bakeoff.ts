@@ -72,15 +72,15 @@ export const BakeoffPrompt = Schema.Struct({
 });
 export type BakeoffPrompt = typeof BakeoffPrompt.Type;
 
-export interface Generated {
+export type Generated = {
   readonly code: string;
   readonly model: string;
   readonly tokens: number;
-}
+};
 
 export type ModelError = LlmError | LlmOutputError | BakeoffError;
 
-export interface BakeoffModel {
+export type BakeoffModel = {
   readonly generate: (input: {
     readonly prompt: string;
     readonly tables: Tables;
@@ -92,7 +92,7 @@ export interface BakeoffModel {
     readonly failure: ViewFailure;
     readonly system: string;
   }) => Effect.Effect<Generated, ModelError>;
-}
+};
 
 export type BakeoffRenderer = (input: {
   readonly code: string;
@@ -101,7 +101,7 @@ export type BakeoffRenderer = (input: {
   readonly screenshotPath: string;
 }) => Effect.Effect<RenderViewResult, RenderHarnessError | BakeoffError>;
 
-export interface BakeoffInput {
+export type BakeoffInput = {
   readonly prompts: readonly BakeoffPrompt[];
   // Prompt id to the path of its export file ({ tables, notes }).
   readonly datasetPaths: Readonly<Record<string, string>>;
@@ -111,7 +111,7 @@ export interface BakeoffInput {
   readonly render: BakeoffRenderer;
   readonly outDir: string;
   readonly callBudget?: number;
-}
+};
 
 const here = import.meta.dirname;
 export const defaultPromptsPath = join(here, "prompts.json");

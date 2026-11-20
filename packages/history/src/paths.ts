@@ -168,10 +168,10 @@ export const walkFirstPath = (
  * Requires `distanceToTarget[from] >= 0`.
  */
 /** The number of shortest chains, clamped to the cap; `capped` when the true count is at least the cap. */
-export interface ChainCount {
+export type ChainCount = {
   readonly count: number;
   readonly capped: boolean;
-}
+};
 
 export const countChainsBy = (
   distanceToTarget: Int32Array,

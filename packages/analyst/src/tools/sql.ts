@@ -4,12 +4,12 @@ import { Effect } from "effect";
 import { toJson } from "../json.ts";
 import type { Db, Guard } from "../shapes.ts";
 
-export interface SqlDeps {
+export type SqlDeps = {
   readonly db: Db;
   readonly guard: Guard;
   readonly timeoutMs?: number;
   readonly rowCap?: number;
-}
+};
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_ROW_CAP = 200;

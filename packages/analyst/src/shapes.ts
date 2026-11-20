@@ -12,17 +12,17 @@ export class SqlError extends Schema.TaggedError<SqlError>()("SqlError", {
 
 export type Row = Record<string, string | number | boolean | null>;
 
-export interface QueryResult {
+export type QueryResult = {
   readonly rows: Row[];
   readonly rowCount: number;
-}
+};
 
-export interface QueryOpts {
+export type QueryOpts = {
   readonly timeoutMs?: number;
   readonly rowCap?: number;
-}
+};
 
-export interface Db {
+export type Db = {
   readonly query: (
     sql: string,
     opts?: QueryOpts
@@ -31,7 +31,7 @@ export interface Db {
     sql: string,
     opts?: QueryOpts
   ) => Effect.Effect<QueryResult, SqlError>;
-}
+};
 
 export type GuardResult =
   | { ok: true; touchesBoxscores: boolean }
@@ -46,10 +46,10 @@ export type Verify = (
   finals: ReadonlySet<number>
 ) => Effect.Effect<VerifyResult>;
 
-export interface Coverage {
+export type Coverage = {
   readonly finals: number;
   readonly archived: number;
-}
+};
 
 export type Answer =
   | {

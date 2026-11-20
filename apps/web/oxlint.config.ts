@@ -72,6 +72,13 @@ export default defineConfig({
       },
     },
     {
+      // Module augmentation merges declarations, which only an interface can do.
+      files: ["tamagui.config.ts"],
+      rules: {
+        "typescript/consistent-type-definitions": "off",
+      },
+    },
+    {
       files: [
         "tamagui.build.ts",
         "next.config.js",

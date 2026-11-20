@@ -10,7 +10,7 @@ import { Array as Arr, Effect, Order, Predicate, Schema } from "effect";
 export type BakeoffOutcome = "Rendered" | "Failed";
 
 // One result, as written by the bake-off runner (FE2).
-export interface BakeoffRecord {
+export type BakeoffRecord = {
   readonly prompt: string;
   readonly dataset: string;
   readonly vocabulary: string;
@@ -22,14 +22,14 @@ export interface BakeoffRecord {
   readonly medianFps: number;
   readonly screenshotPath: string;
   readonly code: string;
-}
+};
 
-export interface BakeoffReportOptions {
+export type BakeoffReportOptions = {
   // Screenshot path to image source (a data URI). A path with no entry shows a placeholder.
   readonly images?: ReadonlyMap<string, string>;
   // Source of the A/B order. Defaults to Math.random; tests pass a fixed source.
   readonly random?: () => number;
-}
+};
 
 export class ScreenshotReadError extends Schema.TaggedError<
   ScreenshotReadError,

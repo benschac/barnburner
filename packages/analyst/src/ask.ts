@@ -16,14 +16,14 @@ export class AskError extends Schema.TaggedError<
   { readonly brand: unique symbol }
 >()("AskError", { message: Schema.String }) {}
 
-export interface AskInput {
+export type AskInput = {
   readonly question: string;
   readonly team: string;
   readonly db: Db;
   readonly model?: LanguageModel;
   readonly traceDir?: string;
-}
-export interface AskResult {
+};
+export type AskResult = {
   readonly outcome:
     | Answer
     | { readonly _tag: "Crashed"; readonly reason: string };
@@ -33,7 +33,7 @@ export interface AskResult {
   readonly inputTokens: number | null;
   readonly outputTokens: number | null;
   readonly latencyMs: number;
-}
+};
 export const ASK_SYSTEM = `Answer NHL questions only from supplied read-only views. Use sql to investigate, then answer to record a verified cell or decline when data cannot answer. Never answer from memory. Views: ${toJson(VIEWS)}`;
 export const ask = (input: AskInput): Effect.Effect<AskResult, AskError, Llm> =>
   Effect.gen(function* () {
