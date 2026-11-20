@@ -1,10 +1,10 @@
-import { opponents as opponentsOf } from "@nhl-reddit-stats/history";
 import type {
-  Graph,
-  HistoryStore,
   HistoryUnavailable,
   UnknownPlayer,
-} from "@nhl-reddit-stats/history";
+} from "@nhl-reddit-stats/history/contracts";
+import { opponents as opponentsOf } from "@nhl-reddit-stats/history/graph";
+import type { Graph } from "@nhl-reddit-stats/history/shapes";
+import type { HistoryStore } from "@nhl-reddit-stats/history/store";
 import { Array, Effect, Order } from "effect";
 
 import type { FacedRow, OpponentsTables, PlayerRow } from "../contracts.ts";

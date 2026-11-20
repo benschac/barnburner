@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { UnknownPlayer } from "@nhl-reddit-stats/history";
+import { UnknownPlayer } from "@nhl-reddit-stats/history/contracts";
 import { HistoryRpcs } from "@nhl-reddit-stats/history/rpc";
 import { Effect, Layer, Schema } from "effect";
 import { FetchHttpClient, HttpRouter } from "effect/http";

@@ -1,22 +1,15 @@
+import type { UnknownPlayer } from "@nhl-reddit-stats/history/contracts";
+import { HistoryUnavailable } from "@nhl-reddit-stats/history/contracts";
+import { farthest } from "@nhl-reddit-stats/history/farthest";
+import { finalsCoverage } from "@nhl-reddit-stats/history/finals";
+import type { TeammateGraph } from "@nhl-reddit-stats/history/graph";
 import {
-  DEFAULT_FILTER,
-  HistoryUnavailable,
-  farthest,
-  finalsCoverage,
-  findPaths,
   link,
   linkKind,
   makeGraph,
   opponents,
-} from "@nhl-reddit-stats/history";
-import type {
-  Hop,
-  HistoryStore,
-  PathResult,
-  PlayerRow,
-  TeammateGraph,
-  UnknownPlayer,
-} from "@nhl-reddit-stats/history";
+} from "@nhl-reddit-stats/history/graph";
+import { findPaths } from "@nhl-reddit-stats/history/paths";
 import {
   GoaliePartnersLink,
   HistoryRpcs,
@@ -25,6 +18,13 @@ import {
   WirePlayedAgainst,
 } from "@nhl-reddit-stats/history/rpc";
 import type { PathResultSchema, WireHop } from "@nhl-reddit-stats/history/rpc";
+import type {
+  Hop,
+  PathResult,
+  PlayerRow,
+} from "@nhl-reddit-stats/history/shapes";
+import { DEFAULT_FILTER } from "@nhl-reddit-stats/history/shapes";
+import type { HistoryStore } from "@nhl-reddit-stats/history/store";
 import {
   Array,
   ByteSize,
