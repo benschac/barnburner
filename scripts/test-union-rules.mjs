@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* oxlint-disable no-restricted-imports, no-restricted-properties -- legacy: port to the Effect platform services, see "Node scripts" in AGENTS.md */
 // Proves the union-model lint rules fire on bad shapes and stay quiet on good ones.
-// Usage: node scripts/test-union-rules.mjs <package dir with .oxlintrc.json>
+// Usage: node scripts/test-union-rules.mjs <package dir with an oxlint.config.ts>
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -17,6 +17,10 @@ const effectTsgo = fileURLToPath(
 );
 const root = resolve(process.argv[2] ?? ".");
 const dir = await mkdtemp(`${root}/union-rule-test-`);
+// Only the rules these cases prove count. A fixture is a bare snippet, so the other rules in the
+// package config (anti-slop, Ultracite) report on it for reasons unrelated to the case.
+const CHECKED =
+  /^(unions\(|typescript\((switch-exhaustiveness-check|no-floating-promises)\))/;
 const cases = [
   [
     "untagged union",
@@ -90,9 +94,7 @@ try {
     );
     // anti-slop rules also report on the fixture, a new file; count only the rules under test.
     const errors = diagnostics.filter(
-      (d) =>
-        d.severity === "error" &&
-        !/^(anti-slop[a-z-]*|landmines|ai-guard|enfect)\(/.test(d.code)
+      (d) => d.severity === "error" && CHECKED.test(d.code)
     );
     if (expected)
       assert.ok(
