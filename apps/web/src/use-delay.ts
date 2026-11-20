@@ -1,7 +1,21 @@
 import { Duration, Effect } from 'effect'
+import type { Fiber } from 'effect'
+import { useCallback, useEffect, useRef } from 'react'
 
-/** Runs `action` once after `millis` and returns the function that cancels it. React effects and handlers call it in place of a timer. */
-export function delay(millis: number, action: () => void): () => void {
-  const fiber = Effect.runFork(Effect.sleep(Duration.millis(millis)).pipe(Effect.andThen(Effect.sync(action))))
-  return () => fiber.interruptUnsafe()
+/**
+ * A write that waits `millis` after the last call. `schedule` replaces any pending action, `cancel` drops it,
+ * and unmounting cancels it too, so no action runs after the component is gone.
+ */
+export function useDelay(millis: number) {
+  const pending = useRef<Fiber.Fiber<void> | undefined>(undefined)
+  const cancel = useCallback(() => {
+    pending.current?.interruptUnsafe()
+    pending.current = undefined
+  }, [])
+  const schedule = useCallback((action: () => void) => {
+    cancel()
+    pending.current = Effect.runFork(Effect.sleep(Duration.millis(millis)).pipe(Effect.andThen(Effect.sync(action))))
+  }, [millis, cancel])
+  useEffect(() => cancel, [cancel])
+  return { schedule, cancel }
 }

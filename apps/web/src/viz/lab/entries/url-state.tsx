@@ -2,13 +2,13 @@
 
 import { Option } from 'effect'
 import { useAtomValue } from '@effect/atom-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { LabEntry } from '@nhl-reddit-stats/viz'
 import type { Atom } from 'effect/reactivity'
 import type { Schema } from 'effect'
 import type { ReactNode } from 'react'
 import { RelationSchema } from '@nhl-reddit-stats/history/rpc'
-import { delay } from '../../../use-delay.ts'
+import { useDelay } from '../../../use-delay.ts'
 import {
   Competition, Partners, WholeNumber, competitionAtom, decodeParam, encodeParam, filterAtom, fromAtom, fromSeasonAtom,
   partnersAtom, relationAtom, toAtom, toSeasonAtom, writeSearchParam,
@@ -31,18 +31,15 @@ type FieldProps<A extends string | number> = {
 function Field<A extends string | number>({ name, atom, schema }: FieldProps<A>) {
   const value = useAtomValue(atom)
   const [draft, setDraft] = useState<string | null>(null)
-  const cancelWrite = useRef<(() => void) | undefined>(undefined)
+  const { schedule, cancel } = useDelay(settleMs)
   useEffect(() => {
     const onHistory = () => {
-      cancelWrite.current?.()
+      cancel()
       setDraft(null)
     }
     window.addEventListener('popstate', onHistory)
-    return () => {
-      window.removeEventListener('popstate', onHistory)
-      cancelWrite.current?.()
-    }
-  }, [])
+    return () => window.removeEventListener('popstate', onHistory)
+  }, [cancel])
   const text = draft ?? show(value)
   return (
     <div>
@@ -54,8 +51,7 @@ function Field<A extends string | number>({ name, atom, schema }: FieldProps<A>)
           onChange={(event) => {
             const next = event.target.value
             setDraft(next)
-            cancelWrite.current?.()
-            cancelWrite.current = delay(settleMs, () => {
+            schedule(() => {
               writeSearchParam(name, Option.getOrNull(Option.flatMap(decodeParam(schema)(next), encodeParam(schema))))
             })
           }}
