@@ -1,20 +1,13 @@
 import type { VizTheme } from '@nhl-reddit-stats/viz'
 import { getConfig, getVariableValue, useTheme, useThemeName } from 'tamagui'
 import contract from '../../design/contract.json' with { type: 'json' }
+import { colourFields } from './theme-css.ts'
+import type { ColourField } from './theme-css.ts'
 
 // One source for the charts: every colour is a value of design/contract.json, read through the
 // Tamagui theme (useVizTheme) or passed in (vizTheme). No colour literal lives in this folder.
 
 type ThemeValues = Readonly<Record<string, string>>
-
-/** The VizTheme fields that are colours. Each one reads the contract key of the same name, kebab-cased. */
-type ColourField = Exclude<keyof VizTheme, 'mode' | 'series' | 'fonts'>
-const colourSet: Record<ColourField, true> = {
-  background: true, color: true, muted: true, gold: true, win: true, loss: true, pending: true, rule: true,
-  surface: true, highlight: true, brand: true, bright: true, chartWin: true, chartLoss: true,
-  chartPositive: true, chartNegative: true, chartLine: true,
-}
-const colourFields = Object.keys(colourSet) as ColourField[]
 
 const kebab = (field: string) => field.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
 
@@ -54,15 +47,7 @@ export function vizTheme(values: ThemeValues, mode: VizTheme['mode']): VizTheme 
   }
 }
 
-/** CSS custom properties for the frame: `--viz-<kebab field>`, `--viz-series-<n>`, and the two font families. */
-export function cssVariables(theme: VizTheme): Record<string, string> {
-  const vars: Record<string, string> = {}
-  for (const field of colourFields) vars[`--viz-${kebab(field)}`] = theme[field]
-  theme.series.forEach((colour, index) => { vars[`--viz-series-${index}`] = colour })
-  vars['--viz-font-body'] = theme.fonts.body
-  vars['--viz-font-score'] = theme.fonts.score
-  return vars
-}
+export { cssVariables } from './theme-css.ts'
 
 /** Every axis variant G2 5.4.8 defines (theme/create.js): labels and titles take the text colour at full opacity. */
 function axisTheme(theme: VizTheme) {

@@ -4,6 +4,7 @@ import { Schema } from 'effect'
 import { VizTheme } from '@nhl-reddit-stats/viz'
 import contract from '../design/contract.json' with { type: 'json' }
 import { cssVariables, g2Theme, g6Theme, teamColor, vizTheme } from '../src/viz/theme.ts'
+import { themeVariables } from '../src/viz/frame/frame.ts'
 
 // Each VizTheme field and the contract key it reads (the chart colours of contract.json themes).
 const fieldKeys = {
@@ -20,6 +21,19 @@ function valuesFor(mode: 'light' | 'dark') {
 }
 
 for (const mode of ['light', 'dark'] as const) {
+  test(`sandbox CSS preserves the ${mode} host theme values`, () => {
+    const theme = vizTheme(valuesFor(mode), mode)
+    const variables = Object.fromEntries(themeVariables(theme))
+    for (const key of Object.values(fieldKeys)) {
+      assert.equal(variables[`--viz-${key}`], contract.themes[mode][key])
+    }
+    theme.series.forEach((colour, index) => assert.equal(variables[`--viz-series-${index}`], colour))
+    assert.equal(variables['--viz-font-body'], fonts['font-body'])
+    assert.equal(variables['--viz-font-score'], fonts['font-score'])
+    assert.equal(variables['color-scheme'], mode)
+    assert.equal(Object.keys(variables).length, 27)
+  })
+
   test(`every VizTheme field is filled from the ${mode} contract theme`, () => {
     const theme = vizTheme(valuesFor(mode), mode)
     assert.equal(theme.mode, mode)

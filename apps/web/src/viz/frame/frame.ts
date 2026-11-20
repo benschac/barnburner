@@ -1,7 +1,8 @@
-import { Effect, Match, Option, Schema, String as Str } from 'effect'
+import { Effect, Match, Option, Schema } from 'effect'
 import { HostMessage } from '@nhl-reddit-stats/viz'
 import type { Dispose, FrameReport, Render, ViewContext, ViewModule, VizTheme } from '@nhl-reddit-stats/viz'
 import manifest from '../../../package.json' with { type: 'json' }
+import { cssVariables } from '../theme-css.ts'
 
 // The runtime of the sandboxed visualization frame (plan section C-viz, decision D17). It is the page
 // script of `viz-frame.html`. The host posts `Render` and `Dispose`; the frame posts `Ready`, `Rendered`,
@@ -62,12 +63,7 @@ export type FrameDeps = {
  */
 export const themeVariables = (theme: VizTheme): ReadonlyArray<readonly [name: string, value: string]> => [
   ['color-scheme', theme.mode],
-  ...Object.entries(theme)
-    .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[0] !== 'mode')
-    .map(([name, value]) => [`--viz-${Str.kebabCase(name)}`, value] as const),
-  ...theme.series.map((colour, index) => [`--viz-series-${index}`, colour] as const),
-  ['--viz-font-body', theme.fonts.body],
-  ['--viz-font-score', theme.fonts.score],
+  ...Object.entries(cssVariables(theme)),
 ]
 
 const describe = (cause: unknown): string => cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause)
