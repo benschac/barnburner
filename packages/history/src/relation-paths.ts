@@ -157,7 +157,7 @@ const enumerateRelationChains = (
       found.push({ other, games: opponents.games[at], linkId: -1 });
     }
     // Player index ascends with player ID, so the tie-break on index is the lowest ID.
-    return Array.sortBy(
+    return Array.sortBy<Step[]>(
       Order.mapInput(Order.flip(Order.Number), (step: Step) => step.games),
       Order.mapInput(Order.Number, (step: Step) => step.other)
     )(found);

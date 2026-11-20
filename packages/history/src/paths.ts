@@ -294,7 +294,7 @@ export const enumerateChains = (
       if (games > 0) found.push({ at, games });
     }
     // Neighbour indexes ascend with player ID, so the tie-break on index is the lowest ID.
-    return Array.sortBy(
+    return Array.sortBy<Found[]>(
       Order.mapInput(Order.flip(Order.Number), (entry: Found) => entry.games),
       Order.mapInput(Order.Number, (entry: Found) => neighbours[entry.at])
     )(found).map((entry) => entry.at);

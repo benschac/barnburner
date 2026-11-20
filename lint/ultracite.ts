@@ -99,26 +99,18 @@ const declined = {
 } as const;
 
 const pending = {
-  // 76 findings
-  "typescript/no-unsafe-member-access": "off",
   // 26 findings
   "typescript/no-unsafe-type-assertion": "off",
-  // 20 findings
-  "typescript/no-unsafe-assignment": "off",
   // 19 findings
   "typescript/method-signature-style": "off",
   // 17 findings
   "no-shadow": "off",
-  // 12 findings
-  "typescript/no-unsafe-return": "off",
   // 11 findings
   "typescript/no-unnecessary-type-conversion": "off",
   // 11 findings
   "typescript/no-explicit-any": "off",
   // 10 findings
   "typescript/strict-void-return": "off",
-  // 10 findings
-  "typescript/no-unsafe-call": "off",
   // 8 findings
   "promise/prefer-catch": "off",
   // 8 findings
@@ -129,8 +121,6 @@ const pending = {
   "typescript/no-deprecated": "off",
   // 4 findings
   "unicorn/prefer-code-point": "off",
-  // 4 findings
-  "typescript/no-unsafe-argument": "off",
   // 3 findings
   "unicorn/no-useless-spread": "off",
   // 3 findings
@@ -182,6 +172,22 @@ const pending = {
 export const off: OxlintConfig = {
   rules: { ...conflicts, ...configured, ...style, ...declined, ...pending },
   overrides: [
+    {
+      // Tests read fixtures and mocks as `any`; most no-unsafe findings were there.
+      files: [
+        "**/*.test.{ts,tsx}",
+        "**/tests/**",
+        "**/test/**",
+        "**/__tests__/**",
+      ],
+      rules: {
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-return": "off",
+      },
+    },
     {
       // JavaScript files carry no types, so every value is `any` to the type-aware rules.
       files: ["**/*.{js,mjs,cjs}"],

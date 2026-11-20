@@ -61,8 +61,10 @@ export function finalsGrid(
     axis: false,
     legend: false,
     tooltip: {
-      title: (datum) => String(datum.year),
-      items: [(datum) => ({ name: "Teammate", value: datum.player })],
+      title: (datum: FinalsCell) => String(datum.year),
+      items: [
+        (datum: FinalsCell) => ({ name: "Teammate", value: datum.player }),
+      ],
     },
   };
 }

@@ -14,6 +14,7 @@ import {
   Exit,
   Match,
   Option,
+  Predicate,
   Result,
   Schema,
   Stream,
@@ -80,9 +81,7 @@ const hasFailureStreak = (steps: GenerateSteps): boolean => {
     Match.value(part).pipe(
       Match.when({ type: "tool-error" }, () => failures + 1),
       Match.when({ type: "tool-result" }, ({ output }) =>
-        Schema.is(Schema.String)(output) && isFailureText(output)
-          ? failures + 1
-          : 0
+        Predicate.isString(output) && isFailureText(output) ? failures + 1 : 0
       ),
       Match.orElse(() => failures)
     )
