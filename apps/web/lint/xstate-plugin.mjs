@@ -467,21 +467,45 @@ export default {
             if (isEffectRun || isGlobalUse) impure(node);
           };
 
-          const visit = (node, parent) => {
-            if (
-              node.type === "VariableDeclarator" &&
+          // A deferred function declaration is not walked here.
+          const declaresDeferred = (node) =>
+            (node.type === "VariableDeclarator" &&
               node.id.type === "Identifier" &&
               deferred.has(node.id.name) &&
-              isFunction(unwrap(node.init))
-            )
-              return false;
+              isFunction(unwrap(node.init))) ||
+            (node.type === "FunctionDeclaration" &&
+              node.id &&
+              deferred.has(node.id.name));
+
+          const checkNew = (node) => {
+            const path = globalPath(node.callee);
 
             if (
-              node.type === "FunctionDeclaration" &&
-              node.id &&
-              deferred.has(node.id.name)
+              (path?.length === 1 &&
+                path[0] === "Date" &&
+                node.arguments.length === 0) ||
+              path?.[0] === "XMLHttpRequest"
             )
-              return false;
+              impure(node);
+          };
+
+          // Callbacks run after the snapshot is resolved, so only the other arguments are checked.
+          const checkEnqArguments = (node) => {
+            const callee = unwrap(node.callee);
+            const spawns =
+              callee.type === "MemberExpression" &&
+              callee.property.name === "spawn";
+
+            if (!spawns)
+              node.arguments
+                .filter((arg) => !isFunction(unwrap(arg)))
+                .forEach((arg) => {
+                  walk(arg, visit, node);
+                });
+          };
+
+          const visit = (node, parent) => {
+            if (declaresDeferred(node)) return false;
 
             if (isFunction(node) && node.async)
               report(
@@ -509,33 +533,13 @@ export default {
                 break;
               }
               case "NewExpression": {
-                const path = globalPath(node.callee);
-
-                if (
-                  (path?.length === 1 &&
-                    path[0] === "Date" &&
-                    node.arguments.length === 0) ||
-                  path?.[0] === "XMLHttpRequest"
-                )
-                  impure(node);
+                checkNew(node);
                 break;
               }
 
               case "CallExpression": {
                 if (isEnqCall(node)) {
-                  // Callbacks run after the snapshot is resolved, so only the other arguments are checked.
-                  const callee = unwrap(node.callee);
-                  const spawns =
-                    callee.type === "MemberExpression" &&
-                    callee.property.name === "spawn";
-
-                  if (!spawns)
-                    node.arguments
-                      .filter((arg) => !isFunction(unwrap(arg)))
-                      .forEach((arg) => {
-                        walk(arg, visit, node);
-                      });
-
+                  checkEnqArguments(node);
                   return false;
                 }
 
