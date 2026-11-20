@@ -189,10 +189,9 @@ export const rank = (
       .pipe(
         Effect.catchTag("LlmOutputError", (error) =>
           Effect.fail(
-            new RankError({
-              message: error.message,
-              ...(error.raw === undefined ? {} : { raw: error.raw }),
-            })
+            error.raw === undefined
+              ? new RankError({ message: error.message })
+              : new RankError({ message: error.message, raw: error.raw })
           )
         )
       );
