@@ -13,20 +13,20 @@ import type { NotPendingError } from "../src/review.ts";
 import { readCards, writeCards } from "../src/store.ts";
 import type { StoreError } from "../src/store.ts";
 
-export interface ReviewOptions {
+export type ReviewOptions = {
   readonly dir: string;
   readonly teams?: readonly string[] | undefined;
   // Called only after the card and its prompt were written to out. Resolves undefined at end of input.
   readonly nextLine: () => Promise<string | undefined>;
   readonly out: (text: string) => void;
   readonly now: string;
-}
+};
 
-export interface ReviewSummary {
+export type ReviewSummary = {
   readonly approved: number;
   readonly rejected: number;
   readonly skipped: number;
-}
+};
 
 export type ReviewError = StoreError | RenderError | NotPendingError;
 

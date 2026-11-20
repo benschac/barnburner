@@ -167,10 +167,10 @@ export const snapshotImplementation = (root: string) =>
     return files;
   });
 
-export interface OfflineEvaluation {
+export type OfflineEvaluation = {
   readonly mode: "offline";
   readonly answer: (item: EvalCase) => Effect.Effect<AskResult, EvalCliError>;
-}
+};
 
 export const runCli = (
   args: readonly string[],

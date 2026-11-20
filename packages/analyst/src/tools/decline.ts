@@ -1,13 +1,13 @@
 import { tool, jsonSchema } from "ai";
 import { Effect } from "effect";
 
-export interface DeclineDeps {
+export type DeclineDeps = {
   readonly onDecline: (reason: string) => void;
-}
+};
 
-export interface DeclineInput {
+export type DeclineInput = {
   readonly reason: string;
-}
+};
 
 // Runtime check of model-supplied arguments. Wrong types are reported, never coerced.
 export const checkDeclineInput = (

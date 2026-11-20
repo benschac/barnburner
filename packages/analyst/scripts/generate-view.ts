@@ -40,12 +40,12 @@ const usage =
 const vocabularies = { antv: "view-antv.md", d3: "view-d3.md" } as const;
 type Vocabulary = keyof typeof vocabularies;
 
-export interface GenerateArgs {
+export type GenerateArgs = {
   readonly prompt: string;
   readonly tables: string;
   readonly vocabulary: Vocabulary;
   readonly out: string;
-}
+};
 
 // Flags are `--name value` pairs. Every flag is required, may appear once, and must have a non-empty value.
 export const parseArgs = (

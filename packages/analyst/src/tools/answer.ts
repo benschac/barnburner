@@ -3,19 +3,19 @@ import { Effect, Result } from "effect";
 
 import type { Answer, Coverage, Db, Guard, Row } from "../shapes.ts";
 
-export interface AnswerDeps {
+export type AnswerDeps = {
   readonly db: Db;
   readonly guard: Guard;
   // Team whose boxscore coverage is attached when the query reads box scores.
   readonly team: string;
   readonly onAnswer: (a: Answer) => void;
-}
+};
 
-export interface AnswerInput {
+export type AnswerInput = {
   readonly query: string;
   readonly row: number;
   readonly column: string;
-}
+};
 
 type Checked<T> = { ok: true; input: T } | { ok: false; reason: string };
 

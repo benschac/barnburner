@@ -29,13 +29,13 @@ export const RankScores = Schema.Struct({
 });
 export type RankScores = typeof RankScores.Type;
 
-export interface RankedCard {
+export type RankedCard = {
   readonly card: InsightCard;
   readonly novelty: number;
   readonly specificity: number;
   readonly readability: number;
   readonly total: number;
-}
+};
 
 export const TOP_N = 3;
 
@@ -75,21 +75,21 @@ const system = [
   "Include every card id exactly once. Scores are integers 1-5.",
 ].join("\n");
 
-export interface DroppedCard {
+export type DroppedCard = {
   readonly id: string;
   readonly reason: string;
-}
+};
 
-export interface RankResult {
+export type RankResult = {
   readonly ranked: readonly RankedCard[];
   readonly dropped: readonly DroppedCard[];
-}
+};
 
-interface RenderedCard {
+type RenderedCard = {
   readonly card: InsightCard;
   readonly headline: string;
   readonly body: string;
-}
+};
 
 const renderCard = (
   card: InsightCard
@@ -162,11 +162,11 @@ const byRank: Order.Order<RankedCard> = Order.combine(
   Order.mapInput(Order.String, (ranked: RankedCard) => ranked.card.id)
 );
 
-export interface RankInput {
+export type RankInput = {
   readonly cards: readonly InsightCard[];
   readonly posterFacts: readonly string[];
   readonly model?: LanguageModel;
-}
+};
 
 export const rank = (
   input: RankInput

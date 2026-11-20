@@ -44,7 +44,7 @@ export class GenerateError extends Schema.TaggedError<
   { readonly brand: unique symbol }
 >()("GenerateError", { message: Schema.String }) {}
 
-export interface GenerateInput {
+export type GenerateInput = {
   readonly team: string;
   readonly db: Db;
   // Facts the poster already states; the prompt tells the model not to restate them.
@@ -52,19 +52,19 @@ export interface GenerateInput {
   readonly fetchedAt?: string;
   readonly model?: LanguageModel;
   readonly traceDir?: string;
-}
+};
 
 const RunReason = Schema.NullOr(Schema.String);
 
-export interface GenerateResult extends Pick<
-  AskResult,
-  "runId" | "model" | "steps" | "inputTokens" | "outputTokens" | "latencyMs"
-> {
+export type GenerateResult = {
   readonly outcome: Outcome;
   readonly cards: readonly InsightCard[];
   // Why the run declined, found nothing, or crashed.
   readonly reason: typeof RunReason.Type;
-}
+} & Pick<
+  AskResult,
+  "runId" | "model" | "steps" | "inputTokens" | "outputTokens" | "latencyMs"
+>;
 
 const sqlText = (value: string): string => value.replaceAll("'", "''");
 

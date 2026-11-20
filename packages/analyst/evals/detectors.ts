@@ -30,10 +30,10 @@ export class EvalDetectorsError extends Schema.TaggedError<
 
 const TeamsFile = Schema.Array(Schema.Struct({ abbrev: Schema.String }));
 
-export interface DetectorDef {
+export type DetectorDef = {
   readonly name: string;
   readonly run: (team: string) => CardDraft[];
-}
+};
 
 export const DETECTORS: readonly DetectorDef[] = [
   { name: "extraTime", run: extraTime },
@@ -48,20 +48,20 @@ export const DETECTORS: readonly DetectorDef[] = [
 // Check 0 is not a verifier check. It counts drafts that fillCard refused (guard or SQL failure) before verification.
 export const FILL_CHECK = 0;
 
-export interface DetectorFailure {
+export type DetectorFailure = {
   readonly team: string;
   readonly detector: string;
   readonly check: number;
   readonly detail: string;
-}
+};
 
-export interface DetectorScore {
+export type DetectorScore = {
   readonly total: number;
   readonly passed: number;
   readonly passRate: number;
-}
+};
 
-export interface DetectorReport {
+export type DetectorReport = {
   readonly teams: number;
   readonly total: number;
   readonly passed: number;
@@ -70,13 +70,13 @@ export interface DetectorReport {
   // Failing cards keyed by check; FILL_CHECK for drafts that could not be filled.
   readonly failuresByCheck: Readonly<Record<number, number>>;
   readonly failures: readonly DetectorFailure[];
-}
+};
 
-interface Tally {
+type Tally = {
   total: number;
   passed: number;
   failuresByCheck: Record<number, number>;
-}
+};
 
 const readTeams = (dataDir: string) =>
   Effect.gen(function* () {
