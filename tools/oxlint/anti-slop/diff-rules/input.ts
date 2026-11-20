@@ -1,6 +1,7 @@
 // oxlint-disable effecttsgo/node-builtin-import -- a standalone CLI outside any Effect runtime, so Effect's platform services do not apply
 
 import { createHash } from "node:crypto";
+
 import type { ChangeSet, FileChange, HistorySummary } from "./git.ts";
 import type { DiffRule } from "./rules.ts";
 
@@ -23,7 +24,8 @@ export interface InputOptions {
   readonly maxSummaryFiles: number;
 }
 
-const sha256 = (text: string): string => createHash("sha256").update(text).digest("hex");
+const sha256 = (text: string): string =>
+  createHash("sha256").update(text).digest("hex");
 
 const STATUS_LETTER: Record<FileChange["status"], string> = {
   added: "A",
@@ -37,12 +39,20 @@ const STATUS_LETTER: Record<FileChange["status"], string> = {
  * with its size, and history. Cross-file rules such as shotgun surgery need it even when the hunks
  * of most files are in other chunks.
  */
-export function renderSummary(change: ChangeSet, history: HistorySummary, options: InputOptions): string {
+export function renderSummary(
+  change: ChangeSet,
+  history: HistorySummary,
+  options: InputOptions
+): string {
   const lines: string[] = ["# Change set", ""];
   lines.push(`Purpose: ${options.purpose ?? "(not stated)"}`);
   if (change.branch !== undefined) lines.push(`Branch: ${change.branch}`);
-  lines.push(`Base: ${change.baseLabel}${change.baseCommit === undefined ? "" : ` (${change.baseCommit.slice(0, 12)})`}`);
-  lines.push(`Scope: ${change.mode === "full" ? "commits since the base plus uncommitted changes" : change.mode}`);
+  lines.push(
+    `Base: ${change.baseLabel}${change.baseCommit === undefined ? "" : ` (${change.baseCommit.slice(0, 12)})`}`
+  );
+  lines.push(
+    `Scope: ${change.mode === "full" ? "commits since the base plus uncommitted changes" : change.mode}`
+  );
   if (change.commits.length > 0) {
     lines.push("", "Commits in this change, newest first:");
     for (const commit of change.commits) lines.push(`- ${commit.subject}`);
@@ -50,29 +60,47 @@ export function renderSummary(change: ChangeSet, history: HistorySummary, option
 
   const added = change.files.reduce((sum, file) => sum + file.added, 0);
   const deleted = change.files.reduce((sum, file) => sum + file.deleted, 0);
-  lines.push("", `Changed files (${change.files.length} files, +${added} -${deleted}):`);
+  lines.push(
+    "",
+    `Changed files (${change.files.length} files, +${added} -${deleted}):`
+  );
   for (const file of change.files.slice(0, options.maxSummaryFiles)) {
     const renamed = file.oldPath === undefined ? "" : ` (from ${file.oldPath})`;
-    lines.push(`${STATUS_LETTER[file.status]} ${file.path}${renamed} +${file.added} -${file.deleted}`);
+    lines.push(
+      `${STATUS_LETTER[file.status]} ${file.path}${renamed} +${file.added} -${file.deleted}`
+    );
   }
   if (change.files.length > options.maxSummaryFiles) {
-    lines.push(`... and ${change.files.length - options.maxSummaryFiles} more files`);
+    lines.push(
+      `... and ${change.files.length - options.maxSummaryFiles} more files`
+    );
   }
   if (change.skipped.length > 0) {
     lines.push(`Binary or oversized files not shown: ${change.skipped.length}`);
   }
 
-  const histories = Object.entries(history.files).filter(([, file]) => file.subjects.length > 0);
+  const histories = Object.entries(history.files).filter(
+    ([, file]) => file.subjects.length > 0
+  );
   if (histories.length > 0) {
-    lines.push("", `History before this change (recent commit subjects per file; commits among the last ${history.window}):`);
+    lines.push(
+      "",
+      `History before this change (recent commit subjects per file; commits among the last ${history.window}):`
+    );
     for (const [path, file] of histories) {
-      lines.push(`${path} (${file.recentCommits} of the last ${history.window} commits):`);
+      lines.push(
+        `${path} (${file.recentCommits} of the last ${history.window} commits):`
+      );
       for (const subject of file.subjects) lines.push(`  - ${subject}`);
     }
   }
   if (history.coChanges.length > 0) {
-    lines.push("", `Touched files that changed together in the last ${history.window} commits:`);
-    for (const pair of history.coChanges) lines.push(`${pair.left} <-> ${pair.right}: ${pair.commits} commits`);
+    lines.push(
+      "",
+      `Touched files that changed together in the last ${history.window} commits:`
+    );
+    for (const pair of history.coChanges)
+      lines.push(`${pair.left} <-> ${pair.right}: ${pair.commits} commits`);
   }
   return lines.join("\n");
 }
@@ -86,7 +114,11 @@ function truncatePatch(patch: string, maxChars: number): string {
  * Split the hunks into chunks of at most `maxChunkChars`, keeping files sorted by path so a
  * directory's files tend to share a chunk. Every chunk repeats the summary.
  */
-export function buildInputs(change: ChangeSet, history: HistorySummary, options: InputOptions): JudgeInput[] {
+export function buildInputs(
+  change: ChangeSet,
+  history: HistorySummary,
+  options: InputOptions
+): JudgeInput[] {
   const summary = renderSummary(change, history, options);
   const groups: FileChange[][] = [];
   let current: FileChange[] = [];
@@ -115,12 +147,21 @@ export function buildInputs(change: ChangeSet, history: HistorySummary, options:
       "",
       ...group.map((file) => truncatePatch(file.patch, options.maxChunkChars)),
     ].join("\n");
-    return { text, hash: sha256(text), index, total: groups.length, files: group.map((file) => file.path) };
+    return {
+      text,
+      hash: sha256(text),
+      index,
+      total: groups.length,
+      files: group.map((file) => file.path),
+    };
   });
 }
 
 /** The prompt for chat-model and CLI judges; the decision model gets `input.text` directly. */
-export function renderJudgePrompt(rules: ReadonlyArray<DiffRule>, input: JudgeInput): string {
+export function renderJudgePrompt(
+  rules: ReadonlyArray<DiffRule>,
+  input: JudgeInput
+): string {
   return [
     "You are reviewing a code change for design smells (Martin Fowler, Refactoring, 2nd ed., chapter 3) and review-process problems.",
     "Answer each rule's question about the change set below. Answering yes (violation: true) means the change violates the rule.",

@@ -3,35 +3,35 @@ name: History checks
 on:
   pull_request:
     paths:
-      - '.github/workflows/history-checks.yml'
-      - 'scripts/import-nhl-*.py'
-      - 'scripts/build-nhl-*.py'
-      - 'scripts/check_nhl_*.py'
-      - 'scripts/nhl-history-*.py'
-      - 'scripts/nhl_*.py'
-      - 'scripts/refresh-effect-api.mjs'
-      - 'scripts/index-effect-core.mjs'
-      - 'scripts/*.mjs'
-      - 'lib/**'
-      - 'lint/**'
-      - 'tools/oxlint/**'
-      - '.agent-sources/effect/**'
-      - 'tests/**'
-      - 'packages/history/**'
-      - 'packages/season/**'
-      - 'apps/api/**'
-      - 'apps/web/src/season-source.ts'
-      - 'apps/web/app/api/**'
-      - 'apps/web/vercel.json'
-      - 'apps/web/scripts/check-vercel-output.mjs'
-      - 'package.json'
-      - 'bun.lock'
-      - 'turbo.json'
-      - 'data/history/serving.json'
-      - 'data/history/manifest.json'
-      - 'data/nhl-20262027.json'
-      - 'data/nhl-poster-20262027.json'
-      - 'data/boxscores/20262027/**'
+      - ".github/workflows/history-checks.yml"
+      - "scripts/import-nhl-*.py"
+      - "scripts/build-nhl-*.py"
+      - "scripts/check_nhl_*.py"
+      - "scripts/nhl-history-*.py"
+      - "scripts/nhl_*.py"
+      - "scripts/refresh-effect-api.mjs"
+      - "scripts/index-effect-core.mjs"
+      - "scripts/*.mjs"
+      - "lib/**"
+      - "lint/**"
+      - "tools/oxlint/**"
+      - ".agent-sources/effect/**"
+      - "tests/**"
+      - "packages/history/**"
+      - "packages/season/**"
+      - "apps/api/**"
+      - "apps/web/src/season-source.ts"
+      - "apps/web/app/api/**"
+      - "apps/web/vercel.json"
+      - "apps/web/scripts/check-vercel-output.mjs"
+      - "package.json"
+      - "bun.lock"
+      - "turbo.json"
+      - "data/history/serving.json"
+      - "data/history/manifest.json"
+      - "data/nhl-20262027.json"
+      - "data/nhl-poster-20262027.json"
+      - "data/boxscores/20262027/**"
 
 permissions:
   contents: read

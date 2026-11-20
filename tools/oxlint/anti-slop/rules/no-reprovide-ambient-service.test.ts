@@ -1,35 +1,40 @@
-import { RuleTester } from 'oxlint/plugins-dev'
+import { RuleTester } from "oxlint/plugins-dev";
 
-import { noReprovideAmbientServiceRule } from './no-reprovide-ambient-service.ts'
+import { noReprovideAmbientServiceRule } from "./no-reprovide-ambient-service.ts";
 
-const tester = new RuleTester({ languageOptions: { parserOptions: { lang: 'ts' } } })
+const tester = new RuleTester({
+  languageOptions: { parserOptions: { lang: "ts" } },
+});
 const error = {
-	messageId: 'reprovideAmbientService',
-	data: { service: 'HttpClient.HttpClient' },
-}
+  messageId: "reprovideAmbientService",
+  data: { service: "HttpClient.HttpClient" },
+};
 
-tester.run('anti-slop/no-reprovide-ambient-service', noReprovideAmbientServiceRule, {
-	valid: [
-		{
-			code: `
+tester.run(
+  "anti-slop/no-reprovide-ambient-service",
+  noReprovideAmbientServiceRule,
+  {
+    valid: [
+      {
+        code: `
         import { Effect } from 'effect'
         import * as HttpClient from 'effect/unstable/http/HttpClient'
         const operation = Effect.gen(function* () {
           yield* HttpClient.HttpClient
         })
       `,
-		},
-		{
-			code: `
+      },
+      {
+        code: `
         import { Effect } from 'effect'
         const operation = Effect.gen(function* () {
           const first = yield* FirstService
           return Effect.provideService(request, SecondService, first)
         })
       `,
-		},
-		{
-			code: `
+      },
+      {
+        code: `
         import { Effect } from 'effect'
         import * as HttpClient from 'effect/unstable/http/HttpClient'
         const operation = Effect.gen(function* () {
@@ -38,29 +43,29 @@ tester.run('anti-slop/no-reprovide-ambient-service', noReprovideAmbientServiceRu
           return request.pipe(Effect.provideService(HttpClient.HttpClient, tenantClient))
         })
       `,
-		},
-		{
-			code: `
+      },
+      {
+        code: `
         import { Effect } from 'effect'
         const operation = Effect.gen(function* () {
           const first = yield* FirstService
           return request.pipe(Effect.provideService(SecondService, first))
         })
       `,
-		},
-		{
-			code: `
+      },
+      {
+        code: `
         import { Effect } from 'other-library'
         const operation = Effect.gen(function* () {
           const service = yield* Service
           return request.pipe(Effect.provideService(Service, service))
         })
       `,
-		},
-	],
-	invalid: [
-		{
-			code: `
+      },
+    ],
+    invalid: [
+      {
+        code: `
         import { Effect } from 'effect'
         import * as HttpClient from 'effect/unstable/http/HttpClient'
         const ServiceLive = Layer.effect(Service, Effect.gen(function* () {
@@ -72,10 +77,10 @@ tester.run('anti-slop/no-reprovide-ambient-service', noReprovideAmbientServiceRu
           })
         }))
       `,
-			errors: [error],
-		},
-		{
-			code: `
+        errors: [error],
+      },
+      {
+        code: `
         import * as Fx from 'effect/Effect'
         import * as HttpClient from 'effect/unstable/http/HttpClient'
         const operation = Fx.gen(function* () {
@@ -83,10 +88,10 @@ tester.run('anti-slop/no-reprovide-ambient-service', noReprovideAmbientServiceRu
           return request.pipe(Fx.provideService(HttpClient.HttpClient, httpClient))
         })
       `,
-			errors: [error],
-		},
-		{
-			code: `
+        errors: [error],
+      },
+      {
+        code: `
         import { Effect } from 'effect'
         import * as HttpClient from 'effect/unstable/http/HttpClient'
         const operation = Effect.gen(function* () {
@@ -94,7 +99,8 @@ tester.run('anti-slop/no-reprovide-ambient-service', noReprovideAmbientServiceRu
           return Effect.provideService(request, HttpClient.HttpClient, httpClient)
         })
       `,
-			errors: [error],
-		},
-	],
-})
+        errors: [error],
+      },
+    ],
+  }
+);

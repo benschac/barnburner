@@ -1,6 +1,9 @@
 {
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
-  "extends": ["../../lint/effect-core.oxlintrc.json", "../../lint/anti-slop.oxlintrc.json"],
+  "extends": [
+    "../../lint/effect-core.oxlintrc.json",
+    "../../lint/anti-slop.oxlintrc.json"
+  ],
   "options": {
     "typeAware": true
   },
@@ -12,10 +15,7 @@
   },
   "overrides": [
     {
-      "files": [
-        "**/*.test.ts",
-        "**/*.test.tsx"
-      ],
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
       "rules": {
         "typescript/no-floating-promises": "off"
       }

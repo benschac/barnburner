@@ -1,9 +1,11 @@
 import { RuleTester } from "oxlint/plugins-dev";
 
-import { requireReadableSpacingRule } from "./require-readable-spacing.ts";
 import createPaddingLineRule from "../vendor/eslint-stylistic/padding-line-between-statements.ts";
+import { requireReadableSpacingRule } from "./require-readable-spacing.ts";
 
-const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "ts" } } });
+const tester = new RuleTester({
+  languageOptions: { parserOptions: { lang: "ts" } },
+});
 const error = { messageId: "expectedBlankLine" };
 
 tester.run("anti-slop/require-readable-spacing", requireReadableSpacingRule, {
@@ -21,7 +23,11 @@ tester.run("anti-slop/require-readable-spacing", requireReadableSpacingRule, {
     "switch (x) { case 1: case 2: go(); break; default: stop(); }",
   ],
   invalid: [
-    { code: "const a = 1;\nconst b = 2;", output: "const a = 1;\n\nconst b = 2;", errors: [error] },
+    {
+      code: "const a = 1;\nconst b = 2;",
+      output: "const a = 1;\n\nconst b = 2;",
+      errors: [error],
+    },
     {
       code: "export const a = 1;\n/** B docs. */\nexport type B = number;",
       output: "export const a = 1;\n\n/** B docs. */\nexport type B = number;",
@@ -32,7 +38,11 @@ tester.run("anti-slop/require-readable-spacing", requireReadableSpacingRule, {
       output: "const a = 1; // trailing\n\n// leading\nconst b = 2;",
       errors: [error],
     },
-    { code: "const a = 1; const b = 2;", output: "const a = 1;\n\n const b = 2;", errors: [error] },
+    {
+      code: "const a = 1; const b = 2;",
+      output: "const a = 1;\n\n const b = 2;",
+      errors: [error],
+    },
     {
       code: "import { a } from 'a';\nconst b = a;",
       output: "import { a } from 'a';\n\nconst b = a;",
@@ -95,5 +105,5 @@ tester.run(
         errors: [{ messageId: "unexpectedBlankLine" }],
       },
     ],
-  },
+  }
 );

@@ -20,16 +20,17 @@ Trimmed copies of the real 2026-27 snapshot files, limited to NJD (New Jersey De
 
 ## Hand-computed totals (3 final games only)
 
-| team | W | L | OTL | GF | GA |
-| --- | --- | --- | --- | --- | --- |
-| NJD | 2 | 1 | 0 | 14 | 10 |
-| WSH | 1 | 2 | 0 | 10 | 14 |
+| team | W   | L   | OTL | GF  | GA  |
+| ---- | --- | --- | --- | --- | --- |
+| NJD  | 2   | 1   | 0   | 14  | 10  |
+| WSH  | 1   | 2   | 0   | 10  | 14  |
 
 Derivation: NJD scored 2 + 5 + 7 = 14 and allowed 4 + 2 + 4 = 10. WSH scored 4 + 2 + 4 = 10 and allowed 2 + 5 + 7 = 14.
 
 ## Hand-computed box score totals
 
 Game 2026020303 (2026-11-12, NJD 5 - WSH 2):
+
 - Skaters: 18 per team (12 F, 6 D), 36 total. Skater goals match team scores (NJD 5, WSH 2), total goals 7.
 - Shots on goal: NJD 29, WSH 28.
 - Goalies:
@@ -39,6 +40,7 @@ Game 2026020303 (2026-11-12, NJD 5 - WSH 2):
   - C. Lindgren (WSH): SA 0, saves 0, GA 0.
 
 Game 2026020318 (2026-11-14, NJD 7 - WSH 4):
+
 - Skaters: 18 per team (12 F, 6 D), 36 total. Skater goals match team scores (NJD 7, WSH 4), total goals 11.
 - Shots on goal: NJD 33, WSH 47.
 - Goalies:

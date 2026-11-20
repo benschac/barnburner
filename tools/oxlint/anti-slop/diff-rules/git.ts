@@ -59,7 +59,8 @@ export const BASE_CANDIDATES: ReadonlyArray<string> = [
 ];
 
 // Locale-independent, so the rendered input and its cache key are the same on every machine.
-export const byCodePoint = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0);
+export const byCodePoint = (left: string, right: string): number =>
+  left < right ? -1 : left > right ? 1 : 0;
 
 const MAX_UNTRACKED_BYTES = 1024 * 1024;
 const MAX_LISTED_COMMITS = 50;
@@ -74,11 +75,23 @@ export function git(cwd: string, args: ReadonlyArray<string>): GitResult {
   const result = spawnSync(
     "git",
     // Pin output-shaping settings so user config cannot change what is parsed.
-    ["-c", "core.quotePath=false", "-c", "diff.noprefix=false", "-c", "color.ui=false", ...args],
-    { cwd, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 },
+    [
+      "-c",
+      "core.quotePath=false",
+      "-c",
+      "diff.noprefix=false",
+      "-c",
+      "color.ui=false",
+      ...args,
+    ],
+    { cwd, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 }
   );
   if (result.error !== undefined) throw result.error;
-  return { status: result.status ?? 1, stdout: result.stdout, stderr: result.stderr };
+  return {
+    status: result.status ?? 1,
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
 }
 
 function gitOk(cwd: string, args: ReadonlyArray<string>): string {
@@ -90,7 +103,12 @@ function gitOk(cwd: string, args: ReadonlyArray<string>): string {
 }
 
 function resolveCommit(cwd: string, ref: string): string | undefined {
-  const result = git(cwd, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
+  const result = git(cwd, [
+    "rev-parse",
+    "--verify",
+    "--quiet",
+    `${ref}^{commit}`,
+  ]);
   return result.status === 0 ? result.stdout.trim() : undefined;
 }
 
@@ -112,13 +130,16 @@ const unquote = (path: string): string =>
   path.startsWith('"') && path.endsWith('"') ? path.slice(1, -1) : path;
 
 // `+++ b/a b` gets a trailing tab when the path contains a space.
-const headerPath = (line: string, prefix: string): string => unquote(line.slice(prefix.length).replace(/\t$/, ""));
+const headerPath = (line: string, prefix: string): string =>
+  unquote(line.slice(prefix.length).replace(/\t$/, ""));
 
 function pathFromDiffHeader(header: string): string {
   // `diff --git a/<path> b/<path>` with identical halves when there is no rename.
   const pair = header.slice("diff --git ".length);
   const length = (pair.length - 5) / 2;
-  return Number.isInteger(length) && length > 0 ? pair.slice(2, 2 + length) : pair;
+  return Number.isInteger(length) && length > 0
+    ? pair.slice(2, 2 + length)
+    : pair;
 }
 
 interface ParsedPatch {
@@ -145,11 +166,14 @@ function parseFilePatch(patch: string): ParsedPatch {
     if (line.startsWith("@@")) inHunks = true;
     else if (line.startsWith("new file mode")) status = "added";
     else if (line.startsWith("deleted file mode")) status = "deleted";
-    else if (line.startsWith("rename from ")) renamedFrom = line.slice("rename from ".length);
-    else if (line.startsWith("rename to ")) path = line.slice("rename to ".length);
+    else if (line.startsWith("rename from "))
+      renamedFrom = line.slice("rename from ".length);
+    else if (line.startsWith("rename to "))
+      path = line.slice("rename to ".length);
     else if (line.startsWith("--- a/")) oldPath = headerPath(line, "--- a/");
     else if (line.startsWith("+++ b/")) path = headerPath(line, "+++ b/");
-    else if (line.startsWith("Binary files ") || line === "GIT binary patch") binary = true;
+    else if (line.startsWith("Binary files ") || line === "GIT binary patch")
+      binary = true;
   }
   if (renamedFrom !== undefined) status = "renamed";
   const finalPath = path ?? oldPath ?? pathFromDiffHeader(lines[0] ?? "");
@@ -188,12 +212,23 @@ function readHead(path: string, bytes: number): Buffer {
 function untrackedPatch(root: string, path: string): FileChange | undefined {
   const absolute = join(root, path);
   const stats = statSync(absolute, { throwIfNoEntry: false });
-  if (stats === undefined || !stats.isFile() || stats.size > MAX_UNTRACKED_BYTES) return undefined;
+  if (
+    stats === undefined ||
+    !stats.isFile() ||
+    stats.size > MAX_UNTRACKED_BYTES
+  )
+    return undefined;
   const content = readHead(absolute, stats.size);
   if (content.includes(0)) return undefined;
   const text = content.toString("utf8");
   if (text.length === 0) {
-    return { path, status: "added", added: 0, deleted: 0, patch: `diff --git a/${path} b/${path}\nnew file mode 100644\n` };
+    return {
+      path,
+      status: "added",
+      added: 0,
+      deleted: 0,
+      patch: `diff --git a/${path} b/${path}\nnew file mode 100644\n`,
+    };
   }
   const endsWithNewline = text.endsWith("\n");
   const lines = (endsWithNewline ? text.slice(0, -1) : text).split("\n");
@@ -207,7 +242,13 @@ function untrackedPatch(root: string, path: string): FileChange | undefined {
     body,
     ...(endsWithNewline ? [] : ["\\ No newline at end of file"]),
   ].join("\n");
-  return { path, status: "added", added: lines.length, deleted: 0, patch: `${patch}\n` };
+  return {
+    path,
+    status: "added",
+    added: lines.length,
+    deleted: 0,
+    patch: `${patch}\n`,
+  };
 }
 
 interface Base {
@@ -216,11 +257,16 @@ interface Base {
   readonly note?: string;
 }
 
-function findBase(cwd: string, hasHead: boolean, requested: string | undefined): Base {
+function findBase(
+  cwd: string,
+  hasHead: boolean,
+  requested: string | undefined
+): Base {
   if (!hasHead) return { label: "(no commits)" };
   if (requested !== undefined) {
     const commit = resolveCommit(cwd, requested);
-    if (commit === undefined) throw new Error(`base ref "${requested}" does not name a commit`);
+    if (commit === undefined)
+      throw new Error(`base ref "${requested}" does not name a commit`);
     return { label: requested, commit: mergeBase(cwd, requested) };
   }
   for (const candidate of BASE_CANDIDATES) {
@@ -236,7 +282,8 @@ function findBase(cwd: string, hasHead: boolean, requested: string | undefined):
 
 function mergeBase(cwd: string, ref: string): string {
   const result = git(cwd, ["merge-base", ref, "HEAD"]);
-  if (result.status !== 0) throw new Error(`${ref} and HEAD have no common ancestor`);
+  if (result.status !== 0)
+    throw new Error(`${ref} and HEAD have no common ancestor`);
   return result.stdout.trim();
 }
 
@@ -258,12 +305,15 @@ export function collectChanges(options: CollectOptions): ChangeSet {
 
   let base: Base;
   if (mode === "staged" || mode === "working") {
-    base = hasHead ? { label: "HEAD", commit: resolveCommit(root, "HEAD") } : { label: "(no commits)" };
+    base = hasHead
+      ? { label: "HEAD", commit: resolveCommit(root, "HEAD") }
+      : { label: "(no commits)" };
   } else {
     base = findBase(root, hasHead, options.base);
   }
   if (base.note !== undefined) notes.push(base.note);
-  if (mode === "committed" && !hasHead) notes.push("no commits yet; nothing is committed");
+  if (mode === "committed" && !hasHead)
+    notes.push("no commits yet; nothing is committed");
 
   const files: FileChange[] = [];
   const skipped: string[] = [];
@@ -286,7 +336,13 @@ export function collectChanges(options: CollectOptions): ChangeSet {
   }
 
   if (mode === "full" || mode === "working") {
-    const untracked = gitOk(root, ["ls-files", "-z", "--others", "--exclude-standard", ...pathspecs(exclude)])
+    const untracked = gitOk(root, [
+      "ls-files",
+      "-z",
+      "--others",
+      "--exclude-standard",
+      ...pathspecs(exclude),
+    ])
       .split("\0")
       .filter((path) => path.length > 0);
     for (const path of untracked) {
@@ -298,9 +354,13 @@ export function collectChanges(options: CollectOptions): ChangeSet {
 
   files.sort((left, right) => byCodePoint(left.path, right.path));
   const branchResult = git(root, ["symbolic-ref", "--short", "-q", "HEAD"]);
-  const branch = branchResult.status === 0 ? branchResult.stdout.trim() : undefined;
+  const branch =
+    branchResult.status === 0 ? branchResult.stdout.trim() : undefined;
   const commits =
-    hasHead && base.commit !== undefined && mode !== "staged" && mode !== "working"
+    hasHead &&
+    base.commit !== undefined &&
+    mode !== "staged" &&
+    mode !== "working"
       ? listCommits(root, `${base.commit}..HEAD`)
       : [];
   return {
@@ -317,7 +377,13 @@ export function collectChanges(options: CollectOptions): ChangeSet {
 }
 
 function listCommits(root: string, range: string): Commit[] {
-  return gitOk(root, ["log", "--no-merges", `-n${MAX_LISTED_COMMITS}`, "--format=%h%x09%s", range])
+  return gitOk(root, [
+    "log",
+    "--no-merges",
+    `-n${MAX_LISTED_COMMITS}`,
+    "--format=%h%x09%s",
+    range,
+  ])
     .split("\n")
     .filter((line) => line.length > 0)
     .map((line) => {
@@ -362,7 +428,7 @@ export function historySummary(
   root: string,
   head: string | undefined,
   paths: ReadonlyArray<string>,
-  options: HistoryOptions,
+  options: HistoryOptions
 ): HistorySummary {
   const files: Record<string, FileHistory> = {};
   if (head === undefined || paths.length === 0) {
@@ -380,9 +446,15 @@ export function historySummary(
     head,
   ]);
   for (const record of log.split("\0").slice(1)) {
-    const inCommit = [...new Set(record.split("\n").filter((path) => touched.has(path)))].sort();
+    const inCommit = [
+      ...new Set(record.split("\n").filter((path) => touched.has(path))),
+    ].sort();
     for (const path of inCommit) recent.set(path, (recent.get(path) ?? 0) + 1);
-    if (record.split("\n").filter((line) => line.length > 0).length > MAX_FILES_PER_COCHANGE_COMMIT) continue;
+    if (
+      record.split("\n").filter((line) => line.length > 0).length >
+      MAX_FILES_PER_COCHANGE_COMMIT
+    )
+      continue;
     for (let left = 0; left < inCommit.length; left += 1) {
       for (let right = left + 1; right < inCommit.length; right += 1) {
         const key = `${inCommit[left]}\0${inCommit[right]}`;
@@ -391,7 +463,15 @@ export function historySummary(
     }
   }
   for (const path of touched) {
-    const subjects = gitOk(root, ["log", "--no-merges", `-n${options.commitsPerFile}`, "--format=%s", head, "--", path])
+    const subjects = gitOk(root, [
+      "log",
+      "--no-merges",
+      `-n${options.commitsPerFile}`,
+      "--format=%s",
+      head,
+      "--",
+      path,
+    ])
       .split("\n")
       .filter((line) => line.length > 0);
     files[path] = { subjects, recentCommits: recent.get(path) ?? 0 };
@@ -401,7 +481,12 @@ export function historySummary(
       const [left = "", right = ""] = key.split("\0");
       return { left, right, commits };
     })
-    .sort((a, b) => b.commits - a.commits || byCodePoint(a.left, b.left) || byCodePoint(a.right, b.right))
+    .sort(
+      (a, b) =>
+        b.commits - a.commits ||
+        byCodePoint(a.left, b.left) ||
+        byCodePoint(a.right, b.right)
+    )
     .slice(0, options.maxPairs);
   return { window: options.coChangeCommits, files, coChanges };
 }

@@ -2,7 +2,9 @@ import { RuleTester } from "oxlint/plugins-dev";
 
 import { noModuleMockingRule } from "./no-module-mocking.ts";
 
-const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "ts" } } });
+const tester = new RuleTester({
+  languageOptions: { parserOptions: { lang: "ts" } },
+});
 const error = { messageId: "moduleMock" };
 
 tester.run("anti-slop/no-module-mocking", noModuleMockingRule, {
@@ -21,10 +23,22 @@ tester.run("anti-slop/no-module-mocking", noModuleMockingRule, {
     { code: "jest.mock('./user-store');", errors: [error] },
     { code: "vi['doMock']('./user-store');", errors: [error] },
     { code: "jest.unstable_mockModule('./user-store');", errors: [error] },
-    { code: "import { vi } from 'vitest'; vi.mock('./user-store');", errors: [error] },
-    { code: "import { mock } from 'node:test'; mock.module('./user-store', { namedExports: {} });", errors: [error] },
-    { code: "test('loads', (t) => { t.mock.module('./user-store', { namedExports: {} }); });", errors: [error] },
-    { code: "import { vi as testApi } from 'vitest'; testApi.mock('./user-store');", errors: [error] },
+    {
+      code: "import { vi } from 'vitest'; vi.mock('./user-store');",
+      errors: [error],
+    },
+    {
+      code: "import { mock } from 'node:test'; mock.module('./user-store', { namedExports: {} });",
+      errors: [error],
+    },
+    {
+      code: "test('loads', (t) => { t.mock.module('./user-store', { namedExports: {} }); });",
+      errors: [error],
+    },
+    {
+      code: "import { vi as testApi } from 'vitest'; testApi.mock('./user-store');",
+      errors: [error],
+    },
     {
       code: "import { jest } from '@jest/globals'; jest.mock('./user-store');",
       errors: [error],

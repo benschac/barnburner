@@ -2,14 +2,16 @@ import { RuleTester } from "oxlint/plugins-dev";
 
 import { throwInEffectGenRule } from "./throw-in-effect-gen.ts";
 
-const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "ts" } } });
+const tester = new RuleTester({
+  languageOptions: { parserOptions: { lang: "ts" } },
+});
 const imports = `import { Effect, Stream } from "effect";`;
 const thrown = [{ messageId: "throwInEffectGen" }];
 
 tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
-	valid: [
-		// Effect.try and Effect.tryPromise capture throws from their callbacks, whatever else the options hold.
-		`${imports}
+  valid: [
+    // Effect.try and Effect.tryPromise capture throws from their callbacks, whatever else the options hold.
+    `${imports}
 		const consume = (stream: Stream.Stream<Uint8Array>) =>
 			Effect.gen(function* () {
 				const decoder = new TextDecoder("utf-8", { fatal: true });
@@ -24,14 +26,14 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 					});
 				yield* Stream.runForEach(stream, (bytes) => decode(bytes));
 			});`,
-		`${imports}
+    `${imports}
 		const read = Effect.gen(function* () {
 			return yield* Effect.try(() => {
 				if (!ready) throw new Error("not ready");
 				return value;
 			});
 		});`,
-		`${imports}
+    `${imports}
 		const load = Effect.fn("load")(function* (url: string) {
 			return yield* Effect.tryPromise({
 				try: async (signal) => {
@@ -43,8 +45,8 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 				...retryOptions,
 			});
 		});`,
-		// A synchronous helper declared in the generator throws to its own caller.
-		`${imports}
+    // A synchronous helper declared in the generator throws to its own caller.
+    `${imports}
 		const open = Effect.gen(function* () {
 			const contributions = new Map<string, Contribution>();
 			const realize = (tools: ReadonlyArray<Tool>) => {
@@ -60,15 +62,15 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 			};
 			return { realize };
 		});`,
-		`${imports}
+    `${imports}
 		const program = Effect.gen(function* () {
 			function invariant(condition: boolean, message: string): asserts condition {
 				if (!condition) throw new Error(message);
 			}
 			invariant(enabled, "disabled");
 		});`,
-		// Promise callbacks and methods of a returned object run outside the generator.
-		`${imports}
+    // Promise callbacks and methods of a returned object run outside the generator.
+    `${imports}
 		const daemon = Effect.gen(function* () {
 			let binary: Promise<string> | undefined;
 			return yield* makeTransport(() =>
@@ -78,7 +80,7 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 				})),
 			);
 		});`,
-		`${imports}
+    `${imports}
 		const facade = Effect.gen(function* () {
 			let open = false;
 			return {
@@ -88,7 +90,7 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 				},
 			};
 		});`,
-		`${imports}
+    `${imports}
 		const program = Effect.gen(function* () {
 			const value = (async () => {
 				if (!ready) throw new Error("not ready");
@@ -96,16 +98,16 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 			})();
 			return yield* Effect.promise(() => value);
 		});`,
-		// The thunk of Effect.sync is its own function; the rule only looks at generator bodies.
-		`${imports}
+    // The thunk of Effect.sync is its own function; the rule only looks at generator bodies.
+    `${imports}
 		const handler = Effect.gen(function* () {
 			return yield* Effect.sync(() => {
 				if (!window) throw new Error("Window not found");
 				window.show();
 			});
 		});`,
-		// A catch clause in the same generator handles the throw.
-		`${imports}
+    // A catch clause in the same generator handles the throw.
+    `${imports}
 		const program = Effect.gen(function* () {
 			try {
 				if (!valid) throw new Error("invalid");
@@ -114,8 +116,8 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 				return yield* Effect.fail(new Invalid());
 			}
 		});`,
-		// Pipeable arguments of Effect.fn are functions of their own.
-		`${imports}
+    // Pipeable arguments of Effect.fn are functions of their own.
+    `${imports}
 		const program = Effect.fn("program")(
 			function* () {
 				return yield* step;
@@ -124,20 +126,20 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 				throw cause;
 			}),
 		);`,
-		// Generators that Effect does not run.
-		`${imports}
+    // Generators that Effect does not run.
+    `${imports}
 		function* numbers() {
 			throw new Error("not a program");
 		}`,
-		`
+    `
 		import { Effect } from "other-library";
 		const program = Effect.gen(function* () {
 			throw new Error("not effect");
 		});`,
-	],
-	invalid: [
-		{
-			code: `
+  ],
+  invalid: [
+    {
+      code: `
 			import { Effect } from "effect";
 			import { FileSystem } from "effect/platform";
 			export function readAttachment(filePath: string, maxBytes: number) {
@@ -150,18 +152,18 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 					}),
 				);
 			}`,
-			errors: thrown,
-		},
-		{
-			code: `${imports}
+      errors: thrown,
+    },
+    {
+      code: `${imports}
 			const executeTool = Effect.fn("executeTool")(function* (name: string, args: ReadonlyArray<unknown>) {
 				if (args.length !== 1) throw new ToolRuntimeError("InvalidToolInput", name);
 				return yield* run(name, args[0]);
 			}, Effect.withSpan("executeTool"));`,
-			errors: thrown,
-		},
-		{
-			code: `${imports}
+      errors: thrown,
+    },
+    {
+      code: `${imports}
 			const upsert = (input: Input) =>
 				db.transaction((tx) =>
 					Effect.gen(function* () {
@@ -170,18 +172,18 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 						return settings;
 					}),
 				);`,
-			errors: thrown,
-		},
-		{
-			code: `
+      errors: thrown,
+    },
+    {
+      code: `
 			import * as Effect from "effect/Effect";
 			const check = Effect.fnUntraced(function* (code: number) {
 				if (code !== 0) throw new Error(\`exited with \${code}\`);
 			});`,
-			errors: thrown,
-		},
-		{
-			code: `${imports}
+      errors: thrown,
+    },
+    {
+      code: `${imports}
 			class Service {
 				run() {
 					return Effect.gen(this, function* () {
@@ -193,11 +195,11 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 					});
 				}
 			}`,
-			errors: thrown,
-		},
-		// An immediately invoked function runs inside the generator.
-		{
-			code: `${imports}
+      errors: thrown,
+    },
+    // An immediately invoked function runs inside the generator.
+    {
+      code: `${imports}
 			const find = Effect.gen(function* () {
 				const items = (() => {
 					const found = finder.search(query);
@@ -206,11 +208,11 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 				})();
 				return items;
 			});`,
-			errors: thrown,
-		},
-		// Rethrowing from a catch clause, or throwing past a try without catch, still escapes.
-		{
-			code: `${imports}
+      errors: thrown,
+    },
+    // Rethrowing from a catch clause, or throwing past a try without catch, still escapes.
+    {
+      code: `${imports}
 			const generate = Effect.gen(function* () {
 				for (const model of models) {
 					try {
@@ -221,10 +223,10 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 					}
 				}
 			});`,
-			errors: thrown,
-		},
-		{
-			code: `${imports}
+      errors: thrown,
+    },
+    {
+      code: `${imports}
 			const program = Effect.gen(function* () {
 				try {
 					throw new Error("boom");
@@ -232,7 +234,7 @@ tester.run("anti-slop-effect/throw-in-effect-gen", throwInEffectGenRule, {
 					yield* release;
 				}
 			});`,
-			errors: thrown,
-		},
-	],
+      errors: thrown,
+    },
+  ],
 });

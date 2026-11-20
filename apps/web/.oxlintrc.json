@@ -1,14 +1,13 @@
 {
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
-  "extends": ["../../lint/effect-core.oxlintrc.json", "../../lint/anti-slop.oxlintrc.json"],
+  "extends": [
+    "../../lint/effect-core.oxlintrc.json",
+    "../../lint/anti-slop.oxlintrc.json"
+  ],
   "options": {
     "typeAware": true
   },
-  "plugins": [
-    "react",
-    "typescript",
-    "oxc"
-  ],
+  "plugins": ["react", "typescript", "oxc"],
   "rules": {
     "react/rules-of-hooks": "error",
     "anti-slop/no-instanceof": "off",
@@ -31,17 +30,13 @@
   ],
   "overrides": [
     {
-      "files": [
-        "src/viz/**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"
-      ],
+      "files": ["src/viz/**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"],
       "rules": {
         "design/viz-theme-colors": "error"
       }
     },
     {
-      "files": [
-        "src/**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"
-      ],
+      "files": ["src/**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -56,10 +51,7 @@
                 "message": "Browser code imports shared season contracts, never API implementations."
               },
               {
-                "group": [
-                  "**/data/boxscores/**",
-                  "**/lib/nhl-boxscores.mjs"
-                ],
+                "group": ["**/data/boxscores/**", "**/lib/nhl-boxscores.mjs"],
                 "message": "Browser code reads box scores through the GetGameBoxscore RPC summary, never the raw archive."
               }
             ]
@@ -75,9 +67,7 @@
       }
     },
     {
-      "files": [
-        "src/viz/frame/frame.ts"
-      ],
+      "files": ["src/viz/frame/frame.ts"],
       "rules": {
         "design/no-css-imports": "off",
         "design/no-style-escape": "off"
@@ -94,10 +84,7 @@
       }
     },
     {
-      "files": [
-        "**/*.test.ts",
-        "**/*.test.tsx"
-      ],
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
       "rules": {
         "typescript/no-floating-promises": "off"
       }

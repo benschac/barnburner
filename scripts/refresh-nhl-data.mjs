@@ -1,6 +1,5 @@
 /* oxlint-disable no-restricted-imports, no-restricted-properties -- legacy: port to the Effect platform services, see "Node scripts" in AGENTS.md */
 
-import { logError, logInfo, logWarning } from '../lib/logger.mjs'
 import {
   mkdir,
   mkdtemp,
@@ -13,21 +12,31 @@ import { join, resolve } from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { isDeepStrictEqual, parseArgs } from "node:util";
+
+import { logError, logInfo, logWarning } from "../lib/logger.mjs";
 import {
   boxScoreMatchesGame,
   boxScoreUrl,
   normalizeBoxScore,
 } from "../lib/nhl-boxscores.mjs";
 import { SEASON, validateSnapshot } from "../lib/nhl-games.mjs";
-import { completedDates, NhlFeedMismatchError, validatePosterAgainstGames } from "../lib/nhl-poster.mjs";
+import {
+  completedDates,
+  NhlFeedMismatchError,
+  validatePosterAgainstGames,
+} from "../lib/nhl-poster.mjs";
 import { refreshSnapshot } from "./refresh-nhl-games.mjs";
-import { refreshPosterSnapshot, writePosterSnapshot } from "./refresh-nhl-poster.mjs";
+import {
+  refreshPosterSnapshot,
+  writePosterSnapshot,
+} from "./refresh-nhl-poster.mjs";
 
 const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
 const defaultBackfillLimit = 16;
 
 export function parseBackfillLimit(value) {
-  if (!/^\d+$/.test(value ?? "")) throw new Error("--backfill-limit must be a non-negative integer");
+  if (!/^\d+$/.test(value ?? ""))
+    throw new Error("--backfill-limit must be a non-negative integer");
   return Number(value);
 }
 
@@ -53,9 +62,7 @@ function createNhlFetcher() {
         ? Math.max(nextRequestAt, retryAt)
         : Date.now() + 30_000;
       if (attempt === 3) return response;
-      logWarning(
-        `NHL rate limit while reading ${url}. Waiting before retry.`,
-      );
+      logWarning(`NHL rate limit while reading ${url}. Waiting before retry.`);
       await response.body?.cancel();
     }
   };
@@ -75,7 +82,10 @@ async function changed(path, next) {
   return !isDeepStrictEqual({ ...previous, fetchedAt: next.fetchedAt }, next);
 }
 
-export async function refreshData(directory, { fetcher = createNhlFetcher(), backfillLimit = defaultBackfillLimit } = {}) {
+export async function refreshData(
+  directory,
+  { fetcher = createNhlFetcher(), backfillLimit = defaultBackfillLimit } = {}
+) {
   const teams = await readJson(join(directory, "teams.json"));
   if (teams.length !== 32) throw new Error("Expected all 32 NHL teams");
   const staging = await mkdtemp(join(directory, ".nhl-refresh-"));
@@ -104,12 +114,23 @@ export async function refreshData(directory, { fetcher = createNhlFetcher(), bac
       // Bind legacy stats to their original finals before adding new scores.
       poster = {
         ...previousPoster,
-        completedGameIds: previousPoster.completedGameIds ?? previousGames.games
-          .filter((game) => game.result).map((game) => game.id).sort((a, b) => a - b),
+        completedGameIds:
+          previousPoster.completedGameIds ??
+          previousGames.games
+            .filter((game) => game.result)
+            .map((game) => game.id)
+            .sort((a, b) => a - b),
       };
       validatePosterAgainstGames(poster, games);
-      await writePosterSnapshot(join(staging, posterFile), poster, games.teams, poster.history.map(({ date }) => date));
-      logWarning(`Keeping supplemental stats fetched ${poster.fetchedAt}; completed scores and box scores will still refresh. ${error.message}`);
+      await writePosterSnapshot(
+        join(staging, posterFile),
+        poster,
+        games.teams,
+        poster.history.map(({ date }) => date)
+      );
+      logWarning(
+        `Keeping supplemental stats fetched ${poster.fetchedAt}; completed scores and box scores will still refresh. ${error.message}`
+      );
     }
 
     const archive = join(directory, "boxscores", String(SEASON));
@@ -122,14 +143,14 @@ export async function refreshData(directory, { fetcher = createNhlFetcher(), bac
     const recentDates = new Set(completedDates(games).slice(-2));
     const recent = finals.filter((game) => recentDates.has(game.date));
     const backlog = finals.filter(
-      (game) => !recentDates.has(game.date) && !currentBoxes.has(game.id),
+      (game) => !recentDates.has(game.date) && !currentBoxes.has(game.id)
     );
     // Rotate the starting point so persistent gaps cannot starve other games.
     const day = Math.floor(Date.now() / 86_400_000);
     const offset = (day * backfillLimit) % Math.max(1, backlog.length);
     const older = [...backlog.slice(offset), ...backlog.slice(0, offset)].slice(
       0,
-      backfillLimit,
+      backfillLimit
     );
     const pending = [];
     const writes = [];
@@ -151,13 +172,11 @@ export async function refreshData(directory, { fetcher = createNhlFetcher(), bac
         boxScore = normalizeBoxScore(
           await response.json(),
           game,
-          new Date().toISOString(),
+          new Date().toISOString()
         );
       } catch (error) {
         pending.push(game.id);
-        logWarning(
-          `Could not refresh box score ${game.id}: ${error.message}`,
-        );
+        logWarning(`Could not refresh box score ${game.id}: ${error.message}`);
         continue;
       }
       const filename = `${game.id}.json`;
@@ -174,7 +193,7 @@ export async function refreshData(directory, { fetcher = createNhlFetcher(), bac
     for (const [source, destination] of writes)
       await rename(source, destination);
     logInfo(
-      `Checked ${finals.length} finals through ${completedDates(games).at(-1)}. Supplemental stats fetched ${poster.fetchedAt}. Matching box scores: ${currentBoxes.size}/${finals.length}. Updated files: ${writes.length}.`,
+      `Checked ${finals.length} finals through ${completedDates(games).at(-1)}. Supplemental stats fetched ${poster.fetchedAt}. Matching box scores: ${currentBoxes.size}/${finals.length}. Updated files: ${writes.length}.`
     );
     if (pending.length)
       logWarning(`Box scores unavailable this run: ${pending.join(", ")}`);
@@ -183,12 +202,25 @@ export async function refreshData(directory, { fetcher = createNhlFetcher(), bac
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const { values } = parseArgs({ options: { "data-dir": { type: "string" }, "backfill-limit": { type: "string" } } });
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+) {
+  const { values } = parseArgs({
+    options: {
+      "data-dir": { type: "string" },
+      "backfill-limit": { type: "string" },
+    },
+  });
   const directory = values["data-dir"]
     ? resolve(values["data-dir"])
     : fileURLToPath(new URL("../data", import.meta.url));
-  refreshData(directory, values["backfill-limit"] === undefined ? {} : { backfillLimit: parseBackfillLimit(values["backfill-limit"]) }).catch((error) => {
+  refreshData(
+    directory,
+    values["backfill-limit"] === undefined
+      ? {}
+      : { backfillLimit: parseBackfillLimit(values["backfill-limit"]) }
+  ).catch((error) => {
     logError(error.message);
     process.exitCode = 1;
   });

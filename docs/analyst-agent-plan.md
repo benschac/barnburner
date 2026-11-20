@@ -1,7 +1,6 @@
 # RinkSide analyst agent: implementation plan
 
-Status: in progress, Nov 17 2026. Owner: Ben. P0 code is merged, but the exit waits on a live eval run (P-key). See §Where we are.
-Source spec: [analyst-agent-spec.md](analyst-agent-spec.md). This plan makes the decisions below and splits the work into small PRs that land on their own. Where they differ, this plan wins.
+Status: in progress, Nov 17 2026. Owner: Ben. P0 code is merged, but the exit waits on a live eval run (P-key). See §Where we are. Source spec: [analyst-agent-spec.md](analyst-agent-spec.md). This plan makes the decisions below and splits the work into small PRs that land on their own. Where they differ, this plan wins.
 
 ## How to use this plan
 
@@ -86,12 +85,12 @@ Dispatch sketch:
 
 ```js
 await tools.Agent({
-  description: 'B2 template renderer',
-  subagent_type: 'general-purpose',
-  model: 'haiku',
-  isolation: 'worktree',
+  description: "B2 template renderer",
+  subagent_type: "general-purpose",
+  model: "haiku",
+  isolation: "worktree",
   prompt: preamble + cardText + contractSections,
-})
+});
 // then, from the orchestrator: rerun Done, gt track --parent main, gt submit
 ```
 
@@ -653,61 +652,61 @@ Last synced with GitHub on Nov 17 2026. PRs #1–#57 are merged; #67–#71 and #
 
 | ID | Builder | Needs | Branch | PR | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| P-plan | you | – | analyst/p-plan | #1 | merged | |
+| P-plan | you | – | analyst/p-plan | #1 | merged |  |
 | P-deps | you | – | – | – | done | Approved Nov 16 |
 | P-key | you | – | – | – | todo | Blocks every live task; the P0 exit waits on it |
 | P-pr | you | – | – | – | todo | Blocks CI1 |
 | P-rights | you | – | – | – | todo | Blocks approving cards |
-| A1 | Haiku | P-plan | analyst/a1-scaffold | #2 | merged | |
-| K1 | Sonnet | A1 | analyst/k1-shapes | #5 | merged | |
+| A1 | Haiku | P-plan | analyst/a1-scaffold | #2 | merged |  |
+| K1 | Sonnet | A1 | analyst/k1-shapes | #5 | merged |  |
 | DATA1 | Sonnet | P-plan | analyst/data1-backfill-flag | #3 | merged | Backfill only partial: 178 of 332 finals archived (54%) on Nov 17. Rerun `data:refresh:all --backfill-limit 200` |
 | DEP1 | Sonnet | A1, P-deps | analyst/dep1-duckdb | #6 | merged | D3 and D9 confirmed |
 | DEP2 | Haiku | P-deps | analyst/dep2-ai-sdk | #14 | merged | ai@7.0.173 |
-| DB1 | Sonnet | K1, DEP1 | analyst/db1-open | #18 | merged | |
+| DB1 | Sonnet | K1, DEP1 | analyst/db1-open | #18 | merged |  |
 | DB2 | Sonnet | DB1 | analyst/db2-limits | #35 | merged | Native cancellation finished in #57 |
-| F1 | Haiku | A1 | analyst/f1-fixtures | #10 | merged | |
-| V1 | Sonnet | DB1, F1 | analyst/v1-team-games | #28 | merged | |
-| V2a | Sonnet | DB1, F1 | analyst/v2a-skater-games | #29 | merged | |
-| V2b | Sonnet | DB1, F1 | analyst/v2b-goalie-games | #30 | merged | |
-| V3 | Sonnet | DB1, F1 | analyst/v3-standings | #31 | merged | |
-| V4 | Haiku | DB1, F1 | analyst/v4-coverage | #32 | merged | |
-| B1 | Sonnet | A1 | analyst/b1-card-schema | #8 | merged | |
-| B2 | Haiku | A1 | analyst/b2-render | #7 | merged | |
-| C3 | Sonnet | DB1 | analyst/c3-guard | #33 | merged | |
-| C1 | Sonnet | K1, B1, B2 | analyst/c1-verify-static | #19 | merged | |
-| C2 | Sonnet | K1, B1 | analyst/c2-verify-rerun | #20 | merged | |
-| C4 | Sonnet | C1, C2, C3, V1, V4 | analyst/c4-verify | #36 | merged | |
+| F1 | Haiku | A1 | analyst/f1-fixtures | #10 | merged |  |
+| V1 | Sonnet | DB1, F1 | analyst/v1-team-games | #28 | merged |  |
+| V2a | Sonnet | DB1, F1 | analyst/v2a-skater-games | #29 | merged |  |
+| V2b | Sonnet | DB1, F1 | analyst/v2b-goalie-games | #30 | merged |  |
+| V3 | Sonnet | DB1, F1 | analyst/v3-standings | #31 | merged |  |
+| V4 | Haiku | DB1, F1 | analyst/v4-coverage | #32 | merged |  |
+| B1 | Sonnet | A1 | analyst/b1-card-schema | #8 | merged |  |
+| B2 | Haiku | A1 | analyst/b2-render | #7 | merged |  |
+| C3 | Sonnet | DB1 | analyst/c3-guard | #33 | merged |  |
+| C1 | Sonnet | K1, B1, B2 | analyst/c1-verify-static | #19 | merged |  |
+| C2 | Sonnet | K1, B1 | analyst/c2-verify-rerun | #20 | merged |  |
+| C4 | Sonnet | C1, C2, C3, V1, V4 | analyst/c4-verify | #36 | merged |  |
 | E1 | Sonnet | A1 | analyst/e1-grader | #9 | merged | Answers tagged and graded with Match in #46 |
-| E6a | Sonnet | E1, K1 | analyst/e6a-runner | #21 | merged | |
-| E2 | Codex | E1, V1 | analyst/e2-cases-easy | #40 | merged | |
-| E3 | Codex | E1, V1 | analyst/e3-cases-multistep | #41 | merged | |
-| E4 | Codex | E1, V2a, V2b, V4 | analyst/e4-cases-coverage | #42 | merged | |
-| E5 | Haiku | E1 | analyst/e5-cases-decline | #12 | merged | |
-| E8 | Haiku | K1, B1 | analyst/e8-card-pass-rate | #22 | merged | |
-| X1 | Sonnet | B1, B2, V1 | analyst/x1-results | #37 | merged | |
-| X2 | Sonnet | B1, B2, V1 | analyst/x2-form | #38 | merged | |
-| X3 | Sonnet | B1, B2, V2a, V2b, V4 | analyst/x3-players | #39 | merged | |
+| E6a | Sonnet | E1, K1 | analyst/e6a-runner | #21 | merged |  |
+| E2 | Codex | E1, V1 | analyst/e2-cases-easy | #40 | merged |  |
+| E3 | Codex | E1, V1 | analyst/e3-cases-multistep | #41 | merged |  |
+| E4 | Codex | E1, V2a, V2b, V4 | analyst/e4-cases-coverage | #42 | merged |  |
+| E5 | Haiku | E1 | analyst/e5-cases-decline | #12 | merged |  |
+| E8 | Haiku | K1, B1 | analyst/e8-card-pass-rate | #22 | merged |  |
+| X1 | Sonnet | B1, B2, V1 | analyst/x1-results | #37 | merged |  |
+| X2 | Sonnet | B1, B2, V1 | analyst/x2-form | #38 | merged |  |
+| X3 | Sonnet | B1, B2, V2a, V2b, V4 | analyst/x3-players | #39 | merged |  |
 | X4 | Haiku | X1, X2, X3, C4, G2b, E8 | analyst/x4-detector-score | #71 | in review | on N2. 224/224 cards pass on real data after fixing `streak.ts`, which claimed a tie it couldn't check (now `trend`, no assert) |
-| T1 | Haiku | A1 | analyst/t1-trace | #11 | merged | |
+| T1 | Haiku | A1 | analyst/t1-trace | #11 | merged |  |
 | G1 | Sonnet | DEP2 | analyst/g1-llm | #17 | merged | Model IDs still need a live check |
 | G2a | Sonnet | K1, DEP2 | analyst/g2a-sql-tool | #23 | merged | Kept in Effect in #57 |
-| G2b | Sonnet | K1, B1, DEP2 | analyst/g2b-submit-card | #24 | merged | |
-| G2c | Haiku | K1, DEP2 | analyst/g2c-answer-decline | #25 | merged | |
+| G2b | Sonnet | K1, B1, DEP2 | analyst/g2b-submit-card | #24 | merged |  |
+| G2c | Haiku | K1, DEP2 | analyst/g2c-answer-decline | #25 | merged |  |
 | G3 | Sonnet | G2a, G2b, G2c, C4, DB2 | analyst/ai2-ask-toolset | #54 | merged | Landed as AI2 |
 | G4a | Sonnet | G3, G1, T1 | analyst/ai2-ask-toolset | #54 | merged | Landed as AI2 |
 | G4b | Sonnet | G4a, V2a, V2b, V3, P-key | analyst/ai2-ask-toolset | #54 | code merged | live; `scripts/ask.ts` landed in AI2. The live question and the D8 baseline wait on P-key |
 | E6b | Sonnet | E6a, G4a, E2, E3, E4, E5, P-key | analyst/ai3-eval-receipts | #55 | code merged | live; landed as AI3, with run receipts. No score yet, so the **P0 exit is still open** |
 | G5a | Opus | K1 | analyst/g5a-prompt | #16 | merged | Untested live until G5c |
 | G5b | Sonnet | G5a, G3, G1, T1 | analyst/g5b-generate | #69 | in review | on N1b. Builds its own tool set beside `makeToolset`; `posterFacts` is a caller input that G8 must supply |
-| G5c | Opus | G5b, V2a, V2b, V3, P-key | analyst/g5c-tune | | todo | live |
+| G5c | Opus | G5b, V2a, V2b, V3, P-key | analyst/g5c-tune |  | todo | live |
 | G6 | Sonnet | B1, G1 | analyst/g6-rank | #26 | merged | Structured output in #56; no live run yet |
 | G7 | Haiku | B1 | analyst/g7-store | #15 | merged | Id-keyed merge in #49 |
-| G8 | Sonnet | G5b, G5c, G6, G7, T1, P-key | analyst/g8-entry | | todo | live |
-| E7 | Sonnet | E6b, G8, E8, P-key | analyst/e7-model-compare | | todo | live |
+| G8 | Sonnet | G5b, G5c, G6, G7, T1, P-key | analyst/g8-entry |  | todo | live |
+| E7 | Sonnet | E6b, G8, E8, P-key | analyst/e7-model-compare |  | todo | live |
 | R1 | Sonnet | G7, B2 | analyst/r1-review-cli | #27 | merged | Not yet run on real cards |
-| R3 | Haiku | T1 | analyst/r3-report | #13 | merged | |
-| S1 | Sonnet | K1, G7, B2, G2b | analyst/s1-staleness | #34 | merged | |
-| CI1 | Sonnet | G8, S1, P-key, P-pr | analyst/ci1-workflow | | todo | P1 exit |
+| R3 | Haiku | T1 | analyst/r3-report | #13 | merged |  |
+| S1 | Sonnet | K1, G7, B2, G2b | analyst/s1-staleness | #34 | merged |  |
+| CI1 | Sonnet | G8, S1, P-key, P-pr | analyst/ci1-workflow |  | todo | P1 exit |
 | N1a | Sonnet | P-plan | analyst/n1a-contract | #4 | merged | API returns `[]` |
 | N1b | Sonnet | N1a, B1, B2, G7 | analyst/n1b-api | #68 | in review | on #67. `apps/api` doesn't declare `@nhl-reddit-stats/analyst` (resolves via the hoisted link); needs Ben's call |
 | N2 | Sonnet | N1a | analyst/n2-notes | #70 | in review | on G5b. Write list widened to carry `insights` through `season-source.ts`, `team-machine.ts`, `stats.ts`. Not full width at poster size (no contract value) |

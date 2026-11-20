@@ -3,11 +3,16 @@
 import { existsSync, readFileSync } from "node:fs";
 import { extname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+
 import { defaultDiffRules, type DiffRule, type Severity } from "./rules.ts";
 
 export type BackendName = "decision-model" | "llm-judge" | "command";
 
-export const BACKEND_NAMES: ReadonlyArray<BackendName> = ["decision-model", "llm-judge", "command"];
+export const BACKEND_NAMES: ReadonlyArray<BackendName> = [
+  "decision-model",
+  "llm-judge",
+  "command",
+];
 
 /** A new rule, or a partial override of the rule with the same id. */
 export interface RuleEntry {
@@ -113,14 +118,22 @@ function fail(message: string): never {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-function optionalString(raw: Record<string, unknown>, key: string): string | undefined {
+function optionalString(
+  raw: Record<string, unknown>,
+  key: string
+): string | undefined {
   const value = raw[key];
   if (value === undefined) return undefined;
-  if (typeof value !== "string" || value.trim().length === 0) fail(`${key} must be a non-empty string`);
+  if (typeof value !== "string" || value.trim().length === 0)
+    fail(`${key} must be a non-empty string`);
   return value;
 }
 
-function positiveInteger(raw: Record<string, unknown>, key: string, fallback: number): number {
+function positiveInteger(
+  raw: Record<string, unknown>,
+  key: string,
+  fallback: number
+): number {
   const value = raw[key];
   if (value === undefined) return fallback;
   if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
@@ -129,10 +142,16 @@ function positiveInteger(raw: Record<string, unknown>, key: string, fallback: nu
   return value;
 }
 
-function stringList(raw: Record<string, unknown>, key: string): ReadonlyArray<string> {
+function stringList(
+  raw: Record<string, unknown>,
+  key: string
+): ReadonlyArray<string> {
   const value = raw[key];
   if (value === undefined) return [];
-  if (!Array.isArray(value) || !value.every((item) => typeof item === "string" && item.length > 0)) {
+  if (
+    !Array.isArray(value) ||
+    !value.every((item) => typeof item === "string" && item.length > 0)
+  ) {
     fail(`${key} must be a list of non-empty strings`);
   }
   return value;
@@ -140,7 +159,8 @@ function stringList(raw: Record<string, unknown>, key: string): ReadonlyArray<st
 
 function checkRule(rule: Record<string, unknown>, label: string): DiffRule {
   const { id, question, message, cutoff, severity } = rule;
-  if (typeof id !== "string" || id.length === 0) fail(`${label}: id must be a non-empty string`);
+  if (typeof id !== "string" || id.length === 0)
+    fail(`${label}: id must be a non-empty string`);
   if (typeof question !== "string" || question.trim().length === 0) {
     fail(`rule "${id}": question must be a non-empty string`);
   }
@@ -150,7 +170,8 @@ function checkRule(rule: Record<string, unknown>, label: string): DiffRule {
   if (typeof cutoff !== "number" || !(cutoff >= 0 && cutoff <= 1)) {
     fail(`rule "${id}": cutoff must be a number from 0 to 1`);
   }
-  if (severity !== "warn" && severity !== "error") fail(`rule "${id}": severity must be "warn" or "error"`);
+  if (severity !== "warn" && severity !== "error")
+    fail(`rule "${id}": severity must be "warn" or "error"`);
   return { id, question, message, cutoff, severity };
 }
 
@@ -158,14 +179,17 @@ function checkRule(rule: Record<string, unknown>, label: string): DiffRule {
 export function resolveRules(
   defaults: ReadonlyArray<DiffRule>,
   entries: ReadonlyArray<unknown>,
-  disable: ReadonlyArray<string>,
+  disable: ReadonlyArray<string>
 ): ReadonlyArray<DiffRule> {
-  const byId = new Map<string, DiffRule>(defaults.map((rule) => [rule.id, rule]));
+  const byId = new Map<string, DiffRule>(
+    defaults.map((rule) => [rule.id, rule])
+  );
   const seen = new Set<string>();
   entries.forEach((entry, index) => {
     if (!isRecord(entry)) fail(`rules[${index}] must be an object`);
     const id = entry.id;
-    if (typeof id !== "string" || id.length === 0) fail(`rules[${index}].id must be a non-empty string`);
+    if (typeof id !== "string" || id.length === 0)
+      fail(`rules[${index}].id must be a non-empty string`);
     if (seen.has(id)) fail(`rule id "${id}" is listed more than once`);
     seen.add(id);
     const base = byId.get(id);
@@ -182,13 +206,17 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
   if (raw === undefined) raw = {};
   if (!isRecord(raw)) fail("the config must export an object");
   const backend = raw.backend;
-  if (backend !== undefined && !BACKEND_NAMES.some((name) => name === backend)) {
+  if (
+    backend !== undefined &&
+    !BACKEND_NAMES.some((name) => name === backend)
+  ) {
     fail(`backend must be one of ${BACKEND_NAMES.join(", ")}`);
   }
   const ci = raw.ci ?? "skip";
   if (ci !== "skip" && ci !== "fail") fail('ci must be "skip" or "fail"');
   const defaultExcludes = raw.defaultExcludes ?? true;
-  if (typeof defaultExcludes !== "boolean") fail("defaultExcludes must be a boolean");
+  if (typeof defaultExcludes !== "boolean")
+    fail("defaultExcludes must be a boolean");
   const longContext = raw.longContext ?? false;
   if (typeof longContext !== "boolean") fail("longContext must be a boolean");
   const rules = raw.rules ?? [];
@@ -199,7 +227,10 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
     model: optionalString(raw, "model"),
     command: optionalString(raw, "command"),
     purpose: optionalString(raw, "purpose"),
-    exclude: [...(defaultExcludes ? DEFAULT_EXCLUDES : []), ...stringList(raw, "exclude")],
+    exclude: [
+      ...(defaultExcludes ? DEFAULT_EXCLUDES : []),
+      ...stringList(raw, "exclude"),
+    ],
     rules: resolveRules(defaultDiffRules, rules, stringList(raw, "disable")),
     maxChunkChars: positiveInteger(raw, "maxChunkChars", 60_000),
     historyCommits: positiveInteger(raw, "historyCommits", 5),
@@ -211,16 +242,22 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
 }
 
 /** Load `path`, or the first default config file in `cwd`; no file means the defaults. */
-export async function loadConfig(cwd: string, path?: string): Promise<ResolvedConfig> {
+export async function loadConfig(
+  cwd: string,
+  path?: string
+): Promise<ResolvedConfig> {
   const file =
     path === undefined
-      ? CONFIG_FILE_NAMES.map((name) => join(cwd, name)).find((candidate) => existsSync(candidate))
+      ? CONFIG_FILE_NAMES.map((name) => join(cwd, name)).find((candidate) =>
+          existsSync(candidate)
+        )
       : isAbsolute(path)
         ? path
         : resolve(cwd, path);
   if (file === undefined) return resolveConfig({});
   if (!existsSync(file)) fail(`${file} does not exist`);
-  if (extname(file) === ".json") return resolveConfig(JSON.parse(readFileSync(file, "utf8")));
+  if (extname(file) === ".json")
+    return resolveConfig(JSON.parse(readFileSync(file, "utf8")));
   const module: unknown = await import(pathToFileURL(file).href);
   return resolveConfig(isRecord(module) ? module.default : undefined);
 }
