@@ -33,7 +33,7 @@
     "check:xstate-docs": "node scripts/index-xstate-docs.mjs --check",
     "check:node-scripts": "oxlint -c lint/node-scripts.oxlintrc.json --report-unused-disable-directives-severity=error scripts lib",
     "lint:jev": "oxlint -c lint/anti-slop-jev.oxlintrc.json apps packages",
-    "test:anti-slop": "node --test 'tools/oxlint/anti-slop/rules/{max,no,require-readable-spacing.,require-safety}*.test.ts' 'tools/oxlint/anti-slop/{effect,martinfowler}/rules/*.test.ts' tools/oxlint/anti-slop/jev/effect-rules.test.ts tools/oxlint/anti-slop/martinfowler/jev-rules.test.ts 'tools/oxlint/anti-slop/diff-rules/{git,input,runner}.test.ts' tools/oxlint/anti-slop/modes/wrap.test.ts tools/oxlint/anti-slop/modes/with-changes.test.ts",
+    "test:anti-slop": "node --test 'tools/oxlint/anti-slop/rules/{max,no,require-readable-spacing.,require-safety}*.test.ts' 'tools/oxlint/anti-slop/{effect,martinfowler}/rules/*.test.ts' tools/oxlint/anti-slop/jev/effect-rules.test.ts tools/oxlint/anti-slop/martinfowler/jev-rules.test.ts 'tools/oxlint/anti-slop/diff-rules/{git,input,runner}.test.ts' tools/oxlint/anti-slop/modes/wrap.test.ts tools/oxlint/anti-slop/modes/with-changes.test.ts tools/oxlint/anti-slop/modes/changed-format.test.ts",
     "lint": "bun run check:effect-api && bun run check:xstate-docs && bun run check:node-scripts && turbo run lint",
     "preview": "turbo run preview",
     "ask": "varlock run -- bun run --cwd packages/analyst ask",

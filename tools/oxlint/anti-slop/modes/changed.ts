@@ -1,8 +1,9 @@
 // oxlint-disable effecttsgo/node-builtin-import, effecttsgo/process-env, effecttsgo/global-date -- runs inside oxlint's plugin host, outside any Effect runtime
 
-import { execFileSync } from "node:child_process";
-import { readFileSync, realpathSync } from "node:fs";
-import { dirname, relative, sep } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, relative, sep } from "node:path";
 
 import { errorMessage } from "../shared/error-message.ts";
 
@@ -38,8 +39,10 @@ interface SavedChanges {
 interface RepoChanges {
 	readonly root: string;
 	/** `null` before the first commit, when every line of every file is new. */
-	readonly files: ReadonlyMap<string, ChangedLines> | null;
+	readonly files: Map<string, ChangedLines> | null;
 	readonly computedAt: number;
+	/** The merge base the diff ran against, and the files whose lines formatting has not yet been taken out of. */
+	readonly unformatted: { readonly mergeBase: string; readonly paths: Set<string> } | null;
 }
 
 const git = (cwd: string, args: ReadonlyArray<string>): string =>
@@ -116,9 +119,93 @@ const MAX_AGE_MS = process.argv.includes("--lsp") ? 1000 : Infinity;
 const rootByDir = new Map<string, string | null>();
 const changesByKey = new Map<string, RepoChanges | null>();
 
-function computeChanges(root: string, base: string | undefined): RepoChanges {
+/** Oxfmt config files looked for at the repository root. */
+const OXFMT_CONFIGS: ReadonlyArray<string> = ["oxfmt.config.ts", "oxfmt.config.mts", "oxfmt.config.js", "oxfmt.config.mjs", ".oxfmtrc.json", ".oxfmtrc.jsonc"];
+
+/** Reads each `<commit>:<path>` blob in one `git cat-file --batch`; a path missing at the commit is left out. */
+function blobsAt(root: string, commit: string, paths: ReadonlyArray<string>): Map<string, Buffer> {
+	const output = execFileSync("git", ["cat-file", "--batch"], {
+		cwd: root,
+		input: paths.map((path) => `${commit}:${path}\n`).join(""),
+		maxBuffer: 1024 * 1024 * 1024,
+		stdio: ["pipe", "pipe", "pipe"],
+	});
+	const blobs = new Map<string, Buffer>();
+	let offset = 0;
+	for (const path of paths) {
+		const end = output.indexOf(10, offset);
+		if (end === -1) break;
+		const header = output.subarray(offset, end).toString("utf8").split(" ");
+		offset = end + 1;
+		if (header[1] !== "blob") continue;
+		const size = Number(header[2]);
+		blobs.set(path, output.subarray(offset, offset + size));
+		offset += size + 1;
+	}
+	return blobs;
+}
+
+/**
+ * Drops lines whose only change since the merge base is formatting, so a repository-wide format
+ * does not make every line count as changed. Applies when the repository root has an Oxfmt config
+ * and `node_modules/.bin/oxfmt`: both sides of each changed file are formatted in a scratch
+ * directory and diffed again. A file that is not formatted in the working tree keeps its raw diff,
+ * because formatted line numbers would not match it, and any failure keeps the raw diff for every
+ * file, which can only check more lines, never fewer.
+ *
+ * Local addition to the vendored copy; see ../UPSTREAM.md.
+ */
+function withoutFormatting(root: string, mergeBase: string, files: Map<string, ChangedLines>): Map<string, ChangedLines> {
+	const config = OXFMT_CONFIGS.map((name) => join(root, name)).find((path) => existsSync(path));
+	const oxfmt = join(root, "node_modules", ".bin", "oxfmt");
+	const paths = [...files].flatMap(([path, lines]) => (lines === "all" ? [] : [path]));
+	if (config === undefined || !existsSync(oxfmt) || paths.length === 0) return files;
+	const scratch = mkdtempSync(join(tmpdir(), "anti-slop-format-"));
+	try {
+		const base = blobsAt(root, mergeBase, paths);
+		const current = new Map<string, Buffer>();
+		for (const [path, blob] of base) {
+			if (!existsSync(join(root, path))) continue;
+			current.set(path, readFileSync(join(root, path)));
+			for (const [side, content] of [["base", blob], ["current", current.get(path)]] as const) {
+				mkdirSync(dirname(join(scratch, side, path)), { recursive: true });
+				writeFileSync(join(scratch, side, path), content ?? "");
+			}
+		}
+		// Oxfmt exits non-zero when a file does not parse; it still writes every file it formatted.
+		spawnSync(oxfmt, ["-c", config, "--no-error-on-unmatched-pattern", "base", "current"], { cwd: scratch, stdio: "ignore" });
+		for (const [path, content] of current) {
+			if (readFileSync(join(scratch, "current", path)).equals(content)) continue;
+			current.delete(path);
+			rmSync(join(scratch, "base", path));
+			rmSync(join(scratch, "current", path));
+		}
+		const result = spawnSync(
+			"git",
+			["-c", "core.quotePath=false", "diff", "--no-index", "-U0", "--no-color", "--no-ext-diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "base", "current"],
+			{ cwd: scratch, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 },
+		);
+		// `git diff --no-index` exits 1 when the sides differ and 2 or more on failure.
+		if (result.status === null || result.status > 1) return files;
+		const formatted = parseDiff(result.stdout);
+		const next = new Map(files);
+		for (const path of current.keys()) next.set(path, formatted.get(`current/${path}`) ?? new Set());
+		return next;
+	} catch {
+		return files;
+	} finally {
+		rmSync(scratch, { recursive: true, force: true });
+	}
+}
+
+/**
+ * The changes against the merge base. With `format: "now"`, lines changed only by formatting are
+ * dropped from every file at once; with `"later"`, `changedLines` drops them from each file it is
+ * asked about, so a linter run over a few untracked fixture files never formats the whole diff.
+ */
+function computeChanges(root: string, base: string | undefined, format: "now" | "later"): RepoChanges {
 	const computedAt = Date.now();
-	if (!succeeds(root, ["rev-parse", "--verify", "-q", "HEAD"])) return { root, files: null, computedAt };
+	if (!succeeds(root, ["rev-parse", "--verify", "-q", "HEAD"])) return { root, files: null, computedAt, unformatted: null };
 	const ref = resolveBase(root, base);
 	if (ref === null) {
 		throw new Error(`no default branch found (origin/HEAD, ${DEFAULT_BRANCHES.join(", ")}); set ${BASE_ENV} or the rule's base option`);
@@ -127,10 +214,12 @@ function computeChanges(root: string, base: string | undefined): RepoChanges {
 	// The working tree against the merge base covers commits on this branch, staged, and unstaged
 	// edits together.
 	const diff = git(root, ["diff", "-U0", "--no-color", "--no-ext-diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", mergeBase, "--"]);
-	const files = new Map<string, ChangedLines>(parseDiff(diff));
+	const raw = new Map<string, ChangedLines>(parseDiff(diff));
+	const files = format === "now" ? withoutFormatting(root, mergeBase, raw) : raw;
+	const unformatted = format === "now" ? null : { mergeBase, paths: new Set(raw.keys()) };
 	const untracked = git(root, ["ls-files", "--others", "--exclude-standard", "-z"]);
 	for (const file of untracked.split("\0").filter(Boolean)) files.set(file, "all");
-	return { root, files, computedAt };
+	return { root, files, computedAt, unformatted };
 }
 
 let saved: { readonly path: string; readonly changes: SavedChanges } | null = null;
@@ -151,13 +240,14 @@ function savedChanges(base: string | undefined, warn: (message: string) => void)
 		root,
 		files: files === null ? null : new Map(Object.entries(files).map(([file, lines]) => [file, lines === "all" ? "all" : new Set(lines)])),
 		computedAt: Date.now(),
+		unformatted: null,
 	};
 }
 
 /** The changes of the repository containing `dir`, as the JSON `CHANGES_ENV` names. Throws when git cannot answer. */
 export function changesJson(dir: string, base?: string): string {
 	const root = realpathSync(git(dir, ["rev-parse", "--show-toplevel"]).trim());
-	const { files } = computeChanges(root, base);
+	const { files } = computeChanges(root, base, "now");
 	const saved: SavedChanges = {
 		root,
 		base: base ?? null,
@@ -181,7 +271,7 @@ function repoChanges(dir: string, base: string | undefined, warn: (message: stri
 		if (cached === null) return null;
 		if (cached !== undefined && Date.now() - cached.computedAt <= MAX_AGE_MS) return cached;
 		try {
-			const changes = computeChanges(root, base);
+			const changes = computeChanges(root, base, "later");
 			changesByKey.set(key, changes);
 			return changes;
 		} catch (error) {
@@ -212,7 +302,11 @@ export function changedLines(filename: string, base: string | undefined, warn: (
 	const changes = repoChanges(dirname(file), base, warn);
 	if (changes === null || changes.files === null) return "all";
 	const path = relative(changes.root, file).split(sep).join("/");
-	return changes.files.get(path) ?? new Set();
+	const lines = changes.files.get(path) ?? new Set();
+	if (changes.unformatted === null || !changes.unformatted.paths.delete(path)) return lines;
+	const formatted = withoutFormatting(changes.root, changes.unformatted.mergeBase, new Map([[path, lines]])).get(path) ?? lines;
+	changes.files.set(path, formatted);
+	return formatted;
 }
 
 export function overlaps(lines: ChangedLines, start: number, end: number): boolean {
