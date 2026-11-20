@@ -79,14 +79,20 @@ export default defineConfig({
       },
     },
     {
+      // The one cast of the raw `"print"` media query, which Tamagui's config type cannot express.
+      // The file holds nothing else; tests/print-media.test.ts proves the cast is safe.
+      files: ["design/print-media.ts"],
+      rules: {
+        "anti-slop/no-chained-type-assertions": "off",
+        "anti-slop/no-known-value-widening": "off",
+      },
+    },
+    {
       // Module augmentation merges declarations, which only an interface can do, and
       // `TamaguiCustomConfig extends AppConfig {}` adds no members of its own.
       files: ["tamagui.config.ts"],
       rules: {
         "typescript/consistent-type-definitions": "off",
-        // The raw `"print"` media query has no type in Tamagui's config, so it is cast in two steps.
-        "anti-slop/no-chained-type-assertions": "off",
-        "anti-slop/no-known-value-widening": "off",
         "typescript/no-empty-interface": "off",
         "typescript/no-empty-object-type": "off",
       },

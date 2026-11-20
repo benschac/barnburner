@@ -3,6 +3,7 @@ import { defaultConfig } from "@tamagui/config/v6";
 import { createFont, createTamagui } from "tamagui";
 
 import contract from "./design/contract.json";
+import { printMedia } from "./design/print-media.ts";
 import { dark, light, teamBannerThemes } from "./design/themes";
 
 const bodyFont = createFont({
@@ -24,13 +25,11 @@ export const config = createTamagui({
     radius: { ...defaultConfig.tokens.radius, ...contract.radius },
   },
   themes: { dark, light, ...teamBannerThemes },
-  // Tamagui's mediaObjectToString supports raw queries; its public config type omits them.
   media: {
     ...defaultConfig.media,
     poster: { minWidth: 1206 },
     reducedMotion: { prefersReducedMotion: "reduce" },
-    // SAFETY: Tamagui passes a string media query through unchanged; only the config type omits it.
-    print: "print" as unknown as Record<string, string>,
+    print: printMedia,
   },
   fonts: {
     ...defaultConfig.fonts,
