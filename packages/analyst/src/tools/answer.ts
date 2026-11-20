@@ -1,7 +1,9 @@
 import { jsonSchema, tool } from "ai";
-import { Effect, Predicate, Result } from "effect";
+import { Effect, Result, Schema } from "effect";
 
-import type { Answer, Coverage, Db, Guard, Row } from "../shapes.ts";
+import { checkWith } from "../json.ts";
+import { Answered, Coverage } from "../shapes.ts";
+import type { Answer, Db, Guard, Row } from "../shapes.ts";
 
 export type AnswerDeps = {
   readonly db: Db;
@@ -17,22 +19,22 @@ export type AnswerInput = {
   readonly column: string;
 };
 
-type Checked<T> = { ok: true; input: T } | { ok: false; reason: string };
+const AnswerInputSchema = Schema.Struct({
+  query: Schema.String.annotate({ message: "query must be a string" }),
+  row: Schema.Number.annotate({
+    message: "row must be a non-negative integer",
+  }).check(
+    Schema.isFinite({ message: "row must be a non-negative integer" }),
+    Schema.isInt({ message: "row must be a non-negative integer" }),
+    Schema.isGreaterThanOrEqualTo(0, {
+      message: "row must be a non-negative integer",
+    })
+  ),
+  column: Schema.String.annotate({ message: "column must be a string" }),
+}).annotate({ message: "input must be an object" });
 
 // Runtime check of model-supplied arguments. Wrong types are reported, never coerced.
-export const checkAnswerInput = (raw: unknown): Checked<AnswerInput> => {
-  if (!Predicate.isObject(raw))
-    return { ok: false, reason: "input must be an object" };
-  const { query, row, column } = raw;
-  if (typeof query !== "string")
-    return { ok: false, reason: "query must be a string" };
-  if (typeof row !== "number" || !Number.isInteger(row) || row < 0) {
-    return { ok: false, reason: "row must be a non-negative integer" };
-  }
-  if (typeof column !== "string")
-    return { ok: false, reason: "column must be a string" };
-  return { ok: true, input: { query, row, column } };
-};
+export const checkAnswerInput = checkWith(AnswerInputSchema);
 
 const fail = (reason: string): string => `ERROR: ${reason}`;
 
@@ -40,16 +42,18 @@ const fail = (reason: string): string => `ERROR: ${reason}`;
 export const coverageSql = (team: string): string =>
   `SELECT archived, finals FROM boxscore_coverage WHERE team = '${team.replaceAll("'", "''")}'`;
 
-const readCoverage = (deps: AnswerDeps): Effect.Effect<Coverage | string> =>
+const readCoverage = (
+  deps: AnswerDeps
+): Effect.Effect<Result.Result<Coverage, string>> =>
   Effect.gen(function* () {
     const result = yield* Effect.result(deps.db.query(coverageSql(deps.team)));
-    if (Result.isFailure(result)) return result.failure.message;
+    if (Result.isFailure(result)) return Result.fail(result.failure.message);
     const row = result.success.rows[0];
-    if (row === undefined) return "missing";
-    const { archived, finals } = row;
-    if (typeof archived !== "number" || typeof finals !== "number")
-      return "boxscore_coverage has no numeric counts";
-    return { archived, finals };
+    if (row === undefined) return Result.fail("missing");
+    return Result.mapError(
+      Schema.decodeUnknownResult(Coverage)(row),
+      () => "boxscore_coverage has no numeric counts"
+    );
   });
 
 // Returns "ok" or "ERROR: <reason>". Tool errors go back to the model as text.
@@ -88,20 +92,19 @@ export const runAnswer = (
     let coverage: Coverage | undefined;
     if (verdict.touchesBoxscores) {
       const found = yield* readCoverage(deps);
-      if (typeof found === "string") {
-        if (found === "missing")
+      if (Result.isFailure(found)) {
+        if (found.failure === "missing")
           return fail(`no boxscore_coverage row for ${deps.team}`);
-        return fail(`coverage query failed: ${found}`);
+        return fail(`coverage query failed: ${found.failure}`);
       }
-      coverage = found;
+      coverage = found.success;
     }
 
-    deps.onAnswer({
-      _tag: "Answered",
-      value,
-      query: input.query,
-      ...(coverage === undefined ? {} : { coverage }),
-    });
+    deps.onAnswer(
+      coverage === undefined
+        ? Answered.make({ value, query: input.query })
+        : Answered.make({ value, query: input.query, coverage })
+    );
     return "ok";
   });
 

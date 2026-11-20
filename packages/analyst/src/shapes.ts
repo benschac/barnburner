@@ -46,19 +46,30 @@ export type Verify = (
   finals: ReadonlySet<number>
 ) => Effect.Effect<VerifyResult>;
 
-export type Coverage = {
-  readonly finals: number;
-  readonly archived: number;
-};
+export const Coverage = Schema.Struct({
+  finals: Schema.Finite,
+  archived: Schema.Finite,
+});
+export type Coverage = typeof Coverage.Type;
 
-export type Answer =
-  | {
-      _tag: "Answered";
-      value: string | number | boolean | null;
-      query: string;
-      coverage?: Coverage;
-    }
-  | { _tag: "Declined"; reason: string };
+export const Answered = Schema.TaggedStruct("Answered", {
+  value: Schema.Union([
+    Schema.String,
+    Schema.Finite,
+    Schema.Boolean,
+    Schema.Null,
+  ]),
+  query: Schema.String,
+  coverage: Schema.optionalKey(Coverage),
+});
+export const Declined = Schema.TaggedStruct("Declined", {
+  reason: Schema.String,
+});
+export const Crashed = Schema.TaggedStruct("Crashed", {
+  reason: Schema.String,
+});
+export const Answer = Schema.Union([Answered, Declined]);
+export type Answer = typeof Answer.Type;
 
 export type Outcome = "cards" | "declined" | "no_insight" | "crashed";
 

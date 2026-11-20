@@ -1,8 +1,10 @@
 import { stepCountIs } from "ai";
 import type { StopCondition, ToolSet, ToolExecuteFunction } from "ai";
+import { Predicate } from "effect";
 
 import { guardQuery } from "./guard.ts";
 import type { Answer, Db } from "./shapes.ts";
+import { Declined } from "./shapes.ts";
 import { makeAnswerTool } from "./tools/answer.ts";
 import { makeDeclineTool } from "./tools/decline.ts";
 import { executeOf } from "./tools/execute-of.ts";
@@ -32,16 +34,18 @@ export const makeToolset = (db: Db, team: string) => {
       try {
         const result = await execute(input, options);
         let output = "";
-        if (typeof result === "string") output = result;
+        if (Predicate.isString(result)) output = result;
         else for await (const part of result) output = part;
-        events.push({
+        const event = {
           type: "tool_call",
           tool: name,
           input,
           output,
           durationMs: performance.now() - start,
-          ...(output.startsWith("ERROR:") ? { error: output } : {}),
-        });
+        } satisfies ToolCallEvent;
+        events.push(
+          output.startsWith("ERROR:") ? { ...event, error: output } : event
+        );
         completed = true;
         return output;
       } finally {
@@ -63,7 +67,7 @@ export const makeToolset = (db: Db, team: string) => {
   });
   const decline = makeDeclineTool({
     onDecline: (reason) => {
-      answer ??= { _tag: "Declined", reason };
+      answer ??= Declined.make({ reason });
     },
   });
   const tools = {
@@ -100,7 +104,7 @@ export const makeToolset = (db: Db, team: string) => {
         if (part.type === "tool-error") failures++;
         else if (part.type === "tool-result") {
           failures =
-            typeof part.output === "string" && part.output.startsWith("ERROR:")
+            Predicate.isString(part.output) && part.output.startsWith("ERROR:")
               ? failures + 1
               : 0;
         }
