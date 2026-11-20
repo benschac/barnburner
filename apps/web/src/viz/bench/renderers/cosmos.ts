@@ -1,6 +1,7 @@
 import { Graph } from '@cosmos.gl/graph'
-import { callbackPromise } from '../../../use-callback-promise.ts'
-import type { BenchData, BenchHandle, BenchRenderer, VizTheme } from '@nhl-reddit-stats/viz'
+import { Deferred, Effect } from 'effect'
+import { benchMountError } from '@nhl-reddit-stats/viz'
+import type { BenchData, BenchRenderer, VizTheme } from '@nhl-reddit-stats/viz'
 
 const MIN_SIZE = 3
 const MAX_SIZE = 18
@@ -47,101 +48,112 @@ const buildLinks = (data: BenchData, index: ReadonlyMap<number, number>, rgb: Rg
   return { pairs: pairs.subarray(0, n * 2), colors: colors.subarray(0, n * 4) }
 }
 
-const nextFrame = (): Promise<void> => callbackPromise((resolve) => { requestAnimationFrame(() => { resolve() }) })
+const nextFrame = Effect.callback<void>((resume) => {
+  const frame = requestAnimationFrame(() => { resume(Effect.void) })
+  return Effect.sync(() => { cancelAnimationFrame(frame) })
+})
 
-const mount: BenchRenderer['mount'] = async (root: HTMLElement, data: BenchData, theme: VizTheme): Promise<BenchHandle> => {
-  const div = document.createElement('div')
-  div.style.width = '100%'
-  div.style.height = '100%'
-  root.appendChild(div)
-  let graph: Graph | undefined
-  let mounted = false
-  try {
-    const pointRgb = toRgb(theme.brand)
-    const linkRgb = toRgb(theme.muted)
+/** Runs a synchronous step of the mount, so a throw from it fails the mount instead of becoming a defect. */
+const attempt = <A>(step: () => A) => Effect.try({ try: step, catch: benchMountError })
 
-    const index = new Map<number, number>()
-    data.nodes.forEach((node, i) => index.set(node.playerId, i))
-    const maxNode = maxGames(data.nodes)
+/** Point positions, sizes and colours, and the link arrays, all as the typed arrays cosmos.gl takes. */
+const buildScene = (data: BenchData, theme: VizTheme) => {
+  const pointRgb = toRgb(theme.brand)
+  const linkRgb = toRgb(theme.muted)
 
-    const positions = new Float32Array(data.nodes.length * 2)
-    const sizes = new Float32Array(data.nodes.length)
-    const colors = new Float32Array(data.nodes.length * 4)
-    data.nodes.forEach((node, i) => {
-      const angle = i * 2.399963
-      const radius = 40 * Math.sqrt(i + 1)
-      positions[i * 2] = 2048 + radius * Math.cos(angle)
-      positions[i * 2 + 1] = 2048 + radius * Math.sin(angle)
-      sizes[i] = lerp(MIN_SIZE, MAX_SIZE, Math.sqrt(node.games / maxNode))
-      colors.set([pointRgb[0], pointRgb[1], pointRgb[2], 1], i * 4)
-    })
-    const links = buildLinks(data, index, linkRgb)
+  const index = new Map<number, number>()
+  data.nodes.forEach((node, i) => index.set(node.playerId, i))
+  const maxNode = maxGames(data.nodes)
 
-    // Resolved by cosmos.gl's `onSimulationEnd` callback (see config.d.ts).
-    let ended: () => void = () => {}
-    const simulationEnded = callbackPromise((resolve) => {
-      ended = resolve
-    })
-    const g = new Graph(div, {
-      backgroundColor: theme.background,
-      enableSimulation: true,
-      fitViewOnInit: false,
-      scalePointsOnZoom: true,
-      simulationGravity: 0.25,
-      simulationRepulsion: 1,
-      onSimulationEnd: () => ended(),
-    })
-    graph = g
-    await g.ready
-
-    // Running camera: world centre and zoom, owned here because transitions read stale state.
-    let cx = 0
-    let cy = 0
-    let k = 1
-    if (data.nodes.length > 0) {
-      g.setPointPositions(positions)
-      g.setPointSizes(sizes)
-      g.setPointColors(colors)
-      g.setLinks(links.pairs)
-      g.setLinkColors(links.colors)
-      g.render()
-      await simulationEnded
-      g.fitView(0, 0.1, false)
-      await nextFrame()
-      await nextFrame()
-      k = g.getZoomLevel()
-      ;[cx, cy] = g.screenToSpacePosition([div.clientWidth / 2, div.clientHeight / 2])
-    }
-    const apply = (): void => {
-      if (data.nodes.length === 0) return
-      g.setZoomTransformByPointPositions(new Float32Array([cx, cy]), 0, k, 0, false)
-    }
-
-    mounted = true
-    return {
-      pan(dx, dy) {
-        // Drawing moves right/down by (dx, dy) screen px; world Y grows upward, so the view centre
-        // moves left by dx and up in world (+Y) by dy.
-        cx -= dx / k
-        cy += dy / k
-        apply()
-      },
-      zoom(factor) {
-        k *= factor
-        apply()
-      },
-      destroy() {
-        g.destroy()
-        div.remove()
-      },
-    }
-  } finally {
-    if (!mounted) {
-      graph?.destroy()
-      div.remove()
-    }
-  }
+  const positions = new Float32Array(data.nodes.length * 2)
+  const sizes = new Float32Array(data.nodes.length)
+  const colors = new Float32Array(data.nodes.length * 4)
+  data.nodes.forEach((node, i) => {
+    const angle = i * 2.399963
+    const radius = 40 * Math.sqrt(i + 1)
+    positions[i * 2] = 2048 + radius * Math.cos(angle)
+    positions[i * 2 + 1] = 2048 + radius * Math.sin(angle)
+    sizes[i] = lerp(MIN_SIZE, MAX_SIZE, Math.sqrt(node.games / maxNode))
+    colors.set([pointRgb[0], pointRgb[1], pointRgb[2], 1], i * 4)
+  })
+  return { positions, sizes, colors, links: buildLinks(data, index, linkRgb) }
 }
+
+const mount: BenchRenderer['mount'] = (root, data, theme) =>
+  Effect.gen(function* () {
+    const div = document.createElement('div')
+    div.style.width = '100%'
+    div.style.height = '100%'
+    root.appendChild(div)
+    let graph: Graph | undefined
+    return yield* Effect.gen(function* () {
+      const scene = yield* attempt(() => buildScene(data, theme))
+
+      // Completed by cosmos.gl's `onSimulationEnd` callback (see config.d.ts).
+      const simulationEnded = yield* Deferred.make<void>()
+      const g = yield* attempt(() => new Graph(div, {
+        backgroundColor: theme.background,
+        enableSimulation: true,
+        fitViewOnInit: false,
+        scalePointsOnZoom: true,
+        simulationGravity: 0.25,
+        simulationRepulsion: 1,
+        onSimulationEnd: () => { Deferred.doneUnsafe(simulationEnded, Effect.void) },
+      }))
+      graph = g
+      yield* Effect.tryPromise({ try: () => g.ready, catch: benchMountError })
+
+      // Running camera: world centre and zoom, owned here because transitions read stale state.
+      let cx = 0
+      let cy = 0
+      let k = 1
+      if (data.nodes.length > 0) {
+        yield* attempt(() => {
+          g.setPointPositions(scene.positions)
+          g.setPointSizes(scene.sizes)
+          g.setPointColors(scene.colors)
+          g.setLinks(scene.links.pairs)
+          g.setLinkColors(scene.links.colors)
+          g.render()
+        })
+        yield* Deferred.await(simulationEnded)
+        yield* attempt(() => { g.fitView(0, 0.1, false) })
+        yield* nextFrame
+        yield* nextFrame
+        yield* attempt(() => {
+          k = g.getZoomLevel()
+          ;[cx, cy] = g.screenToSpacePosition([div.clientWidth / 2, div.clientHeight / 2])
+        })
+      }
+      const apply = (): void => {
+        if (data.nodes.length === 0) return
+        g.setZoomTransformByPointPositions(new Float32Array([cx, cy]), 0, k, 0, false)
+      }
+
+      return {
+        pan(dx: number, dy: number) {
+          // Drawing moves right/down by (dx, dy) screen px; world Y grows upward, so the view centre
+          // moves left by dx and up in world (+Y) by dy.
+          cx -= dx / k
+          cy += dy / k
+          apply()
+        },
+        zoom(factor: number) {
+          k *= factor
+          apply()
+        },
+        destroy() {
+          g.destroy()
+          div.remove()
+        },
+      }
+    }).pipe(
+      Effect.tapError(() => Effect.sync(() => {
+        graph?.destroy()
+        div.remove()
+      })),
+    )
+  })
 
 const renderer: BenchRenderer = { name: 'cosmos.gl', mount }
 export default renderer
