@@ -12,7 +12,7 @@ export type BenchResult = {
   readonly renderer: string
   readonly nodes: number
   readonly links: number
-  /** Milliseconds from the start of `mount` until it resolved: the layout has settled by then. */
+  /** Milliseconds from the start of `mount` until it succeeded: the layout has settled by then. */
   readonly settleMs: number
   readonly frames: number
   readonly medianFps: number
@@ -103,7 +103,7 @@ export const readBenchFile = (file: { readonly name: string; text(): Promise<str
   )
 
 /**
- * Contract: a renderer's `mount` resolves only once its layout has settled, so the time `mount`
+ * Contract: a renderer's `mount` succeeds only once its layout has settled, so the time `mount`
  * takes is the settle time. The harness has no other signal; it does not poll the renderer.
  *
  * Mounts one renderer on `root` (which needs a size), times the mount, drives the fixed script,
@@ -119,7 +119,7 @@ export const runBench = (
     const fail = (stage: 'mount' | 'drive' | 'destroy') => (cause: unknown) =>
       new BenchRunError({ renderer: renderer.name, stage, message: messageOf(cause) })
     const started = performance.now()
-    const handle = yield* Effect.tryPromise({ try: () => renderer.mount(root, data, theme), catch: fail('mount') })
+    const handle = yield* renderer.mount(root, data, theme).pipe(Effect.mapError(fail('mount')))
     const settleMs = performance.now() - started
     const driven = yield* Effect.result(drive(handle).pipe(Effect.mapError(fail('drive'))))
     const cleaned = yield* Effect.result(Effect.try({ try: () => handle.destroy(), catch: fail('destroy') }))
