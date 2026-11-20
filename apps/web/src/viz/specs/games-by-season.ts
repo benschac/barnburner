@@ -15,7 +15,7 @@ export type ClubColor = (abbrev: string, index: number) => string;
 export type Competition = "Regular season" | "Playoffs";
 
 /** One bar segment: a season, a competition, and a club (or the goalie-partner series for that club's games). */
-export interface SeasonBarRow {
+export type SeasonBarRow = {
   season: string;
   seasonId: number;
   competition: Competition;
@@ -23,18 +23,18 @@ export interface SeasonBarRow {
   games: number;
   goaliePartner: boolean;
   series: string;
-}
+};
 
-export interface OrdinalColorScale {
+export type OrdinalColorScale = {
   type: "ordinal";
   domain: string[];
   range: string[];
-}
+};
 
 /** What G2's facet hands the guide function: the facet's position and its rows. */
-export interface FacetCell {
+export type FacetCell = {
   columnIndex: number;
-}
+};
 /** The y guide of one facet. A function, because G2 5.4.8 lets a plain `{ title }` override its own "left-most facet only". */
 export type YAxis = (
   facet: FacetCell,
@@ -42,17 +42,17 @@ export type YAxis = (
 ) => { title: string | false; tick?: null; label?: null; grid?: null };
 
 /** The stacked bars inside each competition facet. */
-export interface BarsChild {
+export type BarsChild = {
   type: "interval";
   encode: { x: "season"; y: "games"; color: "series" };
   transform: { type: "stackY" }[];
   scale: { x: { domain: string[] }; color: OrdinalColorScale };
   axis: { y: YAxis };
   legend: { color: { position: "top" } };
-}
+};
 
 /** The shared-games facet: one column per competition present, each holding stacked bars. */
-export interface GamesFacetSpec {
+export type GamesFacetSpec = {
   type: "facetRect";
   paddingLeft: number;
   paddingRight: number;
@@ -62,17 +62,17 @@ export interface GamesFacetSpec {
   encode: { x: "competition" };
   scale: { x: { domain: Competition[] }; color: OrdinalColorScale };
   children: [BarsChild];
-}
+};
 
 /** No shared games: a single text mark, with no facet (G2 5.4.8 throws on a facet with no rows). */
-export interface NoSharedGamesSpec {
+export type NoSharedGamesSpec = {
   type: "text";
   data: { x: number; y: number; text: string }[];
   encode: { x: "x"; y: "y"; text: "text" };
   scale: { x: { domain: number[] }; y: { domain: number[] } };
   style: { fill: string; textAlign: "center" };
   axis: false;
-}
+};
 
 export type GamesBySeasonSpec = GamesFacetSpec | NoSharedGamesSpec;
 

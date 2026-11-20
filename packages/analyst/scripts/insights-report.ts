@@ -12,13 +12,13 @@ import type {
   TraceLineError,
 } from "../src/trace.ts";
 
-export interface ModelUsage {
+export type ModelUsage = {
   readonly calls: number;
   readonly inputTokens: number;
   readonly outputTokens: number;
-}
+};
 
-export interface RunSummary {
+export type RunSummary = {
   readonly events: number;
   readonly byType: Record<string, number>;
   readonly models: Record<string, ModelUsage>;
@@ -35,7 +35,7 @@ export interface RunSummary {
   };
   readonly cards: number;
   readonly outcome: OutcomeStatus | undefined;
-}
+};
 
 // Pure aggregation over parsed trace events. No I/O.
 export function summarize(events: readonly TraceEvent[]): RunSummary {

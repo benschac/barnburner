@@ -8,21 +8,21 @@ export type Answerer = (
   evalCase: EvalCase
 ) => Effect.Effect<EvalAnswer, unknown>;
 
-export interface CaseResult {
+export type CaseResult = {
   readonly id: string;
   readonly pass: boolean;
   readonly reason?: string;
   readonly invalid?: true;
   readonly truth?: number;
   readonly answer?: EvalAnswer;
-}
+};
 
-export interface EvalRun {
+export type EvalRun = {
   readonly results: readonly CaseResult[];
   readonly passed: number;
   readonly total: number;
   readonly score: number;
-}
+};
 
 const describe = (e: unknown): string => {
   // foreign: e is whatever an answerer or driver raised

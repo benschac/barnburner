@@ -26,10 +26,10 @@ const fail = (reason: string): GuardResult => ({ ok: false, reason });
 
 const sqlLiteral = (value: string): string => value.replaceAll("'", "''");
 
-interface Scan {
+type Scan = {
   reason: string | null;
   touchesBoxscores: boolean;
-}
+};
 
 // CTE names are resolved in lexical scope: a WITH clause is visible to later CTEs of the same clause
 // and to the rest of the query node that owns it, never to sibling or enclosing queries.

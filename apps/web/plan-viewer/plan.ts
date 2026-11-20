@@ -46,14 +46,14 @@ export class PlanParseError extends Schema.TaggedError<
   }
 }
 
-interface PlanCard {
+type PlanCard = {
   readonly heading: string;
   readonly body: string;
   readonly ids: string[];
   readonly group: string;
-}
+};
 
-interface PlanTask {
+type PlanTask = {
   readonly id: string;
   readonly group: string;
   readonly category: string;
@@ -67,7 +67,7 @@ interface PlanTask {
   readonly heading: string;
   readonly body: string;
   readonly parent: string | null;
-}
+};
 
 const refuse = (reason: string, subject: string) =>
   Result.fail(new PlanParseError({ reason, subject }));

@@ -15,11 +15,11 @@ import { toJson } from "./json.ts";
 import { DbError, SqlError } from "./shapes.ts";
 import type { Db, QueryOpts, QueryResult, Row } from "./shapes.ts";
 
-export interface OpenDbOpts {
+export type OpenDbOpts = {
   readonly dataDir: string;
   // Directory of NN-name.sql files, loaded in sorted order. Defaults to src/views.
   readonly viewsDir?: string;
-}
+};
 
 const defaultViewsDir = join(import.meta.dirname, "views");
 

@@ -8,19 +8,19 @@ import { fillCard } from "./tools/submit-card.ts";
 
 export type RecheckChange = "unchanged" | "refreshed" | "stale";
 
-export interface RecheckContext {
+export type RecheckContext = {
   readonly finals: ReadonlySet<number>;
   readonly asOf: {
     readonly fetchedAt: string;
     readonly completedGameIds: number;
   };
-}
+};
 
-export interface RecheckResult {
+export type RecheckResult = {
   readonly card: InsightCard;
   readonly change: RecheckChange;
   readonly reason?: string;
-}
+};
 
 class Stale extends Schema.TaggedError<
   Stale,

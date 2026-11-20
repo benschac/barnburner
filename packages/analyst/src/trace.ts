@@ -145,20 +145,20 @@ export function truncateText(text: string, max: number): string {
   return `${text.slice(0, max)}...[+${text.length - max} chars]`;
 }
 
-export interface TraceOptions {
+export type TraceOptions = {
   readonly runId: string;
   // Defaults to <repo root>/.audit/agent-runs. Tests pass a temp dir.
   readonly dir?: string;
   readonly now?: () => Date;
   readonly maxToolOutputChars?: number;
-}
+};
 
-export interface TraceWriter {
+export type TraceWriter = {
   readonly runId: string;
   readonly path: string;
   // Fails, and writes nothing, when the event would serialize to a line the reader rejects.
   append(payload: TracePayload): Result.Result<TraceEvent, TraceLineError>;
-}
+};
 
 // Append-only JSONL writer: one line per event, written synchronously in call order.
 export function openTrace(

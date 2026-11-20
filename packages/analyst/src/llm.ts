@@ -25,18 +25,18 @@ export class LlmOutputError extends Schema.TaggedError<
   raw: Schema.optional(Schema.String),
 }) {}
 
-export interface LlmObjectInput<S extends Schema.ConstraintDecoder<unknown>> {
+export type LlmObjectInput<S extends Schema.ConstraintDecoder<unknown>> = {
   readonly schema: S;
   readonly prompt: string;
   readonly system?: string;
   readonly model?: LanguageModel;
-}
+};
 
 // Gateway "provider/model" strings; both are starting guesses (see E7 evals).
-export interface LlmConfig {
+export type LlmConfig = {
   readonly generateModel: string;
   readonly rankModel: string;
-}
+};
 
 export const defaultLlmConfig: LlmConfig = {
   generateModel: "anthropic/claude-sonnet-5.5",
@@ -50,7 +50,7 @@ export const llmConfigFromEnv = (
   rankModel: env.ANALYST_RANK_MODEL || defaultLlmConfig.rankModel,
 });
 
-export interface LlmRunInput {
+export type LlmRunInput = {
   readonly system?: string;
   readonly prompt: string;
   readonly tools?: ToolSet;
@@ -59,16 +59,16 @@ export interface LlmRunInput {
     | readonly StopCondition<any, any>[];
   // A gateway "provider/model" string or a LanguageModel instance; defaults to the generate model.
   readonly model?: LanguageModel;
-}
+};
 
-export interface LlmRunResult {
+export type LlmRunResult = {
   readonly text: string;
   readonly steps: readonly StepResult<any, any>[];
   readonly usage: LanguageModelUsage;
   readonly toolCalls: readonly StepResult<any, any>["toolCalls"][number][];
-}
+};
 
-export interface LlmService {
+export type LlmService = {
   readonly config: LlmConfig;
   readonly generateObject: <S extends Schema.ConstraintDecoder<unknown>>(
     input: LlmObjectInput<S>
@@ -77,7 +77,7 @@ export interface LlmService {
     LlmError | LlmOutputError
   >;
   readonly run: (input: LlmRunInput) => Effect.Effect<LlmRunResult, LlmError>;
-}
+};
 
 const modelLabel = (model: LanguageModel) =>
   typeof model === "string" ? model : `${model.provider}/${model.modelId}`;

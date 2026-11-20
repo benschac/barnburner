@@ -12,14 +12,14 @@ export class FillError extends Schema.TaggedError<
   message: Schema.String,
 }) {}
 
-export interface CardMeta {
+export type CardMeta = {
   readonly model: string;
   readonly runId: string;
   readonly asOf: {
     readonly fetchedAt: string;
     readonly completedGameIds: number;
   };
-}
+};
 
 const sqlText = (value: string): string => value.replaceAll("'", "''");
 
@@ -93,14 +93,14 @@ export const fillCard = (
     } satisfies InsightCard;
   });
 
-export interface SubmitCardDeps {
+export type SubmitCardDeps = {
   readonly db: Db;
   readonly guard: Guard;
   readonly verify: Verify;
   readonly finals: ReadonlySet<number>;
   readonly meta: CardMeta;
   readonly onCard: (card: InsightCard) => void;
-}
+};
 
 export const submitCardText = (
   deps: SubmitCardDeps,

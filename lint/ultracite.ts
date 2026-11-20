@@ -57,7 +57,7 @@ const conflicts = {
 const configured = {
   // Object types are type aliases: an alias stays assignable to an index-signature type, such as
   // the node and edge data G6 takes, and an interface does not.
-  "typescript/consistent-type-definitions": "off",
+  "typescript/consistent-type-definitions": ["error", "type"],
   // A named function keeps a component's display name in `memo(function TeamPoster(...) {...})`.
   "prefer-arrow-callback": ["error", { allowNamedFunctions: true }],
 } as const;

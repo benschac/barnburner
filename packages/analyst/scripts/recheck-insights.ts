@@ -22,17 +22,17 @@ const decodePoster = Schema.decodeUnknownSync(
   )
 );
 
-export interface RecheckOptions {
+export type RecheckOptions = {
   readonly dir: string;
   readonly deps: { db: Db; guard: Guard };
   readonly ctx: RecheckContext;
-}
+};
 
-export interface RecheckSummary {
+export type RecheckSummary = {
   readonly unchanged: number;
   readonly refreshed: number;
   readonly stale: number;
-}
+};
 
 const allTeams = (dir: string): string[] =>
   Array.sort(

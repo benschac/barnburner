@@ -27,7 +27,7 @@ export const GeneratedView = Schema.Struct({
 });
 export type GeneratedView = typeof GeneratedView.Type;
 
-export interface GenerateViewInput {
+export type GenerateViewInput = {
   readonly prompt: string;
   // The same value the frame receives; the prompt carries a summary of it, never all the rows.
   readonly tables: Tables;
@@ -35,24 +35,24 @@ export interface GenerateViewInput {
   // The system prompt is a parameter, so generation does not depend on how it is written.
   readonly system: string;
   readonly model?: LanguageModel;
-}
+};
 
-export interface GeneratedViewResult {
+export type GeneratedViewResult = {
   readonly title: string;
   readonly code: string;
   readonly model: string;
   readonly usage: LanguageModelUsage;
-}
+};
 
 // The text a repair is told about: a frame's Failed message, or the problems from checkViewCode.
 export type ViewFailure = string | readonly ViewCodeProblem[];
 
-export interface RepairViewInput {
+export type RepairViewInput = {
   readonly code: string;
   readonly failure: ViewFailure;
   readonly system: string;
   readonly model?: LanguageModel;
-}
+};
 
 export const MAX_REPAIRS = 2;
 export const SAMPLE_ROWS = 3;

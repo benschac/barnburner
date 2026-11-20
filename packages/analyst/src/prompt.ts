@@ -2,12 +2,12 @@ import { readFileSync } from "node:fs";
 
 import type { Coverage } from "./shapes.ts";
 
-export interface PromptInput {
+export type PromptInput = {
   readonly team: string;
   readonly views: Readonly<Record<string, readonly string[]>>;
   readonly coverage: Coverage;
   readonly posterFacts: readonly string[];
-}
+};
 
 const template = readFileSync(
   new URL("prompts/generate.md", import.meta.url),
