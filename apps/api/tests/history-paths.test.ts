@@ -5,7 +5,7 @@ import {
   NoPath,
   UnknownPlayer,
   UnsupportedFilter,
-} from "@nhl-reddit-stats/history";
+} from "@nhl-reddit-stats/history/contracts";
 import { HistoryRpcs } from "@nhl-reddit-stats/history/rpc";
 import { Effect, Layer, Schema } from "effect";
 import { FetchHttpClient, HttpRouter } from "effect/http";

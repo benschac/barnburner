@@ -3,20 +3,20 @@ import {
   HistoryUnavailable,
   UnknownPlayer,
   UnknownRoster,
-} from "@nhl-reddit-stats/history";
+} from "@nhl-reddit-stats/history/contracts";
 import type {
   FinalParticipant,
   FinalRow,
   Graph,
   GraphArrays,
-  HistoryStore,
   OpposedGameRow,
   PlayerDetail,
   PlayerRow,
   RosterRow,
   SharedGameRow,
   StintRow,
-} from "@nhl-reddit-stats/history";
+} from "@nhl-reddit-stats/history/shapes";
+import type { HistoryStore } from "@nhl-reddit-stats/history/store";
 import { Array, Effect, Option, Order, Schema, Scope } from "effect";
 import { Reactivity } from "effect/reactivity";
 import { SqlSchema } from "effect/sql";

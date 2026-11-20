@@ -353,7 +353,7 @@ H0 ─┬─ I1 (the backfill runs once: about 70,000 requests)
 
 - **Needs:** H0
 - **Read:** `packages/season/package.json`, its `tsconfig.json` and lint config; `packages/analyst/.oxlintrc.json`; AGENTS.md §Error model, §Union model
-- **Write:** `packages/history/package.json` (exports `.` and `./rpc`; scripts `typecheck`, `lint`, `test` with `node --test tests/*.test.ts`), `tsconfig.json`, `.oxlintrc.json` with the union-model plugin, the error-model check in `lint`, `src/index.ts`, and one placeholder test. `bun.lock` if the workspace entry changes it.
+- **Write:** `packages/history/package.json` (subpath exports and `./rpc`; scripts `typecheck`, `lint`, `test` with `node --test tests/*.test.ts`), `tsconfig.json`, `.oxlintrc.json` with the union-model plugin, the error-model check in `lint`, and one placeholder test. `bun.lock` if the workspace entry changes it.
 - **Done:** pkg-check passes.
 
 #### K1 · Contracts, shapes, and fakes (Sonnet · high)
@@ -944,7 +944,7 @@ Each builder is one file, `packages/viz/src/tables/<name>.ts`, with one test, `t
 | FT6 | `finals(graph, store, playerId, fromYear, toYear)` | Haiku · medium | `finalsCoverage` |
 
 - **Needs (all six):** FC1
-- **Read:** this plan §C-viz Tables, §C-search, §C-store; `packages/history/src/index.ts`; the sample for the card's table set
+- **Read:** this plan §C-viz Tables, §C-search, §C-store; `packages/history/src/shapes.ts`; the sample for the card's table set
 - **Done:** viz-check passes.
 
 #### FT7 · Export command (Sonnet · low)

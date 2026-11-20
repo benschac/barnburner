@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { UnknownRoster } from "@nhl-reddit-stats/history";
-import type { HistoryStore } from "@nhl-reddit-stats/history";
+import { UnknownRoster } from "@nhl-reddit-stats/history/contracts";
+import type { HistoryStore } from "@nhl-reddit-stats/history/store";
 import { Effect, Schema } from "effect";
 
 import { MINI_GRAPH, makeMiniStore } from "../../history/tests/fakes.ts";

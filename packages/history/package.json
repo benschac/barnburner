@@ -4,8 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./rpc": "./src/contracts.ts"
+    "./rpc": "./src/contracts.ts",
+    "./contracts": "./src/contracts.ts",
+    "./farthest": "./src/farthest.ts",
+    "./finals": "./src/finals.ts",
+    "./graph": "./src/graph.ts",
+    "./paths": "./src/paths.ts",
+    "./shapes": "./src/shapes.ts",
+    "./store": "./src/store.ts"
   },
   "scripts": {
     "typecheck": "effect-tsgo tsrs@7.1.0-beta.tsrs3 --noEmit -p tsconfig.json",

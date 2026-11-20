@@ -1,13 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import {
-  DEFAULT_FILTER,
-  UnknownPlayer,
-  findPaths,
-  makeGraph,
-} from "@nhl-reddit-stats/history";
+import { UnknownPlayer } from "@nhl-reddit-stats/history/contracts";
+import { makeGraph } from "@nhl-reddit-stats/history/graph";
+import { findPaths } from "@nhl-reddit-stats/history/paths";
 import { HistoryRpcs } from "@nhl-reddit-stats/history/rpc";
+import { DEFAULT_FILTER } from "@nhl-reddit-stats/history/shapes";
 import { Effect, Layer, Result, Schema } from "effect";
 import { FetchHttpClient, HttpRouter } from "effect/http";
 import type { RpcClientError } from "effect/rpc";
