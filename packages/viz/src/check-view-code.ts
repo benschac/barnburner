@@ -78,7 +78,7 @@ function ownedForbidden(owner: string, name: string): boolean {
 // Blanks comments, string literals and template text, so only code is scanned.
 // Template `${...}` expressions are kept, because they run as code. Line breaks survive, so line numbers stay right.
 function maskCode(source: string): string {
-  const blank = (text: string): string => text.replace(/[^\n]/g, " ");
+  const blank = (text: string): string => text.replaceAll(/[^\n]/g, " ");
   let out = "";
   let i = 0;
   let depth = 0;
@@ -133,7 +133,7 @@ function maskCode(source: string): string {
     } else if (
       ch === "}" &&
       expressionDepths.length > 0 &&
-      expressionDepths[expressionDepths.length - 1] === depth - 1
+      expressionDepths.at(-1) === depth - 1
     ) {
       expressionDepths.pop();
       depth -= 1;
@@ -156,7 +156,7 @@ const lineOf = (code: string, index: number): number =>
 type Found = { readonly index: number; readonly problem: ViewCodeProblem };
 
 // Returns the problems in one view module, or an empty list when none is found.
-export function checkViewCode(code: string): ReadonlyArray<ViewCodeProblem> {
+export function checkViewCode(code: string): readonly ViewCodeProblem[] {
   const masked = maskCode(code);
   const found: Found[] = [];
   const add = (
@@ -206,7 +206,7 @@ export function checkViewCode(code: string): ReadonlyArray<ViewCodeProblem> {
       ) {
         add(match.index, (line) => ({
           _tag: "ForbiddenGlobal",
-          name: owner + "." + name,
+          name: `${owner}.${name}`,
           line,
         }));
       }

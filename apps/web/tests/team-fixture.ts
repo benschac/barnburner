@@ -1,6 +1,5 @@
-import { teams, teamSeason } from "@nhl-reddit-stats/season";
+import { teams, teamSeason, SeasonSnapshot } from "@nhl-reddit-stats/season";
 import type { PosterSnapshot } from "@nhl-reddit-stats/season";
-import { SeasonSnapshot } from "@nhl-reddit-stats/season";
 import { Schema } from "effect";
 
 import snapshot from "../../../data/nhl-20262027.json" with { type: "json" };

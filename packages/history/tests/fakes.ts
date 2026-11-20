@@ -65,9 +65,9 @@ export const MINI_SNAPSHOT_ID = "0123456789ab";
 
 type MiniSide = {
   readonly teamId: number;
-  readonly credited: ReadonlyArray<number>;
+  readonly credited: readonly number[];
   /** On the box score with no credit. Only goalies are dressed in the league. */
-  readonly dressed: ReadonlyArray<number>;
+  readonly dressed: readonly number[];
 };
 type MiniGame = {
   readonly gameId: number;
@@ -81,14 +81,14 @@ type MiniGame = {
 // team 3 in game G and has no credited game anywhere, so no output may mention him.
 const side = (
   teamId: number,
-  credited: ReadonlyArray<number>,
-  dressed: ReadonlyArray<number> = []
+  credited: readonly number[],
+  dressed: readonly number[] = []
 ): MiniSide => ({
   teamId,
   credited,
   dressed,
 });
-export const MINI_GAMES: ReadonlyArray<MiniGame> = [
+export const MINI_GAMES: readonly MiniGame[] = [
   {
     gameId: 1950020001,
     seasonId: 19501951,
@@ -179,9 +179,9 @@ const PEOPLE: ReadonlyMap<
 ]);
 
 const foldName = (name: string): string =>
-  name.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+  name.normalize("NFD").replaceAll(/\p{M}/gu, "").toLowerCase();
 
-const creditedIds = (game: MiniGame): ReadonlyArray<number> =>
+const creditedIds = (game: MiniGame): readonly number[] =>
   game.sides.flatMap((s) => s.credited);
 const isGoalie = (playerId: number): boolean =>
   PEOPLE.get(playerId)?.position === "G";
@@ -229,7 +229,7 @@ const byGamesThenPlayer: Order.Order<{
   )
 );
 
-const stintsOf = (playerId: number): ReadonlyArray<StintRow> => {
+const stintsOf = (playerId: number): readonly StintRow[] => {
   const stints = new Map<string, StintRow>();
   for (const game of MINI_GAMES) {
     for (const s of game.sides) {
@@ -256,7 +256,7 @@ const stintsOf = (playerId: number): ReadonlyArray<StintRow> => {
   )([...stints.values()]);
 };
 
-const finalRows: ReadonlyArray<FinalRow> = (() => {
+const finalRows: readonly FinalRow[] = (() => {
   // The fake has no playoff rounds worth ranking: games G and H (round 1, playoff) are treated as
   // the 1951-52 Final, so the Final of year 1952 is those two games.
   const bySeason = new Map<number, MiniGame[]>();

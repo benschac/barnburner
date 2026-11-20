@@ -5,21 +5,21 @@ import { test } from "node:test";
 import { checkViewCode } from "@nhl-reddit-stats/viz/check-view-code";
 
 const read = (name: string): string =>
-  readFileSync(new URL("../src/prompts/" + name, import.meta.url), "utf8");
+  readFileSync(new URL(`../src/prompts/${name}`, import.meta.url), "utf-8");
 
 // The example module is the last fenced js block in the prompt.
 const lastModule = (markdown: string): string => {
   const blocks = [...markdown.matchAll(/```js\n([\s\S]*?)```/g)].map(
     (match) => match[1] ?? ""
   );
-  const last = blocks[blocks.length - 1];
+  const last = blocks.at(-1);
   // defect: a prompt without its example module is a programming error
   if (last === undefined) throw new Error("no js block in the prompt");
   return last;
 };
 
 for (const name of ["view-antv.md", "view-d3.md"]) {
-  test(name + " ends with an example module that passes checkViewCode", () => {
+  test(`${name} ends with an example module that passes checkViewCode`, () => {
     const markdown = read(name);
     const code = lastModule(markdown);
     assert.ok(
@@ -30,7 +30,7 @@ for (const name of ["view-antv.md", "view-d3.md"]) {
     assert.deepEqual(checkViewCode(code), []);
   });
 
-  test(name + " states the contract, the theme fields, and the rules", () => {
+  test(`${name} states the contract, the theme fields, and the rules`, () => {
     const markdown = read(name);
     for (const field of [
       "root",
@@ -44,7 +44,7 @@ for (const name of ["view-antv.md", "view-d3.md"]) {
       "notes",
       "sampleRows",
     ]) {
-      assert.ok(markdown.includes(field), name + " mentions " + field);
+      assert.ok(markdown.includes(field), `${name} mentions ${field}`);
     }
     for (const rule of [
       "No `import`",
@@ -52,7 +52,7 @@ for (const name of ["view-antv.md", "view-d3.md"]) {
       "cleanup",
       "colour literal",
     ]) {
-      assert.ok(markdown.includes(rule), name + " states: " + rule);
+      assert.ok(markdown.includes(rule), `${name} states: ${rule}`);
     }
   });
 }
@@ -68,7 +68,7 @@ test("view-antv.md names G2 and G6 first, and view-d3.md allows only D3 and Thre
     for (const later of ["ctx.libs.d3", "ctx.libs.THREE"]) {
       assert.ok(
         at(first) >= 0 && at(later) >= 0 && at(first) < at(later),
-        first + " is named before " + later + " in the selection rule"
+        `${first} is named before ${later} in the selection rule`
       );
     }
   }

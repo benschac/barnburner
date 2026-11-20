@@ -9,8 +9,12 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { NodeServices } from "@effect/platform-node";
-import { HistoryUnavailable, makeGraph } from "@nhl-reddit-stats/history";
-import type { HistoryStore, PlayerRow } from "@nhl-reddit-stats/history";
+import { makeGraph } from "@nhl-reddit-stats/history";
+import type {
+  HistoryStore,
+  PlayerRow,
+  HistoryUnavailable,
+} from "@nhl-reddit-stats/history";
 import { ViewData } from "@nhl-reddit-stats/viz";
 import { chain } from "@nhl-reddit-stats/viz/tables/chain";
 import { ego } from "@nhl-reddit-stats/viz/tables/ego";
@@ -69,7 +73,7 @@ const defaultDb = Effect.gen(function* () {
 const ALL_MATCHES = 1_000_000;
 
 const foldName = (name: string): string =>
-  name.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+  name.normalize("NFD").replaceAll(/\p{M}/gu, "").toLowerCase();
 
 const seasonLabel = (seasonId: number): string => {
   const start = Math.floor(seasonId / 10000);

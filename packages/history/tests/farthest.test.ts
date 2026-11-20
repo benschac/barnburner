@@ -17,7 +17,7 @@ const expectFarthest = (
   assert.ok(Result.isSuccess(result), `expected a result from ${from}`);
   return result.success;
 };
-const chain = (result: FarthestResult): ReadonlyArray<number> =>
+const chain = (result: FarthestResult): readonly number[] =>
   result.example.length === 0
     ? []
     : [result.example[0].from, ...result.example.map((hop) => hop.to)];

@@ -59,7 +59,7 @@ const describe = (report: FrameReport): string =>
   });
 
 type Outcome = {
-  reports: ReadonlyArray<FrameReport>;
+  reports: readonly FrameReport[];
   samples: number;
   fps: number | null;
 };
@@ -75,7 +75,7 @@ function Sandbox() {
   const [attempt, setAttempt] = useState(0);
   const [problem, setProblem] = useState("");
   // The log is every recent message; the outcome is only what the frame reported for the render id this page sent.
-  const [log, setLog] = useState<ReadonlyArray<string>>([]);
+  const [log, setLog] = useState<readonly string[]>([]);
   const [outcome, setOutcome] = useState<Outcome>(noOutcome);
   const renderId = useRef("");
   const run = () => {
@@ -117,14 +117,18 @@ function Sandbox() {
         rows={14}
         cols={90}
         value={draft}
-        onChange={(event) => setDraft(event.target.value)}
+        onChange={(event) => {
+          setDraft(event.target.value);
+        }}
       />
       <textarea
         aria-label="View data"
         rows={8}
         cols={90}
         value={dataDraft}
-        onChange={(event) => setDataDraft(event.target.value)}
+        onChange={(event) => {
+          setDataDraft(event.target.value);
+        }}
       />
       <button type="button" aria-label="Run" onClick={run}>
         Run

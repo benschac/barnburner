@@ -38,17 +38,15 @@ const Report = Schema.Struct({
 const setup = "import { setupEffect } from '@xstate/effect'\n";
 
 const inMachine = (config, prelude = "") =>
-  setup +
-  prelude +
-  "export const machine = setupEffect({}).createMachine(" +
-  config +
-  ")\n";
+  `${setup + prelude}export const machine = setupEffect({}).createMachine(${
+    config
+  })\n`;
 
 const onGo = (handler, prelude = "") =>
-  inMachine("{ on: { GO: " + handler + " } }", prelude);
+  inMachine(`{ on: { GO: ${handler} } }`, prelude);
 
 const inState = (key, value) =>
-  inMachine("{ initial: 'a', states: { a: { " + key + ": " + value + " } } }");
+  inMachine(`{ initial: 'a', states: { a: { ${key}: ${value} } } }`);
 
 const MUTATED = "is mutated";
 
@@ -127,8 +125,9 @@ const cases = [
   ["document write", onGo('() => { document.title = "go" }'), MUTATED],
   [
     "Effect.runPromise",
-    "import { Effect } from 'effect'\n" +
-      onGo("() => { Effect.runPromise(Effect.void) }"),
+    `import { Effect } from 'effect'\n${onGo(
+      "() => { Effect.runPromise(Effect.void) }"
+    )}`,
     IMPURE,
   ],
   ["async transition", onGo("async () => ({ context: { n: 1 } })"), ASYNC],
@@ -285,10 +284,9 @@ const cases = [
   ],
   [
     "namespace import with a mutator name",
-    "import { HashMap } from 'effect'\n" +
-      onGo(
-        '({ context }) => ({ context: { map: HashMap.set(context.map, "a", 1) } })'
-      ),
+    `import { HashMap } from 'effect'\n${onGo(
+      '({ context }) => ({ context: { map: HashMap.set(context.map, "a", 1) } })'
+    )}`,
     null,
   ],
   [
@@ -341,7 +339,7 @@ const program = Effect.fn("testXStateRules")(function* () {
   const files = yield* Effect.forEach(
     cases,
     Effect.fn(function* ([name, source, expected], index) {
-      const file = path.join(dir, "case-" + index + ".ts");
+      const file = path.join(dir, `case-${index}.ts`);
       yield* fs.writeFileString(file, source);
 
       return { name, expected, file, base: path.basename(file) };
@@ -399,20 +397,17 @@ const program = Effect.fn("testXStateRules")(function* () {
       if (expected === null && found.length > 0)
         return yield* new XStateRuleCaseFailed({
           name,
-          message:
-            "expected no xstate6 errors, got: " +
-            found.map((d) => d.message).join(" | "),
+          message: `expected no xstate6 errors, got: ${found
+            .map((d) => d.message)
+            .join(" | ")}`,
         });
 
       if (expected !== null && !found.some((d) => d.message.includes(expected)))
         return yield* new XStateRuleCaseFailed({
           name,
-          message:
-            'expected an error containing "' +
-            expected +
-            '", got ' +
-            found.length +
-            " xstate6 errors",
+          message: `expected an error containing "${expected}", got ${
+            found.length
+          } xstate6 errors`,
         });
       // Every report names the fix.
       const unhelpful = Array.filter(found, (d) => !d.message.includes("Fix:"));
@@ -420,11 +415,11 @@ const program = Effect.fn("testXStateRules")(function* () {
       if (unhelpful.length > 0)
         return yield* new XStateRuleCaseFailed({
           name,
-          message: "message does not name a fix: " + unhelpful[0].message,
+          message: `message does not name a fix: ${unhelpful[0].message}`,
         });
     })
   );
-  yield* Effect.logInfo(cases.length + " xstate6 lint cases passed");
+  yield* Effect.logInfo(`${cases.length} xstate6 lint cases passed`);
 }, Effect.scoped);
 
 program().pipe(

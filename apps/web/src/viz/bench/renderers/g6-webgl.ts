@@ -10,7 +10,7 @@ const MIN_OPACITY = 0.08;
 const MAX_OPACITY = 0.9;
 
 // `Array.max`, never `Math.max(...values)`: the league export has 478,383 links, past V8's argument limit. The prepended 1 is the floor that avoids dividing by zero on empty data.
-const maxOf = (values: ReadonlyArray<number>): number =>
+const maxOf = (values: readonly number[]): number =>
   Array.max(Array.prepend(values, 1), Order.Number);
 
 const hasWebGl = (): boolean => {

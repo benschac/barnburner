@@ -20,14 +20,14 @@ export const renderAnalystPlan = async () => {
   };
   const variables =
     Object.entries(design.themes.dark)
-      .map(([key, value]) => "--" + key + ":" + value + ";")
+      .map(([key, value]) => `--${key}:${value};`)
       .join("") +
     Object.entries(scales)
       .map(([name, scale]) =>
         Object.entries(scale)
           .map(
             ([key, value]) =>
-              "--" + name + "-" + key.replaceAll(".", "_") + ":" + value + "px;"
+              `--${name}-${key.replaceAll(".", "_")}:${value}px;`
           )
           .join("")
       )
@@ -77,7 +77,7 @@ export const renderAnalystPlan = async () => {
 </main>
 <footer><div><a href="analyst-agent-plan.md">Markdown source</a> &middot; <span id="source-hash"></span><br><span id="source-status"></span></div><div>Content Collections + MDX<br>Rebuild this snapshot<br><code>bun run docs:plan</code></div></footer>
 </div>
-<script id="plan-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\u003c")}</script>
+<script id="plan-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\u003C")}</script>
 <script>
 const plan = JSON.parse(document.getElementById('plan-data').textContent);
 const byId = new Map(plan.tasks.map(function(task) { return [task.id, task]; }));
@@ -221,14 +221,8 @@ renderRoadmap(); renderDetail(); renderDependency();
     );
   await writeFile(output, html);
   process.stdout.write(
-    "Generated " +
-      fileURLToPath(output) +
-      " (" +
-      data.tasks.length +
-      " tasks, " +
-      data.groups.length +
-      " workstreams, source " +
-      data.hash +
-      ")\n"
+    `Generated ${fileURLToPath(output)} (${data.tasks.length} tasks, ${
+      data.groups.length
+    } workstreams, source ${data.hash})\n`
   );
 };

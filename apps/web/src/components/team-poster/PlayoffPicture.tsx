@@ -79,9 +79,15 @@ export const PlayoffPicture = memo(function PlayoffPicture({
                 h="8"
                 bg={team === data.team.abbrev ? "highlight" : "transparent"}
                 cursor="pointer"
-                onClick={() => navigateTeam(team)}
-                onMouseEnter={() => onPrefetchTeam(team)}
-                onFocus={() => onPrefetchTeam(team)}
+                onClick={() => {
+                  navigateTeam(team);
+                }}
+                onMouseEnter={() => {
+                  onPrefetchTeam(team);
+                }}
+                onFocus={() => {
+                  onPrefetchTeam(team);
+                }}
                 borderTopWidth={index === 5 ? 2 : 0}
                 borderTopColor="gold"
                 borderTopStyle="dashed"
@@ -108,7 +114,9 @@ export const PlayoffPicture = memo(function PlayoffPicture({
                     h="8"
                     gap="4"
                     textDecorationLine="none"
-                    onClick={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                    }}
                   >
                     <Logo
                       src={

@@ -11,7 +11,7 @@ const source = readFileSync(
   fileURLToPath(
     new URL("../../../docs/analyst-agent-plan.md", import.meta.url)
   ),
-  "utf8"
+  "utf-8"
 );
 
 const failure = (text: string) => {

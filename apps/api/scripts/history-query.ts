@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
 import {
   DEFAULT_FILTER,
-  HistoryUnavailable,
   farthest,
   finalsCoverage,
   findPaths,
@@ -18,6 +17,7 @@ import type {
   HistoryStore,
   PlayerRow,
   StintRow,
+  HistoryUnavailable,
 } from "@nhl-reddit-stats/history";
 import type { WireHop } from "@nhl-reddit-stats/history/rpc";
 import { Config, Console, Effect, Option, Result, Schema } from "effect";
@@ -78,7 +78,7 @@ const defaultDb = Effect.gen(function* () {
 });
 
 const foldName = (name: string): string =>
-  name.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+  name.normalize("NFD").replaceAll(/\p{M}/gu, "").toLowerCase();
 
 const seasonLabel = (seasonId: number): string => {
   const start = Math.floor(seasonId / 10000);
@@ -121,7 +121,7 @@ const resolve = (
 
 type Detail = {
   readonly name: string;
-  readonly stints: ReadonlyArray<StintRow>;
+  readonly stints: readonly StintRow[];
 };
 
 type Names = {
@@ -162,10 +162,10 @@ const makeNames = (store: HistoryStore): Names => {
       ),
     date: (hop) => {
       const pick = (
-        rows: ReadonlyArray<{
+        rows: readonly {
           readonly gameId: number;
           readonly gameDate: string;
-        }>
+        }[]
       ) => rows.find((g) => g.gameId === hop.gameId)?.gameDate ?? "?";
       const found =
         hop._tag === "PlayedAgainst"
@@ -209,7 +209,7 @@ const finalsLine = (names: Names, year: FinalsYear) =>
     return `${year.year}: ${who} (Final game ${year.finalGameId}, shared game ${year.sharedGameId})`;
   });
 
-const print = (lines: ReadonlyArray<string>) => Console.log(lines.join("\n"));
+const print = (lines: readonly string[]) => Console.log(lines.join("\n"));
 
 const player = (name: string) =>
   Argument.String(name).pipe(

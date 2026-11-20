@@ -20,7 +20,7 @@ test("pair 15 and 16 on the shared test league matches pairSample", async () => 
 // The store with the given players' stints for one club removed; the roster and everything else are unchanged.
 const hideStints = (
   store: HistoryStore,
-  players: ReadonlyArray<number>,
+  players: readonly number[],
   teamId: number
 ): HistoryStore => ({
   ...store,

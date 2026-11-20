@@ -18,8 +18,8 @@ test("chain 11 to 14 on the shared test league matches chainSample", async () =>
 
 // Every teamId a hop names has a teams row, and no other.
 const teamsCoverHops = (tables: {
-  hops: ReadonlyArray<{ teamId: number }>;
-  teams: ReadonlyArray<{ teamId: number }>;
+  hops: readonly { teamId: number }[];
+  teams: readonly { teamId: number }[];
 }) => {
   const named = Array.sort(
     Array.dedupe(Array.map(tables.hops, (h) => h.teamId)),

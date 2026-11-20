@@ -1,16 +1,10 @@
 import { Renderer as WebGLRenderer } from "@antv/g-webgl";
-import {
-  ExtensionCategory,
-  Graph,
-  getExtension,
-  register,
-  type GraphData,
-  type GraphOptions,
-  type NodeOptions,
-} from "@antv/g6";
+import { ExtensionCategory, Graph, getExtension, register } from "@antv/g6";
+import type { GraphData, GraphOptions, NodeOptions } from "@antv/g6";
 import { ReactNode as G6ReactNode } from "@antv/g6-extension-react";
 import { Predicate, Result } from "effect";
-import { useCallback, useMemo, type ComponentType } from "react";
+import { useCallback, useMemo } from "react";
+import type { ComponentType } from "react";
 import {
   TamaguiProvider,
   View,
@@ -67,7 +61,7 @@ export type G6GraphProps = {
    * Edge ids to draw highlighted; while the list is non-empty every other edge is dimmed. Changing it sets
    * element states on the existing graph: no rebuild, no new layout.
    */
-  readonly highlightedEdges?: ReadonlyArray<string>;
+  readonly highlightedEdges?: readonly string[];
 };
 
 function webglAvailable(): boolean {

@@ -150,11 +150,11 @@ const withDb = (use: (db: string) => void) => {
   }
 };
 
-const run = (db: string, out: string, ...args: ReadonlyArray<string>) => {
+const run = (db: string, out: string, ...args: readonly string[]) => {
   const done = spawnSync(
     process.execPath,
     [script, "--db", db, "--out", out, ...args],
-    { encoding: "utf8" }
+    { encoding: "utf-8" }
   );
   return { code: done.status, out: done.stdout, err: done.stderr };
 };
@@ -163,19 +163,19 @@ const decodeView = Schema.decodeUnknownSync(Schema.fromJsonString(ViewData));
 
 const read = (path: string) => {
   assert.ok(existsSync(path), path);
-  return decodeView(readFileSync(path, "utf8"));
+  return decodeView(readFileSync(path, "utf-8"));
 };
 
-const counts = (tables: Record<string, ReadonlyArray<unknown>>) =>
+const counts = (tables: Record<string, readonly unknown[]>) =>
   Object.fromEntries(
     Object.entries(tables).map(([name, rows]) => [name, rows.length])
   );
 
 const exported = (
-  args: ReadonlyArray<string>,
+  args: readonly string[],
   file: string,
   check: (value: ReturnType<typeof read>) => void
-) =>
+) => {
   withDb((db) => {
     const out = mkdtempSync(join(tmpdir(), "history-viz-out-"));
     try {
@@ -187,41 +187,48 @@ const exported = (
       rmSync(out, { recursive: true, force: true });
     }
   });
+};
 
-test("chain writes the 11 to 14 chains", () =>
+test("chain writes the 11 to 14 chains", () => {
   exported(
     ["chain", "Player Eleven", "Player Fourteen"],
     "chain-11-14.json",
     (v) => {
       assert.deepEqual(counts(v.tables), counts(chainSample.tables));
     }
-  ));
-test("pair writes 15 with 16", () =>
+  );
+});
+test("pair writes 15 with 16", () => {
   exported(["pair", "15", "16"], "pair-15-16.json", (v) => {
     assert.deepEqual(counts(v.tables), counts(pairSample.tables));
-  }));
-test("ego writes player 14", () =>
+  });
+});
+test("ego writes player 14", () => {
   exported(["ego", "14"], "ego-14.json", (v) => {
     assert.deepEqual(counts(v.tables), counts(egoSample.tables));
-  }));
-test("league writes every player", () =>
+  });
+});
+test("league writes every player", () => {
   exported(["league"], "league.json", (v) => {
     assert.deepEqual(counts(v.tables), counts(leagueSample.tables));
-  }));
-test("opponents writes 16 and 12", () =>
+  });
+});
+test("opponents writes 16 and 12", () => {
   exported(["opponents", "16", "12"], "opponents-16-12.json", (v) => {
     assert.deepEqual(counts(v.tables), counts(opponentsSample.tables));
-  }));
-test("finals writes 14 for 1950 to 1952", () =>
+  });
+});
+test("finals writes 14 for 1950 to 1952", () => {
   exported(
     ["finals", "14", "--from", "1950", "--to", "1952"],
     "finals-14-1950-1952.json",
     (v) => {
       assert.equal(v.tables.finals?.length, 1);
     }
-  ));
+  );
+});
 
-test("an unwritable destination prints one line, exits non-zero, and leaves no partial file", () =>
+test("an unwritable destination prints one line, exits non-zero, and leaves no partial file", () => {
   withDb((db) => {
     const done = run(db, "/dev/null", "ego", "14");
     assert.equal(done.code, 1);
@@ -233,9 +240,10 @@ test("an unwritable destination prints one line, exits non-zero, and leaves no p
     } finally {
       rmSync(out, { recursive: true, force: true });
     }
-  }));
+  });
+});
 
-test("an ambiguous name lists every match, not one page", () =>
+test("an ambiguous name lists every match, not one page", () => {
   withDb((db) => {
     const extra = new DatabaseSync(db);
     for (let id = 100; id < 130; id += 1) {
@@ -258,9 +266,10 @@ test("an ambiguous name lists every match, not one page", () =>
     assert.equal(done.code, 1);
     assert.equal(done.err.trim().split("\n").length, 1 + 30);
     assert.match(done.err, /id 129,/);
-  }));
+  });
+});
 
-test("an ambiguous name lists the players, exits non-zero, and writes nothing", () =>
+test("an ambiguous name lists the players, exits non-zero, and writes nothing", () => {
   withDb((db) => {
     const out = mkdtempSync(join(tmpdir(), "history-viz-out-"));
     try {
@@ -273,4 +282,5 @@ test("an ambiguous name lists the players, exits non-zero, and writes nothing", 
     } finally {
       rmSync(out, { recursive: true, force: true });
     }
-  }));
+  });
+});

@@ -1,13 +1,8 @@
 import { Result, Schema } from "effect";
 
-import { type InsightCard, type RejectReason } from "./card.ts";
-import {
-  type Binding,
-  type Cell,
-  type RenderError,
-  type Row,
-  render,
-} from "./render.ts";
+import type { InsightCard, RejectReason } from "./card.ts";
+import { render } from "./render.ts";
+import type { Binding, Cell, RenderError, Row } from "./render.ts";
 
 export class NotPendingError extends Schema.TaggedError<
   NotPendingError,
@@ -37,20 +32,23 @@ export const applyDecision = (
       new NotPendingError({ cardId: card.id, status: card.status })
     );
   switch (decision.action) {
-    case "approve":
+    case "approve": {
       return Result.succeed({
         ...card,
         status: "approved",
         review: { by: "ben", at: now },
       });
-    case "reject":
+    }
+    case "reject": {
       return Result.succeed({
         ...card,
         status: "rejected",
         review: { by: "ben", at: now, reason: decision.reason },
       });
-    case "skip":
+    }
+    case "skip": {
       return Result.succeed(card);
+    }
   }
 };
 

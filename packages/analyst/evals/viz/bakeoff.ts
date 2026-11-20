@@ -3,8 +3,7 @@
 // Largest run: 5 prompts x 2 vocabularies x (1 generate + 2 repairs) = 30 model calls.
 
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import { NodeRuntime } from "@effect/platform-node";
 import { ViewData } from "@nhl-reddit-stats/viz";
@@ -103,7 +102,7 @@ export type BakeoffRenderer = (input: {
 }) => Effect.Effect<RenderViewResult, RenderHarnessError | BakeoffError>;
 
 export interface BakeoffInput {
-  readonly prompts: ReadonlyArray<BakeoffPrompt>;
+  readonly prompts: readonly BakeoffPrompt[];
   // Prompt id to the path of its export file ({ tables, notes }).
   readonly datasetPaths: Readonly<Record<string, string>>;
   // Vocabulary to its system prompt text.
@@ -114,7 +113,7 @@ export interface BakeoffInput {
   readonly callBudget?: number;
 }
 
-const here = dirname(fileURLToPath(import.meta.url));
+const here = import.meta.dirname;
 export const defaultPromptsPath = join(here, "prompts.json");
 export const defaultOutDir = join(here, "../../../../data/history/viz/bakeoff");
 
@@ -133,7 +132,7 @@ const decodeViewData = Schema.decodeUnknownEffect(
 
 export const loadPrompts = (path: string = defaultPromptsPath) =>
   Effect.gen(function* () {
-    const text = yield* io(() => readFile(path, "utf8"));
+    const text = yield* io(() => readFile(path, "utf-8"));
     return yield* decodePrompts(text).pipe(
       Effect.mapError(
         (error) => new BakeoffError({ message: `${path}: ${error.message}` })
@@ -143,7 +142,7 @@ export const loadPrompts = (path: string = defaultPromptsPath) =>
 
 export const loadSystems = Effect.gen(function* () {
   const read = (name: string) =>
-    io(() => readFile(join(here, "../../src/prompts", name), "utf8"));
+    io(() => readFile(join(here, "../../src/prompts", name), "utf-8"));
   return {
     antv: yield* read("view-antv.md"),
     d3: yield* read("view-d3.md"),
@@ -154,7 +153,7 @@ export const loadSystems = Effect.gen(function* () {
 // For each dataset id: <id>.json if it exists, else the single <id>-*.json. Anything else is a DatasetFileError.
 export const resolveDatasetPaths = (
   directory: string,
-  ids: ReadonlyArray<string>
+  ids: readonly string[]
 ) =>
   Effect.gen(function* () {
     const names = yield* io(() => readdir(directory));
@@ -215,7 +214,7 @@ export const llmModel = (
 export const runBakeoff = (
   input: BakeoffInput
 ): Effect.Effect<
-  ReadonlyArray<BakeoffOutputRecord>,
+  readonly BakeoffOutputRecord[],
   | BakeoffError
   | BakeoffBudgetError
   | RenderHarnessError
@@ -337,7 +336,7 @@ export const runBakeoff = (
         yield* io(() =>
           writeFile(
             join(input.outDir, `${item.id}-${vocabulary}.json`),
-            toPrettyJson(record) + "\n"
+            `${toPrettyJson(record)}\n`
           )
         );
         return record;
@@ -349,7 +348,7 @@ export const runBakeoff = (
           return yield* new BakeoffError({
             message: `no dataset path for prompt ${item.id}`,
           });
-        const text = yield* io(() => readFile(path, "utf8"));
+        const text = yield* io(() => readFile(path, "utf-8"));
         const data = yield* decodeViewData(text).pipe(
           Effect.mapError(
             (error) =>

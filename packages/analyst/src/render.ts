@@ -83,7 +83,7 @@ export function render(
 
 /** Returns every digit that appears outside a `{placeholder}`, in order. */
 export function literalDigits(template: string): string[] {
-  return [...template.replace(PLACEHOLDER, "").matchAll(DIGIT)].map(
+  return [...template.replaceAll(PLACEHOLDER, "").matchAll(DIGIT)].map(
     (match) => match[0]
   );
 }

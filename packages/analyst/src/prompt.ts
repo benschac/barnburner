@@ -4,14 +4,14 @@ import type { Coverage } from "./shapes.ts";
 
 export interface PromptInput {
   readonly team: string;
-  readonly views: Readonly<Record<string, ReadonlyArray<string>>>;
+  readonly views: Readonly<Record<string, readonly string[]>>;
   readonly coverage: Coverage;
-  readonly posterFacts: ReadonlyArray<string>;
+  readonly posterFacts: readonly string[];
 }
 
 const template = readFileSync(
-  new URL("./prompts/generate.md", import.meta.url),
-  "utf8"
+  new URL("prompts/generate.md", import.meta.url),
+  "utf-8"
 );
 
 const renderSchemas = (views: PromptInput["views"]): string =>
@@ -39,7 +39,7 @@ export const buildPrompt = ({
     coverage: renderCoverage(team, coverage),
     poster_facts: renderFacts(posterFacts),
   };
-  return template.replace(/\{\{(\w+)\}\}/g, (token, key: string) => {
+  return template.replaceAll(/\{\{(\w+)\}\}/g, (token, key: string) => {
     const value = values[key];
     if (value === undefined) {
       // defect: generate.md ships with this package; an unknown token is a programming error

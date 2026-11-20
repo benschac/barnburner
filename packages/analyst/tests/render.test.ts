@@ -8,9 +8,8 @@ import {
   MissingCellError,
   render,
   UnknownPlaceholderError,
-  type Binding,
-  type Row,
 } from "../src/render.ts";
+import type { Binding, Row } from "../src/render.ts";
 
 const rows: Row[] = [
   { team: "Boston", goals: 4, win: true, note: null },

@@ -28,7 +28,7 @@ const toRgb = (css: string): Rgb => {
 const lerp = (lo: number, hi: number, t: number): number => lo + (hi - lo) * t;
 
 /** A loop, not `Math.max(...xs)`: a spread of hundreds of thousands of arguments overflows the stack. */
-const maxGames = (items: ReadonlyArray<{ readonly games: number }>): number => {
+const maxGames = (items: readonly { readonly games: number }[]): number => {
   let max = 1;
   for (const item of items) if (item.games > max) max = item.games;
   return max;
@@ -105,7 +105,7 @@ const mount: BenchRenderer["mount"] = (root, data, theme) =>
     const div = document.createElement("div");
     div.style.width = "100%";
     div.style.height = "100%";
-    root.appendChild(div);
+    root.append(div);
     let graph: Graph | undefined;
     return yield* Effect.gen(function* () {
       const scene = yield* attempt(() => buildScene(data, theme));

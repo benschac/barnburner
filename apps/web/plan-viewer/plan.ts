@@ -15,7 +15,7 @@ const tableRows = (text: string) =>
     .filter((row) => !row.every((cell) => /^[- :]+$/.test(cell)));
 
 const expandIds = (id: string) => {
-  const range = id.match(/^([A-Z]+)(\d+)–\1(\d+)$/);
+  const range = /^([A-Z]+)(\d+)–\1(\d+)$/.exec(id);
   return range
     ? Array.from(
         { length: Number(range[3]) - Number(range[2]) + 1 },
@@ -76,7 +76,7 @@ export const parseAnalystPlan = (source: string) =>
   Result.gen(function* () {
     const sourceHash = createHash("sha256").update(source).digest("hex");
     const section = (name: string): Result.Result<string, PlanParseError> => {
-      const part = source.split("\n## " + name + "\n")[1];
+      const part = source.split(`\n## ${name}\n`)[1];
       return part === undefined
         ? refuse("Missing source section", name)
         : Result.succeed(part.split("\n## ")[0].trim());
@@ -117,7 +117,7 @@ export const parseAnalystPlan = (source: string) =>
               group: groups[0],
               body: cardText
                 .split("\n")
-                .find((line) => line.startsWith("- **" + id + ":**")),
+                .find((line) => line.startsWith(`- **${id}:**`)),
               ids: [id],
             }
           : cards.find((item) => item.ids.includes(id));
@@ -134,16 +134,14 @@ export const parseAnalystPlan = (source: string) =>
         const title =
           baseTitle +
           (evalRow
-            ? " / " +
-              evalRow[2]
+            ? ` / ${evalRow[2]
                 .split("/")
                 .at(-1)
                 ?.replaceAll("`", "")
-                .replace(".json", "")
+                .replace(".json", "")}`
             : "") +
           (card.ids.length > 1 && id.startsWith("X")
-            ? " / " +
-              card.body.match(new RegExp("\\*\\*" + id + ", ([^:*]+)"))?.[1]
+            ? ` / ${new RegExp(`\\*\\*${id}, ([^:*]+)`).exec(card.body)?.[1]}`
             : "");
         const task: PlanTask = {
           id,
@@ -162,7 +160,7 @@ export const parseAnalystPlan = (source: string) =>
           heading: card.heading,
           body: card.body,
           parent:
-            card.body.match(/\*\*Stack on:\*\* ([A-Z]+\d+[a-z]?)/)?.[1] ?? null,
+            /\*\*Stack on:\*\* ([A-Z]+\d+[a-z]?)/.exec(card.body)?.[1] ?? null,
         };
         return task;
       });
@@ -198,7 +196,7 @@ export const parseAnalystPlan = (source: string) =>
                 (dependency) =>
                   taskIds.includes(dependency)
                     ? Result.void
-                    : refuse("Unknown dependency for " + task.id, dependency)
+                    : refuse(`Unknown dependency for ${task.id}`, dependency)
               )
             )
           : refuse("Missing ledger status", task.id)
@@ -211,7 +209,7 @@ export const parseAnalystPlan = (source: string) =>
         const [title, ...body] = part.split("\n");
         return { title, body: body.join("\n").trim() };
       });
-    const nodeId = (id: string) => "n" + id.replaceAll("-", "");
+    const nodeId = (id: string) => `n${id.replaceAll("-", "")}`;
     const dependencyDiagrams: Record<string, string> = Object.fromEntries(
       tasks.map((task) => {
         const dependents = tasks.filter(
@@ -227,22 +225,18 @@ export const parseAnalystPlan = (source: string) =>
           "flowchart TD",
           ...[...ids].map(
             (id) =>
-              nodeId(id) +
-              '["' +
-              id +
-              (id === task.id ? " (selected)" : "") +
-              '"]'
+              `${nodeId(id)}["${id}${id === task.id ? " (selected)" : ""}"]`
           ),
         ];
         for (const id of task.needs)
-          lines.push(nodeId(id) + " --> " + nodeId(task.id));
+          lines.push(`${nodeId(id)} --> ${nodeId(task.id)}`);
         if (task.parent)
-          lines.push(nodeId(task.parent) + " -.-> " + nodeId(task.id));
+          lines.push(`${nodeId(task.parent)} -.-> ${nodeId(task.id)}`);
         for (const item of dependents) {
           if (item.needs.includes(task.id))
-            lines.push(nodeId(task.id) + " --> " + nodeId(item.id));
+            lines.push(`${nodeId(task.id)} --> ${nodeId(item.id)}`);
           if (item.parent === task.id)
-            lines.push(nodeId(task.id) + " -.-> " + nodeId(item.id));
+            lines.push(`${nodeId(task.id)} -.-> ${nodeId(item.id)}`);
         }
         return [task.id, lines.join("\n")];
       })
@@ -261,7 +255,7 @@ export const parseAnalystPlan = (source: string) =>
       criticalPath: yield* section("Critical path"),
       sourceHash,
       hash: sourceHash.slice(0, 12),
-      status: source.match(/^Status: (.+)$/m)?.[1] ?? "See source plan",
+      status: /^Status: (.+)$/m.exec(source)?.[1] ?? "See source plan",
       stacks: tasks.flatMap((task) =>
         task.parent ? [[task.parent, task.id]] : []
       ),

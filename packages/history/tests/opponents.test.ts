@@ -25,7 +25,7 @@ const { oppA, oppB, oppGames, ...TEAMMATES_ONLY } = MINI_ARRAYS;
 assert.ok(oppA !== undefined && oppB !== undefined && oppGames !== undefined);
 
 // Opponent pairs and games of C-mini. A dressed goalie is nobody's opponent.
-const PAIRS: ReadonlyArray<readonly [number, number, number]> = [
+const PAIRS: readonly (readonly [number, number, number])[] = [
   [11, 15, 2],
   [11, 16, 2],
   [11, 19, 1],
@@ -60,10 +60,7 @@ test("opponents of 16: 14 (4 games), 12 (3), 11 (2), 15 (2), 13 (1)", () => {
 });
 
 test("every player lists exactly the C-mini pairs, symmetric, most games first then lower ID", () => {
-  const expected = new Map<
-    number,
-    Array<{ playerId: number; games: number }>
-  >();
+  const expected = new Map<number, { playerId: number; games: number }[]>();
   for (const [a, b, games] of PAIRS) {
     expected.set(a, [...(expected.get(a) ?? []), { playerId: b, games }]);
     expected.set(b, [...(expected.get(b) ?? []), { playerId: a, games }]);
@@ -244,7 +241,7 @@ test("either: an opponent-only pair is a PlayedAgainst hop; a player to himself 
 });
 
 test("against and either reject any non-default filter with UnsupportedFilter", () => {
-  const filters: ReadonlyArray<Filter> = [
+  const filters: readonly Filter[] = [
     filterWith({ competition: "regular" }),
     filterWith({ competition: "playoff" }),
     filterWith({ fromSeason: 19511952 }),

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 
 import { Effect } from "effect";
 
@@ -9,11 +8,7 @@ import { openDb } from "../src/db.ts";
 import { guardQuery } from "../src/guard.ts";
 import type { Db, GuardResult } from "../src/shapes.ts";
 
-const dataDir = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "fixtures",
-  "data"
-);
+const dataDir = join(import.meta.dirname, "fixtures", "data");
 
 const withGuard = (
   run: (check: (sql: string) => Promise<GuardResult>) => Promise<void>

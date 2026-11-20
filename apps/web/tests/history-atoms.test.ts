@@ -3,7 +3,8 @@ import { test } from "node:test";
 
 import { Duration, Effect, Layer, Option, Predicate } from "effect";
 import { FetchHttpClient, HttpRouter } from "effect/http";
-import { AsyncResult, Atom, AtomRegistry, Hydration } from "effect/reactivity";
+import type { Atom } from "effect/reactivity";
+import { AsyncResult, AtomRegistry, Hydration } from "effect/reactivity";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 
 import { makeMiniStore } from "../../../packages/history/tests/fakes.ts";

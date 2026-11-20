@@ -1,8 +1,11 @@
 import { InsightCard } from "@nhl-reddit-stats/analyst/card";
 import { render } from "@nhl-reddit-stats/analyst/render";
-import { PublishedInsight } from "@nhl-reddit-stats/season/rpc";
-import { SnapshotLoadError } from "@nhl-reddit-stats/season/rpc";
-import { Array, Effect, FileSystem, Option, Result, Schema } from "effect";
+import {
+  PublishedInsight,
+  SnapshotLoadError,
+} from "@nhl-reddit-stats/season/rpc";
+import type { FileSystem } from "effect";
+import { Array, Effect, Option, Result, Schema } from "effect";
 
 const CardList = Schema.Array(InsightCard);
 
@@ -41,8 +44,8 @@ export const filesInsights =
 
 /** Keeps approved cards, renders their copy, and validates each against the published shape. A card that cannot render or validate is dropped. */
 export const publishCards = (
-  cards: ReadonlyArray<typeof InsightCard.Type>
-): ReadonlyArray<PublishedInsight> =>
+  cards: readonly (typeof InsightCard.Type)[]
+): readonly PublishedInsight[] =>
   cards.flatMap((card) => {
     if (card.status !== "approved") return [];
 
@@ -76,7 +79,7 @@ export const publishCards = (
 /** The approved, rendered cards of every team, in team order. */
 export const loadPublishedInsights = (
   load: LoadTeamCards,
-  teams: ReadonlyArray<string>
+  teams: readonly string[]
 ) =>
   Effect.gen(function* () {
     const published = yield* Effect.forEach(teams, (team) =>

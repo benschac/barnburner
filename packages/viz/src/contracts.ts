@@ -1,4 +1,5 @@
-import { Effect, Predicate, Schema } from "effect";
+import type { Effect } from "effect";
+import { Predicate, Schema } from "effect";
 
 // The shapes every frontend lane works from (plan section C-viz). No DOM code: the DOM-facing types
 // below only name `HTMLElement`, which TypeScript supplies. Player IDs, never indexes, appear in rows.
@@ -243,7 +244,7 @@ export const VizTheme = Schema.Struct({
   fonts: Schema.Struct({ body: Schema.String, score: Schema.String }),
 }).check(
   Schema.makeFilter<{
-    readonly series: ReadonlyArray<string>;
+    readonly series: readonly string[];
     readonly chartPositive: string;
     readonly chartNegative: string;
     readonly gold: string;
@@ -372,8 +373,8 @@ export type BenchLink = {
   readonly games: number;
 };
 export type BenchData = {
-  readonly nodes: ReadonlyArray<BenchNode>;
-  readonly links: ReadonlyArray<BenchLink>;
+  readonly nodes: readonly BenchNode[];
+  readonly links: readonly BenchLink[];
 };
 
 /** What a mounted renderer lets the harness drive. */

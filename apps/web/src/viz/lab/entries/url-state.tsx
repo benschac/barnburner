@@ -56,7 +56,9 @@ function Field<A extends string | number>({
       setDraft(null);
     };
     window.addEventListener("popstate", onHistory);
-    return () => window.removeEventListener("popstate", onHistory);
+    return () => {
+      window.removeEventListener("popstate", onHistory);
+    };
   }, [cancel]);
   const text = draft ?? show(value);
   return (

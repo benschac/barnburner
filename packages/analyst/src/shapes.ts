@@ -1,4 +1,5 @@
-import { Effect, Schema } from "effect";
+import type { Effect } from "effect";
+import { Schema } from "effect";
 
 export class DbError extends Schema.TaggedError<DbError>()("DbError", {
   message: Schema.String,

@@ -17,7 +17,7 @@ const check = (files: Record<string, string>) => {
     for (const [name, text] of Object.entries(files))
       writeFileSync(join(dir, name), text);
     const run = spawnSync(process.execPath, [script, dir], {
-      encoding: "utf8",
+      encoding: "utf-8",
     });
     return { status: run.status, stderr: run.stderr };
   } finally {
@@ -26,7 +26,7 @@ const check = (files: Record<string, string>) => {
 };
 
 test("the analyst source follows the error model", () => {
-  const run = spawnSync(process.execPath, [script, src], { encoding: "utf8" });
+  const run = spawnSync(process.execPath, [script, src], { encoding: "utf-8" });
   assert.equal(run.status, 0, run.stderr);
 });
 

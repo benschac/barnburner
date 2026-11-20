@@ -1,12 +1,12 @@
 import { readdirSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
-import { fileURLToPath } from "node:url";
 
 import { Array, DateTime, Effect, Order, Result } from "effect";
 
 import { logError } from "../../../lib/logger.mjs";
-import { type InsightCard, RejectReason } from "../src/card.ts";
+import { RejectReason } from "../src/card.ts";
+import type { InsightCard } from "../src/card.ts";
 import type { RenderError } from "../src/render.ts";
 import { applyDecision, formatForReview } from "../src/review.ts";
 import type { NotPendingError } from "../src/review.ts";
@@ -133,7 +133,7 @@ const main = async (): Promise<void> => {
     const i = args.indexOf(name);
     return i === -1 ? undefined : args[i + 1];
   };
-  const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+  const root = resolve(import.meta.dirname, "../../..");
   const dir = flag("--dir") ?? join(root, "data/insights/20262027");
   const team = flag("--team");
   const rl = createInterface({ input: process.stdin });

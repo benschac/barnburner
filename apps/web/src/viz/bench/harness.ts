@@ -45,9 +45,9 @@ type Camera = { pan(dx: number, dy: number): void; zoom(factor: number): void };
  * because the browser pauses animation callbacks and the gap would count as a frame.
  * Resolves the time (ms from the first frame) of each frame.
  */
-function drive(handle: Camera): Effect.Effect<ReadonlyArray<number>, string> {
+function drive(handle: Camera): Effect.Effect<readonly number[], string> {
   const script = benchScript();
-  return Effect.callback<ReadonlyArray<number>, string>((resume) => {
+  return Effect.callback<readonly number[], string>((resume) => {
     const hiddenMessage =
       "the tab was hidden during the run; the run is discarded";
     let done = false;
@@ -67,12 +67,15 @@ function drive(handle: Camera): Effect.Effect<ReadonlyArray<number>, string> {
       const now = timestamp - origin;
       for (const { step, ms } of overlaps(script, last, now)) {
         Match.valueTags(step, {
-          pan: (pan) =>
+          pan: (pan) => {
             handle.pan(
               (pan.dxPerSecond * ms) / 1000,
               (pan.dyPerSecond * ms) / 1000
-            ),
-          zoom: (zoom) => handle.zoom(zoom.factorPerSecond ** (ms / 1000)),
+            );
+          },
+          zoom: (zoom) => {
+            handle.zoom(zoom.factorPerSecond ** (ms / 1000));
+          },
         });
       }
       last = now;
@@ -167,7 +170,12 @@ export const runBench = (
       drive(handle).pipe(Effect.mapError(fail("drive")))
     );
     const cleaned = yield* Effect.result(
-      Effect.try({ try: () => handle.destroy(), catch: fail("destroy") })
+      Effect.try({
+        try: () => {
+          handle.destroy();
+        },
+        catch: fail("destroy"),
+      })
     );
     if (Result.isFailure(driven)) return yield* driven.failure;
     if (Result.isFailure(cleaned)) return yield* cleaned.failure;

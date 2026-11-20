@@ -2,7 +2,8 @@
 
 import { Array, Effect, Order } from "effect";
 
-import { HistoryUnavailable, UnknownPlayer } from "./contracts.ts";
+import type { HistoryUnavailable } from "./contracts.ts";
+import { UnknownPlayer } from "./contracts.ts";
 import type { TeammateGraph } from "./graph.ts";
 import { FinalsHit, FinalsMiss } from "./shapes.ts";
 import type { FinalRow, FinalsYear } from "./shapes.ts";
@@ -91,10 +92,7 @@ export const finalsCoverage = (
   playerId: number,
   fromYear: number,
   toYear: number
-): Effect.Effect<
-  ReadonlyArray<FinalsYear>,
-  UnknownPlayer | HistoryUnavailable
-> => {
+): Effect.Effect<readonly FinalsYear[], UnknownPlayer | HistoryUnavailable> => {
   const index = graph.indexOf.get(playerId);
   if (index === undefined) return Effect.fail(new UnknownPlayer({ playerId }));
   const teammates = sharedGameTeammates(graph, index);

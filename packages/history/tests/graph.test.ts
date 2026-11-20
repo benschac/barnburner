@@ -31,9 +31,7 @@ const S2 = 19511952;
 
 // Teammate links of C-mini as [a, b, games that pass the filter]; 0 means the link does not pass.
 type Row = readonly [number, number, number];
-const expectations: ReadonlyArray<
-  readonly [string, Filter, ReadonlyArray<Row>]
-> = [
+const expectations: readonly (readonly [string, Filter, readonly Row[]])[] = [
   [
     "default",
     DEFAULT_FILTER,
@@ -189,7 +187,7 @@ for (const [name, filter, rows] of expectations) {
 }
 
 test("evidence games and span contents under the default filter", () => {
-  const expected: ReadonlyArray<readonly [number, number, number]> = [
+  const expected: readonly (readonly [number, number, number])[] = [
     [11, 12, 1950020001],
     [11, 13, 1950020003],
     [12, 14, 1951020001],
@@ -483,7 +481,8 @@ test("every no-link result is a fresh object, so a caller cannot corrupt later a
   assert.ok(Result.isSuccess(first) && Result.isSuccess(second));
   assert.notEqual(first.success, second.success);
   assert.notEqual(first.success.spans, second.success.spans);
-  (first.success.spans as Array<unknown>).push("corrupt");
+  // SAFETY: drops readonly on purpose, to show that mutating one result cannot reach another.
+  (first.success.spans as unknown[]).push("corrupt");
   assert.deepEqual(second.success.spans, []);
   const third = link(MINI_GRAPH, 11, 20, DEFAULT_FILTER);
   assert.ok(Result.isSuccess(third));

@@ -1,10 +1,5 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { TamaguiProvider, Text, View } from "tamagui";
 
 import { config } from "../tamagui.config";
@@ -35,7 +30,9 @@ export function AppTheme({ children }: { children: ReactNode }) {
   );
   useEffect(() => {
     const query = matchMedia("(prefers-color-scheme: dark)");
-    const update = () => setSystemDark(query.matches);
+    const update = () => {
+      setSystemDark(query.matches);
+    };
     query.addEventListener("change", update);
     const syncStorage = (event: StorageEvent) => {
       if (event.key === storageKey || event.key === null)
@@ -109,7 +106,9 @@ export function ThemeControls() {
                 : "rule focus-visible:gold"
             }
             borderWidth={2}
-            onClick={() => context.setPreference(preference)}
+            onClick={() => {
+              context.setPreference(preference);
+            }}
           >
             <Text
               fontFamily="body"

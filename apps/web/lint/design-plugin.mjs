@@ -54,8 +54,8 @@ function values(node, context, seen = new Set()) {
   if (node.type === "TemplateLiteral" && !node.expressions.length)
     return [node.quasis[0].value.cooked];
   if (node.type === "ConditionalExpression") {
-    const a = values(node.consequent, context, next),
-      b = values(node.alternate, context, next);
+    const a = values(node.consequent, context, next);
+    const b = values(node.alternate, context, next);
     return a && b ? [...a, ...b] : null;
   }
   if (node.type === "Identifier") {
@@ -198,8 +198,8 @@ const knownProp = (attr) =>
 
 // Climb from a value or object member to the place that hands it to Tamagui: a JSX attribute, a JSX spread, or styled() options.
 function locate(context, node) {
-  let up = node,
-    direct = true;
+  let up = node;
+  let direct = true;
   for (;;) {
     const parent = up.parent;
     if (!parent) return null;
