@@ -1,6 +1,6 @@
-import type { ChainTables, LabEntry } from "@nhl-reddit-stats/viz";
-import { samples } from "@nhl-reddit-stats/viz/samples";
-import { Result } from "effect";
+import { ChainTables } from "@nhl-reddit-stats/viz";
+import type { LabEntry } from "@nhl-reddit-stats/viz";
+import { Result, Schema } from "effect";
 import { useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
 import { Text, View } from "tamagui";
@@ -12,6 +12,9 @@ import type { G6NodeProps } from "../../G6Graph";
 import { PlayerCard } from "../../PlayerCard";
 import { chainGraph } from "../../specs/chain";
 import type { ChainGraph, ChainNodeData } from "../../specs/chain";
+import preview from "../data/chain-8478402-8471675.json";
+
+const previewTables = Schema.decodeUnknownSync(ChainTables)(preview.tables);
 
 function ChainPlayer({ data }: G6NodeProps) {
   // SAFETY: G6 hands node data back untyped; chainGraph wrote exactly these fields.
@@ -42,8 +45,10 @@ function chainNames(graph: ChainGraph, chain: readonly string[]): string {
 }
 
 function ChainView() {
-  const [tables, setTables] = useState<ChainTables>(samples.chain.tables);
-  const [note, setNote] = useState("Sample: 11 to 14.");
+  const [tables, setTables] = useState<ChainTables>(previewTables);
+  const [note, setNote] = useState(
+    "Historical snapshot: Connor McDavid to Sidney Crosby. Loaded with the page."
+  );
   const [hovered, setHovered] = useState<string | null>(null);
   const latestPick = useRef(0);
   const readChainFile = useChainFile();
@@ -127,7 +132,7 @@ function ChainView() {
 }
 
 const entry: LabEntry<ReactNode> = {
-  title: "Chain view: the chain sample, or an exported chain file",
+  title: "Teammate chains",
   render: () => <ChainView />,
 };
 

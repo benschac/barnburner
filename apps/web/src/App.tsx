@@ -1,5 +1,6 @@
+import NextLink from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View } from "tamagui";
+import { Anchor, Text, View } from "tamagui";
 
 import { TeamPoster } from "./components/team-poster/TeamPoster";
 import { createTeamPosterCache } from "./stats";
@@ -7,7 +8,11 @@ import { TeamLoading, TeamSelector } from "./TeamViews";
 import { ThemeControls } from "./ThemePreference";
 import { useTeamNavigation } from "./use-team-navigation";
 
-export default function App() {
+export default function App({
+  showGraphLab = false,
+}: {
+  showGraphLab?: boolean;
+}) {
   const { snapshot, retry } = useTeamNavigation();
   const [previewTeam, setPreviewTeam] = useState<string | null>(null);
   const selected = snapshot?.context.team ?? "NJD";
@@ -36,6 +41,23 @@ export default function App() {
       printColorAdjust="exact"
     >
       <ThemeControls />
+      {showGraphLab ? (
+        <View w="100%" maxW="poster" p="4" gap="2" display="flex print:none">
+          <Anchor
+            render={<NextLink href="/viz-lab" />}
+            href="/viz-lab"
+            fontFamily="body"
+            fontSize="label"
+            color="color"
+          >
+            Graph lab →
+          </Anchor>
+          <Text fontFamily="body" fontSize="body" color="muted">
+            Try teammate chains, shared-game charts, and Finals coverage with
+            NHL data loaded for you.
+          </Text>
+        </View>
+      ) : null}
       <TeamSelector
         selected={selected}
         onPrefetchTeam={prefetchTeam}

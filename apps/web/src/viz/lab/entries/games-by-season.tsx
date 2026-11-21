@@ -1,6 +1,5 @@
 import { PairTables } from "@nhl-reddit-stats/viz";
 import type { LabEntry } from "@nhl-reddit-stats/viz";
-import { samples } from "@nhl-reddit-stats/viz/samples";
 import { Result, Schema } from "effect";
 import { useRef, useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
@@ -8,8 +7,9 @@ import type { ChangeEvent, ReactNode } from "react";
 import { G2Chart } from "../../G2Chart";
 import { asG2Spec, gamesBySeason } from "../../specs/games-by-season";
 import { teamColor, useVizTheme } from "../../theme";
+import preview from "../data/pair-8478402-8477934.json";
 
-// Games by season (plan FV11): the FV9 spec in the G2 host, on the pair sample, or on an exported pair file.
+const previewTables = Schema.decodeUnknownSync(PairTables)(preview.tables);
 
 /** An expected failure reading an exported pair file: unreadable, not JSON, the wrong shape, or a span with no club. */
 class PairFileError extends Schema.TaggedError<
@@ -84,7 +84,7 @@ function GamesBySeasonPage() {
   const [note, setNote] = useState("");
   // Counts file selections, so a read that finishes after a newer selection is dropped.
   const selection = useRef(0);
-  const tables = loaded ?? samples.pair.tables;
+  const tables = loaded ?? previewTables;
   const spec = asG2Spec(
     gamesBySeason(tables, theme, (abbrev, index) =>
       teamColor(abbrev, theme, index)
@@ -123,14 +123,17 @@ function GamesBySeasonPage() {
           }}
         />
       </label>
-      <p role="status">{note || "Showing the pair sample."}</p>
+      <p role="status">
+        {note ||
+          "Historical snapshot: Connor McDavid and Leon Draisaitl. Loaded with the page."}
+      </p>
       <G2Chart spec={spec} height="drawer" />
     </section>
   );
 }
 
 const entry: LabEntry<ReactNode> = {
-  title: "Games by season: two players",
+  title: "Shared games by season",
   render: () => <GamesBySeasonPage />,
 };
 

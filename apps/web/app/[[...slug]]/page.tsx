@@ -1,5 +1,5 @@
 import { TeamData } from "@nhl-reddit-stats/season";
-import { Schema } from "effect";
+import { Config, Effect, Schema } from "effect";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 
@@ -16,6 +16,7 @@ import { teamFromPath, teamHref } from "../../src/team-season.ts";
 import PosterPage from "./Poster";
 
 const snapshots = Schema.decodeUnknownSync(TeamData)({ season, poster });
+const nodeEnvironment = Config.String("NODE_ENV").pipe(Config.withDefault(""));
 const configured = (env: NodeJS.ProcessEnv) =>
   Boolean(env.SITE_URL ?? env.VERCEL_PROJECT_PRODUCTION_URL ?? env.VERCEL_URL);
 
@@ -58,5 +59,6 @@ export async function generateMetadata({
 }
 
 export default function Page() {
-  return <PosterPage />;
+  const nodeEnv = Effect.runSync(nodeEnvironment);
+  return <PosterPage showGraphLab={nodeEnv === "development"} />;
 }

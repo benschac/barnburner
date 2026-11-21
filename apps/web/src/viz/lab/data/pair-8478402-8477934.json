@@ -1,0 +1,200 @@
+{
+  "tables": {
+    "players": [
+      {
+        "playerId": 8477934,
+        "name": "Leon Draisaitl",
+        "position": "C",
+        "firstSeason": 20142015,
+        "lastSeason": 20262027,
+        "games": 979
+      },
+      {
+        "playerId": 8478402,
+        "name": "Connor McDavid",
+        "position": "C",
+        "firstSeason": 20152016,
+        "lastSeason": 20262027,
+        "games": 918
+      }
+    ],
+    "teams": [
+      {
+        "teamId": 22,
+        "abbrev": "EDM",
+        "name": "Edmonton Oilers"
+      }
+    ],
+    "spans": [
+      {
+        "seasonId": 20152016,
+        "gameType": 2,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 35,
+        "firstGameId": 2015020144
+      },
+      {
+        "seasonId": 20162017,
+        "gameType": 2,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 82,
+        "firstGameId": 2016020003
+      },
+      {
+        "seasonId": 20162017,
+        "gameType": 3,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 13,
+        "firstGameId": 2016030181
+      },
+      {
+        "seasonId": 20172018,
+        "gameType": 2,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 78,
+        "firstGameId": 2017020003
+      },
+      {
+        "seasonId": 20182019,
+        "gameType": 2,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 78,
+        "firstGameId": 2018020020
+      },
+      {
+        "seasonId": 20192020,
+        "gameType": 2,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 64,
+        "firstGameId": 2019020003
+      },
+      {
+        "seasonId": 20192020,
+        "gameType": 3,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 4,
+        "firstGameId": 2019030061
+      },
+      {
+        "seasonId": 20202021,
+        "gameType": 2,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 56,
+        "firstGameId": 2020020004
+      },
+      {
+        "seasonId": 20202021,
+        "gameType": 3,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 4,
+        "firstGameId": 2020030181
+      },
+      {
+        "seasonId": 20212022,
+        "gameType": 2,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 79,
+        "firstGameId": 2021020006
+      },
+      {
+        "seasonId": 20212022,
+        "gameType": 3,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 16,
+        "firstGameId": 2021030181
+      },
+      {
+        "seasonId": 20222023,
+        "gameType": 2,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 80,
+        "firstGameId": 2022020010
+      },
+      {
+        "seasonId": 20222023,
+        "gameType": 3,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 12,
+        "firstGameId": 2022030181
+      },
+      {
+        "seasonId": 20232024,
+        "gameType": 2,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 76,
+        "firstGameId": 2023020009
+      },
+      {
+        "seasonId": 20232024,
+        "gameType": 3,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 25,
+        "firstGameId": 2023030181
+      },
+      {
+        "seasonId": 20242025,
+        "gameType": 2,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 62,
+        "firstGameId": 2024020008
+      },
+      {
+        "seasonId": 20242025,
+        "gameType": 3,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 22,
+        "firstGameId": 2024030181
+      },
+      {
+        "seasonId": 20252026,
+        "gameType": 2,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 65,
+        "firstGameId": 2025020006
+      },
+      {
+        "seasonId": 20252026,
+        "gameType": 3,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 6,
+        "firstGameId": 2025030181
+      },
+      {
+        "seasonId": 20262027,
+        "gameType": 2,
+        "teamId": 22,
+        "link": "PlayedWith",
+        "games": 22,
+        "firstGameId": 2026020004
+      }
+    ],
+    "summary": [
+      {
+        "a": 8477934,
+        "b": 8478402,
+        "totalGames": 879,
+        "opposedGames": 0
+      }
+    ]
+  },
+  "notes": "players: The two players. teams: The clubs they shared. spans: Each season, competition, and club in which they played together. summary: Their games together and their games on opposite sides."
+}

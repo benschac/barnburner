@@ -12,10 +12,10 @@ const Poster = dynamic(
       import("@vercel/analytics/react"),
       import("../../src/fonts"),
     ]);
-    return function PosterShell() {
+    return function PosterShell({ showGraphLab }: { showGraphLab: boolean }) {
       return (
         <AppTheme>
-          <App />
+          <App showGraphLab={showGraphLab} />
           <Analytics />
         </AppTheme>
       );
@@ -24,6 +24,10 @@ const Poster = dynamic(
   { ssr: false }
 );
 
-export default function PosterPage() {
-  return <Poster />;
+export default function PosterPage({
+  showGraphLab,
+}: {
+  showGraphLab: boolean;
+}) {
+  return <Poster showGraphLab={showGraphLab} />;
 }

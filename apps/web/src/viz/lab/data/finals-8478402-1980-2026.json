@@ -1,0 +1,489 @@
+{
+  "tables": {
+    "finals": [
+      {
+        "year": 1980,
+        "seasonId": 19791980,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1981,
+        "seasonId": 19801981,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1982,
+        "seasonId": 19811982,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1983,
+        "seasonId": 19821983,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1984,
+        "seasonId": 19831984,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1985,
+        "seasonId": 19841985,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1986,
+        "seasonId": 19851986,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1987,
+        "seasonId": 19861987,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1988,
+        "seasonId": 19871988,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1989,
+        "seasonId": 19881989,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1990,
+        "seasonId": 19891990,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1991,
+        "seasonId": 19901991,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1992,
+        "seasonId": 19911992,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1993,
+        "seasonId": 19921993,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1994,
+        "seasonId": 19931994,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1995,
+        "seasonId": 19941995,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1996,
+        "seasonId": 19951996,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1997,
+        "seasonId": 19961997,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1998,
+        "seasonId": 19971998,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 1999,
+        "seasonId": 19981999,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 2000,
+        "seasonId": 19992000,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 2001,
+        "seasonId": 20002001,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 2002,
+        "seasonId": 20012002,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 2003,
+        "seasonId": 20022003,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 2004,
+        "seasonId": 20032004,
+        "covered": 1,
+        "playerId": 8466333,
+        "finalGameId": 2003030411,
+        "sharedGameId": 2015020024
+      },
+      {
+        "year": 2006,
+        "seasonId": 20052006,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 2007,
+        "seasonId": 20062007,
+        "covered": 1,
+        "playerId": 8470621,
+        "finalGameId": 2006030411,
+        "sharedGameId": 2023020761
+      },
+      {
+        "year": 2008,
+        "seasonId": 20072008,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 2009,
+        "seasonId": 20082009,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 2010,
+        "seasonId": 20092010,
+        "covered": 1,
+        "playerId": 8470281,
+        "finalGameId": 2009030411,
+        "sharedGameId": 2021020006
+      },
+      {
+        "year": 2011,
+        "seasonId": 20102011,
+        "covered": 1,
+        "playerId": 8473473,
+        "finalGameId": 2010030411,
+        "sharedGameId": 2016020003
+      },
+      {
+        "year": 2012,
+        "seasonId": 20112012,
+        "covered": 1,
+        "playerId": 8474641,
+        "finalGameId": 2011030411,
+        "sharedGameId": 2023020995
+      },
+      {
+        "year": 2013,
+        "seasonId": 20122013,
+        "covered": 1,
+        "playerId": 8473473,
+        "finalGameId": 2012030411,
+        "sharedGameId": 2016020003
+      },
+      {
+        "year": 2014,
+        "seasonId": 20132014,
+        "covered": 1,
+        "playerId": 8471678,
+        "finalGameId": 2013030411,
+        "sharedGameId": 2015020008
+      },
+      {
+        "year": 2015,
+        "seasonId": 20142015,
+        "covered": 1,
+        "playerId": 8470281,
+        "finalGameId": 2014030411,
+        "sharedGameId": 2021020006
+      },
+      {
+        "year": 2016,
+        "seasonId": 20152016,
+        "covered": 1,
+        "playerId": 8474602,
+        "finalGameId": 2015030411,
+        "sharedGameId": 2015020008
+      },
+      {
+        "year": 2017,
+        "seasonId": 20162017,
+        "covered": 1,
+        "playerId": 8475218,
+        "finalGameId": 2016030411,
+        "sharedGameId": 2022020969
+      },
+      {
+        "year": 2018,
+        "seasonId": 20172018,
+        "covered": 1,
+        "playerId": 8471707,
+        "finalGameId": 2017030411,
+        "sharedGameId": 2019020003
+      },
+      {
+        "year": 2019,
+        "seasonId": 20182019,
+        "covered": 1,
+        "playerId": 8474034,
+        "finalGameId": 2018030411,
+        "sharedGameId": 2015020956
+      },
+      {
+        "year": 2020,
+        "seasonId": 20192020,
+        "covered": 1,
+        "playerId": 8477406,
+        "finalGameId": 2019030411,
+        "sharedGameId": 2022020212
+      },
+      {
+        "year": 2021,
+        "seasonId": 20202021,
+        "covered": 1,
+        "playerId": 8476967,
+        "finalGameId": 2020030414,
+        "sharedGameId": 2021021025
+      },
+      {
+        "year": 2022,
+        "seasonId": 20212022,
+        "covered": 1,
+        "playerId": 8474034,
+        "finalGameId": 2021030411,
+        "sharedGameId": 2015020956
+      },
+      {
+        "year": 2023,
+        "seasonId": 20222023,
+        "covered": 0,
+        "playerId": null,
+        "finalGameId": null,
+        "sharedGameId": null
+      },
+      {
+        "year": 2024,
+        "seasonId": 20232024,
+        "covered": 1,
+        "playerId": 8477934,
+        "finalGameId": 2023030411,
+        "sharedGameId": 2015020144
+      },
+      {
+        "year": 2025,
+        "seasonId": 20242025,
+        "covered": 1,
+        "playerId": 8477934,
+        "finalGameId": 2024030411,
+        "sharedGameId": 2015020144
+      },
+      {
+        "year": 2026,
+        "seasonId": 20252026,
+        "covered": 1,
+        "playerId": 8475791,
+        "finalGameId": 2025030411,
+        "sharedGameId": 2015020008
+      }
+    ],
+    "players": [
+      {
+        "playerId": 8466333,
+        "name": "Andrew Ference",
+        "position": "D",
+        "firstSeason": 19992000,
+        "lastSeason": 20152016,
+        "games": 1027
+      },
+      {
+        "playerId": 8470621,
+        "name": "Corey Perry",
+        "position": "R",
+        "firstSeason": 20052006,
+        "lastSeason": 20262027,
+        "games": 1724
+      },
+      {
+        "playerId": 8470281,
+        "name": "Duncan Keith",
+        "position": "D",
+        "firstSeason": 20052006,
+        "lastSeason": 20212022,
+        "games": 1407
+      },
+      {
+        "playerId": 8473473,
+        "name": "Milan Lucic",
+        "position": "L",
+        "firstSeason": 20072008,
+        "lastSeason": 20232024,
+        "games": 1313
+      },
+      {
+        "playerId": 8474641,
+        "name": "Adam Henrique",
+        "position": "C",
+        "firstSeason": 20102011,
+        "lastSeason": 20252026,
+        "games": 1126
+      },
+      {
+        "playerId": 8471678,
+        "name": "Benoit Pouliot",
+        "position": "L",
+        "firstSeason": 20062007,
+        "lastSeason": 20172018,
+        "games": 692
+      },
+      {
+        "playerId": 8474602,
+        "name": "Justin Schultz",
+        "position": "D",
+        "firstSeason": 20122013,
+        "lastSeason": 20232024,
+        "games": 826
+      },
+      {
+        "playerId": 8475218,
+        "name": "Mattias Ekholm",
+        "position": "D",
+        "firstSeason": 20112012,
+        "lastSeason": 20262027,
+        "games": 1111
+      },
+      {
+        "playerId": 8471707,
+        "name": "James Neal",
+        "position": "L",
+        "firstSeason": 20082009,
+        "lastSeason": 20212022,
+        "games": 979
+      },
+      {
+        "playerId": 8474034,
+        "name": "Patrick Maroon",
+        "position": "L",
+        "firstSeason": 20112012,
+        "lastSeason": 20242025,
+        "games": 1011
+      },
+      {
+        "playerId": 8477406,
+        "name": "Mattias Janmark",
+        "position": "C",
+        "firstSeason": 20152016,
+        "lastSeason": 20252026,
+        "games": 793
+      },
+      {
+        "playerId": 8476967,
+        "name": "Brett Kulak",
+        "position": "D",
+        "firstSeason": 20142015,
+        "lastSeason": 20262027,
+        "games": 795
+      },
+      {
+        "playerId": 8477934,
+        "name": "Leon Draisaitl",
+        "position": "C",
+        "firstSeason": 20142015,
+        "lastSeason": 20262027,
+        "games": 979
+      },
+      {
+        "playerId": 8475791,
+        "name": "Taylor Hall",
+        "position": "L",
+        "firstSeason": 20102011,
+        "lastSeason": 20262027,
+        "games": 1074
+      }
+    ]
+  },
+  "notes": "finals: One row per Final year, with a teammate who played in it, a Final game, and a game they shared; empty IDs where no teammate played. players: The teammates named in finals."
+}

@@ -1,6 +1,5 @@
 import { FinalsTables } from "@nhl-reddit-stats/viz";
 import type { LabEntry } from "@nhl-reddit-stats/viz";
-import { samples } from "@nhl-reddit-stats/viz/samples";
 import { Result, Schema } from "effect";
 import { useRef, useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
@@ -8,8 +7,9 @@ import type { ChangeEvent, ReactNode } from "react";
 import { G2Chart } from "../../G2Chart";
 import { finalsGrid } from "../../specs/finals-grid";
 import { useVizTheme } from "../../theme";
+import preview from "../data/finals-8478402-1980-2026.json";
 
-// The Final-by-year grid (plan FV11): the FV10 spec in the G2 host, on the finals sample, or on an exported finals file.
+const previewTables = Schema.decodeUnknownSync(FinalsTables)(preview.tables);
 
 /** An expected failure reading an exported finals file: unreadable, not JSON, or the wrong shape. */
 class FinalsFileError extends Schema.TaggedError<
@@ -75,7 +75,7 @@ function FinalsGridPage() {
   const [note, setNote] = useState("");
   // Counts file selections, so a read that finishes after a newer selection is dropped.
   const selection = useRef(0);
-  const tables = loaded ?? samples.finals.tables;
+  const tables = loaded ?? previewTables;
   const spec = finalsGrid(tables, theme);
 
   const onFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -110,14 +110,17 @@ function FinalsGridPage() {
           }}
         />
       </label>
-      <p role="status">{note || "Showing the finals sample."}</p>
+      <p role="status">
+        {note ||
+          "Historical snapshot: Connor McDavid’s teammates in the Stanley Cup Finals, 1980–2026. Loaded with the page."}
+      </p>
       <G2Chart spec={spec} height="seasonChart" />
     </section>
   );
 }
 
 const entry: LabEntry<ReactNode> = {
-  title: "Finals grid: a Final year per cell",
+  title: "Finals coverage through teammates",
   render: () => <FinalsGridPage />,
 };
 

@@ -1,0 +1,366 @@
+{
+  "tables": {
+    "players": [
+      {
+        "playerId": 8471675,
+        "name": "Sidney Crosby",
+        "position": "C",
+        "firstSeason": 20052006,
+        "lastSeason": 20262027,
+        "games": 1626
+      },
+      {
+        "playerId": 8471707,
+        "name": "James Neal",
+        "position": "L",
+        "firstSeason": 20082009,
+        "lastSeason": 20212022,
+        "games": 979
+      },
+      {
+        "playerId": 8473914,
+        "name": "Mark Letestu",
+        "position": "C",
+        "firstSeason": 20092010,
+        "lastSeason": 20192020,
+        "games": 603
+      },
+      {
+        "playerId": 8476326,
+        "name": "Josh Archibald",
+        "position": "R",
+        "firstSeason": 20152016,
+        "lastSeason": 20222023,
+        "games": 329
+      },
+      {
+        "playerId": 8476879,
+        "name": "Cody Ceci",
+        "position": "D",
+        "firstSeason": 20132014,
+        "lastSeason": 20262027,
+        "games": 1073
+      },
+      {
+        "playerId": 8476967,
+        "name": "Brett Kulak",
+        "position": "D",
+        "firstSeason": 20142015,
+        "lastSeason": 20262027,
+        "games": 795
+      },
+      {
+        "playerId": 8477953,
+        "name": "Kasperi Kapanen",
+        "position": "R",
+        "firstSeason": 20152016,
+        "lastSeason": 20262027,
+        "games": 646
+      },
+      {
+        "playerId": 8478402,
+        "name": "Connor McDavid",
+        "position": "C",
+        "firstSeason": 20152016,
+        "lastSeason": 20262027,
+        "games": 918
+      },
+      {
+        "playerId": 8479344,
+        "name": "Jesse Puljujarvi",
+        "position": "R",
+        "firstSeason": 20162017,
+        "lastSeason": 20242025,
+        "games": 414
+      },
+      {
+        "playerId": 8479465,
+        "name": "Drake Caggiula",
+        "position": "L",
+        "firstSeason": 20162017,
+        "lastSeason": 20242025,
+        "games": 310
+      },
+      {
+        "playerId": 8479576,
+        "name": "Vincent Desharnais",
+        "position": "D",
+        "firstSeason": 20222023,
+        "lastSeason": 20262027,
+        "games": 255
+      },
+      {
+        "playerId": 8479973,
+        "name": "Stuart Skinner",
+        "position": "G",
+        "firstSeason": 20202021,
+        "lastSeason": 20262027,
+        "games": 292
+      }
+    ],
+    "teams": [
+      {
+        "teamId": 5,
+        "abbrev": "PIT",
+        "name": "Pittsburgh Penguins"
+      },
+      {
+        "teamId": 22,
+        "abbrev": "EDM",
+        "name": "Edmonton Oilers"
+      }
+    ],
+    "hops": [
+      {
+        "chain": 0,
+        "step": 0,
+        "from": 8478402,
+        "to": 8476967,
+        "kind": "PlayedWith",
+        "games": 348,
+        "teamId": 22,
+        "seasonId": 20212022,
+        "gameType": 2,
+        "gameId": 2021021025
+      },
+      {
+        "chain": 0,
+        "step": 1,
+        "from": 8476967,
+        "to": 8471675,
+        "kind": "PlayedWith",
+        "games": 25,
+        "teamId": 5,
+        "seasonId": 20252026,
+        "gameType": 2,
+        "gameId": 2025020524
+      },
+      {
+        "chain": 1,
+        "step": 0,
+        "from": 8478402,
+        "to": 8479344,
+        "kind": "PlayedWith",
+        "games": 334,
+        "teamId": 22,
+        "seasonId": 20162017,
+        "gameType": 2,
+        "gameId": 2016020003
+      },
+      {
+        "chain": 1,
+        "step": 1,
+        "from": 8479344,
+        "to": 8471675,
+        "kind": "PlayedWith",
+        "games": 48,
+        "teamId": 5,
+        "seasonId": 20232024,
+        "gameType": 2,
+        "gameId": 2023020788
+      },
+      {
+        "chain": 2,
+        "step": 0,
+        "from": 8478402,
+        "to": 8476879,
+        "kind": "PlayedWith",
+        "games": 282,
+        "teamId": 22,
+        "seasonId": 20212022,
+        "gameType": 2,
+        "gameId": 2021020006
+      },
+      {
+        "chain": 2,
+        "step": 1,
+        "from": 8476879,
+        "to": 8471675,
+        "kind": "PlayedWith",
+        "games": 58,
+        "teamId": 5,
+        "seasonId": 20202021,
+        "gameType": 2,
+        "gameId": 2020020001
+      },
+      {
+        "chain": 3,
+        "step": 0,
+        "from": 8478402,
+        "to": 8479973,
+        "kind": "PlayedWith",
+        "games": 238,
+        "teamId": 22,
+        "seasonId": 20202021,
+        "gameType": 2,
+        "gameId": 2020020141
+      },
+      {
+        "chain": 3,
+        "step": 1,
+        "from": 8479973,
+        "to": 8471675,
+        "kind": "PlayedWith",
+        "games": 23,
+        "teamId": 5,
+        "seasonId": 20252026,
+        "gameType": 2,
+        "gameId": 2025020524
+      },
+      {
+        "chain": 4,
+        "step": 0,
+        "from": 8478402,
+        "to": 8473914,
+        "kind": "PlayedWith",
+        "games": 196,
+        "teamId": 22,
+        "seasonId": 20152016,
+        "gameType": 2,
+        "gameId": 2015020008
+      },
+      {
+        "chain": 4,
+        "step": 1,
+        "from": 8473914,
+        "to": 8471675,
+        "kind": "PlayedWith",
+        "games": 54,
+        "teamId": 5,
+        "seasonId": 20092010,
+        "gameType": 2,
+        "gameId": 2009020274
+      },
+      {
+        "chain": 5,
+        "step": 0,
+        "from": 8478402,
+        "to": 8479465,
+        "kind": "PlayedWith",
+        "games": 173,
+        "teamId": 22,
+        "seasonId": 20162017,
+        "gameType": 2,
+        "gameId": 2016020266
+      },
+      {
+        "chain": 5,
+        "step": 1,
+        "from": 8479465,
+        "to": 8471675,
+        "kind": "PlayedWith",
+        "games": 4,
+        "teamId": 5,
+        "seasonId": 20222023,
+        "gameType": 2,
+        "gameId": 2022020094
+      },
+      {
+        "chain": 6,
+        "step": 0,
+        "from": 8478402,
+        "to": 8479576,
+        "kind": "PlayedWith",
+        "games": 136,
+        "teamId": 22,
+        "seasonId": 20222023,
+        "gameType": 2,
+        "gameId": 2022020660
+      },
+      {
+        "chain": 6,
+        "step": 1,
+        "from": 8479576,
+        "to": 8471675,
+        "kind": "PlayedWith",
+        "games": 8,
+        "teamId": 5,
+        "seasonId": 20242025,
+        "gameType": 2,
+        "gameId": 2024020830
+      },
+      {
+        "chain": 7,
+        "step": 0,
+        "from": 8478402,
+        "to": 8476326,
+        "kind": "PlayedWith",
+        "games": 134,
+        "teamId": 22,
+        "seasonId": 20192020,
+        "gameType": 2,
+        "gameId": 2019020003
+      },
+      {
+        "chain": 7,
+        "step": 1,
+        "from": 8476326,
+        "to": 8471675,
+        "kind": "PlayedWith",
+        "games": 79,
+        "teamId": 5,
+        "seasonId": 20152016,
+        "gameType": 2,
+        "gameId": 2015020970
+      },
+      {
+        "chain": 8,
+        "step": 0,
+        "from": 8478402,
+        "to": 8477953,
+        "kind": "PlayedWith",
+        "games": 126,
+        "teamId": 22,
+        "seasonId": 20242025,
+        "gameType": 2,
+        "gameId": 2024020315
+      },
+      {
+        "chain": 8,
+        "step": 1,
+        "from": 8477953,
+        "to": 8471675,
+        "kind": "PlayedWith",
+        "games": 160,
+        "teamId": 5,
+        "seasonId": 20202021,
+        "gameType": 2,
+        "gameId": 2020020050
+      },
+      {
+        "chain": 9,
+        "step": 0,
+        "from": 8478402,
+        "to": 8471707,
+        "kind": "PlayedWith",
+        "games": 89,
+        "teamId": 22,
+        "seasonId": 20192020,
+        "gameType": 2,
+        "gameId": 2019020003
+      },
+      {
+        "chain": 9,
+        "step": 1,
+        "from": 8471707,
+        "to": 8471675,
+        "kind": "PlayedWith",
+        "games": 143,
+        "teamId": 5,
+        "seasonId": 20112012,
+        "gameType": 2,
+        "gameId": 2011020291
+      }
+    ],
+    "summary": [
+      {
+        "from": 8478402,
+        "to": 8471675,
+        "distance": 2,
+        "pathCount": 25,
+        "pathCountCapped": 0
+      }
+    ]
+  },
+  "notes": "players: The players on the chains, by player ID. teams: The clubs the hops were played for. hops: Every hop of every chain, in preference order, with chain and step counted from 0. summary: The distance and the number of tied chains."
+}
