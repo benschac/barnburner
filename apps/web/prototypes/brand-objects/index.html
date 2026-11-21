@@ -1,78 +1,220 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rinkside brand objects lab</title>
-<style>
-@font-face { font-family: Graduate; src: url(/apps/web/public/assets/fonts/graduate.ttf); }
-@font-face { font-family: RobotoC; src: url(/apps/web/public/assets/fonts/roboto-condensed.ttf); font-weight: 100 900; }
-html, body { margin: 0; }
-body { font-family: RobotoC, sans-serif; background: var(--page); color: var(--text); }
-main { max-width: 1240px; margin: 0 auto; padding: 40px 24px 64px; }
-h1 { font-family: Graduate, serif; font-weight: 400; font-size: 56px; margin: 0 0 4px; }
-.sub { color: var(--soft); font-size: 18px; margin: 0 0 32px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
-.card { display: block; color: inherit; text-decoration: none; }
-.tile { background: var(--tile); border-radius: 14px; aspect-ratio: 1; overflow: hidden; }
-.tile canvas { width: 100%; height: 100%; display: block; }
-.card h2 { font-family: Graduate, serif; font-weight: 400; font-size: 26px; margin: 16px 0 4px; }
-.card p { margin: 0; color: var(--soft); font-size: 17px; }
-.strip { display: grid; grid-template-columns: repeat(8, 1fr); gap: 0; background: var(--tile); margin-bottom: 6px; }
-.strip canvas { width: 100%; display: block; }
-.sheets { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
-.sheets canvas { width: 100%; display: block; }
-</style>
-</head>
-<body>
-<main id="app"></main>
-<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js"}}</script>
-<script type="module">
-import * as THREE from 'three';
-import { PALETTES, sheet, KINDS } from './sheets.js';
-import { OBJECTS, makeObject, setFrame } from './objects.js';
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rinkside brand objects lab</title>
+    <style>
+      @font-face {
+        font-family: Graduate;
+        src: url(/apps/web/public/assets/fonts/graduate.ttf);
+      }
+      @font-face {
+        font-family: RobotoC;
+        src: url(/apps/web/public/assets/fonts/roboto-condensed.ttf);
+        font-weight: 100 900;
+      }
+      html,
+      body {
+        margin: 0;
+      }
+      body {
+        font-family: RobotoC, sans-serif;
+        background: var(--page);
+        color: var(--text);
+      }
+      main {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 40px 24px 64px;
+      }
+      h1 {
+        font-family: Graduate, serif;
+        font-weight: 400;
+        font-size: 56px;
+        margin: 0 0 4px;
+      }
+      .sub {
+        color: var(--soft);
+        font-size: 18px;
+        margin: 0 0 32px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+      }
+      .card {
+        display: block;
+        color: inherit;
+        text-decoration: none;
+      }
+      .tile {
+        background: var(--tile);
+        border-radius: 14px;
+        aspect-ratio: 1;
+        overflow: hidden;
+      }
+      .tile canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .card h2 {
+        font-family: Graduate, serif;
+        font-weight: 400;
+        font-size: 26px;
+        margin: 16px 0 4px;
+      }
+      .card p {
+        margin: 0;
+        color: var(--soft);
+        font-size: 17px;
+      }
+      .strip {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 0;
+        background: var(--tile);
+        margin-bottom: 6px;
+      }
+      .strip canvas {
+        width: 100%;
+        display: block;
+      }
+      .sheets {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+      }
+      .sheets canvas {
+        width: 100%;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="app"></main>
+    <script type="importmap">
+      { "imports": { "three": "/node_modules/three/build/three.module.js" } }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
 
-const q = new URLSearchParams(location.search);
-const mode = q.get('dark') ? 'dark' : 'light'; const pal = PALETTES[mode];
-for (const k of ['page', 'text', 'soft', 'tile']) document.body.style.setProperty('--' + k, pal[k]);
-await Promise.all([document.fonts.load('400 100px Graduate'), document.fonts.load('700 100px RobotoC'), document.fonts.load('400 100px RobotoC')]);
+      import { OBJECTS, makeObject, setFrame } from "./objects.js";
+      import { PALETTES, sheet, KINDS } from "./sheets.js";
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-renderer.setClearColor(0x000000, 0);
-const camera = new THREE.PerspectiveCamera(20, 1, 0.1, 50); camera.position.set(0, 0, 10.2); // long lens: reads as graphic
-const scene = new THREE.Scene();
-const built = {};
-function draw(key, k, canvas) {
-  const px = canvas.width; if (renderer.domElement.width !== px) renderer.setSize(px, px, false);
-  const b = built[key] ??= makeObject(key); setFrame(b, k, pal, px);
-  scene.clear(); scene.add(b.root); renderer.render(scene, camera);
-  const g = canvas.getContext('2d'); g.clearRect(0, 0, px, px); g.drawImage(renderer.domElement, 0, 0);
-}
-const mk = (px) => { const c = document.createElement('canvas'); c.width = c.height = px; return c; };
-const app = document.getElementById('app');
-const keys = (q.get('only') || Object.keys(OBJECTS).join(',')).split(',');
+      const q = new URLSearchParams(location.search);
+      const mode = q.get("dark") ? "dark" : "light";
+      const pal = PALETTES[mode];
+      for (const k of ["page", "text", "soft", "tile"])
+        document.body.style.setProperty("--" + k, pal[k]);
+      await Promise.all([
+        document.fonts.load("400 100px Graduate"),
+        document.fonts.load("700 100px RobotoC"),
+        document.fonts.load("400 100px RobotoC"),
+      ]);
 
-if (q.get('sheets')) {
-  const d = document.createElement('div'); d.className = 'sheets'; app.append(d);
-  const pairs = { plain: ['blue'], type: ['paper', 'ink'], stripes: ['teal', 'ink'], grid: ['paper', 'ink'], halftone: ['butter', 'ink'], rink: ['paper', 'blue'], scribble: ['crease', 'ink'], columns: ['paper', 'ink'], engrave: ['paper', 'ink'], speckle: ['tan', 'ink'], mesh: ['paper', 'blue'] };
-  for (const k of KINDS) for (const v of [0, 1]) { const t = sheet(k, pairs[k][0], pairs[k][1], pal, v); d.append(t.userData.canvas); }
-} else if (q.get('contact')) {
-  for (const key of keys) { const row = document.createElement('div'); row.className = 'strip'; app.append(row);
-    for (let k = 0; k < 8; k++) { const c = mk(360); row.append(c); draw(key, k, c); } }
-} else {
-  app.innerHTML = '<h1>Rinkside</h1><p class="sub">Brand objects lab. Hover a card: a twelfth of a turn every 125 ms, new cuttings each step.</p><div class="grid"></div>';
-  const grid = app.querySelector('.grid'); const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  for (const key of keys) {
-    const a = document.createElement('a'); a.className = 'card'; a.href = '#' + key;
-    a.innerHTML = `<div class="tile"></div><h2>${OBJECTS[key].label}</h2><p>${OBJECTS[key].use}</p>`;
-    const c = mk(Math.round(560 * Math.min(devicePixelRatio, 2))); a.querySelector('.tile').append(c); grid.append(a); draw(key, 0, c);
-    let k = 0, timer = null, leaving = false;
-    const step = () => { k = (k + 1) % 12; draw(key, k, c); if (leaving && k === 0) { clearInterval(timer); timer = null; leaving = false; } };
-    a.addEventListener('pointerenter', (e) => { if (e.pointerType === 'touch' || still) return; leaving = false; timer ??= setInterval(step, 125); });
-    a.addEventListener('pointerleave', () => { if (timer) leaving = true; }); // plays on to the rest pose, no easing
-  }
-}
-document.body.dataset.ready = '1';
-</script>
-</body>
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        preserveDrawingBuffer: true,
+      });
+      renderer.setClearColor(0x000000, 0);
+      const camera = new THREE.PerspectiveCamera(20, 1, 0.1, 50);
+      camera.position.set(0, 0, 10.2); // long lens: reads as graphic
+      const scene = new THREE.Scene();
+      const built = {};
+      function draw(key, k, canvas) {
+        const px = canvas.width;
+        if (renderer.domElement.width !== px) renderer.setSize(px, px, false);
+        const b = (built[key] ??= makeObject(key));
+        setFrame(b, k, pal, px);
+        scene.clear();
+        scene.add(b.root);
+        renderer.render(scene, camera);
+        const g = canvas.getContext("2d");
+        g.clearRect(0, 0, px, px);
+        g.drawImage(renderer.domElement, 0, 0);
+      }
+      const mk = (px) => {
+        const c = document.createElement("canvas");
+        c.width = c.height = px;
+        return c;
+      };
+      const app = document.getElementById("app");
+      const keys = (q.get("only") || Object.keys(OBJECTS).join(",")).split(",");
+
+      if (q.get("sheets")) {
+        const d = document.createElement("div");
+        d.className = "sheets";
+        app.append(d);
+        const pairs = {
+          plain: ["blue"],
+          type: ["paper", "ink"],
+          stripes: ["teal", "ink"],
+          grid: ["paper", "ink"],
+          halftone: ["butter", "ink"],
+          rink: ["paper", "blue"],
+          scribble: ["crease", "ink"],
+          columns: ["paper", "ink"],
+          engrave: ["paper", "ink"],
+          speckle: ["tan", "ink"],
+          mesh: ["paper", "blue"],
+        };
+        for (const k of KINDS)
+          for (const v of [0, 1]) {
+            const t = sheet(k, pairs[k][0], pairs[k][1], pal, v);
+            d.append(t.userData.canvas);
+          }
+      } else if (q.get("contact")) {
+        for (const key of keys) {
+          const row = document.createElement("div");
+          row.className = "strip";
+          app.append(row);
+          for (let k = 0; k < 8; k++) {
+            const c = mk(360);
+            row.append(c);
+            draw(key, k, c);
+          }
+        }
+      } else {
+        app.innerHTML =
+          '<h1>Rinkside</h1><p class="sub">Brand objects lab. Hover a card: a twelfth of a turn every 125 ms, new cuttings each step.</p><div class="grid"></div>';
+        const grid = app.querySelector(".grid");
+        const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        for (const key of keys) {
+          const a = document.createElement("a");
+          a.className = "card";
+          a.href = "#" + key;
+          a.innerHTML = `<div class="tile"></div><h2>${OBJECTS[key].label}</h2><p>${OBJECTS[key].use}</p>`;
+          const c = mk(Math.round(560 * Math.min(devicePixelRatio, 2)));
+          a.querySelector(".tile").append(c);
+          grid.append(a);
+          draw(key, 0, c);
+          let k = 0,
+            timer = null,
+            leaving = false;
+          const step = () => {
+            k = (k + 1) % 12;
+            draw(key, k, c);
+            if (leaving && k === 0) {
+              clearInterval(timer);
+              timer = null;
+              leaving = false;
+            }
+          };
+          a.addEventListener("pointerenter", (e) => {
+            if (e.pointerType === "touch" || still) return;
+            leaving = false;
+            timer ??= setInterval(step, 125);
+          });
+          a.addEventListener("pointerleave", () => {
+            if (timer) leaving = true;
+          }); // plays on to the rest pose, no easing
+        }
+      }
+      document.body.dataset.ready = "1";
+    </script>
+  </body>
 </html>
