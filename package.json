@@ -45,7 +45,10 @@
     "history:accept": "bun run --cwd apps/api history:accept",
     "history:query": "bun run --cwd apps/api history:query",
     "format": "oxfmt",
-    "format:check": "oxfmt --check"
+    "format:check": "oxfmt --check",
+    "lint:rules": "turbo run lint:core lint:unions lint:design lint:patterns lint:xstate",
+    "test:lint-tools": "node --test tests/lint-task-graph.test.mjs",
+    "verify:tooling": "turbo run typecheck lint //#format:check //#check:effect-api //#check:xstate-docs //#check:node-scripts"
   },
   "dependencies": {
     "effect": "4.1.2"

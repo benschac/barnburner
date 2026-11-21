@@ -62,9 +62,11 @@ jobs:
         run: bun run test:scripts
       - name: Python history checks
         run: bun run test:history
+      - name: History and API lint with rule fixtures
+        run: bun run lint --filter=@nhl-reddit-stats/history --filter=@nhl-reddit-stats/api
       - name: History package checks
         working-directory: packages/history
-        run: bun run typecheck && bun run lint && bun run test
+        run: bun run typecheck && bun run test
       - name: API checks
         working-directory: apps/api
-        run: bun run typecheck && bun run lint && bun run test
+        run: bun run typecheck && bun run test

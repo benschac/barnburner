@@ -9,7 +9,7 @@
   },
   "scripts": {
     "typecheck": "effect-tsgo tsrs@7.1.0-beta.tsrs3 --noEmit -p tsconfig.json",
-    "lint": "bun run --parallel --no-exit-on-error lint:oxlint lint:core lint:index",
+    "lint": "bun run --parallel --no-exit-on-error lint:oxlint lint:index",
     "lint:oxlint": "effect-tsgo --tsrs-lint oxlint src",
     "lint:core": "node ../../scripts/test-effect-core-rules.mjs .",
     "lint:index": "node ../../scripts/index-effect-core.mjs --check"

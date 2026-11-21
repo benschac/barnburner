@@ -1,11 +1,5 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
-  "globalDependencies": [
-    "data/*.json",
-    "lib/*.mjs",
-    "lib/*.d.mts",
-    "data/history/serving.json"
-  ],
   "tasks": {
     "@nhl-reddit-stats/api#history:fetch": {
       "cache": false
@@ -19,7 +13,16 @@
         "VERCEL_PROJECT_PRODUCTION_URL",
         "VERCEL_URL"
       ],
-      "inputs": ["$TURBO_DEFAULT$", ".env", ".env.*"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env",
+        ".env.*",
+        "$TURBO_ROOT$/data/*.json",
+        "$TURBO_ROOT$/lib/*.mjs",
+        "$TURBO_ROOT$/lib/*.d.mts",
+        "$TURBO_ROOT$/data/history/serving.json",
+        "$TURBO_ROOT$/lint/**"
+      ],
       "outputs": [
         ".next/**",
         "!.next/cache/**",
@@ -30,10 +33,26 @@
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],
-      "outputs": []
+      "outputs": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/data/*.json",
+        "$TURBO_ROOT$/lib/*.mjs",
+        "$TURBO_ROOT$/lib/*.d.mts",
+        "$TURBO_ROOT$/data/history/serving.json",
+        "$TURBO_ROOT$/lint/**"
+      ]
     },
     "lint": {
-      "cache": false
+      "cache": false,
+      "dependsOn": [
+        "//#test:lint-tools",
+        "lint:core",
+        "lint:unions",
+        "lint:design",
+        "lint:patterns",
+        "lint:xstate"
+      ]
     },
     "check:tamagui": {
       "cache": false
@@ -49,6 +68,128 @@
       "dependsOn": ["build"],
       "cache": false,
       "persistent": true
+    },
+    "lint:core": {
+      "cache": true,
+      "inputs": [
+        "package.json",
+        "oxlint.config.ts",
+        "tsconfig*.json",
+        "lint/**",
+        "design/contract.json",
+        "$TURBO_ROOT$/package.json",
+        "$TURBO_ROOT$/bun.lock",
+        "$TURBO_ROOT$/lint/**",
+        "$TURBO_ROOT$/tools/oxlint/**",
+        "$TURBO_ROOT$/lib/logger.mjs",
+        "$TURBO_ROOT$/lib/logger.d.mts",
+        "$TURBO_ROOT$/scripts/test-effect-core-rules.mjs"
+      ],
+      "outputs": []
+    },
+    "lint:unions": {
+      "cache": true,
+      "inputs": [
+        "package.json",
+        "oxlint.config.ts",
+        "tsconfig*.json",
+        "lint/**",
+        "design/contract.json",
+        "$TURBO_ROOT$/package.json",
+        "$TURBO_ROOT$/bun.lock",
+        "$TURBO_ROOT$/lint/**",
+        "$TURBO_ROOT$/tools/oxlint/**",
+        "$TURBO_ROOT$/lib/logger.mjs",
+        "$TURBO_ROOT$/lib/logger.d.mts",
+        "$TURBO_ROOT$/scripts/test-union-rules.mjs"
+      ],
+      "outputs": []
+    },
+    "lint:design": {
+      "cache": true,
+      "inputs": [
+        "package.json",
+        "oxlint.config.ts",
+        "tsconfig*.json",
+        "lint/**",
+        "design/contract.json",
+        "$TURBO_ROOT$/package.json",
+        "$TURBO_ROOT$/bun.lock",
+        "$TURBO_ROOT$/lint/**",
+        "$TURBO_ROOT$/tools/oxlint/**",
+        "$TURBO_ROOT$/lib/logger.mjs",
+        "$TURBO_ROOT$/lib/logger.d.mts",
+        "oxlint.fixtures.config.ts",
+        "tamagui.config.ts",
+        "scripts/test-design-rules.mjs",
+        "scripts/check-design-files.mjs",
+        "public/assets/teams/*.svg",
+        "$TURBO_ROOT$/data/teams.json"
+      ],
+      "outputs": []
+    },
+    "lint:patterns": {
+      "cache": true,
+      "inputs": [
+        "package.json",
+        "oxlint.config.ts",
+        "tsconfig*.json",
+        "lint/**",
+        "design/contract.json",
+        "$TURBO_ROOT$/package.json",
+        "$TURBO_ROOT$/bun.lock",
+        "$TURBO_ROOT$/lint/**",
+        "$TURBO_ROOT$/tools/oxlint/**",
+        "$TURBO_ROOT$/lib/logger.mjs",
+        "$TURBO_ROOT$/lib/logger.d.mts",
+        "oxlint.fixtures.config.ts",
+        "tamagui.config.ts",
+        "scripts/test-pattern-rules.mjs",
+        "$TURBO_ROOT$/packages/season/package.json",
+        "$TURBO_ROOT$/packages/season/src/**",
+        "$TURBO_ROOT$/data/teams.json"
+      ],
+      "outputs": []
+    },
+    "lint:xstate": {
+      "cache": true,
+      "inputs": [
+        "package.json",
+        "oxlint.config.ts",
+        "tsconfig*.json",
+        "lint/**",
+        "design/contract.json",
+        "$TURBO_ROOT$/package.json",
+        "$TURBO_ROOT$/bun.lock",
+        "$TURBO_ROOT$/lint/**",
+        "$TURBO_ROOT$/tools/oxlint/**",
+        "$TURBO_ROOT$/lib/logger.mjs",
+        "$TURBO_ROOT$/lib/logger.d.mts",
+        "oxlint.fixtures.config.ts",
+        "tamagui.config.ts",
+        "scripts/test-xstate-rules.mjs"
+      ],
+      "outputs": []
+    },
+    "//#format:check": {
+      "cache": false,
+      "outputs": []
+    },
+    "//#check:effect-api": {
+      "cache": false,
+      "outputs": []
+    },
+    "//#check:xstate-docs": {
+      "cache": false,
+      "outputs": []
+    },
+    "//#check:node-scripts": {
+      "cache": false,
+      "outputs": []
+    },
+    "//#test:lint-tools": {
+      "cache": false,
+      "outputs": []
     }
   }
 }
