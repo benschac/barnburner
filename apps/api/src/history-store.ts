@@ -177,6 +177,15 @@ const buildHistoryStore = (
     const snapshotId = yield* meta("snapshot_id");
     if (snapshotId === null) return yield* invalid();
 
+    // Older serving files have no dressed-goalie facts.
+    const hasDressed =
+      (yield* sql`SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'dressed_goalies'`.pipe(
+        served("The history query failed.")
+      )).length > 0;
+    const dressedGoalies = hasDressed
+      ? sql`SELECT game_id, team_id, player_id FROM dressed_goalies`
+      : sql`SELECT 0 AS game_id, 0 AS team_id, 0 AS player_id WHERE 0`;
+
     const playerColumns =
       sql.literal(`player_id AS playerId, name, search_name AS searchName, position, first_season AS firstSeason,
             last_season AS lastSeason, games, points, teammates`);
@@ -188,15 +197,33 @@ const buildHistoryStore = (
     SELECT s.season_id AS seasonId, s.game_type AS gameType, s.team_id AS teamId, t.abbrev AS teamAbbrev,
            t.name AS teamName, s.games, s.first_game_id AS firstGameId, s.last_game_id AS lastGameId
     FROM stints s JOIN teams t ON t.team_id = s.team_id
-    WHERE s.player_id = ${playerId} ORDER BY s.season_id, s.game_type, s.team_id`;
+    WHERE s.player_id = ${playerId}
+    UNION ALL
+    SELECT g.season_id, g.game_type, d.team_id, t.abbrev, t.name, 0,
+           MIN(g.game_id), MAX(g.game_id)
+    FROM (${dressedGoalies}) d JOIN games g ON g.game_id = d.game_id
+    JOIN teams t ON t.team_id = d.team_id
+    WHERE d.player_id = ${playerId}
+      AND NOT EXISTS (SELECT 1 FROM stints s WHERE s.player_id = d.player_id
+        AND s.season_id = g.season_id AND s.game_type = g.game_type AND s.team_id = d.team_id)
+    GROUP BY g.season_id, g.game_type, d.team_id
+    ORDER BY seasonId, gameType, teamId`;
     const rosterSql = ({
       teamId,
       seasonId,
       gameType,
     }: typeof RosterRequest.Encoded) => sql`
-    SELECT p.player_id AS playerId, p.name, p.position, s.games
+    SELECT p.player_id AS playerId, p.name, p.position, s.games AS games
     FROM stints s JOIN players p ON p.player_id = s.player_id
-    WHERE s.team_id = ${teamId} AND s.season_id = ${seasonId} AND s.game_type = ${gameType} ORDER BY s.games DESC, p.player_id`;
+    WHERE s.team_id = ${teamId} AND s.season_id = ${seasonId} AND s.game_type = ${gameType}
+    UNION ALL
+    SELECT DISTINCT p.player_id, p.name, p.position, 0
+    FROM (${dressedGoalies}) d JOIN games g ON g.game_id = d.game_id
+    JOIN players p ON p.player_id = d.player_id
+    WHERE d.team_id = ${teamId} AND g.season_id = ${seasonId} AND g.game_type = ${gameType}
+      AND NOT EXISTS (SELECT 1 FROM stints s WHERE s.player_id = d.player_id
+        AND s.season_id = g.season_id AND s.game_type = g.game_type AND s.team_id = d.team_id)
+    ORDER BY games DESC, playerId`;
     const knownSql = ({ playerId }: typeof PlayerIdRequest.Encoded) =>
       sql`SELECT 1 AS found FROM players WHERE player_id = ${playerId}`;
     const playedWithSql = ({
@@ -242,12 +269,6 @@ const buildHistoryStore = (
     WHERE g.cup_final = 1 AND g.season_id % 10000 BETWEEN ${fromYear} AND ${toYear}
     ORDER BY g.season_id, g.game_date, g.game_id, a.player_id`;
     const blobInfoSql = sql`SELECT name, length(bytes) AS size FROM graph_arrays`;
-
-    // The serving build writes `dressed_goalies`; a file without it has no partner games.
-    const hasDressed =
-      (yield* sql`SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'dressed_goalies'`.pipe(
-        served("The history query failed.")
-      )).length > 0;
 
     // Compiling each query once proves its tables and columns exist; SQLite runs none of them.
     const span = { a: 0, b: 0, teamId: 0, seasonId: 0, gameType: 2 } as const;

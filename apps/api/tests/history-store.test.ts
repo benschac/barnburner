@@ -258,6 +258,62 @@ test("roster lists stint players, and an empty one is UnknownRoster", () =>
     );
   }));
 
+test("dressed-only goalies appear once in stints and rosters with zero credited games", () =>
+  withDirectory(async (directory) => {
+    const path = join(directory, "nhl-serve.sqlite");
+    writeMini(path);
+    const db = new DatabaseSync(path);
+    db.exec(`INSERT INTO games VALUES
+      (1952020001, 19521953, 2, '1952-10-01', NULL, 0),
+      (1952020002, 19521953, 2, '1952-10-02', NULL, 0);
+      INSERT INTO dressed_goalies VALUES
+      (1952020001, 2, 16), (1952020002, 2, 16),
+      (1952020001, 2, 17), (1952020002, 2, 17)`);
+    db.close();
+    const store = await openMini(path);
+    const existing = await run(fake.player(16));
+    const found = await run(store.player(16));
+    assert.deepEqual(found.player, existing.player);
+    assert.deepEqual(
+      found.stints.filter((stint) => stint.teamId === 3),
+      existing.stints
+    );
+    const partner = await run(store.player(17));
+    assert.equal(
+      partner.stints.length,
+      (await run(fake.player(17))).stints.length + 1
+    );
+    assert.deepEqual(
+      partner.stints.find((stint) => stint.teamId === 2),
+      {
+        seasonId: 19521953,
+        gameType: 2,
+        teamId: 2,
+        teamAbbrev: "BBB",
+        teamName: "Bravo Club",
+        games: 0,
+        firstGameId: 1952020001,
+        lastGameId: 1952020002,
+      }
+    );
+    const roster = await run(store.roster(2, 19521953, 2));
+    assert.deepEqual(
+      roster.filter((row) => row.playerId === 17),
+      [{ playerId: 17, name: partner.player.name, position: "G", games: 0 }]
+    );
+    assert.deepEqual(
+      await run(store.roster(3, 19511952, 2)),
+      await run(fake.roster(3, 19511952, 2))
+    );
+    assert.deepEqual(
+      roster.map((row) => [row.playerId, row.games]),
+      [
+        [16, 0],
+        [17, 0],
+      ]
+    );
+  }));
+
 test("sharedGames lists one span by kind, oldest first, and agrees with the fake", () =>
   withMini(async (store) => {
     const cases: readonly (readonly [number, number, number, 2 | 3, number])[] =
@@ -354,6 +410,11 @@ test("sharedGames with the same known ID twice is an empty list", () =>
 
 test("a serving file without dressed_goalies has no partner games but still lists shared ones", () =>
   withMini(async (store) => {
+    assert.deepEqual(await run(store.player(16)), await run(fake.player(16)));
+    assert.deepEqual(
+      await run(store.roster(3, 19511952, 2)),
+      await run(fake.roster(3, 19511952, 2))
+    );
     assert.deepEqual(
       await run(store.sharedGames(16, 17, 19511952, 2, 3, "GoaliePartners")),
       []
