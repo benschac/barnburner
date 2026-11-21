@@ -3,7 +3,7 @@ import type {
   BenchRenderer,
   VizTheme,
 } from "@nhl-reddit-stats/viz/contracts";
-import { Effect, Match, Result, Schema } from "effect";
+import { Effect, Match, Option, Ref, Result, Schema } from "effect";
 
 import {
   benchScript,
@@ -23,16 +23,17 @@ export class BenchRunError extends Schema.TaggedError<
   message: Schema.String,
 }) {}
 
-export type BenchResult = {
-  readonly renderer: string;
-  readonly nodes: number;
-  readonly links: number;
+export const BenchResult = Schema.Struct({
+  renderer: Schema.String,
+  nodes: Schema.Int,
+  links: Schema.Int,
   /** Milliseconds from the start of `mount` until it succeeded: the layout has settled by then. */
-  readonly settleMs: number;
-  readonly frames: number;
-  readonly medianFps: number;
-  readonly worstFps: number;
-};
+  settleMs: Schema.Finite,
+  frames: Schema.Int,
+  medianFps: Schema.Finite,
+  worstFps: Schema.Finite,
+});
+export type BenchResult = typeof BenchResult.Type;
 
 const messageOf = (cause: unknown) =>
   cause instanceof globalThis.Error ? cause.message : String(cause);
@@ -149,7 +150,8 @@ export const readBenchFile = (file: {
  * takes is the settle time. The harness has no other signal; it does not poll the renderer.
  *
  * Mounts one renderer on `root` (which needs a size), times the mount, drives the fixed script,
- * and destroys the renderer. A failure in `destroy` is reported too.
+ * and destroys the renderer. The renderer is destroyed on success, failure and interruption alike.
+ * A failure in `destroy` is reported too, unless the run already failed.
  */
 export const runBench = (
   renderer: BenchRenderer,
@@ -164,29 +166,45 @@ export const runBench = (
         stage,
         message: messageOf(cause),
       });
-    const started = performance.now();
-    const handle = yield* renderer
-      .mount(root, data, theme)
-      .pipe(Effect.mapError(fail("mount")));
-    const settleMs = performance.now() - started;
+    // A finalizer cannot fail, so a failed `destroy` is recorded here and reported once the scope has closed.
+    const destroyFailure = yield* Ref.make(Option.none<BenchRunError>());
     const driven = yield* Effect.result(
-      drive(handle).pipe(Effect.mapError(fail("drive")))
+      Effect.scoped(
+        Effect.gen(function* () {
+          const started = performance.now();
+          // The mount is not interruptible, so a renderer that mounted is always destroyed.
+          const handle = yield* Effect.acquireRelease(
+            renderer
+              .mount(root, data, theme)
+              .pipe(Effect.mapError(fail("mount"))),
+            (mounted) =>
+              Effect.try({
+                try: () => {
+                  mounted.destroy();
+                },
+                catch: fail("destroy"),
+              }).pipe(
+                Effect.catch((error) =>
+                  Ref.set(destroyFailure, Option.some(error))
+                )
+              )
+          );
+          const settleMs = performance.now() - started;
+          const times = yield* drive(handle).pipe(
+            Effect.mapError(fail("drive"))
+          );
+          return { settleMs, times };
+        })
+      )
     );
-    const cleaned = yield* Effect.result(
-      Effect.try({
-        try: () => {
-          handle.destroy();
-        },
-        catch: fail("destroy"),
-      })
-    );
+    const cleaned = yield* Ref.get(destroyFailure);
     if (Result.isFailure(driven)) return yield* driven.failure;
-    if (Result.isFailure(cleaned)) return yield* cleaned.failure;
+    if (Option.isSome(cleaned)) return yield* cleaned.value;
     return {
       renderer: renderer.name,
       nodes: data.nodes.length,
       links: data.links.length,
-      settleMs,
-      ...summarize(driven.success),
+      settleMs: driven.success.settleMs,
+      ...summarize(driven.success.times),
     };
   });

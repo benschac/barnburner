@@ -1,15 +1,15 @@
-import type { BenchData, LabEntry } from "@nhl-reddit-stats/viz";
-import { samples } from "@nhl-reddit-stats/viz/samples";
-import { Result, Schema } from "effect";
-import { useRef, useState } from "react";
+import type { LabEntry } from "@nhl-reddit-stats/viz";
+import { Option, Schema } from "effect";
 import type { ReactNode } from "react";
 import { View } from "tamagui";
-import type { TamaguiElement } from "tamagui";
 
-import { useBenchRuns } from "../../../use-bench-runs.ts";
-import type { BenchResult } from "../../bench/harness.ts";
+import { useBenchMachine } from "../../../use-bench-machine.ts";
+import {
+  BenchSource,
+  canRun,
+  selectedData,
+} from "../../bench/bench-machine.ts";
 import { rendererLoaders } from "../../bench/renderer-loaders.ts";
-import { benchDataFromTables } from "../../bench/stats.ts";
 import { useVizTheme } from "../../theme.ts";
 
 const renderers = rendererLoaders;
@@ -18,88 +18,20 @@ const toPrettyJson = Schema.encodeSync(
   Schema.fromJsonString(Schema.Unknown, { space: 2 })
 );
 
-const egoData: BenchData = benchDataFromTables(samples.ego.tables);
-const leagueData: BenchData = benchDataFromTables(samples.league.tables);
-
-const Source = Schema.Literals(["ego", "league", "file"]);
-type Source = typeof Source.Type;
-const isSource = Schema.is(Source);
+const isSource = Schema.is(BenchSource);
 
 function BenchPage() {
   const theme = useVizTheme();
-  const benchRuns = useBenchRuns();
-  const root = useRef<TamaguiElement>(null);
-  const latestFile = useRef(0);
-  const [renderer, setRenderer] = useState(renderers[0]?.id ?? "");
-  const [source, setSource] = useState<Source>("league");
-  const [loaded, setLoaded] = useState<BenchData | undefined>(undefined);
-  const [note, setNote] = useState("");
-  const [running, setRunning] = useState(false);
-  const [results, setResults] = useState<readonly BenchResult[]>([]);
-
-  const selected =
-    source === "ego" ? egoData : source === "league" ? leagueData : loaded;
+  const { snapshot, root, send } = useBenchMachine(renderers);
 
   if (renderers.length === 0)
     return <p>No renderers found in src/viz/bench/renderers.</p>;
+  if (!snapshot) return null;
 
-  const readInto = async (file: File, ticket: number) => {
-    const outcome = await benchRuns.readFile(file);
-    if (ticket !== latestFile.current) return;
-    if (Result.isSuccess(outcome)) {
-      setLoaded(outcome.success);
-      setNote(
-        `Loaded ${file.name}: ${outcome.success.nodes.length} nodes and ${outcome.success.links.length} links.`
-      );
-    } else {
-      setNote(`Could not use ${file.name}: ${outcome.failure.message}`);
-    }
-  };
-
-  // Each file choice invalidates the one before it at once; only the latest one to finish may set the dataset.
-  const onFile = (files: FileList | null) => {
-    const file = files?.[0];
-    const ticket = ++latestFile.current;
-    setLoaded(undefined);
-    if (!file) return;
-    setSource("file");
-    setNote(`Reading ${file.name}`);
-    void readInto(file, ticket);
-  };
-
-  const run = async () => {
-    const chosen = renderers.find((item) => item.id === renderer);
-    const data = selected;
-    const element = root.current;
-    if (!chosen || !data || !(element instanceof HTMLElement)) {
-      setNote("Pick a renderer and a dataset first.");
-      return;
-    }
-    setRunning(true);
-    setNote(`Running ${chosen.id}`);
-    try {
-      const outcome = await benchRuns.run(
-        chosen.id,
-        chosen.load,
-        data,
-        theme,
-        element
-      );
-      if (Result.isSuccess(outcome)) {
-        setResults((previous) => [...previous, outcome.success]);
-        setNote("");
-      } else {
-        setNote(
-          `${outcome.failure.renderer} failed at ${outcome.failure.stage}: ${outcome.failure.message}`
-        );
-      }
-    } catch (cause) {
-      // foreign: a defect escaped the Effect; show it and keep Run usable
-      setNote(`${chosen.id} failed unexpectedly: ${String(cause)}`);
-    } finally {
-      setRunning(false);
-    }
-  };
+  const { renderer, source, loaded, note, results } = snapshot.context;
+  const selected = selectedData(snapshot.context);
+  // A run, or a read of a file, owns the controls until it ends.
+  const running = snapshot.matches("running");
 
   return (
     <section>
@@ -111,8 +43,9 @@ function BenchPage() {
         Renderer{" "}
         <select
           value={renderer}
+          disabled={running}
           onChange={(event) => {
-            setRenderer(event.target.value);
+            send({ type: "SelectRenderer", renderer: event.target.value });
           }}
         >
           {renderers.map((item) => (
@@ -126,13 +59,16 @@ function BenchPage() {
         Dataset{" "}
         <select
           value={source}
+          disabled={running}
           onChange={(event) => {
-            if (isSource(event.target.value)) setSource(event.target.value);
+            const chosen = event.target.value;
+            if (isSource(chosen))
+              send({ type: "SelectSource", source: chosen });
           }}
         >
           <option value="ego">ego sample</option>
           <option value="league">league sample</option>
-          <option value="file" disabled={!loaded}>
+          <option value="file" disabled={loaded === null}>
             loaded file
           </option>
         </select>
@@ -142,25 +78,29 @@ function BenchPage() {
         <input
           type="file"
           accept="application/json"
+          disabled={running}
           onChange={(event) => {
-            onFile(event.target.files);
+            const file = event.target.files?.[0];
+            if (file) send({ type: "PickFile", file });
           }}
         />
       </label>{" "}
       <button
         type="button"
-        disabled={running || !selected}
+        disabled={!snapshot.matches("idle") || !canRun(snapshot.context)}
         onClick={() => {
-          void run();
+          send({ type: "Run", theme });
         }}
       >
         Run (10 s)
       </button>
       <p>
         Dataset:{" "}
-        {selected
-          ? `${selected.nodes.length} nodes, ${selected.links.length} links`
-          : "none loaded"}
+        {Option.match(selected, {
+          onNone: () => "none loaded",
+          onSome: (data) =>
+            `${data.nodes.length} nodes, ${data.links.length} links`,
+        })}
         .
       </p>
       <p role="status">{note}</p>

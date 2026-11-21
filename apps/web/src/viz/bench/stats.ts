@@ -186,7 +186,8 @@ const ExportFile = (tables: typeof EgoTables | typeof LeagueTables) =>
   Schema.Struct({ tables });
 const decodeEgoFile = Schema.decodeUnknownResult(ExportFile(EgoTables));
 const decodeLeagueFile = Schema.decodeUnknownResult(ExportFile(LeagueTables));
-const BenchFile = Schema.Struct({
+/** The shape of a bench dataset: `BenchData`, as a schema. */
+export const BenchDataSchema = Schema.Struct({
   nodes: Schema.Array(
     Schema.Struct({
       playerId: Schema.Int,
@@ -198,7 +199,7 @@ const BenchFile = Schema.Struct({
     Schema.Struct({ a: Schema.Int, b: Schema.Int, games: Schema.Finite })
   ),
 });
-const decodeBenchFile = Schema.decodeUnknownResult(BenchFile);
+const decodeBenchFile = Schema.decodeUnknownResult(BenchDataSchema);
 const decodeJson = Schema.decodeUnknownResult(
   Schema.fromJsonString(Schema.Unknown)
 );
