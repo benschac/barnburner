@@ -8,6 +8,7 @@ import type {
   GetPlayerInput,
   GetRosterInput,
   GetSharedGamesInput,
+  GetTeammatesInput,
   SearchPlayersInput,
 } from "@nhl-reddit-stats/history/rpc";
 import {
@@ -20,6 +21,7 @@ import {
   GetPlayer,
   GetRoster,
   GetSharedGames,
+  GetTeammates,
   HistoryRpcs,
   HistoryUnavailable,
   SearchPlayers,
@@ -182,6 +184,14 @@ export const sharedGames = queryFamily(
       `${p.a}:${p.b}:${p.seasonId}:${p.gameType}:${p.teamId}:${p.link}`,
       HistoryClient.query(GetSharedGames._tag, p, options)
     )
+);
+
+export const teammates = queryFamily((p: Payload<typeof GetTeammatesInput>) =>
+  fromQuery(
+    GetTeammates,
+    `${p.playerId}:${filterKey(p.filter)}`,
+    HistoryClient.query(GetTeammates._tag, p, options)
+  )
 );
 
 export const opponents = queryFamily((p: Payload<typeof GetOpponentsInput>) =>
