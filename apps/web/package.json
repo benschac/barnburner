@@ -27,7 +27,8 @@
     "test:design": "node scripts/test-design-rules.mjs",
     "test:teams": "node --test tests/team-season.test.ts tests/team-machine.test.ts tests/boxscore-machine.test.ts tests/game-inspection.test.ts tests/viz-bench-renderers.test.ts tests/print-media.test.ts",
     "test:social": "node --test tests/social-*.test.ts",
-    "test:plan": "node --test tests/plan-parse.test.ts"
+    "test:plan": "node --test tests/plan-parse.test.ts",
+    "test:viz": "node --test tests/viz-*.test.ts"
   },
   "dependencies": {
     "@antv/g-webgl": "2.1.3",
