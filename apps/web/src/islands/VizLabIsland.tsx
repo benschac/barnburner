@@ -33,7 +33,19 @@ const demos = [
     name: "chain",
     title: "Teammate chains",
     description:
-      "Follow the shortest teammate chains from Connor McDavid to Sidney Crosby. Hover an edge to highlight its paths.",
+      "Pick any two players and follow the shortest teammate chains between them. Hover an edge to highlight its paths.",
+  },
+  {
+    name: "search",
+    title: "Player search",
+    description:
+      "Find the shortest chains between two players as teammates, opponents, or either, with season and competition filters.",
+  },
+  {
+    name: "teammates",
+    title: "Teammates",
+    description:
+      "Pick a player to see everyone they played with, as a list and a graph.",
   },
   {
     name: "games-by-season",
@@ -79,10 +91,10 @@ function Lab({ name }: { name: string | undefined }) {
           Graph lab
         </Text>
         <Text fontFamily="body" fontSize="body" color="muted">
-          NHL history downloaded on 17 November 2026 is loaded with the three
-          charts below. These are historical snapshots, not live updates. Upload
-          an export to explore other players; the renderer comparison uses
-          synthetic samples.
+          Chain, search and teammates query NHL history downloaded on 17
+          November 2026. Shared games and Finals load a snapshot from that
+          download and accept an uploaded export for other players; the renderer
+          comparison uses synthetic samples.
         </Text>
       </View>
       <View
