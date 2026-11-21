@@ -11,23 +11,29 @@ const awaitAnswer = createEffectLogic({
 const Input = Schema.Struct({ limitMs: Schema.Finite });
 
 // A render request records its id. Only a report with that id settles it, so a late answer for an earlier render is ignored.
+// `message` is the failure message of the current render id only: a matching Failed sets it and a new Render clears it.
 export const frameMachine = setupEffect({
   schemas: {
     input: Input,
     context: Schema.Struct({
       limitMs: Schema.Finite,
       id: Schema.NullOr(Schema.String),
+      message: Schema.NullOr(Schema.String),
     }),
     events: {
       Ready: Schema.Struct({}),
       Render: Schema.Struct({ id: Schema.String }),
       Rendered: Schema.Struct({ id: Schema.String }),
-      Failed: Schema.Struct({ id: Schema.String }),
+      Failed: Schema.Struct({ id: Schema.String, message: Schema.String }),
     },
   },
   actors: { awaitAnswer },
 }).createMachine({
-  context: ({ input }) => ({ limitMs: input.limitMs, id: null }),
+  context: ({ input }) => ({
+    limitMs: input.limitMs,
+    id: null,
+    message: null,
+  }),
   initial: "loading",
   states: {
     loading: {
@@ -42,7 +48,7 @@ export const frameMachine = setupEffect({
       on: {
         Render: ({ context, event }) => ({
           target: "rendering",
-          context: { limitMs: context.limitMs, id: event.id },
+          context: { limitMs: context.limitMs, id: event.id, message: null },
         }),
       },
     },
@@ -57,30 +63,40 @@ export const frameMachine = setupEffect({
         Render: ({ context, event }) => ({
           target: "rendering",
           reenter: true,
-          context: { limitMs: context.limitMs, id: event.id },
+          context: { limitMs: context.limitMs, id: event.id, message: null },
         }),
         Rendered: ({ context, event }) =>
           event.id === context.id ? { target: "rendered" } : {},
         Failed: ({ context, event }) =>
-          event.id === context.id ? { target: "failed" } : {},
+          event.id === context.id
+            ? {
+                target: "failed",
+                context: { ...context, message: event.message },
+              }
+            : {},
       },
     },
     rendered: {
       on: {
         Render: ({ context, event }) => ({
           target: "rendering",
-          context: { limitMs: context.limitMs, id: event.id },
+          context: { limitMs: context.limitMs, id: event.id, message: null },
         }),
         // The view can throw after first paint.
         Failed: ({ context, event }) =>
-          event.id === context.id ? { target: "failed" } : {},
+          event.id === context.id
+            ? {
+                target: "failed",
+                context: { ...context, message: event.message },
+              }
+            : {},
       },
     },
     failed: {
       on: {
         Render: ({ context, event }) => ({
           target: "rendering",
-          context: { limitMs: context.limitMs, id: event.id },
+          context: { limitMs: context.limitMs, id: event.id, message: null },
         }),
       },
     },
