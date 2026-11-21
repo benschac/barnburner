@@ -1,0 +1,275 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #e7ecf2;
+  background: #0b1119;
+  font-synthesis: none;
+  color-scheme: dark;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 1160px;
+  padding: 0 32px;
+  margin: auto;
+}
+header {
+  height: 88px;
+  border-bottom: 1px solid #29333e;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.puck {
+  font-size: 28px;
+  color: #b8e986;
+}
+.mode,
+.caption,
+.action p,
+.section-heading span,
+footer {
+  color: #a2afbf;
+  font-size: 12px;
+}
+.intro {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 56px 0 30px;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: #b8e986;
+}
+h1 {
+  font-size: clamp(36px, 6vw, 64px);
+  line-height: 1.05;
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  margin: 20px 0;
+}
+.subtitle {
+  color: #a2afbf;
+  line-height: 1.6;
+}
+.action {
+  text-align: right;
+}
+button {
+  padding: 15px 24px;
+  border: 0;
+  border-radius: 8px;
+  background: #b8e986;
+  color: #14210c;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+button:hover {
+  background: #cff3ac;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+a {
+  color: #b8e986;
+  text-underline-offset: 4px;
+}
+a:hover {
+  color: #ddfac4;
+}
+:focus-visible {
+  outline: 3px solid #b8e986;
+  outline-offset: 4px;
+}
+.notice {
+  color: #b5bfcb;
+  font-size: 13px;
+  line-height: 1.6;
+  border-left: 2px solid #64748b;
+  padding-left: 14px;
+}
+.feedback {
+  min-height: 20px;
+  font-size: 13px;
+  color: #c7e9a9;
+}
+.error {
+  color: #ffb6b3;
+}
+.sources {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+article {
+  background: #121c28;
+  border: 1px solid #2b3949;
+  border-radius: 12px;
+  padding: 24px;
+}
+.card-heading,
+.card-footer,
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+h2 {
+  font-size: 16px;
+  font-weight: 550;
+  margin: 0;
+}
+.status {
+  display: inline-block;
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 5px;
+  background: #283441;
+  color: #c9d4df;
+  white-space: nowrap;
+}
+.recent {
+  background: #263f2c;
+  color: #c1ecab;
+}
+.stale {
+  background: #453921;
+  color: #f4d08a;
+}
+.failed {
+  background: #492c30;
+  color: #ffb6b3;
+}
+.source-date {
+  font-size: 32px;
+  letter-spacing: -0.035em;
+  margin: 30px 0 6px;
+}
+.caption {
+  margin: 0;
+}
+.explanation {
+  color: #b8c3d0;
+  font-size: 13px;
+  line-height: 1.7;
+  min-height: 66px;
+  margin: 24px 0;
+}
+.card-footer {
+  border-top: 1px solid #2b3949;
+  padding-top: 18px;
+  font-size: 11px;
+  color: #a2afbf;
+}
+.history {
+  margin-top: 44px;
+}
+.section-heading {
+  padding-bottom: 18px;
+  border-bottom: 1px solid #29333e;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+th {
+  font-weight: 500;
+  color: #a2afbf;
+}
+th,
+td {
+  padding: 18px 12px;
+  border-bottom: 1px solid #25313e;
+  vertical-align: top;
+}
+th:first-child,
+td:first-child {
+  padding-left: 0;
+}
+td:first-child {
+  white-space: nowrap;
+}
+details {
+  max-width: 360px;
+  margin-top: 8px;
+  color: #b8c3d0;
+}
+summary {
+  cursor: pointer;
+}
+details p {
+  line-height: 1.6;
+}
+.empty {
+  padding: 44px 0;
+  text-align: center;
+  color: #a2afbf;
+}
+footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 32px 0;
+  line-height: 1.6;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+@media (max-width: 680px) {
+  main {
+    padding: 0 20px;
+  }
+  header {
+    height: 72px;
+  }
+  .mode {
+    display: none;
+  }
+  .intro {
+    display: block;
+    padding-top: 32px;
+  }
+  .action {
+    text-align: left;
+    margin-top: 26px;
+  }
+  .sources {
+    grid-template-columns: 1fr;
+  }
+  article {
+    padding: 20px;
+  }
+  footer {
+    flex-direction: column;
+  }
+}

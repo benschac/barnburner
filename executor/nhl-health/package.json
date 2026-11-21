@@ -1,0 +1,20 @@
+{
+  "name": "nhl-data-health",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit --strict --skipLibCheck --module nodenext --moduleResolution nodenext --target es2022 --jsx react-jsx index.ts health.ts schema.ts ui/main.tsx ui/assets.d.ts",
+    "test": "bun test",
+    "lint": "oxlint --deny-warnings index.ts health.ts schema.ts ui/main.tsx health.test.ts"
+  },
+  "dependencies": {
+    "apps": "0.0.1-beta.143",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "6.0.2"
+  }
+}
