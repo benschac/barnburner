@@ -1,27 +1,12 @@
 "use client";
 
 import { useAtomValue } from "@effect/atom-react";
-import type {
-  FindPathResult,
-  HistoryUnavailable,
-  NoPath,
-  UnknownPlayer,
-  UnsupportedFilter,
-} from "@nhl-reddit-stats/history/rpc";
 import type { LabEntry } from "@nhl-reddit-stats/viz";
-import { Array, Cause, Match, Option } from "effect";
-import { Atom, AsyncResult } from "effect/reactivity";
-import { useMemo, useState } from "react";
+import { Array, Option } from "effect";
 import type { ReactNode } from "react";
 import { Text, View, styled } from "tamagui";
 
-import { player } from "../../../explorer/history-atoms.ts";
-import { pathGraph, pathPlayerIds } from "../../../explorer/path-graph.ts";
-import type {
-  PathGraph,
-  PathNodeData,
-  PlayerDetail,
-} from "../../../explorer/path-graph.ts";
+import { PathResults } from "../../../explorer/PathResults.tsx";
 import { PlayerPicker } from "../../../explorer/PlayerPicker.tsx";
 import {
   competitionAtom,
@@ -34,17 +19,6 @@ import {
   pathAtom,
   writeSearchParam,
 } from "../../../explorer/url-state.ts";
-import { G6Graph } from "../../G6Graph.tsx";
-import type { G6NodeProps } from "../../G6Graph.tsx";
-import { PlayerCard } from "../../PlayerCard.tsx";
-
-type PathResult = typeof FindPathResult.Type;
-type SearchError =
-  | HistoryUnavailable
-  | UnknownPlayer
-  | NoPath
-  | UnsupportedFilter;
-type DetailError = HistoryUnavailable | UnknownPlayer;
 
 // The global CSS reset strips native button chrome, so the button is drawn from tokens.
 const ToggleButton = styled(View, {
@@ -74,44 +48,6 @@ const clearFilters = () => {
   writeSearchParam("partners", null);
 };
 
-const fallbackMessage = "Something went wrong. Try again.";
-
-const searchError = (error: SearchError): ReactNode =>
-  Match.valueTags(error, {
-    NoPath: () =>
-      "No chain connects these two players with the current settings.",
-    UnknownPlayer: ({ playerId }) => `No player has ID ${playerId}.`,
-    UnsupportedFilter: () => (
-      <View gap="2">
-        <Text fontFamily="body" color="color">
-          Opponent and either chains ignore competition, season and
-          goalie-partner filters. Clear the filters to search.
-        </Text>
-        <ToggleButton onPress={clearFilters}>
-          <Text fontFamily="body" color="color">
-            Clear filters
-          </Text>
-        </ToggleButton>
-      </View>
-    ),
-    HistoryUnavailable: ({ message }) => message,
-  });
-
-const detailError = (error: DetailError): string =>
-  Match.valueTags(error, {
-    UnknownPlayer: ({ playerId }) => `No player has ID ${playerId}.`,
-    HistoryUnavailable: ({ message }) => message,
-  });
-
-/** One AsyncResult per distinct list of player IDs, so the details load once however often the page renders. */
-const detailsFamily = Atom.family((ids: string) =>
-  Atom.make((get) =>
-    AsyncResult.all(
-      ids.split(",").map((id) => get(player({ playerId: Number(id) })))
-    )
-  )
-);
-
 const seasonOptions = Array.makeBy(110, (index) => {
   const start = 1917 + index;
   return {
@@ -119,152 +55,6 @@ const seasonOptions = Array.makeBy(110, (index) => {
     text: `${start}–${String((start + 1) % 100).padStart(2, "0")}`,
   };
 });
-
-const summaryText = (result: PathResult, shown: number): string =>
-  result.distance === 0
-    ? "Same player"
-    : `Distance ${result.distance} · ${result.pathCount}${result.pathCountCapped ? "+" : ""} chain${result.pathCount === 1 ? "" : "s"}${result.pathCount > shown ? `, showing ${shown}` : ""}`;
-
-function SearchPlayer({ data }: G6NodeProps) {
-  // SAFETY: G6 hands node data back untyped; pathGraph wrote exactly these fields.
-  const node = data as PathNodeData;
-  return (
-    <PlayerCard
-      name={node.name}
-      position={node.position}
-      firstSeason={node.firstSeason}
-      lastSeason={node.lastSeason}
-      games={node.games}
-      emphasis={node.end}
-    />
-  );
-}
-
-type ChainsProps = {
-  readonly result: PathResult;
-  readonly graph: PathGraph;
-};
-
-function Chains({ result, graph }: ChainsProps) {
-  const [hovered, setHovered] = useState<string | null>(null);
-  // Hovering an edge highlights every edge of every chain that uses it.
-  const highlightedEdges = useMemo(
-    () =>
-      hovered === null
-        ? []
-        : graph.chains
-            .filter((chain) => chain.edgeIds.includes(hovered))
-            .flatMap((chain) => chain.edgeIds),
-    [graph, hovered]
-  );
-  // G6Graph rebuilds when its data changes, so the object must keep its identity between renders.
-  const data = useMemo(
-    () => ({ nodes: graph.nodes, edges: graph.edges }),
-    [graph]
-  );
-  const hoveredEdge = graph.edges.find((edge) => edge.id === hovered);
-  return (
-    <View gap="3">
-      <Text fontFamily="body" color="color">
-        {summaryText(result, graph.chains.length)}
-      </Text>
-      <Text fontFamily="body" color="muted" role="status">
-        {hoveredEdge ? `Hovering: ${hoveredEdge.data.label}` : "Hover an edge"}
-      </Text>
-      <G6Graph
-        data={data}
-        layout="dagre"
-        node={SearchPlayer}
-        height="drawer"
-        onEdgeHover={setHovered}
-        highlightedEdges={highlightedEdges}
-      />
-      <View gap="1">
-        {graph.chains.map((chain, index) => (
-          <Text key={index} fontFamily="body" color="color">
-            {`Chain ${index + 1}: ${chain.names.join(" – ")}`}
-          </Text>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-type FoundProps = {
-  readonly from: number;
-  readonly to: number;
-  readonly result: PathResult;
-};
-
-function Found({ from, to, result }: FoundProps) {
-  const ids = pathPlayerIds(result, from, to);
-  const details = useAtomValue(detailsFamily(ids.join(",")));
-  const graph = useMemo(
-    () =>
-      AsyncResult.isSuccess(details)
-        ? Option.some(
-            pathGraph({
-              from,
-              to,
-              result,
-              players: new Map<number, PlayerDetail>(
-                details.value.map((detail) => [detail.player.playerId, detail])
-              ),
-            })
-          )
-        : Option.none(),
-    [details, from, to, result]
-  );
-  return AsyncResult.match(details, {
-    onInitial: (): ReactNode => (
-      <Text fontFamily="body" color="muted" role="status">
-        Loading players…
-      </Text>
-    ),
-    onFailure: ({ cause }): ReactNode => (
-      <Text fontFamily="body" color="color" role="alert">
-        {Option.match(Cause.findErrorOption(cause), {
-          onNone: () => fallbackMessage,
-          onSome: detailError,
-        })}
-      </Text>
-    ),
-    onSuccess: (): ReactNode =>
-      Option.match(graph, {
-        onNone: () => null,
-        onSome: (built) => <Chains result={result} graph={built} />,
-      }),
-  });
-}
-
-type OutcomeProps = {
-  readonly from: number;
-  readonly to: number;
-  readonly search: AsyncResult.AsyncResult<PathResult, SearchError>;
-};
-
-function Outcome({ from, to, search }: OutcomeProps) {
-  return AsyncResult.match(search, {
-    onInitial: (): ReactNode => (
-      <Text fontFamily="body" color="muted" role="status">
-        Searching…
-      </Text>
-    ),
-    onFailure: ({ cause }): ReactNode => (
-      <View role="alert">
-        <Text fontFamily="body" color="color">
-          {Option.match(Cause.findErrorOption(cause), {
-            onNone: () => fallbackMessage,
-            onSome: searchError,
-          })}
-        </Text>
-      </View>
-    ),
-    onSuccess: ({ value }): ReactNode => (
-      <Found from={from} to={to} result={value} />
-    ),
-  });
-}
 
 function Results() {
   const from = useAtomValue(fromAtom);
@@ -277,7 +67,26 @@ function Results() {
       </Text>
     );
   }
-  return <Outcome from={from.value} to={to.value} search={search.value} />;
+  return (
+    <PathResults
+      from={from.value}
+      to={to.value}
+      search={search.value}
+      unsupportedFilter={
+        <View gap="2">
+          <Text fontFamily="body" color="color">
+            Opponent and either chains ignore competition, season and
+            goalie-partner filters. Clear the filters to search.
+          </Text>
+          <ToggleButton onPress={clearFilters}>
+            <Text fontFamily="body" color="color">
+              Clear filters
+            </Text>
+          </ToggleButton>
+        </View>
+      }
+    />
+  );
 }
 
 const relations = [
