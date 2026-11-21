@@ -60,7 +60,7 @@ test("Failed with the recorded id settles the render as failed", () =>
     Effect.gen(function* () {
       yield* send(actor, { type: "Ready" });
       yield* send(actor, { type: "Render", id: "a" });
-      yield* send(actor, { type: "Failed", id: "a" });
+      yield* send(actor, { type: "Failed", id: "a", message: "boom" });
       const final = yield* reach(actor, "failed");
       assert.equal(final.value, "failed");
     })
@@ -72,7 +72,7 @@ test("a report with another id is ignored", () =>
       yield* send(actor, { type: "Ready" });
       yield* send(actor, { type: "Render", id: "b" });
       yield* send(actor, { type: "Rendered", id: "a" });
-      yield* send(actor, { type: "Failed", id: "a" });
+      yield* send(actor, { type: "Failed", id: "a", message: "boom" });
       yield* settle;
       yield* reach(actor, "rendering");
       yield* send(actor, { type: "Rendered", id: "b" });
@@ -86,7 +86,7 @@ test("a new render request after a settled one starts again with its own id", ()
     Effect.gen(function* () {
       yield* send(actor, { type: "Ready" });
       yield* send(actor, { type: "Render", id: "a" });
-      yield* send(actor, { type: "Failed", id: "a" });
+      yield* send(actor, { type: "Failed", id: "a", message: "boom" });
       yield* reach(actor, "failed");
       yield* send(actor, { type: "Render", id: "b" });
       yield* waitFor(actor, (snapshot) => snapshot.context.id === "b", {
@@ -183,7 +183,7 @@ test("Failed after paint with the current id moves to failed", () =>
       yield* send(actor, { type: "Render", id: "a" });
       yield* send(actor, { type: "Rendered", id: "a" });
       yield* reach(actor, "rendered");
-      yield* send(actor, { type: "Failed", id: "a" });
+      yield* send(actor, { type: "Failed", id: "a", message: "boom" });
       const final = yield* reach(actor, "failed");
       assert.equal(final.value, "failed");
     })
@@ -196,9 +196,97 @@ test("Failed after paint with another id is ignored", () =>
       yield* send(actor, { type: "Render", id: "b" });
       yield* send(actor, { type: "Rendered", id: "b" });
       yield* reach(actor, "rendered");
-      yield* send(actor, { type: "Failed", id: "a" });
+      yield* send(actor, { type: "Failed", id: "a", message: "boom" });
       yield* settle;
       const final = yield* reach(actor, "rendered");
       assert.equal(final.value, "rendered");
+    })
+  ));
+
+test("Failed with the recorded id keeps its message", () =>
+  run(10_000, (actor) =>
+    Effect.gen(function* () {
+      yield* send(actor, { type: "Ready" });
+      yield* send(actor, { type: "Render", id: "a" });
+      yield* send(actor, {
+        type: "Failed",
+        id: "a",
+        message: "no such column",
+      });
+      const final = yield* reach(actor, "failed");
+      assert.equal(final.context.message, "no such column");
+    })
+  ));
+
+test("Failed with a stale id leaves the message unset", () =>
+  run(10_000, (actor) =>
+    Effect.gen(function* () {
+      yield* send(actor, { type: "Ready" });
+      yield* send(actor, { type: "Render", id: "b" });
+      yield* send(actor, { type: "Failed", id: "a", message: "stale" });
+      yield* settle;
+      const final = yield* reach(actor, "rendering");
+      assert.equal(final.context.message, null);
+    })
+  ));
+
+test("a new render clears the message of the failed one", () =>
+  run(10_000, (actor) =>
+    Effect.gen(function* () {
+      yield* send(actor, { type: "Ready" });
+      yield* send(actor, { type: "Render", id: "a" });
+      yield* send(actor, { type: "Failed", id: "a", message: "first" });
+      yield* reach(actor, "failed");
+      yield* send(actor, { type: "Render", id: "b" });
+      const final = yield* reach(actor, "rendering");
+      assert.equal(final.context.id, "b");
+      assert.equal(final.context.message, null);
+    })
+  ));
+
+test("Failed after paint keeps its message", () =>
+  run(10_000, (actor) =>
+    Effect.gen(function* () {
+      yield* send(actor, { type: "Ready" });
+      yield* send(actor, { type: "Render", id: "a" });
+      yield* send(actor, { type: "Rendered", id: "a" });
+      yield* reach(actor, "rendered");
+      yield* send(actor, { type: "Failed", id: "a", message: "threw late" });
+      const final = yield* reach(actor, "failed");
+      assert.equal(final.context.message, "threw late");
+    })
+  ));
+
+test("a stale Failed after a failure does not replace the message", () =>
+  run(10_000, (actor) =>
+    Effect.gen(function* () {
+      yield* send(actor, { type: "Ready" });
+      yield* send(actor, { type: "Render", id: "a" });
+      yield* send(actor, { type: "Failed", id: "a", message: "first" });
+      yield* reach(actor, "failed");
+      yield* send(actor, { type: "Failed", id: "z", message: "other" });
+      yield* settle;
+      const final = yield* reach(actor, "failed");
+      assert.equal(final.context.message, "first");
+    })
+  ));
+
+test("the snapshot accepts a Render only once the frame is ready and not after a timeout", () =>
+  run(10_000, (actor) =>
+    Effect.gen(function* () {
+      const render = { type: "Render", id: "a" } as const;
+      assert.equal(actor.getSnapshot().can(render), false);
+      yield* send(actor, { type: "Ready" });
+      const ready = yield* reach(actor, "ready");
+      assert.equal(ready.can(render), true);
+      assert.equal(ready.can({ type: "Ready" }), false);
+    })
+  ));
+
+test("a timed-out snapshot accepts no Render", () =>
+  run(20, (actor) =>
+    Effect.gen(function* () {
+      const final = yield* reach(actor, "timedOut");
+      assert.equal(final.can({ type: "Render", id: "a" }), false);
     })
   ));

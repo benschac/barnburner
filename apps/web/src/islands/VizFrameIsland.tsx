@@ -6,6 +6,7 @@ import { createEffectActor } from "@xstate/effect";
 import { Effect, Match, Option, Schema, Scope } from "effect";
 import { useEffect, useRef, useState } from "react";
 import { Text, View } from "tamagui";
+import type { SnapshotFrom } from "xstate";
 
 import { useScopedProgram } from "../use-scoped-program.ts";
 import { frameMachine } from "../viz/frame/frame-machine.ts";
@@ -19,7 +20,7 @@ const FRAME_URL = "/viz-frame/viz-frame.html";
 const LIMIT_MS = 10_000;
 const MAX_TIMEOUTS = 3;
 
-type Phase = "loading" | "rendering" | "rendered" | "failed";
+type FrameSnapshot = SnapshotFrom<typeof frameMachine>;
 
 type FrameProps = {
   code: string;
@@ -41,38 +42,33 @@ const idle = (): void => undefined;
 function Frame(props: FrameProps) {
   const frame = useRef<HTMLIFrameElement>(null);
   const latest = useRef<Latest>(props);
-  const [phase, setPhase] = useState<Phase>("loading");
-  const [message, setMessage] = useState("");
+  const [snapshot, setSnapshot] = useState<FrameSnapshot | null>(null);
   const draw = useRef<(tables: Tables, theme: VizTheme) => void>(idle);
 
   useScopedProgram(() => {
-    let ready = false;
     let count = 0;
-    let lastId = "";
     return Effect.gen(function* () {
       const scope = yield* Scope.Scope;
       const actor = yield* createEffectActor(frameMachine, {
         input: { limitMs: LIMIT_MS },
       });
-      actor.subscribe((snapshot) => {
-        if (snapshot.matches("timedOut")) latest.current.onTimedOut();
-        else if (snapshot.matches("failed")) setPhase("failed");
-        else if (snapshot.matches("rendered")) setPhase("rendered");
-        else if (snapshot.matches("rendering")) setPhase("rendering");
-      });
+      // The machine decides when a draw may start: only the first Ready moves it to `ready`, and a repeated Ready cannot restart a render.
       draw.current = (tables, theme) => {
         const target = frame.current?.contentWindow;
-        if (!ready || !target) return;
+        const id = `render-${count + 1}`;
+        if (!target || !actor.getSnapshot().can({ type: "Render", id })) return;
         count += 1;
-        lastId = `render-${count}`;
-        actor.send({ type: "Render", id: lastId });
+        actor.send({ type: "Render", id });
         const { code } = latest.current;
-        latest.current.onRender?.(lastId);
-        target.postMessage(
-          Render.make({ id: lastId, code, tables, theme }),
-          "*"
-        );
+        latest.current.onRender?.(id);
+        target.postMessage(Render.make({ id, code, tables, theme }), "*");
       };
+      actor.subscribe((next) => {
+        setSnapshot(next);
+        if (next.matches("timedOut")) latest.current.onTimedOut();
+        else if (next.matches("ready"))
+          draw.current(latest.current.tables, latest.current.theme);
+      });
       const onMessage = (event: MessageEvent): void => {
         // The frame has an opaque origin, so its window is the only thing that identifies it.
         if (event.source !== frame.current?.contentWindow) return;
@@ -82,18 +78,13 @@ function Frame(props: FrameProps) {
             latest.current.onReport?.(report);
             Match.valueTags(report, {
               Ready: () => {
-                // The machine ignores a second Ready, so the host does too: a view cannot restart the render by repeating it.
-                if (ready) return;
-                ready = true;
                 actor.send({ type: "Ready" });
-                draw.current(latest.current.tables, latest.current.theme);
               },
               Rendered: ({ id }) => {
                 actor.send({ type: "Rendered", id });
               },
-              Failed: ({ id, message: text }) => {
-                if (id === lastId) setMessage(text);
-                actor.send({ type: "Failed", id });
+              Failed: ({ id, message }) => {
+                actor.send({ type: "Failed", id, message });
               },
               FrameRate: () => undefined,
             });
@@ -133,8 +124,10 @@ function Frame(props: FrameProps) {
           height="100%"
         />
       </View>
-      {phase === "failed" ? (
-        <Text fontFamily="body" color="color">{`Failed: ${message}`}</Text>
+      {snapshot?.matches("failed") ? (
+        <Text fontFamily="body" color="color">
+          {`Failed: ${snapshot.context.message ?? ""}`}
+        </Text>
       ) : null}
     </View>
   );
