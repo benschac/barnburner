@@ -7,34 +7,34 @@ const decodeChainText = Schema.decodeUnknownResult(
   Schema.fromJsonString(ChainFile)
 );
 
-class ChainFileReadError extends Schema.TaggedError<ChainFileReadError>()(
-  "ChainFileReadError",
-  {
-    fileName: Schema.String,
-    reason: Schema.String,
-  }
-) {}
+class ChainFileReadError extends Schema.TaggedError<
+  ChainFileReadError,
+  { readonly brand: unique symbol }
+>()("ChainFileReadError", {
+  fileName: Schema.String,
+  cause: Schema.Defect(),
+}) {}
 
-class ChainFileDecodeError extends Schema.TaggedError<ChainFileDecodeError>()(
-  "ChainFileDecodeError",
-  {
-    fileName: Schema.String,
-  }
-) {}
+class ChainFileDecodeError extends Schema.TaggedError<
+  ChainFileDecodeError,
+  { readonly brand: unique symbol }
+>()("ChainFileDecodeError", {
+  fileName: Schema.String,
+}) {}
 
-class ChainFileNoSummary extends Schema.TaggedError<ChainFileNoSummary>()(
-  "ChainFileNoSummary",
-  {}
-) {}
+class ChainFileNoSummary extends Schema.TaggedError<
+  ChainFileNoSummary,
+  { readonly brand: unique symbol }
+>()("ChainFileNoSummary", {}) {}
 
 /** A summary or hop names a player the players table does not list; chainGraph would throw on that. */
-class ChainFileMissingPlayer extends Schema.TaggedError<ChainFileMissingPlayer>()(
-  "ChainFileMissingPlayer",
-  {
-    row: Schema.Literals(["summary", "hop"]),
-    playerId: Schema.Int,
-  }
-) {}
+class ChainFileMissingPlayer extends Schema.TaggedError<
+  ChainFileMissingPlayer,
+  { readonly brand: unique symbol }
+>()("ChainFileMissingPlayer", {
+  row: Schema.Literals(["summary", "hop"]),
+  playerId: Schema.Int,
+}) {}
 
 export type ChainFileFailure =
   | ChainFileReadError
@@ -67,8 +67,8 @@ function chainFileProblem(
 
 export const describeFailure = (failure: ChainFileFailure): string =>
   Match.valueTags(failure, {
-    ChainFileReadError: ({ fileName, reason }) =>
-      `${fileName} could not be read: ${reason}.`,
+    ChainFileReadError: ({ fileName, cause }) =>
+      `${fileName} could not be read: ${String(cause)}.`,
     ChainFileDecodeError: ({ fileName }) =>
       `${fileName} is not a chain export.`,
     ChainFileNoSummary: () => "the file has no summary row.",
@@ -79,13 +79,12 @@ export const describeFailure = (failure: ChainFileFailure): string =>
 /** Reads, decodes, and checks one picked file. Every failure is a tagged error. */
 export const loadChainFile = (picked: File) =>
   Effect.gen(function* () {
-    // foreign: the browser's read error is translated into a tagged error here.
     const text = yield* Effect.tryPromise({
       try: () => picked.text(),
       catch: (cause) =>
         new ChainFileReadError({
           fileName: picked.name,
-          reason: String(cause),
+          cause,
         }),
     });
     const decoded = decodeChainText(text);
