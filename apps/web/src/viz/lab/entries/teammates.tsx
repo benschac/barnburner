@@ -4,8 +4,8 @@ import { useAtomValue } from "@effect/atom-react";
 import type {
   HistoryUnavailable,
   UnknownPlayer,
-  UnknownRoster,
 } from "@nhl-reddit-stats/history/rpc";
+import { DEFAULT_FILTER } from "@nhl-reddit-stats/history/shapes";
 import type { LabEntry } from "@nhl-reddit-stats/viz";
 import { Cause, Match, Option } from "effect";
 import { AsyncResult, Atom } from "effect/reactivity";
@@ -13,10 +13,9 @@ import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Text, View } from "tamagui";
 
-import { link, player, roster } from "../../../explorer/history-atoms.ts";
+import { player, teammates } from "../../../explorer/history-atoms.ts";
 import { PlayerPicker } from "../../../explorer/PlayerPicker.tsx";
 import {
-  teammateCandidates,
   teammateGamesLabel,
   teammateRows,
   teammatesGraph,
@@ -26,46 +25,17 @@ import { fromAtom } from "../../../explorer/url-state.ts";
 import { G6Graph } from "../../G6Graph.tsx";
 import { seasonSpan } from "../../PlayerCard.tsx";
 
-type TeammatesError = HistoryUnavailable | UnknownPlayer | UnknownRoster;
+type TeammatesError = HistoryUnavailable | UnknownPlayer;
 
-const teammates = Atom.family((playerId: number) =>
+/** The player and every teammate with their shared spans: two requests, whatever the career length. */
+const teammatesOf = Atom.family((playerId: number) =>
   Atom.make((get) =>
-    AsyncResult.flatMap(get(player({ playerId })), (detail) =>
-      AsyncResult.flatMap(
-        AsyncResult.all(
-          detail.stints.map(({ teamId, seasonId, gameType }) =>
-            get(roster({ teamId, seasonId, gameType, focusPlayerId: playerId }))
-          )
-        ),
-        (rosters) => {
-          const candidates = teammateCandidates(playerId, rosters);
-          return AsyncResult.map(
-            AsyncResult.all(
-              candidates.map((candidate) =>
-                AsyncResult.map(
-                  get(
-                    link({
-                      a: playerId,
-                      b: candidate.playerId,
-                      filter: {
-                        competition: "all",
-                        fromSeason: null,
-                        toSeason: null,
-                        goaliePartners: true,
-                      },
-                    })
-                  ),
-                  (result) => [candidate.playerId, result] as const
-                )
-              )
-            ),
-            (pairs) => ({
-              detail,
-              rows: teammateRows(detail, rosters, new Map(pairs)),
-            })
-          );
-        }
-      )
+    AsyncResult.map(
+      AsyncResult.all([
+        get(player({ playerId })),
+        get(teammates({ playerId, filter: DEFAULT_FILTER })),
+      ]),
+      ([detail, found]) => ({ detail, rows: teammateRows(detail, found) })
     )
   )
 );
@@ -74,8 +44,6 @@ const errorMessage = (error: TeammatesError): string =>
   Match.valueTags(error, {
     HistoryUnavailable: ({ message }) => message,
     UnknownPlayer: ({ playerId }) => `No player has ID ${playerId}.`,
-    UnknownRoster: ({ teamId, seasonId }) =>
-      `No roster was found for team ${teamId} in ${seasonSpan(seasonId, seasonId)}.`,
   });
 
 type FoundProps = {
@@ -153,11 +121,11 @@ function Found({ detail, rows }: FoundProps) {
 }
 
 function Results({ playerId }: { readonly playerId: number }) {
-  const result = useAtomValue(teammates(playerId));
+  const result = useAtomValue(teammatesOf(playerId));
   return AsyncResult.match(result, {
     onInitial: (): ReactNode => (
       <Text fontFamily="body" color="muted" role="status">
-        Loading rosters and teammate games…
+        Loading teammates…
       </Text>
     ),
     onFailure: ({ cause }): ReactNode => (
