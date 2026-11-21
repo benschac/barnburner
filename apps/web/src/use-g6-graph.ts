@@ -48,11 +48,15 @@ export function useG6Graph(
   }, [highlightedEdges]);
 
   useEffect(() => {
-    const container = root.current;
-    if (!(container instanceof HTMLElement)) return;
+    const host = root.current;
+    if (!(host instanceof HTMLElement)) return;
+    // G6 reuses the HTML camera within a container; retiring graphs must not share it with their replacement.
+    const container = host.ownerDocument.createElement("div");
+    host.append(container);
     setFailure(null);
     const built = build(container);
     if (Result.isFailure(built)) {
+      container.remove();
       setFailure(built.failure);
       return;
     }
@@ -91,14 +95,15 @@ export function useG6Graph(
     const drawn = draw();
     live.current = { graph, drawn };
     const observer = new ResizeObserver(() => {
-      if (alive) graph.setSize(container.clientWidth, heightPx);
+      if (alive) graph.setSize(host.clientWidth, heightPx);
     });
-    observer.observe(container);
+    observer.observe(host);
     return () => {
       alive = false;
       live.current = null;
       observer.disconnect();
       container.removeEventListener("pointerleave", leave);
+      container.remove();
       // Destroying mid-render logs a G6 error, so wait for the render; but never wait on one that stays pending.
       const settled = Effect.tryPromise({
         try: () => drawn,
