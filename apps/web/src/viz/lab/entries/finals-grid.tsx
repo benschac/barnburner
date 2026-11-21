@@ -1,9 +1,12 @@
 import { FinalsTables } from "@nhl-reddit-stats/viz";
 import type { LabEntry } from "@nhl-reddit-stats/viz";
-import { Result, Schema } from "effect";
-import { useRef, useState } from "react";
+import { Schema } from "effect";
 import type { ChangeEvent, ReactNode } from "react";
 
+import { useExportFile } from "../../../use-export-file";
+import { describeExportFileFailure } from "../../export-file";
+import { exportFileMachine } from "../../export-file-machine";
+import { loadFinalsFile } from "../../finals-file";
 import { G2Chart } from "../../G2Chart";
 import { finalsGrid } from "../../specs/finals-grid";
 import { useVizTheme } from "../../theme";
@@ -11,109 +14,34 @@ import preview from "../data/finals-8478402-1980-2026.json";
 
 const previewTables = Schema.decodeUnknownSync(FinalsTables)(preview.tables);
 
-/** An expected failure reading an exported finals file: unreadable, not JSON, or the wrong shape. */
-class FinalsFileError extends Schema.TaggedError<
-  FinalsFileError,
-  { readonly brand: unique symbol }
->()("FinalsFileError", {
-  file: Schema.String,
-  message: Schema.String,
-}) {}
-
-const ExportFile = Schema.Struct({
-  tables: FinalsTables,
-  notes: Schema.String,
-});
-const decodeJson = Schema.decodeUnknownResult(
-  Schema.fromJsonString(Schema.Unknown)
-);
-const decodeExport = Schema.decodeUnknownResult(ExportFile);
-
-const readText = async (
-  file: File
-): Promise<Result.Result<string, FinalsFileError>> => {
-  try {
-    return Result.succeed(await file.text());
-  } catch (cause) {
-    return Result.fail(
-      new FinalsFileError({
-        file: file.name,
-        message: `could not read the file: ${String(cause)}`,
-      })
-    );
-  }
+const previewState = {
+  tables: previewTables,
+  note: "Historical snapshot: Connor McDavid’s teammates in the Stanley Cup Finals, 1980–2026. Loaded with the page.",
 };
 
-function readExport(
-  name: string,
-  text: string
-): Result.Result<FinalsTables, FinalsFileError> {
-  const parsed = decodeJson(text);
-  if (Result.isFailure(parsed)) {
-    return Result.fail(
-      new FinalsFileError({
-        file: name,
-        message: `not JSON: ${parsed.failure.message}`,
-      })
-    );
-  }
-  const decoded = decodeExport(parsed.success);
-  if (Result.isFailure(decoded)) {
-    return Result.fail(
-      new FinalsFileError({
-        file: name,
-        message: "expected an exported finals file: { tables, notes }",
-      })
-    );
-  }
-  return Result.succeed(decoded.success.tables);
-}
+const finalsPicker = exportFileMachine({
+  preview: previewState,
+  read: loadFinalsFile,
+  describe: describeExportFileFailure,
+});
 
 function FinalsGridPage() {
   const theme = useVizTheme();
-  const [loaded, setLoaded] = useState<FinalsTables | undefined>(undefined);
-  const [note, setNote] = useState("");
-  // Counts file selections, so a read that finishes after a newer selection is dropped.
-  const selection = useRef(0);
-  const tables = loaded ?? previewTables;
+  const { tables, note, pick } = useExportFile(finalsPicker);
   const spec = finalsGrid(tables, theme);
 
-  const onFile = async (event: ChangeEvent<HTMLInputElement>) => {
+  const onFile = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-    selection.current += 1;
-    const token = selection.current;
-    const text = await readText(file);
-    if (Result.isFailure(text)) {
-      if (token === selection.current) setNote(text.failure.message);
-      return;
-    }
-    const decoded = readExport(file.name, text.success);
-    if (token !== selection.current) return;
-    if (Result.isSuccess(decoded)) {
-      setLoaded(decoded.success);
-      setNote(`Loaded ${file.name}.`);
-    } else {
-      setNote(decoded.failure.message);
-    }
+    if (file) pick(file);
   };
 
   return (
     <section>
       <label>
         Exported finals file{" "}
-        <input
-          type="file"
-          accept="application/json"
-          onChange={(event) => {
-            void onFile(event);
-          }}
-        />
+        <input type="file" accept="application/json" onChange={onFile} />
       </label>
-      <p role="status">
-        {note ||
-          "Historical snapshot: Connor McDavid’s teammates in the Stanley Cup Finals, 1980–2026. Loaded with the page."}
-      </p>
+      <p role="status">{note}</p>
       <G2Chart spec={spec} height="seasonChart" />
     </section>
   );

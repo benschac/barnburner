@@ -1,12 +1,13 @@
 import { ChainTables } from "@nhl-reddit-stats/viz";
 import type { LabEntry } from "@nhl-reddit-stats/viz";
-import { Result, Schema } from "effect";
-import { useMemo, useRef, useState } from "react";
+import { Schema } from "effect";
+import { useMemo, useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
 import { Text, View } from "tamagui";
 
-import { useChainFile } from "../../../use-chain-file";
-import { describeFailure } from "../../chain-file";
+import { useExportFile } from "../../../use-export-file";
+import { describeFailure, loadChainFile } from "../../chain-file";
+import { exportFileMachine } from "../../export-file-machine";
 import { G6Graph } from "../../G6Graph";
 import type { G6NodeProps } from "../../G6Graph";
 import { PlayerCard } from "../../PlayerCard";
@@ -15,6 +16,15 @@ import type { ChainGraph, ChainNodeData } from "../../specs/chain";
 import preview from "../data/chain-8478402-8471675.json";
 
 const previewTables = Schema.decodeUnknownSync(ChainTables)(preview.tables);
+const previewState = {
+  tables: previewTables,
+  note: "Historical snapshot: Connor McDavid to Sidney Crosby. Loaded with the page.",
+};
+const chainPicker = exportFileMachine({
+  preview: previewState,
+  read: loadChainFile,
+  describe: describeFailure,
+});
 
 function ChainPlayer({ data }: G6NodeProps) {
   // SAFETY: G6 hands node data back untyped; chainGraph wrote exactly these fields.
@@ -45,13 +55,8 @@ function chainNames(graph: ChainGraph, chain: readonly string[]): string {
 }
 
 function ChainView() {
-  const [tables, setTables] = useState<ChainTables>(previewTables);
-  const [note, setNote] = useState(
-    "Historical snapshot: Connor McDavid to Sidney Crosby. Loaded with the page."
-  );
+  const { tables, note, pick } = useExportFile(chainPicker);
   const [hovered, setHovered] = useState<string | null>(null);
-  const latestPick = useRef(0);
-  const readChainFile = useChainFile();
   const graph = useMemo(() => chainGraph(tables), [tables]);
   // Hovering an edge highlights every edge of every chain that uses it.
   const highlightedEdges = useMemo(
@@ -69,20 +74,9 @@ function ChainView() {
   const summary = tables.summary[0];
   const hoveredEdge = graph.edges.find((edge) => edge.id === hovered);
 
-  async function onFile(event: ChangeEvent<HTMLInputElement>) {
+  function onFile(event: ChangeEvent<HTMLInputElement>) {
     const picked = event.target.files?.[0];
-    if (picked === undefined) return;
-    const pick = latestPick.current + 1;
-    latestPick.current = pick;
-    const outcome = await readChainFile(picked);
-    // Only the latest pick may update the graph or the status.
-    if (pick !== latestPick.current) return;
-    if (Result.isSuccess(outcome)) {
-      setTables(outcome.success);
-      setNote(`Loaded ${picked.name}.`);
-    } else {
-      setNote(describeFailure(outcome.failure));
-    }
+    if (picked !== undefined) pick(picked);
   }
 
   return (
@@ -94,13 +88,7 @@ function ChainView() {
         <Text fontFamily="body" color="muted">
           Chain export{" "}
         </Text>
-        <input
-          type="file"
-          accept="application/json"
-          onChange={(event) => {
-            void onFile(event);
-          }}
-        />
+        <input type="file" accept="application/json" onChange={onFile} />
       </label>
       {summary === undefined ? null : (
         <Text fontFamily="body" color="color">
