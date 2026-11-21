@@ -15,6 +15,7 @@ import {
   makeGraph,
   opponents,
   spanPasses,
+  teammateLinks,
 } from "../src/graph.ts";
 import { DEFAULT_FILTER } from "../src/shapes.ts";
 import type { Filter, LinkResult } from "../src/shapes.ts";
@@ -487,4 +488,87 @@ test("every no-link result is a fresh object, so a caller cannot corrupt later a
   const third = link(MINI_GRAPH, 11, 20, DEFAULT_FILTER);
   assert.ok(Result.isSuccess(third));
   assert.deepEqual(third.success.spans, []);
+});
+
+test("teammateLinks lists 16's teammates by ID with the spans link returns, partners included", () => {
+  const result = teammateLinks(graph, 16, DEFAULT_FILTER);
+  assert.ok(Result.isSuccess(result));
+  assert.deepEqual(result.success, [
+    {
+      playerId: 15,
+      spans: [
+        {
+          seasonId: S1,
+          gameType: 2,
+          teamId: 3,
+          link: "PlayedWith",
+          games: 2,
+          firstGameId: 1950020001,
+        },
+      ],
+    },
+    {
+      playerId: 17,
+      spans: [
+        {
+          seasonId: S2,
+          gameType: 2,
+          teamId: 3,
+          link: "GoaliePartners",
+          games: 3,
+          firstGameId: 1951020001,
+        },
+      ],
+    },
+  ]);
+});
+
+test("teammateLinks drops a teammate whose spans all fail the filter", () => {
+  const result = teammateLinks(
+    graph,
+    16,
+    filterWith({ goaliePartners: false })
+  );
+  assert.ok(Result.isSuccess(result));
+  assert.deepEqual(
+    result.success.map((row) => row.playerId),
+    [15]
+  );
+  const playoffs = teammateLinks(
+    graph,
+    14,
+    filterWith({ competition: "playoff" })
+  );
+  assert.ok(Result.isSuccess(playoffs));
+  assert.deepEqual(
+    playoffs.success.map((row) => row.playerId),
+    [15]
+  );
+});
+
+test("teammateLinks agrees with link for every player and teammate", () => {
+  for (const playerId of MINI_ARRAYS.playerIds) {
+    const result = teammateLinks(graph, playerId, DEFAULT_FILTER);
+    assert.ok(Result.isSuccess(result));
+    const expected = Array.filter(
+      Array.fromIterable(MINI_ARRAYS.playerIds),
+      (other) => linkKind(graph, playerId, other, DEFAULT_FILTER) !== null
+    );
+    assert.deepEqual(
+      result.success.map((row) => row.playerId),
+      expected
+    );
+    for (const row of result.success) {
+      const pair = link(graph, playerId, row.playerId, DEFAULT_FILTER);
+      assert.ok(Result.isSuccess(pair));
+      assert.deepEqual(row.spans, pair.success.spans);
+    }
+  }
+});
+
+test("teammateLinks of an unknown player is UnknownPlayer", () => {
+  const result = teammateLinks(graph, 99, DEFAULT_FILTER);
+  assert.ok(Result.isFailure(result));
+  assert.ok(Schema.is(UnknownPlayer)(result.failure));
+  assert.equal(result.failure.playerId, 99);
 });

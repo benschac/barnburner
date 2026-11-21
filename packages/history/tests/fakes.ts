@@ -307,6 +307,12 @@ export const makeMiniStore = (): HistoryStore => {
       );
       return Effect.succeed(matches.slice(0, limit));
     },
+    players: (playerIds) =>
+      Effect.succeed(
+        Array.flatMapNullishOr(playerIds, (playerId) =>
+          playerRows.get(playerId)
+        )
+      ),
     player: (playerId) => {
       const player = playerRows.get(playerId);
       return player === undefined

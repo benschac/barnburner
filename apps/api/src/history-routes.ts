@@ -8,6 +8,7 @@ import {
   linkKind,
   makeGraph,
   opponents,
+  teammateLinks,
 } from "@nhl-reddit-stats/history/graph";
 import { findPaths } from "@nhl-reddit-stats/history/paths";
 import {
@@ -242,6 +243,36 @@ const handlers = HistoryRpcs.toLayer(
             kind
           );
           return { snapshotId: opened.snapshotId, games };
+        }),
+      GetTeammates: ({ playerId, filter }) =>
+        Effect.gen(function* () {
+          const opened = yield* store;
+          const graph = yield* graphOf;
+          const found = teammateLinks(graph, playerId, filter);
+          if (Result.isFailure(found)) return yield* found.failure;
+          const rows = yield* opened.players(
+            found.success.map((row) => row.playerId)
+          );
+          const byId = new Map(rows.map((row) => [row.playerId, row] as const));
+          const teammates = yield* Effect.forEach(
+            found.success,
+            ({ playerId: id, spans }) => {
+              const row = byId.get(id);
+              return row === undefined
+                ? Effect.fail(
+                    new HistoryUnavailable({
+                      message: `Teammate ${id} is in the graph but not in the players table.`,
+                    })
+                  )
+                : Effect.succeed({
+                    playerId: id,
+                    name: row.name,
+                    position: row.position,
+                    spans,
+                  });
+            }
+          );
+          return { snapshotId: opened.snapshotId, teammates };
         }),
       GetOpponents: ({ playerId, limit, offset }) =>
         Effect.gen(function* () {

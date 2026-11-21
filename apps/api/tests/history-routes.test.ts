@@ -375,6 +375,41 @@ test("GetLink honors the goalie-partner filter and reports unknown players", () 
     );
   }));
 
+test("GetTeammates names every teammate of 16 with spans, honoring the filter", () =>
+  withFake(async (client) => {
+    const on = await Effect.runPromise(
+      client.GetTeammates({ playerId: 16, filter: DEFAULT })
+    );
+    assert.equal(on.snapshotId, MINI_SNAPSHOT_ID);
+    assert.deepEqual(
+      on.teammates.map((row) => [
+        row.playerId,
+        row.name,
+        row.position,
+        row.spans.map((span) => [span.link, span.games]),
+      ]),
+      [
+        [15, "Player Fifteen", "C", [["PlayedWith", 2]]],
+        [17, "Goalie Seventeen", "G", [["GoaliePartners", 3]]],
+      ]
+    );
+    const off = await Effect.runPromise(
+      client.GetTeammates({
+        playerId: 16,
+        filter: { ...DEFAULT, goaliePartners: false },
+      })
+    );
+    assert.deepEqual(
+      off.teammates.map((row) => row.playerId),
+      [15]
+    );
+    assert.ok(
+      Schema.is(UnknownPlayer)(
+        await flip(client.GetTeammates({ playerId: 999, filter: DEFAULT }))
+      )
+    );
+  }));
+
 test("GetSharedGames returns the shared games for 11-12", () =>
   withFake(async (client) => {
     const expected = Effect.runSync(
