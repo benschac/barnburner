@@ -29,6 +29,8 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": [
+    "oxlint.config.ts",
+    "oxlint.fixtures.config.ts",
     "tamagui.build.ts",
     "tamagui.config.ts",
     "social",

@@ -66,7 +66,7 @@ const configured = {
   "prefer-arrow-callback": ["error", { allowNamedFunctions: true }],
   // Function declarations are hoisted, and mutually recursive ones cannot all come first.
   "no-use-before-define": ["error", { functions: false, variables: false }],
-} as const;
+} satisfies NonNullable<OxlintConfig["rules"]>;
 
 const style = {
   // A single-statement `if (...) return` without braces is the existing style, in about 700 places.

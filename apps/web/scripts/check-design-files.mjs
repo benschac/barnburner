@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { logError } from "../../../lib/logger.mjs";
 
-const root = fileURLToPath(new URL("../", import.meta.url));
+const root = process.argv[2] ?? fileURLToPath(new URL("../", import.meta.url));
 const excluded = new Set([
   "node_modules",
   "dist",
@@ -17,7 +17,10 @@ const failures = [];
 async function visit(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
-    if (entry.isDirectory() && !excluded.has(entry.name)) await visit(path);
+    const fixtureRoot =
+      dir === root && entry.name.startsWith(".lint-fixtures-");
+    if (entry.isDirectory() && !excluded.has(entry.name) && !fixtureRoot)
+      await visit(path);
     else if (
       entry.isFile() &&
       /\.(css|scss|sass|less)$/.test(entry.name) &&

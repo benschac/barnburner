@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /* oxlint-disable no-restricted-imports, no-restricted-properties -- legacy: port to the Effect platform services, see "Node scripts" in AGENTS.md */
 // Proves the Effect core module lint rules fire on native patterns and stay quiet on the Effect ones.
-// Usage: node scripts/test-effect-core-rules.mjs <package dir whose oxlint.config.ts extends lint/effect-core.oxlintrc.json>
+// Usage: node scripts/test-effect-core-rules.mjs <package dir whose oxlint.config.ts extends lint/effect-core.oxlintrc.json> [base tsconfig]
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { logInfo } from "../lib/logger.mjs";
@@ -15,7 +15,7 @@ const effectTsgo = fileURLToPath(
   new URL("../node_modules/.bin/effect-tsgo", import.meta.url)
 );
 const root = resolve(process.argv[2] ?? ".");
-const dir = await mkdtemp(`${root}/effect-core-rule-test-`);
+const dir = await mkdtemp(`${root}/.lint-fixtures-core-`);
 const effect = "import { Array, Effect, Order } from 'effect'\n";
 const cases = [
   [
@@ -157,29 +157,67 @@ const cases = [
 ];
 
 try {
-  for (const [name, source, expected] of cases) {
-    const file = `${dir}/case.ts`;
+  const files = [];
+  for (const [index, [name, source, expected]] of cases.entries()) {
+    const file = `${dir}/case-${index}.ts`;
     await writeFile(file, source);
-    const result = spawnSync(
-      effectTsgo,
-      ["--tsrs-lint", "oxlint", "--format", "json", file],
-      { cwd: root, encoding: "utf8" }
-    );
-    assert.equal(result.error, undefined, name);
-    const { diagnostics } = JSON.parse(result.stdout);
-    assert.ok(
-      !diagnostics.some((d) => d.message.includes("Error running JS plugin")),
-      `${name}: plugin crashed`
-    );
-    const core = diagnostics.filter(
+    files.push({ name, expected, file, relative: file.slice(root.length + 1) });
+  }
+  const tsconfig = `${dir}/tsconfig.json`;
+  await writeFile(
+    tsconfig,
+    JSON.stringify({
+      extends: relative(dir, resolve(root, process.argv[3] ?? "tsconfig.json")),
+      files: files.map(({ file }) => file.slice(dir.length + 1)),
+      include: [],
+      exclude: [],
+      references: [],
+    })
+  );
+  const result = spawnSync(
+    effectTsgo,
+    [
+      "--tsrs-lint",
+      "oxlint",
+      "--no-ignore",
+      "--tsconfig",
+      tsconfig,
+      "--format",
+      "json",
+      ...files.map(({ file }) => file),
+    ],
+    { cwd: root, encoding: "utf8" }
+  );
+  assert.equal(result.error, undefined, "batch lint failed to start");
+  const { diagnostics, number_of_files: linted } = JSON.parse(result.stdout);
+  assert.equal(linted, files.length, "every fixture must be linted");
+  assert.ok(
+    !diagnostics.some((d) => d.message.includes("Error running JS plugin")),
+    "plugin crashed"
+  );
+  assert.equal(
+    result.status,
+    diagnostics.some((d) => d.severity === "error") ? 1 : 0,
+    "wrong batch process status"
+  );
+  const byFile = new Map(files.map(({ relative }) => [relative, []]));
+  for (const diagnostic of diagnostics) {
+    const found = byFile.get(diagnostic.filename);
+    assert.ok(found, `unexpected diagnostic file: ${diagnostic.filename}`);
+    found.push(diagnostic);
+  }
+  for (const { name, expected, relative } of files) {
+    const found = byFile.get(relative);
+    assert.ok(found, `${name}: missing fixture`);
+    const core = found.filter(
       (d) => d.severity === "error" && /^(core|effecttsgo)\(/.test(d.code)
     );
     if (expected)
       assert.ok(
         core.some((d) => d.code === expected),
-        `${name}: ${result.stdout}`
+        `${name}: ${JSON.stringify(found)}`
       );
-    else assert.equal(core.length, 0, `${name}: ${result.stdout}`);
+    else assert.equal(core.length, 0, `${name}: ${JSON.stringify(found)}`);
   }
   logInfo(`${cases.length} effect core module lint cases passed`);
 } finally {

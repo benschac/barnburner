@@ -1,13 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import {
-  mkdir,
-  mkdtemp,
-  readFile,
-  rmdir,
-  writeFile,
-  rm,
-} from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { logInfo } from "../../../lib/logger.mjs";
@@ -42,7 +35,9 @@ for (const { abbrev } of teams) {
     "team-secondary",
   ]);
 }
-const dir = await mkdtemp(`${root}src/design-rule-test-`);
+const fixtureRoot = await mkdtemp(`${root}.lint-fixtures-web-`);
+const dir = `${fixtureRoot}/src`;
+await mkdir(dir);
 // Only the rules these cases prove count. A fixture is a bare snippet, so the other rules in the
 // package config (anti-slop, Ultracite) report on it for reasons unrelated to the case.
 const CHECKED = "design(";
@@ -304,11 +299,8 @@ const vizCases = [
     "design(no-style-escape)",
   ],
 ];
-const vizRoot = `${root}src/viz`;
-const explorerRoot = `${root}src/explorer`;
-const explorerDir = `${explorerRoot}/design-rule-test-${dir.split("-").at(-1)}`;
-const createdExplorerRoot =
-  (await mkdir(explorerRoot, { recursive: true })) !== undefined;
+const vizRoot = `${dir}/viz`;
+const explorerDir = `${dir}/explorer`;
 await mkdir(explorerDir);
 cases.push(
   [
@@ -339,40 +331,21 @@ cases.push(
   ]
 );
 const frameDir = `${vizRoot}/frame`;
-const frameFile = `${frameDir}/frame.ts`;
-// The override applies to exactly this path, so lint the fixture there only when no real file would be overwritten.
-const frameFree = !(await readFile(frameFile, "utf-8")
-  .then(() => true)
-  .catch(() => false));
 const frameSource =
   'const mod = await import(URL.createObjectURL(blob)); document.documentElement.style.setProperty("--bg", theme.background); export default mod';
-const rmdirIfEmpty = async (path) => {
-  try {
-    await rmdir(path);
-  } catch (error) {
-    if (!["ENOTEMPTY", "EEXIST", "ENOENT"].includes(error.code)) throw error;
-  }
-};
-const createdVizRoot =
-  (await mkdir(vizRoot, { recursive: true })) !== undefined;
-const vizDir = `${root}src/viz/design-rule-test-${dir.split("-").at(-1)}`;
+const vizDir = vizRoot;
 await mkdir(vizDir);
 for (const [name, source, pass, code = "design(viz-theme-colors)"] of vizCases)
   cases.push([name, source, pass, vizDir, code]);
-if (frameFree)
-  cases.push([
+cases.push(
+  [
     "frame page blob import and setProperty",
     frameSource,
     true,
     frameDir,
     undefined,
     "frame.ts",
-  ]);
-else
-  logInfo(
-    "skipping the frame.ts fixture: a real src/viz/frame/frame.ts exists"
-  );
-cases.push(
+  ],
   [
     "frame page source elsewhere in src/viz",
     frameSource,
@@ -389,61 +362,104 @@ cases.push(
   ]
 );
 try {
+  const files = [];
   for (const [
-    name,
-    source,
-    pass,
-    caseDir = dir,
-    expected,
-    fileName = "case.tsx",
-  ] of cases) {
+    index,
+    [
+      name,
+      source,
+      pass,
+      caseDir = dir,
+      expected,
+      fileName = `case-${index}.tsx`,
+    ],
+  ] of cases.entries()) {
     if (caseDir === frameDir) await mkdir(frameDir, { recursive: true });
     const file = `${caseDir}/${fileName}`;
     await writeFile(file, source);
-    const result = spawnSync(
-      `${root}../../node_modules/.bin/effect-tsgo`,
-      ["--tsrs-lint", "oxlint", "--format", "json", file],
-      { cwd: root, encoding: "utf-8" }
-    );
-    assert.equal(result.error, undefined, name);
-    const diagnostics = JSON.parse(result.stdout).diagnostics;
-    assert.ok(
-      !diagnostics.some((d) => d.message.includes("Error running JS plugin")),
-      `${name}: plugin crashed`
-    );
+    files.push({
+      name,
+      pass,
+      expected,
+      file,
+      relative: file.slice(root.length),
+    });
+  }
+  const tsconfig = `${fixtureRoot}/tsconfig.json`;
+  await writeFile(
+    tsconfig,
+    JSON.stringify({
+      extends: "../tsconfig.app.json",
+      files: files.map(({ file }) => file.slice(fixtureRoot.length + 1)),
+      include: [],
+      exclude: [],
+      references: [],
+    })
+  );
+  // Isolate each case in a file while paying the type-aware lint startup cost once.
+  const lintResult = spawnSync(
+    `${root}../../node_modules/.bin/effect-tsgo`,
+    [
+      "--tsrs-lint",
+      "oxlint",
+      "--config",
+      "oxlint.fixtures.config.ts",
+      "--no-ignore",
+      "--tsconfig",
+      tsconfig,
+      "--format",
+      "json",
+      ...files.map(({ file }) => file),
+    ],
+    { cwd: root, encoding: "utf-8" }
+  );
+  assert.equal(lintResult.error, undefined, "batch lint failed to start");
+  const { diagnostics, number_of_files: linted } = JSON.parse(
+    lintResult.stdout
+  );
+  assert.equal(linted, files.length, "every fixture must be linted");
+  assert.ok(
+    !diagnostics.some((d) => d.message.includes("Error running JS plugin")),
+    "plugin crashed"
+  );
+  assert.equal(
+    lintResult.status === 0,
+    !diagnostics.some((d) => d.severity === "error"),
+    "wrong batch process status"
+  );
+  const byFile = new Map(files.map(({ relative }) => [relative, []]));
+  for (const diagnostic of diagnostics) {
+    const found = byFile.get(diagnostic.filename);
+    assert.ok(found, `unexpected diagnostic file: ${diagnostic.filename}`);
+    found.push(diagnostic);
+  }
+  for (const { name, pass, expected, relative } of files) {
+    const found = byFile.get(relative);
+    assert.ok(found, `${name}: missing fixture`);
     // anti-slop rules also report on the fixture, a new file; count only the rules under test.
-    const errors = diagnostics.filter(
+    const errors = found.filter(
       (d) => d.severity === "error" && d.code.startsWith(CHECKED)
     );
-    assert.equal(errors.length === 0, pass, `${name}: ${result.stdout}`);
+    assert.equal(
+      errors.length === 0,
+      pass,
+      `${name}: ${JSON.stringify(found)}`
+    );
     if (expected)
       assert.ok(
         pass ? errors.length === 0 : errors.some((d) => d.code === expected),
-        `${name}: expected ${expected}: ${result.stdout}`
+        `${name}: expected ${expected}: ${JSON.stringify(found)}`
       );
-    assert.equal(
-      result.status === 0,
-      !diagnostics.some((d) => d.severity === "error"),
-      `${name}: wrong process status`
-    );
   }
   const css = `${dir}/unused.css`;
   await writeFile(css, "body {}");
   const result = spawnSync(
     process.execPath,
-    ["scripts/check-design-files.mjs"],
+    ["scripts/check-design-files.mjs", fixtureRoot],
     { cwd: root, encoding: "utf-8" }
   );
   assert.equal(result.status, 1, "unused CSS must fail");
   logInfo(`${cases.length} Oxlint rule cases and unused CSS check passed`);
 } finally {
-  await rm(dir, { recursive: true, force: true });
-  await rm(vizDir, { recursive: true, force: true });
-  await rm(explorerDir, { recursive: true, force: true });
-  if (createdExplorerRoot) await rmdirIfEmpty(explorerRoot);
-  if (frameFree) {
-    await rm(frameFile, { force: true });
-    await rmdirIfEmpty(frameDir);
-  }
-  if (createdVizRoot) await rmdirIfEmpty(vizRoot);
+  await rm(fixtureRoot, { recursive: true, force: true });
 }

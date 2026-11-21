@@ -22,7 +22,7 @@
     "lint:design": "node scripts/test-design-rules.mjs",
     "lint:patterns": "node scripts/test-pattern-rules.mjs",
     "lint:xstate": "node scripts/test-xstate-rules.mjs",
-    "lint:core": "node ../../scripts/test-effect-core-rules.mjs .",
+    "lint:core": "node ../../scripts/test-effect-core-rules.mjs . tsconfig.app.json",
     "preview": "next start",
     "test:design": "node scripts/test-design-rules.mjs",
     "test:teams": "node --test tests/team-season.test.ts tests/team-machine.test.ts tests/boxscore-machine.test.ts tests/game-inspection.test.ts tests/viz-bench-renderers.test.ts tests/print-media.test.ts",

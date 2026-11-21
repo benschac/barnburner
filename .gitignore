@@ -17,6 +17,8 @@ dist-ssr
 **/.content-collections/
 **/src/tamagui.generated.css
 .turbo/
+# Generated lint cases are outside application source and never ship.
+**/.lint-fixtures-*/
 .next/
 next-env.d.ts
 .vercel/

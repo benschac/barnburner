@@ -1,5 +1,5 @@
 // Proves xstate6/pure-transitions fires on impure transition and action functions and stays quiet on the pure ones.
-// Each case is a fixture file under src/ (where the rule is enabled); one lint run reports all of them.
+// Each case uses the production source-path rules in an isolated fixture root; one lint run reports all of them.
 // Usage: node scripts/test-xstate-rules.mjs
 
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
@@ -25,6 +25,7 @@ class XStateRuleCaseFailed extends Schema.TaggedError()(
 ) {}
 
 const Report = Schema.Struct({
+  number_of_files: Schema.Number,
   diagnostics: Schema.Array(
     Schema.Struct({
       message: Schema.String,
@@ -34,6 +35,15 @@ const Report = Schema.Struct({
     })
   ),
 });
+const FixtureProject = Schema.fromJsonString(
+  Schema.Struct({
+    extends: Schema.String,
+    files: Schema.Array(Schema.String),
+    include: Schema.Array(Schema.Never),
+    exclude: Schema.Array(Schema.Never),
+    references: Schema.Array(Schema.Never),
+  })
+);
 
 const setup = "import { setupEffect } from '@xstate/effect'\n";
 
@@ -331,10 +341,12 @@ const program = Effect.fn("testXStateRules")(function* () {
   const webUrl = yield* path.fromFileUrl(new URL("../", import.meta.url));
   const root = path.resolve(webUrl);
   const effectTsgo = path.join(root, "../../node_modules/.bin/effect-tsgo");
-  const dir = yield* fs.makeTempDirectoryScoped({
-    directory: path.join(root, "src"),
-    prefix: "xstate-rule-test-",
+  const fixtureRoot = yield* fs.makeTempDirectoryScoped({
+    directory: root,
+    prefix: ".lint-fixtures-web-",
   });
+  const dir = path.join(fixtureRoot, "src");
+  yield* fs.makeDirectory(dir);
 
   const files = yield* Effect.forEach(
     cases,
@@ -345,6 +357,15 @@ const program = Effect.fn("testXStateRules")(function* () {
       return { name, expected, file, base: path.basename(file) };
     })
   );
+  const tsconfig = path.join(fixtureRoot, "tsconfig.json");
+  const project = yield* Schema.encodeEffect(FixtureProject)({
+    extends: "../tsconfig.app.json",
+    files: Array.map(files, ({ file }) => path.relative(fixtureRoot, file)),
+    include: [],
+    exclude: [],
+    references: [],
+  });
+  yield* fs.writeFileString(tsconfig, project);
 
   const handle = yield* spawner.spawn(
     ChildProcess.make(
@@ -352,6 +373,11 @@ const program = Effect.fn("testXStateRules")(function* () {
       [
         "--tsrs-lint",
         "oxlint",
+        "--config",
+        "oxlint.fixtures.config.ts",
+        "--no-ignore",
+        "--tsconfig",
+        tsconfig,
         "--format",
         "json",
         ...Array.map(files, ({ file }) => file),
@@ -368,9 +394,13 @@ const program = Effect.fn("testXStateRules")(function* () {
     { concurrency: "unbounded" }
   );
 
-  const { diagnostics } = yield* Schema.decodeUnknownEffect(
-    Schema.fromJsonString(Report)
-  )(stdout);
+  const { diagnostics, number_of_files: linted } =
+    yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Report))(stdout);
+  if (linted !== files.length)
+    return yield* new XStateRuleCaseFailed({
+      name: "fixtures",
+      message: `expected ${files.length} linted files, got ${linted}`,
+    });
 
   const crashed = Array.findFirst(diagnostics, (d) =>
     d.message.includes("Error running JS plugin")
@@ -380,6 +410,15 @@ const program = Effect.fn("testXStateRules")(function* () {
     return yield* new XStateRuleCaseFailed({
       name: "plugin",
       message: crashed.value.message,
+    });
+  const exitCode = yield* handle.exitCode;
+  const expectedExit = Array.some(diagnostics, (d) => d.severity === "error")
+    ? 1
+    : 0;
+  if (exitCode !== expectedExit)
+    return yield* new XStateRuleCaseFailed({
+      name: "process",
+      message: `expected exit ${expectedExit}, got ${exitCode}`,
     });
 
   yield* Effect.forEach(

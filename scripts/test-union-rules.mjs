@@ -16,7 +16,7 @@ const effectTsgo = fileURLToPath(
   new URL("../node_modules/.bin/effect-tsgo", import.meta.url)
 );
 const root = resolve(process.argv[2] ?? ".");
-const dir = await mkdtemp(`${root}/union-rule-test-`);
+const dir = await mkdtemp(`${root}/.lint-fixtures-union-`);
 // Only the rules these cases prove count. A fixture is a bare snippet, so the other rules in the
 // package config (anti-slop, Ultracite) report on it for reasons unrelated to the case.
 const CHECKED =
@@ -78,35 +78,68 @@ const cases = [
 ];
 
 try {
-  for (const [name, source, expected] of cases) {
-    const file = `${dir}/case.ts`;
+  const files = [];
+  for (const [index, [name, source, expected]] of cases.entries()) {
+    const file = `${dir}/case-${index}.ts`;
     await writeFile(file, source);
-    const result = spawnSync(
-      effectTsgo,
-      ["--tsrs-lint", "oxlint", "--format", "json", file],
-      { cwd: root, encoding: "utf8" }
-    );
-    assert.equal(result.error, undefined, name);
-    const { diagnostics } = JSON.parse(result.stdout);
-    assert.ok(
-      !diagnostics.some((d) => d.message.includes("Error running JS plugin")),
-      `${name}: plugin crashed`
-    );
+    files.push({ name, expected, file, relative: file.slice(root.length + 1) });
+  }
+  const tsconfig = `${dir}/tsconfig.json`;
+  await writeFile(
+    tsconfig,
+    JSON.stringify({
+      extends: "../tsconfig.json",
+      files: files.map(({ file }) => file.slice(dir.length + 1)),
+      include: [],
+      exclude: [],
+      references: [],
+    })
+  );
+  const result = spawnSync(
+    effectTsgo,
+    [
+      "--tsrs-lint",
+      "oxlint",
+      "--no-ignore",
+      "--tsconfig",
+      tsconfig,
+      "--format",
+      "json",
+      ...files.map(({ file }) => file),
+    ],
+    { cwd: root, encoding: "utf8" }
+  );
+  assert.equal(result.error, undefined, "batch lint failed to start");
+  const { diagnostics, number_of_files: linted } = JSON.parse(result.stdout);
+  assert.equal(linted, files.length, "every fixture must be linted");
+  assert.ok(
+    !diagnostics.some((d) => d.message.includes("Error running JS plugin")),
+    "plugin crashed"
+  );
+  assert.equal(
+    result.status,
+    diagnostics.some((d) => d.severity === "error") ? 1 : 0,
+    "wrong batch process status"
+  );
+  const byFile = new Map(files.map(({ relative }) => [relative, []]));
+  for (const diagnostic of diagnostics) {
+    const found = byFile.get(diagnostic.filename);
+    assert.ok(found, `unexpected diagnostic file: ${diagnostic.filename}`);
+    found.push(diagnostic);
+  }
+  for (const { name, expected, relative } of files) {
+    const found = byFile.get(relative);
+    assert.ok(found, `${name}: missing fixture`);
     // anti-slop rules also report on the fixture, a new file; count only the rules under test.
-    const errors = diagnostics.filter(
+    const errors = found.filter(
       (d) => d.severity === "error" && CHECKED.test(d.code)
     );
     if (expected)
       assert.ok(
         errors.some((d) => d.code === expected),
-        `${name}: ${result.stdout}`
+        `${name}: ${JSON.stringify(found)}`
       );
-    else assert.equal(errors.length, 0, `${name}: ${result.stdout}`);
-    assert.equal(
-      result.status,
-      diagnostics.some((d) => d.severity === "error") ? 1 : 0,
-      name
-    );
+    else assert.equal(errors.length, 0, `${name}: ${JSON.stringify(found)}`);
   }
   logInfo(`${cases.length} union-model and type-aware lint cases passed`);
 } finally {
