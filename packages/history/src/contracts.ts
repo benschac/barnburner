@@ -177,6 +177,13 @@ export const OpposedGameSchema = Schema.Struct({
   aTeamId: Schema.Int,
   bTeamId: Schema.Int,
 });
+/** A teammate with the pair's passing spans, as `GetLink` returns them. */
+export const TeammateSchema = Schema.Struct({
+  playerId: Schema.Int,
+  name: Schema.String,
+  position: PositionSchema,
+  spans: Schema.Array(LinkSpanSchema),
+});
 export const OpponentSchema = Schema.Struct({
   playerId: Schema.Int,
   name: Schema.String,
@@ -254,6 +261,16 @@ export const GetSharedGamesInput = Schema.Struct({
 export const GetSharedGamesResult = Schema.Struct({
   snapshotId: Schema.String,
   games: Schema.Array(SharedGameSchema),
+});
+
+export const GetTeammatesInput = Schema.Struct({
+  playerId: Schema.Int,
+  filter: FilterSchema,
+});
+/** Every teammate with at least one span passing the filter, ascending by player ID. */
+export const GetTeammatesResult = Schema.Struct({
+  snapshotId: Schema.String,
+  teammates: Schema.Array(TeammateSchema),
 });
 
 export const GetOpponentsInput = Schema.Struct({
@@ -339,6 +356,12 @@ export const GetSharedGames = Rpc.make("GetSharedGames", {
   error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
 });
 
+export const GetTeammates = Rpc.make("GetTeammates", {
+  payload: GetTeammatesInput,
+  success: GetTeammatesResult,
+  error: Schema.Union([HistoryUnavailable, UnknownPlayer]),
+});
+
 export const GetOpponents = Rpc.make("GetOpponents", {
   payload: GetOpponentsInput,
   success: GetOpponentsResult,
@@ -380,6 +403,7 @@ export const HistoryRpcs = RpcGroup.make(
   GetRoster,
   GetLink,
   GetSharedGames,
+  GetTeammates,
   GetOpponents,
   GetOpposedGames,
   FindPath,

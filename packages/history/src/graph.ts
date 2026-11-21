@@ -12,6 +12,7 @@ import type {
   LinkResult,
   LinkSpan,
   Opponent,
+  TeammateLink,
 } from "./shapes.ts";
 
 /**
@@ -203,6 +204,16 @@ const passingSpans = (
   return spans;
 };
 
+/** Every passing span of link `linkId`: shared-game spans first, then goalie-partner spans, each in array order. */
+const linkSpans = (
+  graph: Graph,
+  linkId: number,
+  filter: Filter
+): readonly LinkSpan[] => [
+  ...passingSpans(graph, linkId, filter, 0),
+  ...passingSpans(graph, linkId, filter, 1),
+];
+
 /**
  * Opponent adjacency in CSR form (D14). Player `p`'s opponents are `neighbours[offsets[p]..offsets[p + 1])`,
  * ascending by player index (so ascending by player ID), with `games` at the same position. A pair is
@@ -383,10 +394,7 @@ export const link = (
   const opposedGames = opponentGamesBetween(graph.arrays, ai, bi);
   const linkId = linkIdBetween(graph, ai, bi);
   if (linkId < 0) return Result.succeed(noTeammateLink(opposedGames));
-  const spans = [
-    ...passingSpans(graph, linkId, filter, 0),
-    ...passingSpans(graph, linkId, filter, 1),
-  ];
+  const spans = linkSpans(graph, linkId, filter);
   if (spans.length === 0) return Result.succeed(noTeammateLink(opposedGames));
   const totalGames = spans.reduce((sum, span) => sum + span.games, 0);
   return Result.succeed({
@@ -395,4 +403,35 @@ export const link = (
     evidenceGameId: spans[0].firstGameId,
     opposedGames,
   });
+};
+
+/**
+ * Every teammate of a player under the filter, ascending by player ID, each with the spans `link` returns
+ * for the pair. A teammate with no passing span is left out. One walk over the player's adjacency, so a
+ * caller that wants the whole list never asks pair by pair.
+ */
+export const teammateLinks = (
+  graph: TeammateGraph,
+  playerId: number,
+  filter: Filter
+): Result.Result<readonly TeammateLink[], UnknownPlayer> => {
+  const index = graph.indexOf.get(playerId);
+  if (index === undefined) return Result.fail(new UnknownPlayer({ playerId }));
+  const { offsets, neighbours, linkIds } = graph.adjacency;
+  const start = offsets[index];
+  const end = offsets[index + 1];
+  return Result.succeed(
+    Array.flatMapNullishOr(
+      Array.zip(
+        Array.fromIterable(neighbours.subarray(start, end)),
+        Array.fromIterable(linkIds.subarray(start, end))
+      ),
+      ([neighbour, linkId]) => {
+        const spans = linkSpans(graph, linkId, filter);
+        return spans.length === 0
+          ? null
+          : { playerId: graph.arrays.playerIds[neighbour], spans };
+      }
+    )
+  );
 };

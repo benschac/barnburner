@@ -24,6 +24,8 @@ import {
   GetRosterResult,
   GetSharedGamesInput,
   GetSharedGamesResult,
+  GetTeammatesInput,
+  GetTeammatesResult,
   HistoryRpcs,
   HistoryUnavailable,
   LinkResultSchema,
@@ -256,6 +258,27 @@ test("every RPC input and output round-trips one value", () => {
       { gameId: 1951020001, gameDate: "1951-10-10", link: "GoaliePartners" },
     ],
   });
+  roundTrip(GetTeammatesInput, { playerId: 16, filter: DEFAULT_FILTER });
+  roundTrip(GetTeammatesResult, {
+    snapshotId: MINI_SNAPSHOT_ID,
+    teammates: [
+      {
+        playerId: 17,
+        name: "Goalie Seventeen",
+        position: "G",
+        spans: [
+          {
+            seasonId: 19511952,
+            gameType: 2,
+            teamId: 3,
+            link: "GoaliePartners",
+            games: 3,
+            firstGameId: 1951020001,
+          },
+        ],
+      },
+    ],
+  });
   roundTrip(GetOpponentsInput, { playerId: 16, limit: 50, offset: 0 });
   roundTrip(GetOpponentsResult, {
     snapshotId: MINI_SNAPSHOT_ID,
@@ -372,7 +395,7 @@ test("tagged errors round-trip and carry their context", () => {
   }
 });
 
-test("HistoryRpcs declares the ten calls", () => {
+test("HistoryRpcs declares the eleven calls", () => {
   assert.deepEqual(Array.sort([...HistoryRpcs.requests.keys()], Order.String), [
     "FindPath",
     "GetFarthest",
@@ -383,6 +406,7 @@ test("HistoryRpcs declares the ten calls", () => {
     "GetPlayer",
     "GetRoster",
     "GetSharedGames",
+    "GetTeammates",
     "SearchPlayers",
   ]);
 });

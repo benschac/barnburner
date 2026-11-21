@@ -151,6 +151,12 @@ export type LinkResult = {
   readonly opposedGames: number;
 };
 
+/** One teammate and the passing spans of the pair, as `link` lists them. */
+export type TeammateLink = {
+  readonly playerId: number;
+  readonly spans: readonly LinkSpan[];
+};
+
 export type Opponent = {
   readonly playerId: number;
   readonly games: number;

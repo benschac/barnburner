@@ -34,6 +34,10 @@ export type HistoryStore = {
     query: string,
     limit: number
   ) => Effect.Effect<readonly PlayerRow[], HistoryUnavailable>;
+  /** The rows of the given players in one read, in no set order. An ID the file does not hold is left out. */
+  readonly players: (
+    playerIds: readonly number[]
+  ) => Effect.Effect<readonly PlayerRow[], HistoryUnavailable>;
   /** Stints are ordered by season, game type, team. */
   readonly player: (
     playerId: number

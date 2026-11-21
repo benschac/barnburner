@@ -11,7 +11,7 @@ import {
   UnknownRoster,
 } from "@nhl-reddit-stats/history/contracts";
 import type { GraphArrays } from "@nhl-reddit-stats/history/shapes";
-import { Effect, Exit, Schema, Scope } from "effect";
+import { Array, Effect, Exit, Order, Schema, Scope } from "effect";
 
 import {
   MINI_ARRAYS,
@@ -238,6 +238,18 @@ test("player returns the row and ordered stints, and unknown ids fail", () =>
       await fail(store.player(21)),
       new UnknownPlayer({ playerId: 21 })
     );
+  }));
+
+test("players reads many rows in one call and leaves out unknown ids", () =>
+  withMini(async (store) => {
+    const rows = await run(store.players([16, 11, 999, 19]));
+    const byId = Array.sortWith(rows, (row) => row.playerId, Order.Number);
+    assert.deepEqual(byId, [
+      (await run(fake.player(11))).player,
+      (await run(fake.player(16))).player,
+      (await run(fake.player(19))).player,
+    ]);
+    assert.deepEqual(await run(store.players([])), []);
   }));
 
 test("roster lists stint players, and an empty one is UnknownRoster", () =>

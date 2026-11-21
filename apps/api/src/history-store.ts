@@ -95,6 +95,7 @@ const MetaSchema = Schema.Struct({ value: Schema.String });
 const FoundSchema = Schema.Struct({ found: Schema.Int });
 
 const PlayerIdRequest = Schema.Struct({ playerId: Schema.Int });
+const PlayerIdsRequest = Schema.Struct({ playerIds: Schema.Array(Schema.Int) });
 const SearchRequest = Schema.Struct({ needle: Schema.String, limit: Count });
 const RosterRequest = Schema.Struct({
   teamId: Schema.Int,
@@ -193,6 +194,8 @@ const buildHistoryStore = (
       sql`SELECT ${playerColumns} FROM players WHERE instr(search_name, ${needle}) > 0 ORDER BY games DESC, player_id LIMIT ${limit}`;
     const playerSql = ({ playerId }: typeof PlayerIdRequest.Encoded) =>
       sql`SELECT ${playerColumns} FROM players WHERE player_id = ${playerId}`;
+    const playersSql = ({ playerIds }: typeof PlayerIdsRequest.Encoded) =>
+      sql`SELECT ${playerColumns} FROM players WHERE player_id IN ${sql.in(playerIds)}`;
     const stintsSql = ({ playerId }: typeof PlayerIdRequest.Encoded) => sql`
     SELECT s.season_id AS seasonId, s.game_type AS gameType, s.team_id AS teamId, t.abbrev AS teamAbbrev,
            t.name AS teamName, s.games, s.first_game_id AS firstGameId, s.last_game_id AS lastGameId
@@ -276,6 +279,7 @@ const buildHistoryStore = (
     const probes = [
       searchSql({ needle: "", limit: 0 }),
       playerSql({ playerId: 0 }),
+      playersSql({ playerIds: [0] }),
       stintsSql({ playerId: 0 }),
       rosterSql({ teamId: 0, seasonId: 0, gameType: 2 }),
       knownSql({ playerId: 0 }),
@@ -303,6 +307,11 @@ const buildHistoryStore = (
       Request: PlayerIdRequest,
       Result: PlayerRowSchema,
       execute: playerSql,
+    });
+    const playersQuery = SqlSchema.findAll({
+      Request: PlayerIdsRequest,
+      Result: PlayerRowSchema,
+      execute: playersSql,
     });
     const stintsQuery = SqlSchema.findAll({
       Request: PlayerIdRequest,
@@ -467,6 +476,14 @@ const buildHistoryStore = (
       );
     };
 
+    const players: HistoryStore["players"] = (ids) =>
+      ids.length === 0
+        ? Effect.succeed([])
+        : playersQuery({ playerIds: ids }).pipe(
+            queried,
+            Effect.map((rows): readonly PlayerRow[] => rows)
+          );
+
     const player: HistoryStore["player"] = (playerId) =>
       Effect.gen(function* () {
         const found = yield* playerQuery({ playerId }).pipe(queried);
@@ -565,6 +582,7 @@ const buildHistoryStore = (
       snapshotId,
       graph,
       searchPlayers,
+      players,
       player,
       roster,
       sharedGames,
