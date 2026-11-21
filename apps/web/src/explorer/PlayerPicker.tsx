@@ -7,14 +7,17 @@ import type {
 } from "@nhl-reddit-stats/history/rpc";
 import { Cause, Match, Option } from "effect";
 import { AsyncResult } from "effect/reactivity";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Input, Text, View, styled } from "tamagui";
+import { createActor } from "xstate";
+import type { Actor, EventFromLogic, SnapshotFrom } from "xstate";
 
-import { Copy, List } from "../components/team-poster/primitives.tsx";
-import { useDelay } from "../use-delay.ts";
+import { Copy } from "../components/team-poster/primitives.tsx";
 import { seasonSpan } from "../viz/PlayerCard.tsx";
 import { player, searchPlayers } from "./history-atoms.ts";
+import { minQueryLength, pickerMachine } from "./player-picker-machine.ts";
+import type { PickerOption } from "./player-picker-machine.ts";
 import { fromAtom, toAtom, writeSearchParam } from "./url-state.ts";
 
 const Field = styled(Input, {
@@ -44,6 +47,22 @@ const ActionFrame = styled(View, {
   cursor: "pointer",
 });
 
+// The result list floats under the input, over the content below it, so opening it does not move the page.
+const Overlay = styled(View, {
+  position: "absolute",
+  t: "100%",
+  l: "0",
+  r: "0",
+  z: 1,
+  mt: "1",
+  p: "1",
+  gap: "1",
+  rounded: "sm",
+  bg: "background",
+  borderWidth: 1,
+  borderColor: "rule",
+});
+
 type ActionProps = {
   readonly disabled: boolean;
   readonly onPress: () => void;
@@ -64,9 +83,8 @@ function Action({ disabled, onPress, children }: ActionProps) {
   );
 }
 
-const searchDelayMs = 250;
-const minQueryLength = 2;
 const resultLimit = 8;
+const noOptions: readonly PickerOption[] = [];
 
 type PickerError = UnknownPlayer | HistoryUnavailable;
 
@@ -77,6 +95,10 @@ type Summary = {
   readonly firstSeason: number;
   readonly lastSeason: number;
 };
+
+type PickerActor = Actor<typeof pickerMachine>;
+type PickerSnapshot = SnapshotFrom<typeof pickerMachine>;
+type PickerEvent = EventFromLogic<typeof pickerMachine>;
 
 const describe = (summary: Summary) =>
   `${summary.name} · ${summary.position} · ${seasonSpan(summary.firstSeason, summary.lastSeason)}`;
@@ -94,6 +116,9 @@ const failureMessage = (cause: Cause.Cause<PickerError>) =>
     onSome: errorMessage,
   });
 
+const optionId = (listboxId: string, index: number) =>
+  `${listboxId}-option-${index}`;
+
 function Selected({ playerId }: { readonly playerId: number }) {
   const result = useAtomValue(player({ playerId }));
   return (
@@ -109,12 +134,25 @@ function Selected({ playerId }: { readonly playerId: number }) {
 
 type ResultsProps = {
   readonly query: string;
-  readonly disabled: boolean;
-  readonly onPick: (playerId: number) => void;
+  readonly listboxId: string;
+  readonly highlighted: number | null;
+  readonly send: (event: PickerEvent) => void;
 };
 
-function Results({ query, disabled, onPick }: ResultsProps) {
+function Results({ query, listboxId, highlighted, send }: ResultsProps) {
   const result = useAtomValue(searchPlayers({ query, limit: resultLimit }));
+  const players = AsyncResult.isSuccess(result)
+    ? result.value.players
+    : undefined;
+  // The machine moves the highlight over the options, so it hears about each set of results for its query.
+  useEffect(() => {
+    send({
+      type: "Results",
+      query,
+      options:
+        players?.map(({ playerId, name }) => ({ playerId, name })) ?? noOptions,
+    });
+  }, [players, query, send]);
   return AsyncResult.match(result, {
     onInitial: (): ReactNode => <Copy role="status">Searching…</Copy>,
     onFailure: ({ cause }): ReactNode => (
@@ -124,23 +162,63 @@ function Results({ query, disabled, onPick }: ResultsProps) {
       value.players.length === 0 ? (
         <Copy role="status">{`No players match “${query}”.`}</Copy>
       ) : (
-        <List gap="1">
-          {value.players.map((summary) => (
-            <View render="li" key={summary.playerId}>
-              <Action
-                disabled={disabled}
-                onPress={() => {
-                  onPick(summary.playerId);
-                }}
-              >
+        // Tamagui's Role type has no "listbox", so the role rides on the element the View renders.
+        <View render={<div role="listbox" />} id={listboxId} gap="1">
+          {value.players.map((summary, index) => (
+            <View
+              key={summary.playerId}
+              id={optionId(listboxId, index)}
+              role="option"
+              aria-selected={highlighted === index}
+              minH="badge"
+              px="3"
+              justify="center"
+              rounded="sm"
+              borderWidth={1}
+              bg={highlighted === index ? "highlight" : "surface"}
+              borderColor={highlighted === index ? "gold" : "transparent"}
+              cursor="pointer"
+              // Keeps focus in the input, so its blur cannot close the list before the press lands.
+              onMouseDown={(event) => {
+                event.preventDefault();
+              }}
+              onMouseEnter={() => {
+                send({ type: "Highlight", index });
+              }}
+              onPress={() => {
+                send({ type: "PickOption", index });
+              }}
+            >
+              <Text fontFamily="body" fontSize="body" color="color">
                 {describe(summary)}
-              </Action>
+              </Text>
             </View>
           ))}
-        </List>
+        </View>
       ),
   });
 }
+
+/** The machine event a key in the input stands for; other keys edit the draft. */
+const keyEvent = (key: string): PickerEvent | null => {
+  switch (key) {
+    case "ArrowDown": {
+      return { type: "HighlightNext" };
+    }
+    case "ArrowUp": {
+      return { type: "HighlightPrevious" };
+    }
+    case "Enter": {
+      return { type: "PickHighlighted" };
+    }
+    case "Escape": {
+      return { type: "Escape" };
+    }
+    default: {
+      return null;
+    }
+  }
+};
 
 type PlayerPickerProps = {
   readonly param: "from" | "to";
@@ -149,9 +227,10 @@ type PlayerPickerProps = {
 };
 
 /**
- * Picks a player into one URL parameter. The text is a draft: it becomes the search query after typing settles,
- * and choosing a result is the only write (one history entry). History navigation drops the draft and any queued
- * search, so the selection shown is always the URL's.
+ * Picks a player into one URL parameter, as a WAI-ARIA combobox with a list of results. The text is a draft: it becomes
+ * the search query after typing settles, and choosing a result is the only write (one history entry). History
+ * navigation drops the draft and any queued search, so the selection shown is always the URL's. The UI state lives in
+ * `pickerMachine`; this component owns the URL write and the `popstate` listener.
  */
 export function PlayerPicker({
   param,
@@ -159,25 +238,41 @@ export function PlayerPicker({
   disabled = false,
 }: PlayerPickerProps) {
   const selected = useAtomValue(param === "from" ? fromAtom : toAtom);
-  const [draft, setDraft] = useState("");
-  const [query, setQuery] = useState("");
-  const { schedule, cancel } = useDelay(searchDelayMs);
+  const listboxId = useId();
+  const actorRef = useRef<PickerActor | null>(null);
+  const [snapshot, setSnapshot] = useState<PickerSnapshot | null>(null);
   useEffect(() => {
+    const actor = createActor(pickerMachine);
+    actorRef.current = actor;
+    const subscription = actor.subscribe(setSnapshot);
+    const picked = actor.on("Picked", ({ playerId }) => {
+      writeSearchParam(param, String(playerId));
+    });
     const onHistory = () => {
-      cancel();
-      setDraft("");
-      setQuery("");
+      actor.send({ type: "Reset" });
     };
     window.addEventListener("popstate", onHistory);
+    actor.start();
     return () => {
       window.removeEventListener("popstate", onHistory);
+      picked.unsubscribe();
+      subscription.unsubscribe();
+      actor.stop();
+      if (actorRef.current === actor) actorRef.current = null;
     };
-  }, [cancel]);
-  const reset = () => {
-    cancel();
-    setDraft("");
-    setQuery("");
-  };
+  }, [param]);
+  const send = useCallback((event: PickerEvent) => {
+    actorRef.current?.send(event);
+  }, []);
+  const context = snapshot?.context;
+  const draft = context?.draft ?? "";
+  const query = context?.query ?? "";
+  const highlighted = context?.highlighted ?? null;
+  const open =
+    !disabled &&
+    context !== undefined &&
+    context.open &&
+    query.length >= minQueryLength;
   return (
     <View gap="1">
       {Option.isSome(selected) ? (
@@ -185,39 +280,57 @@ export function PlayerPicker({
       ) : (
         <Copy color="muted">No player chosen.</Copy>
       )}
-      <label>
-        {label}{" "}
-        <Field
-          value={draft}
-          disabled={disabled}
-          autoComplete="off"
-          onChangeText={(next) => {
-            setDraft(next);
-            schedule(() => {
-              setQuery(next.trim());
-            });
-          }}
-        />
-      </label>
+      <View position="relative">
+        <label>
+          {label}{" "}
+          <Field
+            value={draft}
+            disabled={disabled}
+            autoComplete="off"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={open}
+            aria-controls={listboxId}
+            aria-activedescendant={
+              open && highlighted !== null
+                ? optionId(listboxId, highlighted)
+                : undefined
+            }
+            onChangeText={(text) => {
+              send({ type: "Type", text });
+            }}
+            onKeyDown={(event) => {
+              const forKey = keyEvent(event.key);
+              if (forKey === null) return;
+              // Arrow keys would move the caret and Enter could submit a form; the picker owns these keys.
+              event.preventDefault();
+              send(forKey);
+            }}
+            onBlur={() => {
+              send({ type: "Blur" });
+            }}
+          />
+        </label>
+        {open ? (
+          <Overlay>
+            <Results
+              query={query}
+              listboxId={listboxId}
+              highlighted={highlighted}
+              send={send}
+            />
+          </Overlay>
+        ) : null}
+      </View>
       <Action
         disabled={disabled || Option.isNone(selected)}
         onPress={() => {
-          reset();
+          send({ type: "Reset" });
           writeSearchParam(param, null);
         }}
       >
         Clear
       </Action>
-      {query.length >= minQueryLength ? (
-        <Results
-          query={query}
-          disabled={disabled}
-          onPick={(playerId) => {
-            reset();
-            writeSearchParam(param, String(playerId));
-          }}
-        />
-      ) : null}
     </View>
   );
 }
